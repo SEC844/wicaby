@@ -526,9 +526,13 @@ jobs:
             echo "**Source code:** \`wicaby-${TAG#v}-source.tar.gz\` is the complete source of this release (GPL-3.0-or-later); see \`THIRD_PARTY_NOTICES.md\`."
             echo "**mpv (Windows):** [shinchiro/mpv-winbuild-cmake \`$MPV_TAG\`](https://github.com/shinchiro/mpv-winbuild-cmake/releases/tag/$MPV_TAG), mpv \`git-$MPV_COMMIT\`; its source is \`mpv-winbuild-$MPV_TAG-source.tar.gz\`."
           } >> release/notes.md
-          # nullglob: a dry run may have no Windows files and no update.json.
+          # A dry run may have no Windows files (nullglob) and no update.json (unsigned APKs).
           shopt -s nullglob
-          (cd release && sha256sum windows/*.exe linux/* tv/*.apk mobile/*.apk mobile-gplay/*.apk update.json wicaby-*-source.tar.gz mpv-winbuild-*-source.tar.gz LICENSE.txt LICENSE-EXCEPTION.md THIRD_PARTY_NOTICES.md wicaby-mesh-THIRD_PARTY_LICENSES.txt | sed 's#  [^ ]*/#  #' > SHA256SUMS.txt)
+          cd release
+          files=(windows/*.exe linux/* tv/*.apk mobile/*.apk mobile-gplay/*.apk wicaby-*-source.tar.gz mpv-winbuild-*-source.tar.gz LICENSE.txt LICENSE-EXCEPTION.md THIRD_PARTY_NOTICES.md wicaby-mesh-THIRD_PARTY_LICENSES.txt)
+          if [ -f update.json ]; then files+=(update.json); fi
+          sha256sum "${files[@]}" | sed 's#  [^ ]*/#  #' > SHA256SUMS.txt
+          cd ..
           cat release/SHA256SUMS.txt
           if [ "$DRY_RUN" = true ]; then
             echo "::notice::Dry run complete for $TAG (would publish to $TARGET_REPO); nothing was published"
