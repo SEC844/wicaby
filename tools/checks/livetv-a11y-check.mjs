@@ -438,13 +438,15 @@ export async function captureSnapshot(port, opts = {}) {
   }
 }
 
+const handedOut = new Set();
 function freePort() {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.once('error', reject);
     srv.listen(0, '127.0.0.1', () => {
       const { port } = srv.address();
-      srv.close(() => resolve(port));
+      // Never the same port twice: a closed port can be handed out again before its mock binds it.
+      srv.close(() => (handedOut.has(port) ? freePort().then(resolve, reject) : (handedOut.add(port), resolve(port))));
     });
   });
 }

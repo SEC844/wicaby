@@ -36,13 +36,15 @@ const BOOT = `data:text/javascript,${encodeURIComponent(
   "import net from 'node:net';const l=net.Server.prototype.listen;net.Server.prototype.listen=function(...a){if(typeof a[0]==='number'&&(a.length===1||typeof a[1]==='function'))a.splice(1,0,'127.0.0.1');return l.apply(this,a)};",
 )}`;
 
+const handedOut = new Set();
 function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.once('error', reject);
     s.listen(0, LOOPBACK, () => {
       const { port } = s.address();
-      s.close(() => resolve(port));
+      // Never the same port twice: a closed port can be handed out again before its mock binds it.
+      s.close(() => (handedOut.has(port) ? freePort().then(resolve, reject) : (handedOut.add(port), resolve(port))));
     });
   });
 }

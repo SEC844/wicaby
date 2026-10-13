@@ -141,13 +141,15 @@ const cleanup = () => {
 process.on('exit', cleanup);
 process.on('SIGINT', () => process.exit(130));
 
+const handedOut = new Set();
 function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.once('error', reject);
     s.listen(0, LOOPBACK, () => {
       const { port } = s.address();
-      s.close(() => resolve(port));
+      // Never the same port twice: a closed port can be handed out again before its mock binds it.
+      s.close(() => (handedOut.has(port) ? freePort().then(resolve, reject) : (handedOut.add(port), resolve(port))));
     });
   });
 }

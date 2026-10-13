@@ -140,13 +140,15 @@ console.log('ok pure: vault entries, Emby skipped');
 // ---- Mocks (loopback only) ----
 const children = new Set();
 process.on('exit', () => children.forEach((c) => c.kill()));
+const handedOut = new Set();
 function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.once('error', reject);
     s.listen(0, '127.0.0.1', () => {
       const { port } = s.address();
-      s.close(() => resolve(port));
+      // Never the same port twice: a closed port can be handed out again before its mock binds it.
+      s.close(() => (handedOut.has(port) ? freePort().then(resolve, reject) : (handedOut.add(port), resolve(port))));
     });
   });
 }

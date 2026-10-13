@@ -81,13 +81,15 @@ const GUARD = `data:text/javascript,${encodeURIComponent(
   assert.ok(r.status !== 0 && /GUARD non-loopback connect to 192\.0\.2\.1/.test(r.stderr), 'the connection guard stops a non-loopback connect');
 }
 
+const handedOut = new Set();
 function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.once('error', reject);
     s.listen(0, LOOPBACK, () => {
       const { port } = s.address();
-      s.close(() => resolve(port));
+      // Never the same port twice: a closed port can be handed out again before its mock binds it.
+      s.close(() => (handedOut.has(port) ? freePort().then(resolve, reject) : (handedOut.add(port), resolve(port))));
     });
   });
 }
