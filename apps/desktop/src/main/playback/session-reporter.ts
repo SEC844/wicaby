@@ -3,6 +3,7 @@
 import { TICKS_PER_MS, type PlaybackState } from '../../shared/contract';
 import type { ApiClient } from '../connection/api-client';
 import { logger } from '../core/log';
+import { t } from '../i18n';
 import type { LivePlayback } from '../livetv/live-player';
 import type { Current, PlaybackDeps } from './playback-model';
 
@@ -18,16 +19,20 @@ export interface ReportHost {
   readonly lives: LivePlayback;
   // Every report also goes out as a 'report' event (Trakt scrobbling, features/trakt.ts).
   report(action: 'start' | 'pause' | 'stop', serverId: string | undefined, item: Current['item'], positionMs: number, durationMs: number): void;
+  // The server ended the session (a Plex timeline answer with terminationText, plex-spec §6.5): stop and say why.
+  terminated(c: Current, text: string): void;
 }
 
 export class SessionReporter {
   private progressTimer: NodeJS.Timeout | null = null;
   private pausedTicks = 0;
+  // The last stop this reporter sent: PMS broadcasts it back as a 'playing' stopped notification (serverEnded).
+  private lastStop: { id: string; at: number } | null = null;
 
   constructor(private readonly host: ReportHost) {}
 
   private body(extra: Record<string, unknown> = {}, c = this.host.current): Record<string, unknown> | null {
-    if (!c || c.trailer) return null;
+    if (!c || c.trailer || c.terminated) return null;
     const state = this.host.state;
     return {
       ItemId: c.item.Id,
@@ -60,8 +65,9 @@ export class SessionReporter {
   start(): void {
     const body = this.body();
     const api = this.online();
-    if (body) this.scrobble('start', this.host.current!);
-    if (body && api) api.post('/Sessions/Playing', undefined, body).catch((err) => log.warn('report start failed', err));
+    const c = this.host.current;
+    if (body) this.scrobble('start', c!);
+    if (body && api) api.post('/Sessions/Playing', undefined, body).then((r) => this.ended(r, c), (err) => log.warn('report start failed', err));
   }
 
   progress(event: string): void {
@@ -71,11 +77,36 @@ export class SessionReporter {
     const body = this.body({ EventName: event });
     const api = this.online();
     if (body && (event === 'Pause' || event === 'Unpause')) this.scrobble(event === 'Pause' ? 'pause' : 'start', this.host.current!);
-    if (body && api) api.post('/Sessions/Playing/Progress', undefined, body).catch((err) => log.debug(`report progress failed: ${String(err)}`));
+    if (body && api) api.post('/Sessions/Playing/Progress', undefined, body).then((r) => this.ended(r, current), (err) => log.debug(`report progress failed: ${String(err)}`));
   }
 
-  // switching (X-02): the old session of an in-place reload, never marked played by Wicaby.
-  async stopped(c = this.host.current, switching = false): Promise<void> {
+  // Only the Plex dialect answers a report (plex-playback.ts): TerminationText when the server ended the session.
+  private ended(answer: unknown, c: Current | null): void {
+    const text = (answer as { TerminationText?: string } | undefined)?.TerminationText;
+    if (!text || !c || c.terminated) return;
+    c.terminated = true;
+    this.host.terminated(c, text);
+  }
+
+  // A Plex 'playing' notification says the server stopped our session of `itemId` (plex-spec §6.5). The one stopped
+  // report still goes out (its answer may carry the owner's reason), then nothing more; our own stop echoed back
+  // (a restart of the same item within 5 s) is ignored.
+  async serverEnded(serverId: string, itemId: string): Promise<void> {
+    const c = this.host.current;
+    if (!c || c.serverId !== serverId || c.item.Id !== itemId || c.terminated || c.trailer) return;
+    if (this.lastStop?.id === itemId && Date.now() - this.lastStop.at < 5000) return;
+    const body = this.body({}, c);
+    const api = this.online();
+    // Ended from here on: no progress (timer, pause, seek) may follow the stopped report while it is in flight.
+    c.terminated = true;
+    const answer = body && api ? await api.post<{ TerminationText?: string } | undefined>('/Sessions/Playing/Stopped', undefined, body).catch(() => undefined) : undefined;
+    if (c !== this.host.current) return;
+    this.host.terminated(c, answer?.TerminationText || t('plex.errors.terminated'));
+  }
+
+  // switching (X-02): the old session of an in-place reload, never marked played by Wicaby. part: the hand-off to
+  // another part of the same Plex film (D-4), whose next part keeps the session: a progress, never a stopped report.
+  async stopped(c = this.host.current, switching = false, part = false): Promise<void> {
     const host = this.host;
     const duration = host.state.durationMs;
     const pos = host.state.positionMs;
@@ -93,13 +124,23 @@ export class SessionReporter {
       if (api && c.playMethod !== 'DirectPlay' && c.playSessionId) await host.lives.session.killEncodes(c.serverId ?? '', c.playSessionId);
       return;
     }
-    if (!body) return;
+    if (part && api?.kind === 'plex') {
+      const progress = this.body({ EventName: 'TimeUpdate' }, c);
+      if (progress) await api.post('/Sessions/Playing/Progress', undefined, progress).catch((err) => log.warn('report part end failed', err));
+      if (c.playMethod !== 'DirectPlay' && c.playSessionId) await host.lives.session.killEncodes(c.serverId ?? '', c.playSessionId);
+      return;
+    }
+    this.lastStop = { id: c.item.Id, at: Date.now() };
+    // Ended by the server: nothing more to it, but Trakt still gets its stop.
     this.scrobble('stop', c);
+    if (!body) return;
     if (api) {
       await api.post('/Sessions/Playing/Stopped', undefined, body).catch((err) => log.warn('report stopped failed', err));
-      // The server only applies its own 90 % rule, so stopping in the credits needs an explicit mark.
+      // The server only applies its own 90 % rule, so stopping in the credits needs an explicit mark. Not on Plex:
+      // PMS applies its own threshold (credits marker included), and a scrobble too would be a second history entry
+      // (plex-spec §6.5, Plezy #1740).
       const userId = api.userId;
-      if (played && !switching && pos / duration < 0.9 && userId) {
+      if (played && !switching && pos / duration < 0.9 && userId && api.kind !== 'plex') {
         const path = api.kind === 'jellyfin' ? `/UserPlayedItems/${c.item.Id}` : `/Users/${userId}/PlayedItems/${c.item.Id}`;
         await api.post(path, api.kind === 'jellyfin' ? { userId } : undefined).catch((err) => log.warn('mark played failed', err));
       }

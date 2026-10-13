@@ -62,6 +62,12 @@ export interface MediaSource {
   OpenToken?: string;
   LiveStreamId?: string;
   Chapters?: ChapterInfo[];
+  // Plex (plex-spec §6.1.4): the transcoded stream starts here, so players count from it and never seek to it.
+  StartTimeTicks?: number;
+  // Plex multi-part media (D-4): the parts' server paths, played as one queue.
+  PartPaths?: { path: string; durationMs?: number }[];
+  // Plex: the part has preview thumbnails (a BIF, indexes=sd).
+  Bif?: boolean;
 }
 
 export interface ChapterInfo {
@@ -96,6 +102,8 @@ export interface BaseItem {
   Name: string;
   ServerId?: string;
   Type: string;
+  // An entry of a playlist (/Playlists/{id}/Items): the same item may appear twice.
+  PlaylistItemId?: string;
   // Imdb, Tmdb, Tvdb… (Fields=ProviderIds): the same title across servers.
   ProviderIds?: Record<string, string>;
   MediaType?: string;
@@ -106,6 +114,8 @@ export interface BaseItem {
   Overview?: string;
   Taglines?: string[];
   Genres?: string[];
+  // Plex labels (plex-spec §4); Emby sends Tags with Fields=Tags.
+  Tags?: string[];
   Studios?: { Name: string; Id?: string }[];
   ProductionYear?: number;
   PremiereDate?: string;
@@ -115,6 +125,8 @@ export interface BaseItem {
   OfficialRating?: string;
   CommunityRating?: number;
   CriticRating?: number;
+  // Plex only (plex-spec §4): every rating with its source, for per-source formatting (RT %, IMDb ★).
+  ProviderRatings?: { Source: string; Type: string; Value: number }[];
   // Video frame size (Fields=Width,Height), for the card quality chip.
   Width?: number;
   Height?: number;
@@ -152,6 +164,14 @@ export interface BaseItem {
   Album?: string;
   AlbumArtist?: string;
   Artists?: string[];
+  // Music (music-spec §3.1): sent by default on tracks and albums by both servers.
+  AlbumId?: string;
+  AlbumArtists?: { Name: string; Id: string }[];
+  ArtistItems?: { Name: string; Id: string }[];
+  AlbumPrimaryImageTag?: string;
+  // Jellyfin 10.9+ only: loudness gain in dB (−18 LUFS reference) and whether /Audio/{id}/Lyrics has something.
+  NormalizationGain?: number;
+  HasLyrics?: boolean;
   // Fields=Etag,DateCreated (LIST_FIELDS): the version that keys generated comic covers.
   Etag?: string;
   DateCreated?: string;
@@ -182,6 +202,8 @@ export interface PlaybackInfoResponse {
   MediaSources: MediaSource[];
   PlaySessionId?: string;
   ErrorCode?: string;
+  // Plex only: false when the server has no Plex Pass (hardware transcoding is a Plex Pass feature).
+  PlexPass?: boolean;
 }
 
 export interface SystemInfoPublic {

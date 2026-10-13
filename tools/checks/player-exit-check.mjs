@@ -30,7 +30,8 @@ for (const p of ['main/playback/mpv-player.ts', 'main/playback/html-player.ts'])
 // The built-in player covers the page it came from, which stays mounted under it (no reload on the way back).
 const app = src('renderer/App.svelte');
 assert.doesNotMatch(app, /\{:else if route\.name === 'player'\}/, 'the player no longer replaces the page');
-assert.match(app, /inert=\{playing\}/, 'the page under the player is inert');
+// The full-screen music player (music-spec MU-04) covers the page the same way.
+assert.match(app, /inert=\{playing( \|\| nowPlaying)?\}/, 'the page under the player is inert');
 assert.match(app, /\{#if !isOsd && playing[^}]*\}<Player \/>/, 'the player renders over the page');
 // A disabled Play button drops the focus the item page must get back.
 assert.doesNotMatch(src('renderer/routes/Item.svelte'), /onclick=\{\(\) => play\((true|false)\)\} disabled=/, 'Play buttons keep the focus');

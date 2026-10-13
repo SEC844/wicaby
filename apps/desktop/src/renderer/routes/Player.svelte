@@ -242,7 +242,8 @@
     const l = htmlPlayer.load;
     if (!video || !l || seq === loadedSeq) return;
     loadedSeq = seq;
-    load(l);
+    // A track belongs to MusicHost.svelte (music-spec §4.1.2).
+    if (!l.audio) load(l);
   });
 
   // Exit transition (HtmlPlayer.leave): the player fades and shrinks a little over the page kept under it
@@ -255,7 +256,8 @@
   // Leave the page once playback ends.
   let wasActive = false;
   $effect(() => {
-    const active = Boolean(playback.value?.active);
+    // Music plays without this page: from a video straight to a track, it goes too.
+    const active = Boolean(playback.value?.active) && !playback.value?.music;
     if (active) wasActive = true;
     else if (wasActive) {
       wasActive = false;

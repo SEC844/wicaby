@@ -1,6 +1,7 @@
 // The play queue of the playback service: item ids of one server, the position in it, the
 // trailers among them and cinema mode's held-back film.
 import type { BaseItem } from '../../shared/models';
+import { applyQueueOp, type QueueOp, type QueueState, type Repeat } from '../../shared/music-queue';
 import type { ApiClient } from '../connection/api-client';
 import { userItem, userItemExtras } from '../connection/user-routes';
 import { validId, type StartOptions } from './playback-model';
@@ -14,6 +15,18 @@ export class PlayQueue {
   trailers = new Set<string>();
   // Cinema mode: the film's own start options, held back while its trailers play.
   deferred: { index: number; opts: StartOptions } | null = null;
+  // Music (shared/music-queue.ts): repeat mode, kept across queues, and the order before shuffle.
+  repeat: Repeat = 'off';
+  unshuffled: string[] | null = null;
+
+  get qs(): QueueState {
+    return { ids: this.ids, index: this.index, repeat: this.repeat, unshuffled: this.unshuffled };
+  }
+
+  // A music queue operation (move, remove, shuffle…), shared with Android's core music/MusicQueue.kt.
+  apply(op: QueueOp): void {
+    ({ ids: this.ids, index: this.index, repeat: this.repeat, unshuffled: this.unshuffled } = applyQueueOp(this.qs, op));
+  }
 
   get id(): string {
     return this.ids[this.index];
@@ -30,8 +43,8 @@ export class PlayQueue {
   // Play next / add to queue.
   add(command: 'PlayNext' | 'PlayLast', ids: string[]): void {
     // After the film cinema-mode trailers are leading up to, not between them.
-    if (command === 'PlayNext') this.ids.splice(Math.max(this.index, this.deferred?.index ?? -1) + 1, 0, ...ids);
-    else this.ids.push(...ids);
+    if (command === 'PlayNext' && this.deferred) this.ids.splice(Math.max(this.index, this.deferred.index) + 1, 0, ...ids);
+    else this.apply({ op: command === 'PlayNext' ? 'insertNext' : 'append', ids });
   }
 
   reset(ids: string[], serverId: string | undefined, startIndex: number, trailer: boolean): void {
@@ -40,6 +53,7 @@ export class PlayQueue {
     this.index = Math.min(Math.max(0, startIndex), ids.length - 1);
     this.trailers = new Set(trailer ? ids : []);
     this.deferred = null;
+    this.unshuffled = null;
   }
 
   // Cinema mode: the trailers go before the current film, which waits with its start options.

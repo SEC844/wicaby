@@ -14,6 +14,63 @@ a bug list. `node tools/checks/cast-mock-check.mjs` exercises both (it is part o
 | `node tools/mock-server/mock-dlna.mjs [port]` | 8970 | A UPnP MediaRenderer: `GET /desc.xml`, SOAP on `/ctl/avt`, `/ctl/rc`, `/ctl/cm`. |
 | `node tools/mock-server/mock-cast.mjs` | 18009 (TLS), 18010 (state) | A Chromecast speaking CASTV2 (Default Media Receiver and the Jellyfin receiver). |
 
+## mock-plex (Plex backend, plex-spec §10)
+
+`node tools/mock-server/mock-plex.mjs` starts a fake Plex Media Server ("Maison", `127.0.0.1:32400`), a fake plex.tv
+(`32401`) and a "relay" (`32402`, the same PMS behind 400 ms). Nothing in it talks to plex.tv or a real server;
+`import { startMockPlex } from './mock-plex.mjs'` starts it on free ports for the checks (`plex-mock-check.mjs`).
+
+- **Dataset:** sections Films (the 12 demo films with their artwork: two editions, a missing second version, 4K HDR10,
+  Dolby Vision 8.1, PGS plus forced and sidecar subtitles, a two-part film), Séries (Caminandes with intro and credits
+  markers, a BIF index and per-show audio memory; a show with `flattenSeasons=1`; a show whose s02e17-e18 share one
+  file) and Musique (2 artists, 3 albums, 12 tracks). A pinned collection, a playlist, `/hubs/promoted`, On Deck, search
+  (with a single item shared outside the libraries). Shows B and C, the music and the people are invented.
+- **plex.tv:** `POST /api/v2/pins`, `GET /api/v2/pins/{id}` (link with `POST /Mock/Pin/Link?code=`), `/api/v2/user`,
+  `/api/v2/resources` (local, plex.direct with `MOCK_PLEX_TLS=1`, a Docker decoy, an unroutable remote, the relay; a
+  server shared by "Léa"), `/api/v2/home/users` and `…/switch?pin=` (Wika owner, Ado protected PIN 1234, Invité).
+  The account token is `mock-account-token`; each server gets per-user tokens. The watchlist (Favorites, D-6) as
+  discover.provider.plex.tv serves it: `GET /library/sections/watchlist/all`, `PUT /actions/addToWatchlist?ratingKey=`
+  and `removeFromWatchlist` (per Home user, `state.watchlist`); the PMS filters a section by `guid=`.
+  `tools/checks/plex-link-check.mjs` and `plex-browse-check.mjs` drive it through the ConnectionManager,
+  `tools/checks/plex-cdp.mjs` with the built app.
+- **Switches:** `MOCK_PLEX_HTTPS_REQUIRED`, `MOCK_PIN_TTL_S`, `MOCK_REMOTE_CAP_KBPS`, `MOCK_REMOTE_PASS=0`,
+  `MOCK_PLEX_FLAKY`, `MOCK_PLEX_PASS=0`, `MOCK_PLEX_LIVETV`, `MOCK_PLEX_SECOND`, `MOCK_PLEX_TLS`, `MOCK_PLEX_VIDEO=<file>`
+  (the header of `mock-plex.mjs` lists what each does).
+- **Tags:** `UNMAPPED`, `TOKEN-IN-URL`, `NO-CLIENT-ID`, `NO-TOKEN`, `ACCOUNT-TOKEN-ON-PMS`, `HTTP-REFUSED`, `DUP-STOPPED`,
+  `AFTER-STOPPED` (a timeline after the session's stopped one), `DUP-SCROBBLE`, `SEEK-AFTER-OFFSET`, `FLAKY`. `GET /Mock/State` lists them with the calls, timelines, scrobbles,
+  part PUTs, decisions and the tokens each side saw (`tokens.pms`, `tokens.plextv`).
+- **Mock routes:** `/Mock/State`, `/Mock/Reset`, `/Mock/Pin/Link`, `/Mock/Home/SetPin?user=&pin=` (invalidates that
+  user's tokens), `/Mock/Terminate?session=&reason=` (a `playing` stopped notification for that session's client
+  and item at once, the reason on its next timeline), `/Mock/Broadcast` (a notification to every
+  `/:/websockets/notifications` socket). `DUP-SCROBBLE` is any `/:/scrobble` within 5 s of a stopped timeline of the
+  item (PMS already applied its threshold).
+- **Playback (PX-08, PX-09):** the decision direct plays when one `add-direct-play-profile(...)` of
+  `X-Plex-Client-Profile-Extra` names the container and the video codec; `/` says `myPlexSubscription` (false with
+  `MOCK_PLEX_PASS=0`); `/:/prefs` gives the owner's `WanPerStreamMaxUploadRate` (`MOCK_REMOTE_CAP_KBPS`).
+  The decision honours `partIndex` (a multi-part film). `tools/checks/plex-playback-check.mjs` drives it with mpv,
+  `tools/checks/plex-cast-check.mjs` with the DLNA and Cast senders, `tools/checks/plex-play-cdp.mjs` with the built app.
+- Live TV is only `/livetv/dvrs` (empty, 403 without Plex Pass, one DVR with `MOCK_PLEX_LIVETV=1`): channels and the
+  grid wait for captures from a real tuner (PX-11).
+
+## Music library (`music-fixture.mjs`)
+
+`MOCK_MUSIC=1` (or `MOCK_DATASET=demo`) adds a music library to the Emby and Jellyfin mocks (music spec MU-00): album
+artists and track artists, a 2-disc album, an EP, a single, a compilation, an album of FLAC files with ReplayGain tags,
+three genres, an audio playlist, favourites and play counts. Every name is invented. `node tools/checks/music-mock-check.mjs`
+covers it (part of `npm run checks`).
+
+- **Never audible:** every track is generated silence (8 kHz mono 16-bit WAV, or FLAC whose frames are a constant 0), with
+  `Range` support. `/Audio/{id}/stream[.ext]` and `/universal` (Emby's wants a `PlaySessionId`) log the container asked for.
+- **Each server's shape:** `NormalizationGain` and `HasLyrics` on Jellyfin only; Jellyfin lyrics at `/Audio/{id}/Lyrics`;
+  Emby lyrics as an external `lrc` subtitle stream of the audio item, served at `/Videos/{id}/{msid}/Subtitles/{i}/Stream.lrc|txt`
+  (unverified on a real Emby, music spec §3.5). Genres: Emby `/MusicGenres`, Jellyfin `/Genres?IncludeItemTypes=MusicAlbum`
+  (its `/MusicGenres` answers, tagged `DEPRECATED`). Instant mix on `/Items/{id}/InstantMix` and the per-type routes each
+  server has (`/Artists/InstantMix` is a 404 on the Jellyfin 12.2 mock).
+- **Test knobs:** `MOCK_MUSIC_SCALE=big` adds 1,000 metadata-only songs (scroll checks); `MOCK_LYRICS_FAIL=<track id>` makes
+  that track's Jellyfin lyrics answer 500 (the desktop's "no lyrics, no toast" check, `tools/checks/music-ui-cdp.mjs`).
+- **`GET /Mock/State`** gains `music: { streams, instantMix, reports }` (the reports of tracks, in arrival order).
+- For listening by hand, use your own CC0 files; nothing in the checks ever plays real audio.
+
 ## mock-dlna
 
 - **Profiles** (`MOCK_DLNA_PROFILE`): the description and the `GetProtocolInfo` Sink come from

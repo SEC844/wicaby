@@ -221,6 +221,14 @@ data class Item(
     val albumPrimaryImageTag: String? = null,
     val albumArtist: String? = null,
     val artists: List<String> = emptyList(),
+    // Music spec MU-01 (§3.1): who the album is filed under and who is credited on the track.
+    val albumArtists: List<NameId> = emptyList(),
+    val artistItems: List<NameId> = emptyList(),
+    // Jellyfin 10.9+ only: loudness gain in dB (−18 LUFS reference) and whether /Audio/{id}/Lyrics has lyrics.
+    val normalizationGain: Double? = null,
+    val hasLyrics: Boolean? = null,
+    // Fields=MediaStreams: Emby's lyrics are an lrc subtitle stream of the audio item (unverified, spec §3.5).
+    val mediaStreams: List<MediaStream> = emptyList(),
     // Photos (photos spec §3.1): size and EXIF, same names on both servers. Aperture and ShutterSpeed may be APEX values.
     val width: Int? = null,
     val height: Int? = null,

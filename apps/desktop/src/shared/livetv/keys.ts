@@ -8,7 +8,8 @@
 // number entry works on AZERTY). Shift is ignored for single-symbol keys ('/', '[', '.') and for
 // code: keys unless the combo names it, because the layout decides whether they need Shift.
 
-export type KeyContext = 'vod' | 'live' | 'guide' | 'miniguide';
+// 'music': the music shortcuts of the main window (shortcuts.ts, music-spec §4.3).
+export type KeyContext = 'vod' | 'live' | 'guide' | 'miniguide' | 'music';
 
 export interface KeyRow {
   id: string;

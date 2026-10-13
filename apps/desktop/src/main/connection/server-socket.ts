@@ -55,6 +55,19 @@ export class ServerSocket extends EventEmitter {
     // Closed, or opened again, while waiting.
     if (this.closed || gen !== this.gen) return;
     const base = routed(this.address).replace(/^http/i, 'ws');
+    // Plex (plex-spec §2): its notifications socket, the token as a header (Node's WebSocket takes headers).
+    if (this.kind === 'plex') {
+      try {
+        const init = { headers: { 'X-Plex-Token': this.token, 'X-Plex-Client-Identifier': this.deviceId } };
+        this.ws = new WebSocket(`${base}/:/websockets/notifications`, init as unknown as string[]);
+      } catch (err) {
+        log.warn('WebSocket constructor failed', err);
+        this.scheduleReconnect();
+        return;
+      }
+      this.listen();
+      return;
+    }
     const path = this.kind === 'emby' ? '/embywebsocket' : '/socket';
     // Jellyfin 12 rejects the legacy api_key query parameter by default; ApiKey is accepted by 10.x too.
     const tokenParam = this.kind === 'emby' ? 'api_key' : 'ApiKey';
@@ -66,6 +79,11 @@ export class ServerSocket extends EventEmitter {
       this.scheduleReconnect();
       return;
     }
+    this.listen();
+  }
+
+  private listen(): void {
+    if (!this.ws) return;
     this.ws.addEventListener('open', () => {
       this.attempts = 0;
       this.state = 'open';
@@ -74,6 +92,7 @@ export class ServerSocket extends EventEmitter {
     });
     this.ws.addEventListener('message', (ev) => {
       try {
+        if (this.kind === 'plex') return this.plexEvent(JSON.parse(String(ev.data)));
         const msg = JSON.parse(String(ev.data)) as SocketMessage;
         if (msg.MessageType === 'ForceKeepAlive') this.startKeepAlive(Number(msg.Data) || 60);
         else if (msg.MessageType !== 'KeepAlive') this.emit('message', msg);
@@ -91,6 +110,22 @@ export class ServerSocket extends EventEmitter {
     this.ws.addEventListener('error', () => {
       // 'close' follows and handles reconnection.
     });
+  }
+
+  // PMS notifications as the Emby messages the app already reacts to: a timeline entry (an item changed, watched
+  // state included) drops the cached lists; a 'playing' one that stopped this client's session becomes
+  // PlexSessionEnded (plex-spec §6.5: the server ended it); nothing else is forwarded (Plex sends no remote commands).
+  private plexEvent(n: { NotificationContainer?: { type?: string; PlaySessionStateNotification?: { state?: string; clientIdentifier?: string; ratingKey?: string | number }[] } }): void {
+    const type = n?.NotificationContainer?.type;
+    if (type === 'playing') {
+      for (const s of n.NotificationContainer?.PlaySessionStateNotification ?? []) {
+        if (s.state === 'stopped' && s.clientIdentifier === this.deviceId && s.ratingKey !== undefined) this.emit('message', { MessageType: 'PlexSessionEnded', Data: { ItemId: String(s.ratingKey) } } satisfies SocketMessage);
+      }
+      return;
+    }
+    if (type !== 'timeline') return;
+    this.emit('message', { MessageType: 'UserDataChanged' } satisfies SocketMessage);
+    this.emit('message', { MessageType: 'LibraryChanged' } satisfies SocketMessage);
   }
 
   private startKeepAlive(timeoutSeconds: number): void {

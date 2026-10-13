@@ -5,6 +5,10 @@
 // - `=== 'emby'` is allowed only in the files listed below, each audited: the 'files' kind never reaches them
 //   (admin, Live TV, cast, the server socket and discovery) or is handled before (FilesClient overrides the
 //   ApiClient dialect; playback-service loadExtras checks caps().localUserData). A new one must be audited and listed.
+// - 'plex' (plex-spec PX-02): the same files were audited for it. Until the Plex client exists (PX-06) no plex session
+//   can be built, and then PlexClient overrides prefix, auth and media URLs like FilesClient; the Emby-or-else
+//   branches a plex session would still reach are its own work packages: server-socket (PX-06 notifications),
+//   playback-service loadExtras (PX-09: Plex segments + BIF), cast targets (caps.sessionsRemote is false).
 // Android is not scanned yet (its FS-00 half is not done). Usage: node tools/checks/server-kind-check.mjs
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,0 +1,128 @@
+{
+  "tabs": {
+    "label": "Library views",
+    "albums": "Albums",
+    "artists": "Artists",
+    "songs": "Songs",
+    "genres": "Genres",
+    "playlists": "Playlists",
+    "folders": "Folders"
+  },
+  "filters": {
+    "albumArtistsOnly": "Album artists only",
+    "favorites": "Favourites",
+    "genre": "Genre",
+    "allGenres": "All genres",
+    "clearGenre": "Clear the genre filter",
+    "yearRange": "Years",
+    "allYears": "All years",
+    "decade": "{decade}s"
+  },
+  "sort": {
+    "albumArtist": "Album artist",
+    "playCount": "Most played",
+    "random": "Random"
+  },
+  "view": {
+    "label": "View",
+    "grid": "Grid",
+    "list": "List"
+  },
+  "actions": {
+    "play": "Play",
+    "shuffle": "Shuffle",
+    "mix": "Mix",
+    "playNext": "Play next",
+    "addToQueue": "Add to queue",
+    "addToPlaylist": "Add to playlist…",
+    "mixFromTrack": "Mix from this song",
+    "goToArtist": "Go to artist",
+    "goToAlbum": "Go to album",
+    "more": "More actions for {name}"
+  },
+  "album": {
+    "disc": "Disc {n}",
+    "summary": "{count, plural, one {# song} other {# songs}}, {duration}"
+  },
+  "artist": {
+    "topSongs": "Top songs",
+    "albums": "Albums",
+    "singles": "Singles & EPs",
+    "appearsOn": "Appears on"
+  },
+  "empty": {
+    "library": "No music in this library.",
+    "tab": "Nothing to show here."
+  },
+  "columns": {
+    "number": "No.",
+    "title": "Title",
+    "album": "Album",
+    "duration": "Duration"
+  },
+  "bar": {
+    "label": "Now playing",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "previous": "Previous",
+    "shuffleOn": "Shuffle on",
+    "shuffleOff": "Shuffle off",
+    "repeatOff": "Repeat off",
+    "repeatAll": "Repeat all",
+    "repeatOne": "Repeat one",
+    "lyrics": "Lyrics",
+    "queue": "Queue",
+    "fullScreen": "Full screen",
+    "close": "Close player",
+    "volume": "Volume",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "seek": "Position in the song",
+    "art": "Open the full-screen player",
+    "output": "Audio output"
+  },
+  "queue": {
+    "nowPlaying": "Now playing",
+    "upNext": "Up next",
+    "upNextSummary": "{count, plural, one {# song} other {# songs}} · {duration}",
+    "clearUpcoming": "Clear upcoming",
+    "saveAsPlaylist": "Save as playlist",
+    "playlistName": "Playlist name",
+    "defaultName": "Queue of {date}",
+    "save": "Save",
+    "remove": "Remove from queue",
+    "removeNamed": "Remove {name} from the queue",
+    "empty": "The queue is empty.",
+    "radioNote": "The mix keeps adding songs.",
+    "reorderHint": "Drag, or Alt+arrows, to move"
+  },
+  "toast": {
+    "savedPlaylist": "Playlist \"{name}\" created"
+  },
+  "lyrics": {
+    "title": "Lyrics",
+    "none": "No lyrics for this song.",
+    "offset": "Offset",
+    "offsetValue": "{value} s",
+    "earlier": "Earlier",
+    "later": "Later",
+    "unsynced": "Unsynced lyrics",
+    "source": {
+      "server": "Lyrics from the server"
+    }
+  },
+  "radio": {
+    "on": "Radio on",
+    "off": "Radio off",
+    "start": "Start radio"
+  },
+  "favorite": {
+    "add": "Add to favourites",
+    "remove": "Remove from favourites"
+  },
+  "folders": {
+    "up": "Parent folder",
+    "root": "Root"
+  }
+}

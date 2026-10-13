@@ -23,7 +23,7 @@ data class ServerCaps(
 // as on the desktop (server-caps.json "$unknownKind").
 fun caps(kind: String, liveTv: Boolean = false): ServerCaps = when (kind) {
     "jellyfin" -> ServerCaps(true, liveTv, true, true, true, false, false, true, true, false, true, true, false)
-    "plex" -> ServerCaps(false, liveTv, false, false, false, true, true, true, false, false, true, true, false)
+    "plex" -> ServerCaps(false, liveTv, false, false, true, true, true, true, false, false, true, true, false)
     "files" -> ServerCaps(false, false, false, false, false, false, true, false, false, true, false, false, true)
     else -> ServerCaps(true, liveTv, true, true, true, false, true, true, true, false, true, true, false)
 }

@@ -143,5 +143,28 @@ for (const lang of ['fr', 'en']) {
   });
 }
 
+// 7. Music context (music-spec MU-04 AC6): no conflict inside it (part of 1), the spec's keys, labels in fr and en.
+const MUSIC = [
+  [ev(' '), 'playPause'], [ev('ArrowRight', { ctrlKey: true }), 'next'], [ev('ArrowLeft', { ctrlKey: true }), 'previous'],
+  [ev('ArrowLeft'), 'seekBack'], [ev('ArrowRight'), 'seekForward'], [ev('ArrowLeft', { shiftKey: true }), 'seekBackLong'], [ev('ArrowRight', { shiftKey: true }), 'seekForwardLong'],
+  [ev('ArrowUp'), 'volumeUp'], [ev('ArrowDown'), 'volumeDown'], [ev('m'), 'mute'], [ev('s'), 'shuffle'], [ev('r'), 'repeat'],
+  [ev('l'), 'lyrics'], [ev('q'), 'queue'], [ev('f'), 'favorite'], [ev('Escape'), 'close'],
+];
+for (const [e, want] of MUSIC) check(`music ${e.ctrlKey ? 'Ctrl+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key} -> ${want}`, () => assert.equal(sc.resolve(e, 'music', table)?.id ?? null, `music.${want}`));
+check('the music context has no conflict', () => assert.deepEqual(sc.conflicts().filter((c) => c.context === 'music'), []));
+check('music rows are editable, a music key does not clash with vod', () => {
+  assert.ok(sc.MUSIC_SHORTCUTS.every(sc.editable));
+  assert.equal(sc.conflictWith(table, 'music.mute', 'F')?.id, 'music.favorite');
+  assert.equal(sc.conflictWith(table, 'vod.mute', 'R'), null);
+});
+check('a music override imports', () => assert.deepEqual(sc.validateImport({ 'music.lyrics': ['Shift+L'] }), { 'music.lyrics': ['Shift+L'] }));
+for (const lang of ['fr', 'en']) {
+  const doc = cat(lang);
+  check(`music labels in ${lang}`, () => {
+    assert.equal(typeof doc.general.shortcuts.context?.music, 'string', 'context.music');
+    for (const r of sc.MUSIC_SHORTCUTS) assert.equal(typeof r.labelKey.split('.').slice(1).reduce((o, k) => o?.[k], doc), 'string', `${r.labelKey} missing`);
+  });
+}
+
 console.log(`shortcuts-check: ${passed} passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

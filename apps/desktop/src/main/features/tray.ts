@@ -79,6 +79,8 @@ export function needsGlobalMediaKeys(state: PlaybackState, audioExclusive: boole
 const titleOf = (s: PlaybackState) => {
   const it = s.item;
   if (!it) return '';
+  // A track (music-spec §4.2): "Titre · Artiste".
+  if (it.artists?.length) return t('main.music.tray.nowPlaying', { title: it.name, artist: it.artists.join(', ') });
   return it.seriesName ? `${it.seriesName} · ${it.name}` : it.name;
 };
 

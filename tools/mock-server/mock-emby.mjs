@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { bif, comicPage, zip } from './cbz-fixture.mjs';
 import { createSessions } from './sessions.mjs';
-import { addMusic, isMusic, musicSource, silentWav } from './music-fixture.mjs';
+import { addMusic, isMusic, LOG as MUSIC_LOG, logReport, musicFilters, musicRoute, musicSource } from './music-fixture.mjs';
 import { addPhotos, countAlbums, photoRoute } from './photos-fixture.mjs';
 
 const PORT = Number(process.argv[2] ?? 8096);
@@ -413,7 +413,10 @@ function view(item) {
     out.UserData.UnplayedItemCount = eps.filter((e) => !ud(e.Id).Played).length;
     out.RecursiveItemCount = eps.length;
   }
-  if (item.MediaType === 'Video') out.MediaSources = sourcesFor(item.Id);
+  // Fixture-private fields (music-fixture.mjs: _replayGain, _lyricStream) never leave the mock.
+  for (const k of Object.keys(out)) if (k.startsWith('_')) delete out[k];
+  if (item.MediaType === 'Video' || isMusic(item)) out.MediaSources = sourcesFor(item.Id);
+  if (isMusic(item)) out.MediaStreams = out.MediaSources[0].MediaStreams;
   if (item.MediaType === 'Video' && item.RunTimeTicks) out.Chapters = chapters(item);
   return hooks.view(out, item);
 }
@@ -551,7 +554,7 @@ const demo = process.env.MOCK_DATASET === 'demo' ? await import('./demo/demo-dat
 demo?.apply({ items, ud, lists, streams, VIDEO_OVERRIDES, VERSIONS, TRAILERS, programs, COMICS });
 // A small music library (music-fixture.mjs, silent tracks): with the demo dataset, or MOCK_MUSIC=1.
 if (demo || process.env.MOCK_MUSIC === '1') {
-  addMusic({ add, makeList });
+  addMusic({ add, makeList, ud });
   items.get('playlist-music').MediaType = 'Audio';
 }
 // Photo libraries (photos-fixture.mjs, generated; MOCK_PHOTOS=0 leaves them out).
@@ -658,6 +661,8 @@ async function extraRoutes(req, res, p, parts, q) {
     const id = `${kind === 'Playlist' ? 'playlist' : 'boxset'}-${randomUUID().slice(0, 8)}`;
     const ids = (q.get('Ids') ?? (Array.isArray(b.Ids) ? b.Ids.join(',') : '')).split(',').filter(Boolean);
     makeList(id, q.get('Name') ?? b.Name ?? 'Sans titre', kind, ids);
+    // An audio playlist stays one (music "save the queue as a playlist").
+    if (kind === 'Playlist' && (q.get('MediaType') ?? b.MediaType) === 'Audio') items.get(id).MediaType = 'Audio';
     return reply(200, { Id: id });
   }
   const id = parts[1];
@@ -703,7 +708,7 @@ export async function handler(req, res) {
   hooks.log(req.method, url.pathname + url.search);
   if (/^\/mock\/livetv(\/|$)/i.test(url.pathname) && liveTv()) return lt.control(req, res, url.pathname, q);
   const mp = url.pathname.replace(/^\/emby(?=\/)/i, '').split('/').filter(Boolean);
-  if (mp[0] === 'Mock' && mp[1] === 'State' && req.method === 'GET') return send(res, 200, store.state());
+  if (mp[0] === 'Mock' && mp[1] === 'State' && req.method === 'GET') return send(res, 200, { ...store.state(), music: MUSIC_LOG });
   if (mp[0] === 'Mock' && mp[1] === 'AccessSchedules' && req.method === 'POST') {
     const list = await body(req);
     if (!Array.isArray(list)) return send(res, 400, 'Expected a JSON array of AccessSchedules', 'text/plain');
@@ -751,6 +756,7 @@ export async function handler(req, res) {
       // Not JSON: nothing to record.
     }
     store.report(store.forToken(tokenOf(req, q)), (parts[2] ?? 'start').toLowerCase(), b);
+    logReport(items, (parts[2] ?? 'start').toLowerCase(), b);
   }
   if (await extraRoutes(req, res, p, parts, q)) return;
   // Admin endpoints live in tools/mock-server/mock-admin/*.mjs, one module per area: export async function route(ctx) -> boolean.
@@ -838,19 +844,8 @@ export async function handler(req, res) {
     return res.end(text);
   }
   // Streams
-  // A music track: its silence, whole or by range (Audio/{id}/stream, as both servers serve audio).
-  if (['Audio', 'Videos', 'Items'].includes(parts[0]) && (parts[2] === 'stream' || parts[2]?.startsWith('stream.') || parts[2] === 'universal') && isMusic(items.get(parts[1]))) {
-    const wav = silentWav(items.get(parts[1]).RunTimeTicks / 10_000_000);
-    const range = /bytes=(\d+)-(\d*)/.exec(req.headers.range ?? '');
-    if (range) {
-      const start = Number(range[1]);
-      const end = range[2] ? Math.min(Number(range[2]), wav.length - 1) : wav.length - 1;
-      res.writeHead(206, { 'Content-Type': 'audio/wav', 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${wav.length}`, 'Accept-Ranges': 'bytes' });
-      return res.end(wav.subarray(start, end + 1));
-    }
-    res.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': wav.length, 'Accept-Ranges': 'bytes' });
-    return res.end(wav);
-  }
+  // Music (music-fixture.mjs): silent streams, lyrics, genres, instant mix, artists.
+  if (musicRoute({ req, res, p, parts, q, items, list, send, log: hooks.log })) return;
   if ((parts[0] === 'Videos' || parts[0] === 'Items') && (parts[2] === 'stream' || parts[2]?.startsWith('stream.') || parts[2] === 'Download')) {
     if (!VIDEO || !fs.existsSync(VIDEO)) return send(res, 404, 'No test video configured', 'text/plain');
     if (streamFail.mode !== 'none' && streamFail.count > 0) {
@@ -903,16 +898,6 @@ export async function handler(req, res) {
     return send(res, 200, { Items: names.map((Name) => ({ Name, Id: `genre-${Name}` })), TotalRecordCount: names.length });
   }
   if (p === '/System/WakeOnLanInfo') return send(res, 200, []);
-  // Album artists of the music library (both servers: /Artists/AlbumArtists?ParentId=&UserId=), with the A-Z name bounds.
-  if (p === '/Artists/AlbumArtists' || p === '/Artists') {
-    let arr = [...items.values()].filter((x) => x.Type === 'MusicArtist');
-    for (const [k, keep] of [['NameLessThan', (n, v) => n < v], ['NameStartsWithOrGreater', (n, v) => n >= v], ['NameStartsWith', (n, v) => n.startsWith(v)]]) {
-      const v = (q.get(k) ?? q.get(k[0].toLowerCase() + k.slice(1)))?.toLowerCase();
-      if (v) arr = arr.filter((x) => keep(sortNameOf(x), v));
-    }
-    arr.sort((a, b) => (sortNameOf(a) < sortNameOf(b) ? -1 : 1));
-    return send(res, 200, list(arr, q));
-  }
   if (parts[0] === 'Items' && parts[2] === 'PlaybackInfo') {
     // The version asked for (query or body MediaSourceId), like Emby.
     const b = req.method === 'POST' ? await body(req) : {};
@@ -1021,6 +1006,7 @@ export async function handler(req, res) {
       if (types) arr = arr.filter((x) => types.includes(x.Type));
       if (term) arr = arr.filter((x) => x.Name.toLowerCase().includes(term));
       if (q.get('Genres')) arr = arr.filter((x) => x.Genres?.includes(q.get('Genres')));
+      arr = musicFilters(arr, q, ud);
       if (q.get('PersonIds')) arr = arr.filter((x) => x.People?.some((pp) => pp.Id === q.get('PersonIds')));
       if (q.get('Filters')?.includes('IsFavorite')) arr = arr.filter((x) => ud(x.Id).IsFavorite);
       if (q.get('Filters')?.includes('IsUnplayed')) arr = arr.filter((x) => !ud(x.Id).Played);

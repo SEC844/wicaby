@@ -14,6 +14,7 @@ import {
   ZOOM_STEPS,
 } from '../../shared/contract';
 import type { BaseItem, MediaSource, MediaStream, PlaybackInfoResponse } from '../../shared/models';
+import { partWindow } from '../../shared/plex/decision';
 import { buildQuery, isServerOrigin, resolveServerUrl, serverPath } from '../connection/api-client';
 import { FilesClient } from '../files/files-client';
 import { caps } from '../../shared/server-caps';
@@ -38,6 +39,8 @@ import { userItem } from '../connection/user-routes';
 import { isLanAddress } from '../../shared/network';
 import { LivePlayback, type LiveRestart } from '../livetv/live-player';
 import { ZapController } from '../livetv/zap-controller';
+import { MpvAudioPlayer } from '../music/mpv-audio-player';
+import { MusicPlayback } from '../music/music-playback';
 import {
   errorText,
   idle,
@@ -124,6 +127,8 @@ export class PlaybackService extends EventEmitter {
   private readonly sleep: SleepTimer;
   // Reconnection and the one-shot transcode fallback for VOD (stream-recovery.ts), state.reconnecting.
   private readonly recovery: StreamRecovery<Current>;
+  // Music (music/music-playback.ts): windowless mpv, gapless queue, loudness, state.music.
+  private readonly music: MusicPlayback;
 
   constructor(private readonly deps: PlaybackDeps) {
     super();
@@ -165,6 +170,26 @@ export class PlaybackService extends EventEmitter {
       get serverId() { return self.queue.serverId; },
       lives: this.lives,
       report: (...args) => void this.emit('report', ...args),
+      terminated: (c, text) => {
+        if (c !== this.current) return;
+        // The server owner's words (plex-spec §6.5), shown as sent.
+        this.deps.onMessage('info', text);
+        void this.stop();
+      },
+    });
+    this.music = new MusicPlayback({
+      deps,
+      get current() { return self.current; },
+      set current(c) { self.current = c; },
+      get state() { return self.state; },
+      get player() { return self.player; },
+      get queue() { return self.queue; },
+      publish: (now) => this.publish(now),
+      reportStopped: () => this.reports.stopped(),
+      reportStart: () => this.reports.start(),
+      startItem: (opts) => this.startItem(opts).catch((err) => this.fail(err)),
+      play: (req) => this.play(req),
+      stop: () => this.stop(),
     });
     this.sleep = new SleepTimer({
       get state() { return self.state; },
@@ -225,6 +250,11 @@ export class PlaybackService extends EventEmitter {
     return this.state.active ? this.queue.serverId : undefined;
   }
 
+  // D8: the music queue of the last run, paused, once its server is signed in (index.ts, on session changes).
+  restoreMusic(): void {
+    this.music.restore();
+  }
+
   // The running mpv, for its live audio-device-list.
   get mpv(): MpvPlayer | null {
     return this.player instanceof MpvPlayer ? this.player : null;
@@ -233,6 +263,7 @@ export class PlaybackService extends EventEmitter {
   private publish(immediate = false): void {
     this.state.live = this.state.active ? this.zap.state() : undefined;
     this.state.reconnecting = this.state.active ? this.recovery.state : undefined;
+    this.state.music = this.music.active ? this.music.state() : undefined;
     if (this.state.live) Object.assign(this.state.live, { timeshift: this.lives.timeshift(), pausedReleased: this.lives.releasedChannel ? true : undefined });
     // Live: the Quality column only, every preset (a channel's bitrate is unknown before it plays).
     if (this.state.live) {
@@ -276,9 +307,10 @@ export class PlaybackService extends EventEmitter {
     // (a live channel never ends, so over one it plays now too).
     if ((req.command === 'PlayNext' || req.command === 'PlayLast') && this.state.active && !this.current?.live && (!req.serverId || req.serverId === this.queue.serverId)) {
       this.queue.add(req.command, ids);
+      this.music.queueChanged();
       // The up-next card names what now follows.
       const next = this.queue.nextId;
-      if (next && next !== this.nextInfo?.id) void this.fetchUpNext(next, !this.state.offline).then((n) => (this.nextInfo = n), () => undefined);
+      if (next && next !== this.nextInfo?.id) void this.upNextAfter(undefined, !this.state.offline, () => false).then((n) => (this.nextInfo = n), () => undefined);
       this.state.queueLength = this.queue.ids.length;
       this.publish(true);
       return;
@@ -371,10 +403,17 @@ export class PlaybackService extends EventEmitter {
       item.MediaSources?.[0];
     let streams = source?.MediaStreams ?? item.MediaStreams ?? [];
     const pb = settings.playback;
+    const plexSubs = deps.connection.plexSubtitles(sid);
     const picked = selectTracks(
       streams,
       { audio: source?.DefaultAudioStreamIndex, subtitle: source?.DefaultSubtitleStreamIndex },
-      { audioLanguage: pb.preferredAudioLanguage, subtitleLanguage: pb.preferredSubtitleLanguage, mode: pb.subtitleMode, forced: pb.alwaysForced },
+      {
+        audioLanguage: pb.preferredAudioLanguage,
+        // Plex (plex-spec §6.4, #1182): no language of our own and the "server default" mode follow the account's.
+        subtitleLanguage: pb.preferredSubtitleLanguage || plexSubs?.language || '',
+        mode: pb.subtitleMode === 'default' ? (plexSubs?.mode ?? 'default') : pb.subtitleMode,
+        forced: pb.alwaysForced,
+      },
       // B04: a film remembers its own pick (resume), an episode the series'.
       this.memory.tracksFor(item.SeriesId ?? item.Id),
       opts.audioStreamIndex,
@@ -390,6 +429,11 @@ export class PlaybackService extends EventEmitter {
     let load: LoadParams;
     let playMethod: PlayMethod = 'DirectPlay';
     let playSessionId: string | undefined;
+    // A Plex transcode that starts at the resume point, or a part of a multi-part film (Current.baseMs, partEndMs).
+    let baseMs = 0;
+    let partEndMs: number | undefined;
+    // A Plex server without Plex Pass transcodes without hardware acceleration: said once (explainPass).
+    let softTranscode = false;
     const embeddedOf = (type: string) => streams.filter((s) => s.Type === type && !s.IsExternal).map((s) => s.Index);
     const hdrOf = () => hdrFromStream(streams.find((s) => s.Type === 'Video'));
 
@@ -479,6 +523,7 @@ export class PlaybackService extends EventEmitter {
         },
         {
           DeviceProfile: buildDeviceProfile(kind, maxBitrate, api.kind, maxHeight),
+          PlaySessionId: opts.playSessionId,
           UserId: userId,
           MediaSourceId: source?.Id,
           AudioStreamIndex: audioIndex ?? undefined,
@@ -542,6 +587,18 @@ export class PlaybackService extends EventEmitter {
             ownOrigin = false;
           }
         }
+        // A Plex film in several parts (D-4): one mpv timeline over every part, reported under the one item; the
+        // HTML player plays the part the start falls in, then the next one (partEndMs).
+        const parts = ps.PartPaths ?? [];
+        if (kind === 'mpv' && ownOrigin && parts.length > 1) url = `edl://${parts.map((part) => ((u) => `%${Buffer.byteLength(u)}%${u}`)(api.url(part.path))).join(';')}`;
+        else if (kind === 'html' && parts.length > 1) {
+          const at = partWindow(parts, startMs);
+          if (at) {
+            url = mediaApiUrl(parts[at.index].path, sid);
+            baseMs = at.startMs;
+            partEndMs = at.endMs;
+          }
+        }
       } else if (ps.TranscodingUrl) {
         ownOrigin = isServerOrigin(api, ps.TranscodingUrl);
         if (kind === 'mpv') {
@@ -558,6 +615,11 @@ export class PlaybackService extends EventEmitter {
         isHls = (ps.TranscodingSubProtocol ?? '').toLowerCase() === 'hls' || /\.m3u8/i.test(ps.TranscodingUrl);
         playMethod = /videocodec=copy/i.test(ps.TranscodingUrl) ? 'DirectStream' : 'Transcode';
         tracksFixed = true;
+        // Plex: the stream already starts at the resume point; seeking there would ask for segments it never makes.
+        if (ps.StartTimeTicks) baseMs = ps.StartTimeTicks / TICKS_PER_MS;
+        // A multi-part film: the transcode covers the part the start falls in (decision.ts partAt).
+        if ((ps.PartPaths?.length ?? 0) > 1) partEndMs = partWindow(ps.PartPaths!, baseMs)?.endMs;
+        softTranscode = info.PlexPass === false && playMethod === 'Transcode';
       } else {
         throw new Error(t('errors.playback.noPlayMethod'));
       }
@@ -578,8 +640,9 @@ export class PlaybackService extends EventEmitter {
         url,
         isHls,
         // mpv only (wicaby-media:// adds its own), and never for another origin.
-        httpHeaders: kind === 'mpv' && ownOrigin ? ([api.mediaAuthHeader()].filter(Boolean) as string[]) : [],
-        startMs,
+        httpHeaders: kind === 'mpv' && ownOrigin ? api.mediaAuthHeaders() : [],
+        // A transcode starts at the resume point; a part of a multi-part film counts from its own start.
+        startMs: tracksFixed && baseMs ? 0 : startMs - baseMs,
         title,
         volume: this.state.volume,
         muted: this.state.muted,
@@ -611,8 +674,13 @@ export class PlaybackService extends EventEmitter {
       if (seq !== this.loadSeq) return;
     }
 
-    const player = await this.ensurePlayer(kind);
+    const music = item.MediaType === 'Audio';
+    const player = await this.ensurePlayer(kind, music);
     if (seq !== this.loadSeq) return;
+    if (music) {
+      load.music = await this.music.prepare(item);
+      if (seq !== this.loadSeq) return;
+    }
     const saved = this.memory.recall('aspect') as Partial<VideoAspect> | undefined;
     const aspect: VideoAspect =
       saved && ASPECT_MODES.includes(saved.mode!)
@@ -635,6 +703,8 @@ export class PlaybackService extends EventEmitter {
       // A file source has no server to reconnect to or transcode on.
       local: Boolean(local?.filePath) || files instanceof FilesClient,
       files: files instanceof FilesClient || undefined,
+      baseMs: baseMs || undefined,
+      partEndMs,
       serverId: sid,
       userId: session?.user?.id ?? session?.server.userId,
       audioIndex,
@@ -675,6 +745,7 @@ export class PlaybackService extends EventEmitter {
     if (picked.applied && item.SeriesId && this.memory.firstToast(item.SeriesId)) {
       this.state.notice = { key: 'player.tracks.applied', at: Date.now() };
     }
+    if (softTranscode) this.explainPass('plex.pass.transcode');
     this.creditsSkipped = false;
     this.segmentsSkipped.clear();
     this.clearUpNext();
@@ -702,8 +773,9 @@ export class PlaybackService extends EventEmitter {
     void this.loadExtras(seq, item, source, online);
   }
 
-  private async ensurePlayer(kind: 'mpv' | 'html'): Promise<ActivePlayer> {
-    if (this.player?.kind === kind) return this.player;
+  // audio: a track, which mpv plays windowless (music/mpv-audio-player.ts).
+  private async ensurePlayer(kind: 'mpv' | 'html', audio = false): Promise<ActivePlayer> {
+    if (this.player?.kind === kind && (kind === 'html' || this.player instanceof MpvAudioPlayer === audio)) return this.player;
     if (this.player) {
       const old = this.player;
       this.player = null;
@@ -711,9 +783,11 @@ export class PlaybackService extends EventEmitter {
     }
     const deps = this.deps;
     const player: ActivePlayer =
-      kind === 'mpv'
-        ? await MpvPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value, deps.mpvConfigDir)
-        : new HtmlPlayer(deps.windows);
+      kind === 'html'
+        ? new HtmlPlayer(deps.windows)
+        : audio
+          ? await MpvAudioPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value)
+          : await MpvPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value, deps.mpvConfigDir);
     this.attach(player);
     this.player = player;
     this.watchMinimize(player);
@@ -723,6 +797,11 @@ export class PlaybackService extends EventEmitter {
   private attach(player: ActivePlayer): void {
     player.on('time', (t: TimeUpdate) => {
       if (this.player !== player || !this.state.active) return;
+      // A Plex transcode that starts at the resume point counts from 0 there.
+      const base = this.current?.baseMs;
+      if (base) t = { ...t, positionMs: t.positionMs + base, durationMs: t.durationMs > 0 ? t.durationMs + base : t.durationMs };
+      // A part of a multi-part film: the player's duration is the part's, the film's stays.
+      if (this.current?.partEndMs) t = { ...t, durationMs: 0 };
       const pausedChanged = t.paused !== this.state.paused;
       this.state.positionMs = t.positionMs;
       if (t.durationMs > 0) this.state.durationMs = t.durationMs;
@@ -742,6 +821,7 @@ export class PlaybackService extends EventEmitter {
       this.state.fullscreen = player.isFullscreen();
       this.recovery.onTime({ positionMs: t.positionMs, buffering: t.buffering, cacheBytes: t.cache ? t.cache.fwBytes + t.cache.fileBytes : undefined });
       this.lives.onTime(t);
+      this.music.onTime();
       this.onTick(pausedChanged);
       if (pausedChanged) {
         this.pausePower(t.paused);
@@ -779,6 +859,11 @@ export class PlaybackService extends EventEmitter {
       if (this.player !== player || this.switching || this.lives.onEnded()) return;
       const c = this.current;
       const s = this.state;
+      // The end of one part of a multi-part film (D-4): the next one, from its start.
+      if (c?.partEndMs && !c.terminated) {
+        s.positionMs = c.partEndMs;
+        return void this.restart({ part: true });
+      }
       // Direct play only: there positions and duration are the file's own.
       if (c && !c.live && !c.local && !c.offline && c.playMethod === 'DirectPlay' && s.durationMs > 0 && s.positionMs < s.durationMs - EARLY_EOF_MS) {
         void this.recovery.onFailure('', 'early-eof');
@@ -817,7 +902,7 @@ export class PlaybackService extends EventEmitter {
     const win = player.hostWindow;
     if (!win) return;
     const onMinimize = () => {
-      if (this.player === player && this.state.active && !this.state.paused && this.deps.settings.value.playback.pauseOnMinimize) player.pause();
+      if (this.player === player && this.state.active && !this.state.paused && this.deps.settings.value.playback.pauseOnMinimize && !this.music.active) player.pause();
     };
     win.on('minimize', onMinimize);
     this.unwatchMinimize = () => {
@@ -837,8 +922,7 @@ export class PlaybackService extends EventEmitter {
     const stale = () => seq !== this.loadSeq;
     if (!validId(item.Id)) return;
     const tasks: Promise<unknown>[] = [];
-    const nextId = this.queue.nextId;
-    if (nextId) tasks.push(this.fetchUpNext(nextId, online).then((n) => !stale() && (this.nextInfo = n)));
+    if (this.queue.nextId) tasks.push(this.upNextAfter(source?.Id, online, stale).then((n) => !stale() && (this.nextInfo = n)));
     const api = online ? this.reports.online() : null;
     const userId = api?.userId;
     if (api && item.MediaType === 'Video' && item.Type !== 'TvChannel' && !caps(api.kind).localUserData) {
@@ -855,12 +939,17 @@ export class PlaybackService extends EventEmitter {
         this.state.trickplay = { kind: 'bif', url: mediaApiUrl(`/Videos/${item.Id}/index.bif${buildQuery({ Width: 320, MediaSourceId: source?.Id })}`, this.queue.serverId) };
       } else {
         tasks.push(
-          api.get<{ Items?: MediaSegment[] }>(`/MediaSegments/${item.Id}`).then((r) => {
+          api.get<{ Items?: MediaSegment[]; PlexPass?: boolean }>(`/MediaSegments/${item.Id}`).then((r) => {
             const markers = jellyfinMarkers(r?.Items);
             if (markers && !stale()) this.state.markers = markers;
+            // Plex: intro and credits detection is a Plex Pass feature of the server (D-5: no client-side detection).
+            if (!markers && r?.PlexPass === false && item.Type === 'Episode' && !stale()) this.explainPass('plex.pass.markers');
           }),
         );
-        tasks.push(jellyfinTrickplay(api, item, source, this.queue.serverId).then((t) => t && !stale() && (this.state.trickplay = t)));
+        // Plex preview thumbnails are a BIF of the part (/library/parts/{id}/indexes/sd); none when PMS made none.
+        if (api.kind === 'plex') {
+          if (source?.Bif) this.state.trickplay = { kind: 'bif', url: mediaApiUrl(`/Videos/${item.Id}/index.bif${buildQuery({ MediaSourceId: source.Id })}`, this.queue.serverId) };
+        } else tasks.push(jellyfinTrickplay(api, item, source, this.queue.serverId).then((t) => t && !stale() && (this.state.trickplay = t)));
       }
     }
     await Promise.all(tasks.map((t) => t.catch((err) => log.debug(`playback extras: ${String(err)}`))));
@@ -868,11 +957,37 @@ export class PlaybackService extends EventEmitter {
   }
 
 
-  private async fetchUpNext(id: string, online: boolean): Promise<UpNext | null> {
+  // A Plex Pass gate met during playback, explained once per server and run (never worked around).
+  private readonly passExplained = new Set<string>();
+  private explainPass(key: string): void {
+    const sid = this.queue.serverId ?? '';
+    if (this.passExplained.has(`${sid} ${key}`) || !this.state.active) return;
+    this.passExplained.add(`${sid} ${key}`);
+    this.state.notice = { key, at: Date.now() };
+  }
+
+  // The Up Next of the queue after a play of file `file`: the episodes that same file holds (s02e17-e18, one Media
+  // and Part on Plex) played with it, so they leave the queue (plex-spec §6.3, #1500).
+  // shortcut: decided when the extras load; an end before that (a file under a few seconds) still advances to them.
+  private async upNextAfter(file: string | undefined, online: boolean, stale: () => boolean): Promise<UpNext | null> {
+    for (;;) {
+      const id = this.queue.nextId;
+      if (!id) return null;
+      const n = await this.fetchUpNext(id, online, file);
+      if (n !== 'same') return n;
+      if (stale() || this.queue.nextId !== id) return null;
+      this.queue.ids.splice(this.queue.index + 1, 1);
+      this.state.queueLength = this.queue.ids.length;
+    }
+  }
+
+  // 'same': item `id` plays the file `file` too.
+  private async fetchUpNext(id: string, online: boolean, file?: string): Promise<UpNext | 'same' | null> {
     const item = online
       ? await userItem<BaseItem>(this.deps.connection.apiFor(this.queue.serverId), this.deps.connection.userIdFor(this.queue.serverId), id)
       : this.deps.downloads.findDone(id, this.queue.serverId)?.item;
     if (!item) return null;
+    if (file && item.MediaSources?.some((s) => s.Id === file)) return 'same';
     return {
       id,
       name: item.Name,
@@ -890,8 +1005,8 @@ export class PlaybackService extends EventEmitter {
 
   // Every time update: intro auto-skip, the up-next trigger, and the countdown following pause.
   private onTick(pausedChanged: boolean): void {
-    // A trailer just runs to its end, then the film starts (onEnded).
-    if (this.current?.trailer) return;
+    // A trailer just runs to its end, then the film starts (onEnded). Music has no up-next card.
+    if (this.current?.trailer || this.music.active) return;
     const s = this.state;
     const m = s.markers;
     const pos = s.positionMs;
@@ -1008,6 +1123,7 @@ export class PlaybackService extends EventEmitter {
     this.state.positionMs = this.state.durationMs;
     const trailer = this.current?.trailer;
     await this.reports.stopped();
+    if (this.music.active) return this.music.onEnded();
     const hasNext = this.queue.hasNext;
     if (trailer && hasNext) {
       await this.advance(false);
@@ -1078,11 +1194,12 @@ export class PlaybackService extends EventEmitter {
       .catch((err) => log.warn('exit transition failed', err));
   }
 
-  private async restart(overrides: { audio?: number; subtitle?: number | null; player?: 'html' }): Promise<void> {
+  // part: the same viewing of a multi-part Plex film goes on in another part (D-4), under the same session.
+  private async restart(overrides: { audio?: number; subtitle?: number | null; player?: 'html'; part?: boolean }): Promise<void> {
     const cur = this.current;
     if (!cur) return;
     const position = this.state.positionMs;
-    await this.reports.stopped();
+    await this.reports.stopped(cur, false, overrides.part);
     const subtitle = overrides.subtitle !== undefined ? overrides.subtitle : cur.subtitleIndex;
     await this.startItem({
       startMs: position,
@@ -1090,6 +1207,7 @@ export class PlaybackService extends EventEmitter {
       audioStreamIndex: overrides.audio ?? cur.audioIndex ?? undefined,
       subtitleStreamIndex: subtitle === null ? -1 : subtitle,
       player: overrides.player ?? cur.kind,
+      playSessionId: overrides.part ? cur.playSessionId : undefined,
     }).catch((err) => this.fail(err));
   }
 
@@ -1228,7 +1346,16 @@ export class PlaybackService extends EventEmitter {
     if (live === null) return;
     const max = this.state.durationMs > 0 ? this.state.durationMs - 1000 : target;
     const clamped = live ?? Math.max(0, Math.min(max, target));
-    p.seek(clamped);
+    // Before the start of a Plex transcode begun at the resume point: a new one from there (PMS has no segment).
+    const base = this.current?.baseMs ?? 0;
+    // Or past the end of the part of a multi-part film that plays: the part there.
+    const end = this.current?.partEndMs;
+    if ((base && clamped < base) || (end && clamped >= end)) {
+      this.state.positionMs = clamped;
+      void this.restart({ part: true });
+      return;
+    }
+    p.seek(clamped - base);
     this.state.positionMs = clamped;
     this.publish(true);
     this.reports.progress('TimeUpdate');
@@ -1245,6 +1372,7 @@ export class PlaybackService extends EventEmitter {
     // Live mode: next / previous (SMTC, media keys, thumbar, remote) change channel.
     if (this.current?.live && (cmd.type === 'next' || cmd.type === 'previous')) cmd = { type: 'zap', delta: cmd.type === 'next' ? 1 : -1 };
     if (this.lives.command(cmd)) return;
+    if (await this.music.command(cmd)) return;
     const u = this.state.upNext;
     if (u?.stillWatching && this.current && (cmd.type === 'toggle-pause' || cmd.type === 'resume')) {
       // Resuming answers "Toujours là ?": back to a normal card (its countdown restarts on unpause).
@@ -1274,7 +1402,8 @@ export class PlaybackService extends EventEmitter {
         break;
       case 'previous':
         if (this.state.positionMs > 5000 || this.queue.index === 0) {
-          p.seek(0);
+          if (this.current?.baseMs) this.seekTo(0);
+          else p.seek(0);
         } else {
           const kind = this.current?.kind ?? p.kind;
           this.clearUpNext();
@@ -1370,6 +1499,8 @@ export class PlaybackService extends EventEmitter {
           this.publish(true);
         } else {
           await this.restart({ audio: cmd.index });
+          // The change itself, as the in-place path reports it (Plex stores it on the part: plex-playback.ts).
+          if (this.current?.audioIndex === cmd.index) this.reports.progress('AudioTrackChange');
         }
         break;
       }
@@ -1389,6 +1520,7 @@ export class PlaybackService extends EventEmitter {
           this.publish(true);
         } else {
           await this.restart({ subtitle: index });
+          if (this.current && this.current.subtitleIndex === index) this.reports.progress('SubtitleTrackChange');
         }
         break;
       }
@@ -1469,6 +1601,11 @@ export class PlaybackService extends EventEmitter {
       live: Boolean(c.live),
       policy: c.live ? this.lives.session.policy(sid) : 'mbb',
     };
+  }
+
+  // A Plex server stopped this client's session of `itemId` (its notifications socket, plex-spec §6.5).
+  serverEnded(serverId: string, itemId: string): Promise<void> {
+    return this.reports.serverEnded(serverId, itemId);
   }
 
   // Remote control from another client (Emby/Jellyfin "Play on" and remote): remote-commands.ts.

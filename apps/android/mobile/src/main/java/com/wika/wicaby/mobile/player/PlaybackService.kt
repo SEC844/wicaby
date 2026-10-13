@@ -15,6 +15,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import com.wika.wicaby.mobile.Lang
+import com.wika.wicaby.mobile.MainActivity
+import com.wika.wicaby.core.Core
+import androidx.media3.datasource.DataSourceBitmapLoader
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.session.CacheBitmapLoader
 import com.wika.wicaby.mobile.R
 import androidx.media3.session.MediaSessionService
 import android.os.Looper
@@ -90,7 +96,19 @@ class PlaybackService : MediaSessionService() {
             this, 0, Intent(this, PlayerActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val s = MediaSession.Builder(this, LivePlayer(player, this)).setSessionActivity(open).build()
+        // Music (MU-07): the session activity is the app's now-playing screen while a music session owns the player.
+        val nowPlaying = PendingIntent.getActivity(
+            this, 2, Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_NOW_PLAYING),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        // Lock-screen and notification art through Core.http (the server's auth, the mesh transport).
+        val art = CacheBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(DefaultDataSource.Factory(this, OkHttpDataSource.Factory(Core.http))).build())
+        val s = MediaSession.Builder(this, LivePlayer(player, this)).setSessionActivity(open).setBitmapLoader(art).build()
+        player.addListener(object : Player.Listener {
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                s.setSessionActivity(if (PlayerHolder.music != null) nowPlaying else open)
+            }
+        })
         session = s
         PlayerHolder.onRelease {
             s.release()
@@ -188,10 +206,17 @@ private class LivePlayer(player: Player, private val context: Context) : Forward
 
     private fun zap(delta: Int) = LiveZap.press(context, delta)
 
-    override fun seekToNext() { if (!zap(1)) super.seekToNext() }
-    override fun seekToNextMediaItem() { if (!zap(1)) super.seekToNextMediaItem() }
-    override fun seekToPrevious() { if (!zap(-1)) super.seekToPrevious() }
-    override fun seekToPreviousMediaItem() { if (!zap(-1)) super.seekToPreviousMediaItem() }
+    // Music: the queue's next and previous (repeat, shuffle, the 5 s rule), not the player's window.
+    private fun music(delta: Int): Boolean {
+        val m = PlayerHolder.music ?: return false
+        if (delta > 0) m.next() else m.previous()
+        return true
+    }
+
+    override fun seekToNext() { if (!zap(1) && !music(1)) super.seekToNext() }
+    override fun seekToNextMediaItem() { if (!zap(1) && !music(1)) super.seekToNextMediaItem() }
+    override fun seekToPrevious() { if (!zap(-1) && !music(-1)) super.seekToPrevious() }
+    override fun seekToPreviousMediaItem() { if (!zap(-1) && !music(-1)) super.seekToPreviousMediaItem() }
 }
 
 /**

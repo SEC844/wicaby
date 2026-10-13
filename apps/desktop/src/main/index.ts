@@ -49,7 +49,10 @@ const log = logger.scope('main');
 if (app.isPackaged) {
   delete process.env.WICABY_DEV_URL;
   delete process.env.WICABY_DEVTOOLS;
+  delete process.env.WICABY_TEST_SILENT;
 }
+// Checks (music-spec §6.2): nothing the app plays makes a sound; mpv gets --ao=null (mpv-controller.ts).
+if (process.env.WICABY_TEST_SILENT === '1') app.commandLine.appendSwitch('mute-audio');
 
 registerSchemes();
 // Keep rasterization, video decode and compositing on the GPU, even on drivers
@@ -227,7 +230,11 @@ async function bootstrap(): Promise<void> {
     mpvConfigDir,
     deviceId: identity.deviceId,
     onMessage: toast,
+    musicQueueFile: path.join(userData, 'music-queue.json'),
   });
+  // D8 (music-spec): the last music queue comes back, paused, once its server is signed in.
+  connection.on('session', () => playback.restoreMusic());
+  playback.restoreMusic();
 
   const cast = new CastManager({ connection, local: playback, deviceId: identity.deviceId, notify: toast, settings, tokens: new EphemeralTokens(vault, identity.version) });
   playback.beforePlay = () => cast.stopSenderReported();
@@ -309,6 +316,8 @@ async function bootstrap(): Promise<void> {
   connection.on('server-message', (msg: SocketMessage, serverId: string) => {
     // The cast mirror's SessionsStart pushes (cast-spec CA-04).
     if (msg.MessageType === 'Sessions') return cast.onSessions(serverId, msg.Data);
+    // A Plex server stopped this client's session (server-socket.ts plexEvent).
+    if (msg.MessageType === 'PlexSessionEnded') return void playback.serverEnded(serverId, String((msg.Data as { ItemId?: string } | undefined)?.ItemId ?? ''));
     if (playback.handleRemote(msg, serverId)) return;
     const d = (msg.Data ?? {}) as Record<string, unknown>;
     const args = (d.Arguments ?? {}) as Record<string, string>;

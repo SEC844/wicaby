@@ -92,7 +92,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import com.wika.wicaby.core.R as CoreR
 
-val BROWSABLE = setOf("movies", "tvshows", "homevideos", "photos", "boxsets", "mixed", "books", "livetv", null)
+// "music" (music spec MU-08): its own screen (music/MusicScreen.kt).
+val BROWSABLE = setOf("movies", "tvshows", "homevideos", "photos", "boxsets", "mixed", "books", "livetv", "music", null)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

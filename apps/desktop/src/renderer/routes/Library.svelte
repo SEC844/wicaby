@@ -16,6 +16,7 @@
   import Card from '../components/Card.svelte';
   import Icon from '../components/Icon.svelte';
   import Photos from './photos/Photos.svelte';
+  import Music from './Music.svelte';
   import { apiFor, dedupe, itemKey } from '../lib/api';
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
@@ -84,6 +85,8 @@
   const collection = $derived(lib?.CollectionType ?? '');
   // Photo and home-video libraries open the photo timeline (photos spec §4.2, decision O3) instead of this grid.
   const photos = $derived(collection === 'photos' || collection === 'homevideos');
+  // Music libraries open their own tabs (music-spec MU-03).
+  const music = $derived(collection === 'music');
   const includeTypes = $derived(
     ({ movies: 'Movie', tvshows: 'Series', music: 'MusicAlbum', boxsets: 'BoxSet', musicvideos: 'MusicVideo', homevideos: 'Video,Photo', books: 'Book' } as Record<string, string>)[
       collection
@@ -169,7 +172,7 @@
   });
 
   $effect(() => {
-    if (!lib || photos) return;
+    if (!lib || photos || music) return;
     const types = includeTypes;
     void w.api
       .get<{ Items: { Name: string }[] }>('/Genres', { ParentId: id, UserId: sessionFor(server)?.user?.id, IncludeItemTypes: types || undefined, SortBy: 'SortName' }, server)
@@ -178,7 +181,7 @@
   });
 
   // Boolean, not the object: the library record can be swapped for an equal copy.
-  const ready = $derived(Boolean(lib) && !photos);
+  const ready = $derived(Boolean(lib) && !photos && !music);
   $effect(() => {
     if (!ready) return;
     void sort;
@@ -222,6 +225,8 @@
 
 {#if lib && photos}
   <Photos {lib} {server} />
+{:else if lib && music}
+  <Music {lib} {server} />
 {:else}
 <div class="library">
   <header class="head">

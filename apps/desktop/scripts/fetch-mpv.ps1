@@ -17,6 +17,7 @@ param([switch]$Generic)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Bump checklist: run tools/checks/music-engine-check.mjs (music spec MU-02 AC2, AC5: gapless and per-file options).
 $MpvTag = '20261011'
 $MpvCommit = 'accb7b2821'
 $Sha256 = @{

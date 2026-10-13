@@ -319,7 +319,8 @@ export class ChromecastCast {
       fmp4 = hls && container === 'mp4';
     }
     // Text subtitles as VTT side tracks (EDIT_TRACKS_INFO switches between them); image ones are burned in (restart).
-    const subs = (src.MediaStreams ?? []).filter((m) => m.Type === 'Subtitle' && m.Index >= 0 && m.DeliveryMethod !== 'Encode' && (m.IsTextSubtitleStream === true || TEXT_SUBS.test(m.Codec ?? '')));
+    // shortcut: no side tracks from Plex (PMS serves its sidecars as SRT, not VTT); upgrade through its subtitle transcoder.
+    const subs = api.kind === 'plex' ? [] : (src.MediaStreams ?? []).filter((m) => m.Type === 'Subtitle' && m.Index >= 0 && m.DeliveryMethod !== 'Encode' && (m.IsTextSubtitleStream === true || TEXT_SUBS.test(m.Codec ?? '')));
     const subPath = (i: number) => `/Videos/${item.Id}/${src.Id}/Subtitles/${i}/${api.kind === 'jellyfin' ? '0/' : ''}Stream.vtt`;
     const r = await deviceUrls({ ...this.d, ip: device.ip }, [path, ...subs.map((m) => subPath(m.Index))], this.nonce);
     this.nonce = r.nonce;
@@ -335,7 +336,8 @@ export class ChromecastCast {
     }));
     const transcode = !direct;
     return {
-      s: { transcode, hls, fmp4, startTicks: transcode && !hls ? startTicks : 0, playSessionId, msid: src.Id, tracks: trackIds },
+      // A Plex HLS starts at the offset (StartTimeTicks), like a progressive transcode.
+      s: { transcode, hls, fmp4, startTicks: transcode && (!hls || src.StartTimeTicks) ? startTicks : 0, playSessionId, msid: src.Id, tracks: trackIds },
       contentId: r.urls[0],
       contentType,
       tracks,

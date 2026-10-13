@@ -8,17 +8,19 @@ import enCommon from '../renderer/locales/en/common.json';
 import enErrors from '../renderer/locales/en/errors.json';
 import enFiles from '../renderer/locales/en/files.json';
 import enMain from '../renderer/locales/en/main.json';
+import enPlex from '../renderer/locales/en/plex.json';
 import frCast from '../renderer/locales/fr/cast.json';
 import frCommon from '../renderer/locales/fr/common.json';
 import frErrors from '../renderer/locales/fr/errors.json';
 import frFiles from '../renderer/locales/fr/files.json';
 import frMain from '../renderer/locales/fr/main.json';
+import frPlex from '../renderer/locales/fr/plex.json';
 import type { SettingsService } from './core/settings';
 
 const catalogs: Record<Lang, Catalog> = { fr: new Map(), en: new Map() };
 for (const [lang, files] of [
-  ['fr', { common: frCommon, errors: frErrors, main: frMain, cast: frCast, files: frFiles }],
-  ['en', { common: enCommon, errors: enErrors, main: enMain, cast: enCast, files: enFiles }],
+  ['fr', { common: frCommon, errors: frErrors, main: frMain, cast: frCast, files: frFiles, plex: frPlex }],
+  ['en', { common: enCommon, errors: enErrors, main: enMain, cast: enCast, files: enFiles, plex: enPlex }],
 ] as const) {
   for (const [ns, data] of Object.entries(files)) flattenInto(catalogs[lang], data, ns);
 }

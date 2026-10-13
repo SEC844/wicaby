@@ -139,6 +139,60 @@ The fallback is used when mpv is not found or the user chooses it, globally (`pl
   - `html` direct-plays MP4 and WebM and asks for HLS otherwise. An audio track other than the default forces a remux, because `<video>` cannot switch tracks.
 - **Limits:** Chromium's Matroska support is partial (`.mkv` is served as `video/webm`). There is no HDR passthrough and no audio bitstreaming.
 
+## Music engine
+
+Music (music spec MU-02, decision D1) does not go through the video player. `main/music/mpv-audio-player.ts` runs mpv with
+**no window at all** (`--force-window=no --vid=no --audio-display=no`), audio only, and `main/music/music-playback.ts` (the
+music twin of `livetv/live-player.ts`) is what `playback-service.ts` calls into, at a few named hooks.
+
+- **Gapless:** while track *n* plays, *n+1* is appended to mpv's playlist (`loadfile … append` with per-file options:
+  auth header, `replaygain`, `replaygain-fallback`), 20 s before the end or at once for a shorter track. When mpv moves on
+  by itself, *n* is reported Stopped at its full length, then *n+1* Playing, with no reload. A queue edit replaces the
+  prefetched entry; any failure falls back to the plain path (`ended` → next track, a short gap, never a stop).
+- **Queue:** `shared/music-queue.ts` (move, remove, jump, play next, shuffle with undo, repeat off/all/one) is shared with
+  Android's `core/music/MusicQueue.kt` through `tools/checks/fixtures/music/queue-vectors.json`. Repeat one goes through the
+  queue (the same track appended again), not `loop-file`.
+- **Loudness (D2):** ReplayGain album mode by default. Tagged files use their tags; untagged ones get the server's
+  `NormalizationGain` (Jellyfin; the album's in album mode) or the fallback gain, through `replaygain-fallback`; the preamp
+  applies to both. `dynaudnorm` ("Normaliser le volume") is never applied to music.
+- **Bit-perfect:** WASAPI exclusive (`audioExclusive`) with ReplayGain off and the volume at 100 % leaves the samples untouched.
+- **Built-in fallback:** `playerByType.music = html` plays through an `<audio>` element of the main window
+  (`components/music/MusicHost.svelte`), never the player page; one `GainNode` applies the server gain and the preamp. No
+  gapless, no ReplayGain tags.
+- **SMTC:** the main window owns `navigator.mediaSession` while music plays (title, artists, album, the album's art), with
+  the silent keep-alive of `lib/media-session.svelte.ts` for mpv, as the OSD does for video.
+- **D8:** the queue is saved to `<userData>/music-queue.json` and comes back, paused, at the next start.
+- **Checks:** `music-check.mjs` (LRC and queue vectors) runs in `npm run checks`; `music-engine-check.mjs` drives the app over
+  CDP against both mocks (Windows, mpv, never audible: `WICABY_TEST_SILENT=1` gives mpv `--ao=null` and Chromium
+  `mute-audio`, only in development builds).
+
+## Music UI
+
+The views (music spec MU-03 to MU-06) sit on that engine; `lib/music-ui.svelte.ts` holds what they share (queue items by
+id, the track menu, mix, favourites).
+
+- **Library:** a music library opens `routes/Music.svelte` (from `Library.svelte`): Albums (grid or list, sorts, favourites
+  and genre filters), Artists (an "album artists only" toggle: `/Artists/AlbumArtists` or `/Artists`), Songs
+  (`components/music/SongList.svelte`, a windowed list: only the rows near the viewport in the DOM, pages of 100 fetched as
+  they come into view), Genres (a genre opens its albums, with Mix), Playlists (audio ones) and Folders. Tab, sort, view and
+  toggle are kept per library in `localStorage`.
+- **Album and artist pages:** `components/music/AlbumTracks.svelte` (disc headers, count and length, a heart and a menu per
+  row, the playing row marked); the artist page adds top songs and splits the discography into its albums and "appears on".
+  `components/music/TrackMenu.svelte`: play next, add to queue, add to playlist, mix, radio, go to artist or album, favourite.
+- **Now playing:** `components/music/NowPlayingBar.svelte` (72 px, at the bottom of the main pane while a track is current),
+  `QueuePanel.svelte` (drag by the grip, Alt+↑/↓, Delete, double click to play, clear upcoming, save as playlist, radio) and
+  the full-screen `routes/NowPlaying.svelte` (blurred art under a scrim, opaque with reduced transparency; lyrics or queue).
+  The window title follows the track.
+- **Lyrics:** `components/music/LyricsPane.svelte` from the server only (Jellyfin `/Audio/{id}/Lyrics`; Emby an `lrc` subtitle
+  stream, unverified, §3.5). The current line sits at 35 % of the height; a click seeks; a per-track offset (±0.1 s) stays
+  on this device. Any failure reads as "no lyrics".
+- **Mix and radio:** always `GET /Items/{id}/InstantMix` (track, album, artist, genre, playlist). With radio on, main tops
+  the queue up with 20 tracks of the last one's mix once 3 or fewer are left, never one already played this run.
+- **Shortcuts:** a `music` context in `shared/shortcuts.ts` (editable in Settings): Space, Ctrl+←/→, ←/→ ±5 s, Shift+←/→
+  ±30 s, ↑/↓ volume, M, S, R, L, Q, F, Escape. Plain arrows act only when nothing has focus or in the full-screen player
+  (elsewhere they move the focus); nothing fires in a text field.
+- **Check:** `tools/checks/music-ui-cdp.mjs` drives both mocks over CDP (Windows, mpv, silent), outside `npm run checks`.
+
 ## Multi-server sessions
 
 Wicaby can be signed in to several Emby and Jellyfin servers at once, and it merges their content.

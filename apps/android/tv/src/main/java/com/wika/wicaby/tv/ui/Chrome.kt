@@ -447,6 +447,8 @@ object Idle {
 // PH-07); Dream reads the same.
 @Composable
 fun Screensaver(api: Api, source: String = TvSettings.screensaverSource.value, album: String = TvSettings.screensaverAlbum.value) {
+    // Music playing (MU-09): the ambient now-playing layout instead, in the app and in the system Dream alike.
+    com.wika.wicaby.tv.music.Music.ambient(api)?.let { return com.wika.wicaby.tv.music.Ambient(it) }
     if (source == TvSettings.SCREENSAVER_PHOTOS || source == TvSettings.SCREENSAVER_MEMORIES) {
         return com.wika.wicaby.tv.ui.photos.PhotoScreensaver(api, album.ifEmpty { null }, memories = source == TvSettings.SCREENSAVER_MEMORIES)
     }

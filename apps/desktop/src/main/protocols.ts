@@ -7,6 +7,7 @@ import { APP_HOST, APP_SCHEME, MEDIA_SCHEME } from '../shared/contract';
 import { remoteImage } from './admin/item-images';
 import { fetchServer, isServerOrigin, resolveServerUrl, stripTokenParams, type ApiClient } from './connection/api-client';
 import type { ConnectionManager } from './connection/connection-manager';
+import { PlexClient } from './connection/plex-client';
 import type { ComicService } from './comics/comic-service';
 import { logger } from './core/log';
 import { FilesClient } from './files/files-client';
@@ -140,6 +141,12 @@ export async function readPlaylist(res: Response): Promise<string | null> {
 // or a CDN, is fetched again without them, never with a token parameter, and every later hop must be http(s): see
 // fetchServer), HLS playlists lose the token in their URIs (Jellyfin's subtitle playlists carry it), CORS is "*".
 export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqMethod: string, header: (name: string) => string | null): Promise<Response> {
+  // A Plex server: the Emby media path becomes its own (images, a play's part, BIF, subtitles), or 404.
+  if (api instanceof PlexClient) {
+    const mapped = await api.mediaPath(relWithQuery);
+    if (!mapped) return new Response('Not found', { status: 404, headers: CORS });
+    relWithQuery = mapped;
+  }
   const target = resolveServerUrl(api, relWithQuery);
   if (!target) return new Response('Bad request', { status: 400, headers: CORS });
   const method = reqMethod === 'HEAD' ? 'HEAD' : 'GET';
@@ -237,9 +244,9 @@ export function handleProtocols(opts: { rendererDir: string; connection: Connect
     try {
       if (url.host === 'api') {
         if (apiPathRefused(req.url)) return new Response('Bad request', { status: 400, headers: CORS });
-        // API paths never start with a server id (32 hex on both servers).
+        // API paths never start with a server id (32 hex on Emby and Jellyfin, 40 on Plex: machineIdentifier).
         const first = url.pathname.split('/')[1] ?? '';
-        const sid = opts.connection.hasSession(first) || /^[0-9a-f]{32}$/i.test(first) ? first : undefined;
+        const sid = opts.connection.hasSession(first) || /^(?:[0-9a-f]{32}|[0-9a-f]{40})$/i.test(first) ? first : undefined;
         const api = opts.connection.clientOf(sid);
         if (!api) return new Response('offline', { status: 503, headers: CORS });
         const rel = sid ? url.pathname.slice(first.length + 1) : url.pathname;

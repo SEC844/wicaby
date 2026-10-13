@@ -12,6 +12,7 @@ import com.wika.wicaby.core.data.Server
 import com.wika.wicaby.core.data.Session
 import com.wika.wicaby.core.data.SessionGate
 import com.wika.wicaby.core.data.Snapshot
+import com.wika.wicaby.core.net.ServerTransport
 import com.wika.wicaby.core.player.RemotePlay
 import com.wika.wicaby.tv.player.PlayerActivity
 import org.junit.After
@@ -26,6 +27,11 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 
 // TP-10: while "Who is watching?" is up nothing reaches a PIN-locked account: MainActivity keeps Core.api null until
 // the picker opens a session (SessionGate), and every entry point checks it. A plain Application: Wicaby would start
@@ -87,8 +93,30 @@ class PinLockTest {
         // No session, no socket: nothing reaches the server either.
         assertFalse(Core.socketSend("KeepAlive"))
         unlocked()
-        assertTrue(playRemote(app, play))
-        assertEquals(PlayerActivity::class.java.name, shadowOf(app).nextStartedActivity.component?.className)
+        // playRemote looks the item up first (a music track goes to the music session): a local fake answers it, so no
+        // request leaves the machine.
+        val fake = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest) = MockResponse.Builder().code(200).body("""{"Id":"abc123","Name":"Film","Type":"Movie"}""").build()
+            }
+            start()
+        }
+        Core.transport = object : ServerTransport {
+            override fun forward(origin: String) = fake.url("/").toString().trimEnd('/')
+        }
+        try {
+            assertTrue(playRemote(app, play))
+            val end = System.currentTimeMillis() + 5_000
+            while (shadowOf(app).peekNextStartedActivity() == null && System.currentTimeMillis() < end) {
+                Thread.sleep(20)
+                ShadowLooper.idleMainLooper()
+            }
+            assertEquals(PlayerActivity::class.java.name, shadowOf(app).nextStartedActivity.component?.className)
+            assertTrue(fake.requestCount > 0)
+        } finally {
+            Core.transport = ServerTransport.Direct
+            fake.close()
+        }
     }
 
     // The system screensaver: a locked account's library never shows.

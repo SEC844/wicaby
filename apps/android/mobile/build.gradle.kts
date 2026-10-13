@@ -19,8 +19,8 @@ android {
         applicationId = "com.wika.wicaby"
         minSdk = libs.versions.minSdkMobile.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 13
-        versionName = "0.6.0"
+        versionCode = 15
+        versionName = "0.8.0"
         // Photos spec PH-05/PH-06/PH-07: Compose tests on an emulator against the mock (tools/checks/photos-android-check.mjs).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

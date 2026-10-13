@@ -82,7 +82,26 @@
         "subSeekForward": "Next Subtitle Line (mpv)",
         "speedDown": "Slower by 0.25×",
         "speedUp": "Faster by 0.25×",
-        "speedReset": "Normal Speed"
+        "speedReset": "Normal Speed",
+        "musicPlayPause": "Play/Pause",
+        "musicNext": "Next song",
+        "musicPrevious": "Previous song",
+        "musicSeekBack": "Back 5 s",
+        "musicSeekForward": "Forward 5 s",
+        "musicSeekBackLong": "Back 30 s",
+        "musicSeekForwardLong": "Forward 30 s",
+        "musicVolumeUp": "Volume up",
+        "musicVolumeDown": "Volume down",
+        "musicMute": "Mute",
+        "musicShuffle": "Shuffle",
+        "musicRepeat": "Repeat",
+        "musicLyrics": "Lyrics",
+        "musicQueue": "Queue",
+        "musicFavorite": "Favourite",
+        "musicClose": "Close player"
+      },
+      "context": {
+        "music": "Music"
       }
     },
     "setup": {
@@ -458,7 +477,23 @@
     "passthrough": "Passthrough (Bitstream)",
     "atmosIncluded": "Includes Atmos",
     "passthroughFoot": "Enabled formats are sent as is to your receiver over HDMI or S/PDIF, which decodes them. Passthrough forces WASAPI exclusive mode, whatever the setting above. Volume, Reduce Loud Sounds, and Enhance Dialogue don’t apply to these tracks. Takes effect the next time mpv starts.",
-    "passthroughFootLinux": "Enabled formats are sent as is to your receiver over HDMI or S/PDIF, which decodes them. The output must accept passthrough (enable it in PipeWire or PulseAudio, or turn on Exclusive Mode); otherwise Wicaby falls back to PCM. Volume, Reduce Loud Sounds, and Enhance Dialogue don’t apply to these tracks. Takes effect the next time mpv starts."
+    "passthroughFootLinux": "Enabled formats are sent as is to your receiver over HDMI or S/PDIF, which decodes them. The output must accept passthrough (enable it in PipeWire or PulseAudio, or turn on Exclusive Mode); otherwise Wicaby falls back to PCM. Volume, Reduce Loud Sounds, and Enhance Dialogue don’t apply to these tracks. Takes effect the next time mpv starts.",
+    "music": {
+      "title": "Music",
+      "replayGain": "ReplayGain",
+      "replayGainDesc": "Evens out the volume from one track to the next with the files’ gains, else the server’s.",
+      "replayGainOff": "Off",
+      "replayGainTrack": "Track",
+      "replayGainAlbum": "Album",
+      "replayGainAuto": "Automatic",
+      "preamp": "Preamp",
+      "preampValue": "{db} dB",
+      "preventClipping": "Prevent clipping",
+      "gapless": "Gapless playback",
+      "gaplessHint": "Plays tracks back to back with no silence (mpv player).",
+      "resumeQueue": "Restore the queue at startup",
+      "fallbackNote": "The built-in player supports neither gapless playback nor ReplayGain tags."
+    }
   },
   "subtitles": {
     "language": {

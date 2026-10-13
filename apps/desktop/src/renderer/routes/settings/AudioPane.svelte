@@ -5,7 +5,7 @@
   import { t } from '../../lib/i18n.svelte';
   import { linux } from '../../lib/platform';
   import { settings } from '../../lib/stores.svelte';
-  import { languageOptions, set, type SettingsData } from './shared.svelte';
+  import { deviceOptions as outputOptions, languageOptions, set, type SettingsData } from './shared.svelte';
 
   let { data }: { data: SettingsData } = $props();
 
@@ -23,12 +23,17 @@
   // ---- Audio output devices (mpv) ----
   const devices = $derived(data.devices);
   const devicesLoading = $derived(data.devicesLoading);
-  const deviceOptions = $derived.by(() => {
-    const list = (devices ?? []).filter((d) => d.name !== 'auto' && /^(wasapi|pipewire|pulse|alsa)\//.test(d.name)).map((d) => ({ value: d.name, label: d.description || d.name }));
-    const current = s?.playback.audioDevice ?? 'auto';
-    if (current !== 'auto' && !list.some((d) => d.value === current)) list.unshift({ value: current, label: devices === null ? t('settings.audio.output.saved') : t('settings.audio.output.missing') });
-    return [{ value: 'auto', label: t(linux ? 'settings.audio.output.defaultLinux' : 'settings.audio.output.default') }, ...list];
-  });
+  const deviceOptions = $derived(outputOptions(devices, s?.playback.audioDevice ?? 'auto', linux));
+
+  // Music (music-spec MU-02): ReplayGain mode, preamp and the engine's options.
+  const RG_MODES = $derived([
+    { value: 'album' as const, label: t('settings.audio.music.replayGainAlbum') },
+    { value: 'track' as const, label: t('settings.audio.music.replayGainTrack') },
+    { value: 'auto' as const, label: t('settings.audio.music.replayGainAuto') },
+    { value: 'off' as const, label: t('settings.audio.music.replayGainOff') },
+  ]);
+  const PREAMPS = $derived([-15, -12, -9, -6, -3, 0, 3, 6].map((db) => ({ value: db, label: t('settings.audio.music.preampValue', { db: db > 0 ? `+${db}` : String(db) }) })));
+  const builtInMusic = $derived(s?.playback.playerByType.music === 'html' || (s?.playback.playerByType.music === 'default' && s?.playback.player === 'html'));
 
   function toggleSpdif(codec: string, on: boolean): void {
     if (!s) return;
@@ -115,6 +120,37 @@
     {/each}
   </div>
   <p class="foot">{t(linux ? 'settings.audio.passthroughFootLinux' : 'settings.audio.passthroughFoot')}</p>
+
+  <h3 class="gh">{t('settings.audio.music.title')}</h3>
+  <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.audio.music.replayGain')}</div>
+        <div class="desc">{t('settings.audio.music.replayGainDesc')}</div>
+      </div>
+      <Picker label={t('settings.audio.music.replayGain')} value={s.music.replayGain} options={RG_MODES} onchange={(v) => set({ music: { replayGain: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt"><div class="lbl">{t('settings.audio.music.preamp')}</div></div>
+      <Picker label={t('settings.audio.music.preamp')} value={s.music.preampDb} options={PREAMPS} onchange={(v) => set({ music: { preampDb: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt"><div class="lbl">{t('settings.audio.music.preventClipping')}</div></div>
+      <Toggle label={t('settings.audio.music.preventClipping')} checked={s.music.preventClipping} onchange={(v) => set({ music: { preventClipping: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.audio.music.gapless')}</div>
+        <div class="desc">{t('settings.audio.music.gaplessHint')}</div>
+      </div>
+      <Toggle label={t('settings.audio.music.gapless')} checked={s.music.gapless} onchange={(v) => set({ music: { gapless: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt"><div class="lbl">{t('settings.audio.music.resumeQueue')}</div></div>
+      <Toggle label={t('settings.audio.music.resumeQueue')} checked={s.music.resumeQueue} onchange={(v) => set({ music: { resumeQueue: v } })} />
+    </div>
+  </div>
+  {#if builtInMusic}<p class="foot">{t('settings.audio.music.fallbackNote')}</p>{/if}
 {/if}
 
 <style>

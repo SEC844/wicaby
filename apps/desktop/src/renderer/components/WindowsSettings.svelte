@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Settings } from '../../shared/contract';
+  import { caps } from '../../shared/server-caps';
   import Toggle from './Toggle.svelte';
   import { t } from '../lib/i18n.svelte';
   import { linux } from '../lib/platform';
@@ -9,7 +10,7 @@
   // Self-contained (no props); reads and writes settings.windows.
   const win = $derived(settings.value?.windows);
   // Admin alerts only concern servers where this user is an administrator.
-  const admin = $derived(onlineSessions().some((s) => s.user?.isAdmin));
+  const admin = $derived(onlineSessions().some((s) => s.user?.isAdmin && caps(s.server.kind).admin));
 
   async function set(patch: Partial<Settings['windows']>): Promise<void> {
     try {

@@ -1,0 +1,52 @@
+{
+  "about": {
+    "notAffiliated": "Plex est une marque de Plex, Inc. Wicaby est un client non officiel, sans lien avec Plex ni approuvé par Plex."
+  },
+  "errors": {
+    "remoteNeedsPass": "La lecture à distance de ce serveur demande un Plex Pass (le vôtre ou celui du propriétaire) ou un Remote Watch Pass. Sur le réseau du serveur, elle reste possible.",
+    "lowerQuality": "Le serveur refuse cette qualité à distance. Choisissez une qualité plus basse dans le menu Qualité.",
+    "fileUnavailable": "Le fichier de cet élément est introuvable sur le serveur Plex.",
+    "terminated": "Le serveur a arrêté la lecture.",
+    "castNeedsRelay": "Pour diffuser depuis Plex, activez le relais de diffusion dans les réglages : Wicaby ne met jamais le jeton Plex dans une adresse.",
+    "dlnaNeedsDirectPlay": "Ce téléviseur ne lit pas ce fichier tel quel. Wicaby ne fait convertir les vidéos Plex qu'en HLS, que les téléviseurs DLNA ne lisent pas : diffusez vers un Chromecast, ou lisez-le ici.",
+    "secureRequired": "Ce serveur Plex exige une connexion sécurisée, et aucune adresse https ne répond.",
+    "relink": "Le compte Plex n’est plus lié : liez-le à nouveau avec un code.",
+    "wrongPin": "Code PIN incorrect.",
+    "noAccess": "Ce profil n’a pas accès à ce serveur Plex."
+  },
+  "pass": {
+    "markers": "Pas de bouton « Passer l’intro » : la détection des intros et des génériques est une fonction Plex Pass du serveur.",
+    "transcode": "Ce serveur n’a pas de Plex Pass : le transcodage se fait sans accélération matérielle et peut être lent."
+  },
+  "link": {
+    "title": "Compte Plex",
+    "body": "Liez votre compte Plex avec un code : vos serveurs Plex, et ceux partagés avec vous, rejoignent Wicaby.",
+    "start": "Lier avec un code",
+    "lead": "Sur un téléphone ou un ordinateur, ouvrez plex.tv/link et saisissez ce code, ou scannez le QR code :",
+    "qrAlt": "QR code vers plex.tv/link",
+    "waiting": "En attente de la validation sur plex.tv…",
+    "expired": "Ce code a expiré.",
+    "newCode": "Nouveau code",
+    "linked": "{count, plural, one {# serveur Plex ajouté.} other {# serveurs Plex ajoutés.}}",
+    "noServers": "Ce compte Plex n’a accès à aucun serveur."
+  },
+  "account": {
+    "linkedAs": "Lié en tant que {name}",
+    "unlink": "Délier",
+    "unlinked": "Compte Plex délié.",
+    "owned": "Le vôtre",
+    "sharedBy": "Partagé par {name}",
+    "shared": "Partagé avec vous",
+    "show": "Afficher {name}",
+    "passOn": "Plex Pass actif sur ce compte.",
+    "passOff": "Sans Plex Pass chez le propriétaire d’un serveur, celui-ci n’offre ni TV en direct, ni boutons « Passer l’intro », ni transcodage matériel ; la lecture hors de son réseau demande un Plex Pass ou un Remote Watch Pass.",
+    "unofficial": "Wicaby est un client non officiel, sans lien avec Plex."
+  },
+  "login": {
+    "pin": "Code PIN",
+    "pinLead": "Saisissez le code PIN de ce profil Plex.",
+    "confirmTitle": "Utiliser cette adresse locale ?",
+    "confirmBody": "Ce serveur ne répond qu’à {address}, une adresse non chiffrée. Wicaby n’y enverra votre accès Plex qu’avec votre accord : acceptez seulement sur le réseau du serveur.",
+    "confirm": "Utiliser cette adresse"
+  }
+}

@@ -118,6 +118,7 @@ export function defaultSettings(): StoredSettings {
     windows: { closeToTray: false, launchAtStartup: false, trayHintShown: false, notifyDownloads: true, notifyNewEpisodes: true, notifyAdmin: true },
     live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
     photos: { map: { enabled: false, tileUrl: OSM_TILES, attribution: '© OpenStreetMap contributors' } },
+    music: { replayGain: 'album', preampDb: 0, fallbackDb: -6, preventClipping: true, gapless: true, resumeQueue: true, lyricsProvider: 'server' },
     defaultsVersion: 1,
   };
 }
@@ -421,6 +422,16 @@ function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
       tileUrl: isTileTemplate(m?.tileUrl) ? m.tileUrl : (keep?.photos?.map?.tileUrl ?? OSM_TILES),
       attribution: typeof m?.attribution === 'string' && m.attribution.trim() && m.attribution.length <= 200 ? m.attribution.trim() : d.photos.map.attribution,
     },
+  };
+  const mu = { ...d.music, ...(s.music ?? {}) };
+  s.music = {
+    replayGain: oneOf(mu.replayGain, ['off', 'track', 'album', 'auto'] as const, 'album'),
+    preampDb: Math.round(clamp(mu.preampDb, -15, 15, 0) * 2) / 2,
+    fallbackDb: Math.round(clamp(mu.fallbackDb, -15, 0, d.music.fallbackDb) * 2) / 2,
+    preventClipping: mu.preventClipping !== false,
+    gapless: mu.gapless !== false,
+    resumeQueue: mu.resumeQueue !== false,
+    lyricsProvider: oneOf(mu.lyricsProvider, ['server', 'server+lrclib'] as const, 'server'),
   };
   return s;
 }

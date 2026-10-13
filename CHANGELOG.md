@@ -18,6 +18,68 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-13
+
+Plex on desktop. Windows and Linux desktop **0.8.0**, Android TV app **0.8.0** (`versionCode` 19), Android mobile app
+**0.8.0** (`versionCode` 15).
+
+### Added
+
+- Desktop: Plex servers, next to Emby, Jellyfin and file sources. Wicaby is an unofficial client, not affiliated
+  with Plex.
+  - Link a Plex account with a code (plex.tv/link or a QR code), no password form. Your servers and the ones shared
+    with you are added; shared servers show by default and each one can be hidden. Plex Home profiles appear in the
+    profile picker, and a protected profile always asks for its PIN.
+  - Connections: local addresses first, then remote, then Plex's relay (with a badge). Servers that require secure
+    connections are never reached over http; an unencrypted local address gets your Plex access only after you
+    confirm it. The account token goes only to plex.tv, and each server's token stays in the vault.
+  - Browse: Plex's own Home rows, libraries, search, shows, editions, Continue Watching, Up Next, playlists,
+    collections, the plex.tv watchlist as Favorites, music in the music player and photos in Photos.
+  - Playback through the server's decision (direct play or HLS from the resume point), multi-part films as one queue,
+    track choices saved to Plex, progress reported once, Skip intro from Plex markers, BIF trickplay, and casting to
+    a Chromecast or a DLNA TV through the relay.
+  - For the server owner, "Refresh metadata". The Admin panel, Live TV, "Play on", mix and radio, subtitle search
+    and comics are not available on Plex servers.
+  - Plex Pass gates (remote playback, Live TV, intro detection, hardware transcoding) are detected and explained,
+    never worked around.
+- About: "unofficial client, not affiliated with Plex", and a Plex entry in the third-party notices.
+
+### Fixed
+
+- Android TV: music stops when the profile picker locks at startup and on sign-out.
+
+
+## [0.7.0] - 2026-10-13
+
+Music. Windows and Linux desktop **0.7.0**, Android TV app **0.7.0** (`versionCode` 18), Android mobile app
+**0.7.0** (`versionCode` 14).
+
+### Added
+
+- All platforms: a full music player for Emby and Jellyfin music libraries.
+  - Albums, artists (with an "album artists only" toggle), songs, genres and playlists; album pages with disc
+    headers, artist pages with top songs and the discography split into albums and "appears on".
+  - A queue you can edit while it plays: play next, add to queue, move, remove, clear upcoming, shuffle (turning
+    it off restores the order), repeat all or one, and save the queue as a playlist.
+  - Mix and radio from a song, album, artist, genre or playlist, through the server's instant mix. Radio tops the
+    queue up as it runs low.
+  - Favourites, add to playlist and go to artist or album from every track's menu.
+  - Synced lyrics from the server, when it has them (click a line to jump there on desktop).
+  - Loudness: ReplayGain in album mode by default, with the server's gain for untagged files and a preamp.
+- Desktop: music plays through mpv with no window, audio only: gapless playback, ReplayGain, and bit-perfect
+  output with WASAPI exclusive mode. A now-playing bar, a queue panel, a full-screen player with lyrics, music
+  keyboard shortcuts (editable in Settings), media keys and Windows media controls. The queue comes back,
+  paused, at the next start. The built-in player stays as a simpler fallback (no gapless, no ReplayGain tags).
+- Android mobile: a music section with a mini player, a full-screen now playing with lyrics and the queue, and
+  lock-screen and notification controls.
+- Android TV: music rows (recent albums, recently played, playlists, artists, genres), a now-playing screen
+  built for the remote with queue editing, music that keeps playing after Home or Back, and an ambient view after
+  2 minutes without a key, also shown by the screensaver while music plays.
+
+### Changed
+
+- Android TV: the basic music views of 0.4.1 grow into the new music player.
+
 ## [0.6.0] - 2026-10-13
 
 File sources. Windows and Linux desktop **0.6.0**, Android TV app **0.6.0** (`versionCode` 17), Android mobile

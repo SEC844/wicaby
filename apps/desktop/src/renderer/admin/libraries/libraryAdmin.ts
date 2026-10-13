@@ -103,8 +103,9 @@ export interface ServerPaths {
 export const CONTENT_TYPES: Record<ServerKind, string[]> = {
   emby: ['movies', 'tvshows', 'music', 'musicvideos', 'homevideos', 'books', 'audiobooks', 'mixed'],
   jellyfin: ['movies', 'tvshows', 'music', 'musicvideos', 'homevideos', 'books', 'mixed'],
-  // File sources have no server libraries to administer.
+  // File sources and Plex servers have no admin panel (caps().admin is false).
   files: [],
+  plex: [],
 };
 
 // Collection type of a folder as the UI names it ('mixed' when the server has none).

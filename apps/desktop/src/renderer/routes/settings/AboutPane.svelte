@@ -54,6 +54,8 @@
     </div>
   </div>
   <p class="desc legal">{t('settings.about.trademarks')}</p>
+  <!-- plex-spec §1.2 / D-8: the unofficial-client line, whether or not a Plex server is added. -->
+  <p class="desc legal">{t('plex.about.notAffiliated')}</p>
 {/if}
 
 <style>
@@ -119,6 +121,9 @@
   }
   .legal {
     margin: 14px 2px 0;
+  }
+  .legal + .legal {
+    margin-top: 6px;
   }
 
   /* Push button: small, neutral. */

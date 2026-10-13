@@ -1,0 +1,306 @@
+{
+  "about": "LRC parser vectors (music-spec MU-01): shared/music.ts parseLrc and core music/Lrc.kt",
+  "cases": [
+    {
+      "name": "centiseconds",
+      "input": "[00:01.00]Un\n[00:02.50]Deux",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "Un"
+          },
+          {
+            "startMs": 2500,
+            "text": "Deux"
+          }
+        ]
+      }
+    },
+    {
+      "name": "milliseconds",
+      "input": "[00:01.234]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1234,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "no fraction",
+      "input": "[01:02]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 62000,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "one-digit fraction",
+      "input": "[00:01.5]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1500,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "colon before the fraction",
+      "input": "[00:01:50]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1500,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "minutes past an hour",
+      "input": "[75:00.00]Long",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 4500000,
+            "text": "Long"
+          }
+        ]
+      }
+    },
+    {
+      "name": "several stamps on a line, sorted",
+      "input": "[00:05.00][00:01.00]Refrain\n[00:03.00]Couplet",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "Refrain"
+          },
+          {
+            "startMs": 3000,
+            "text": "Couplet"
+          },
+          {
+            "startMs": 5000,
+            "text": "Refrain"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positive offset is earlier, clamped at 0",
+      "input": "[offset:+500]\n[00:02.00]A\n[00:00.20]B",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 0,
+            "text": "B"
+          },
+          {
+            "startMs": 1500,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "negative offset is later",
+      "input": "[offset:-250]\n[00:01.00]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1250,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "metadata tags ignored",
+      "input": "[ar:Artiste]\n[ti:Titre]\n[al:Album]\n[length:03:00]\n[by:x]\n[00:01.00]A",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A"
+          }
+        ]
+      }
+    },
+    {
+      "name": "enhanced word stamps stripped",
+      "input": "[00:01.00]<00:01.00>Mot <00:01.50>par <00:02.00>mot",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "Mot par mot"
+          }
+        ]
+      }
+    },
+    {
+      "name": "blank stamped line kept as a gap",
+      "input": "[00:01.00]A\n[00:04.00]\n[00:06.00]B",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A"
+          },
+          {
+            "startMs": 4000,
+            "text": ""
+          },
+          {
+            "startMs": 6000,
+            "text": "B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BOM and CRLF",
+      "input": "\ufeff[00:01.00]A\r\n[00:02.00]B\r\n",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A"
+          },
+          {
+            "startMs": 2000,
+            "text": "B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "same time keeps file order",
+      "input": "[00:01.00]A\n[00:01.00]B",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A"
+          },
+          {
+            "startMs": 1000,
+            "text": "B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "brackets in the text stay",
+      "input": "[00:01.00]Il dit [bis]",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "Il dit [bis]"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spaces collapsed and trimmed",
+      "input": "[00:01.00]   A   B  ",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "unstamped lines of a synced file dropped",
+      "input": "[00:01.00]A\nnote\n[00:02.00]B",
+      "expected": {
+        "synced": true,
+        "lines": [
+          {
+            "startMs": 1000,
+            "text": "A"
+          },
+          {
+            "startMs": 2000,
+            "text": "B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "plain lyrics",
+      "input": "Première ligne\nDeuxième\n\nTroisième\n",
+      "expected": {
+        "synced": false,
+        "lines": [
+          {
+            "text": "Première ligne"
+          },
+          {
+            "text": "Deuxième"
+          },
+          {
+            "text": ""
+          },
+          {
+            "text": "Troisième"
+          }
+        ]
+      }
+    },
+    {
+      "name": "plain with tags and outer blank lines",
+      "input": "[ar:X]\n\nA\nB\n\n",
+      "expected": {
+        "synced": false,
+        "lines": [
+          {
+            "text": "A"
+          },
+          {
+            "text": "B"
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty",
+      "input": "",
+      "expected": {
+        "synced": false,
+        "lines": []
+      }
+    }
+  ]
+}

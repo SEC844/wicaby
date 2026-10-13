@@ -2,11 +2,16 @@ package com.wika.wicaby.core.player
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.SafeNames
+import com.wika.wicaby.core.music.MusicQueue
+import com.wika.wicaby.core.music.QueueOp
+import com.wika.wicaby.core.music.QueueState
+import com.wika.wicaby.core.music.Repeat
 
 // The play queue, as desktop's main/playback/play-queue.ts: item ids of the signed-in server and the
 // position in it. Shuffle starts one; "Play next" / "Add to queue" (remote PlayNext / PlayLast) splice
@@ -28,6 +33,27 @@ class PlayQueue(ids: List<String>, startIndex: Int = 0, val fromStart: Boolean =
     /** Makes entry [i] the current one; its id, or null when out of range. */
     fun jump(i: Int): String? = ids.getOrNull(i)?.also { index = i }
 
+    // Music (music spec MU-01): repeat mode and the order before shuffle; the ops are core/music/MusicQueue.kt's,
+    // shared with desktop through tools/checks/fixtures/music/queue-vectors.json.
+    var repeat by mutableStateOf(Repeat.Off)
+    var unshuffled by mutableStateOf<List<String>?>(null)
+    val state get() = QueueState(ids.toList(), index, repeat, unshuffled)
+
+    /** A music queue operation (move, remove, shuffle and its undo, repeat…). */
+    fun apply(op: QueueOp) {
+        val next = MusicQueue.apply(state, op)
+        if (next.ids != ids.toList()) {
+            ids.clear()
+            ids.addAll(next.ids)
+        }
+        index = next.index
+        repeat = next.repeat
+        unshuffled = next.unshuffled
+    }
+
+    /** The entry after the current one with repeat applied, -1 for none ([manual]: the user's Next). */
+    fun nextIndex(manual: Boolean = false) = MusicQueue.nextIndex(state, manual)
+
     /** Drops entry [i]; never the one playing. */
     fun remove(i: Int): Boolean {
         if (i == index || i !in ids.indices) return false
@@ -48,6 +74,8 @@ class PlayQueue(ids: List<String>, startIndex: Int = 0, val fromStart: Boolean =
                 item.isAudio -> arrayOf("ParentId" to item.albumId, "SortBy" to "ParentIndexNumber,IndexNumber,SortName")
                 item.type == "MusicArtist" -> arrayOf("ArtistIds" to item.id, "SortBy" to "Album,ParentIndexNumber,IndexNumber,SortName")
                 item.type == "Playlist" -> arrayOf("ParentId" to item.id)
+                // A music genre (TV MU-09's Genres row): its songs in random order.
+                item.type == "MusicGenre" || item.type == "Genre" -> arrayOf("GenreIds" to item.id, "SortBy" to "Random")
                 else -> arrayOf("ParentId" to item.id, "SortBy" to "ParentIndexNumber,IndexNumber,SortName")
             }
             return api.items(*q, "Recursive" to true, "IncludeItemTypes" to "Audio", "Limit" to 500, "EnableImages" to false)

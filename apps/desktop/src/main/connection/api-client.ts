@@ -88,10 +88,10 @@ export class ApiClient {
     return { Authorization: `MediaBrowser ${parts.join(', ')}` };
   }
 
-  // Comma-free header for players whose header lists split on commas (mpv).
-  mediaAuthHeader(): string | null {
-    if (!this.token) return null;
-    return this.kind === 'emby' ? `X-Emby-Token: ${this.token}` : `Authorization: MediaBrowser Token="${this.token}"`;
+  // The auth headers a player sends itself, each one comma-free: mpv splits its header list on commas.
+  mediaAuthHeaders(): string[] {
+    if (!this.token) return [];
+    return [this.kind === 'emby' ? `X-Emby-Token: ${this.token}` : `Authorization: MediaBrowser Token="${this.token}"`];
   }
 
   async request<T>(method: string, path: string, query?: Query, body?: unknown, timeoutMs = 20_000): Promise<T> {
@@ -337,7 +337,36 @@ async function probeOne(address: string, timeoutMs: number): Promise<ProbeResult
       const kind: ServerKind = /jellyfin/i.test(info.ProductName ?? '') ? 'jellyfin' : prefix === '/emby' || /emby/i.test(info.ProductName ?? '') ? 'emby' : 'jellyfin';
       return { address, kind, info };
     }
+    // A Plex Media Server (plex-spec §3.3): /identity, no auth, names it by its machineIdentifier.
+    const plex = await identityOf(address, controller.signal);
+    if (plex) return plex;
     throw new Error(t('errors.connection.notAServer'));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function identityOf(address: string, signal: AbortSignal): Promise<ProbeResult | null> {
+  try {
+    const res = await net.fetch(routed(`${address}/identity`), { headers: { Accept: 'application/json' }, signal, redirect: 'error' });
+    const c = res.ok ? ((await res.json()) as { MediaContainer?: { machineIdentifier?: string; version?: string } })?.MediaContainer : undefined;
+    const id = c?.machineIdentifier ?? '';
+    return /^[0-9a-f]{40}$/i.test(id) ? { address, kind: 'plex', info: { Id: id, ServerName: '', Version: c?.version ?? '', ProductName: 'Plex Media Server' } } : null;
+  } catch (err) {
+    if (signal.aborted) throw err;
+    return null;
+  }
+}
+
+// One address of a known Plex server, /identity only (the Plex connection race, shared/plex/connections.ts).
+export async function probePlexIdentity(address: string, timeoutMs: number): Promise<ProbeResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await route?.ensure(address).catch(() => undefined);
+    const hit = await identityOf(address, controller.signal);
+    if (!hit) throw new Error(t('errors.connection.notAServer'));
+    return hit;
   } finally {
     clearTimeout(timer);
   }

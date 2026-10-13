@@ -16,6 +16,7 @@ import {
   type ServerKind,
 } from '../../shared/contract';
 import type { BaseItem } from '../../shared/models';
+import { caps } from '../../shared/server-caps';
 import type { ApiClient } from '../connection/api-client';
 import type { ConnectionManager } from '../connection/connection-manager';
 import { userItem } from '../connection/user-routes';
@@ -191,7 +192,8 @@ export class CastManager extends EventEmitter {
     const uid = conn.userIdFor(sid);
     const [item, sessions] = await Promise.all([
       userItem<BaseItem & { ChannelId?: string; Status?: string }>(api, uid, itemId).catch(() => null),
-      controllableSessions(api, uid).catch((err) => {
+      // caps.sessionsRemote: no "Play on" rows for a server whose sessions cannot be driven (Plex).
+      (caps(api.kind).sessionsRemote ? controllableSessions(api, uid) : Promise.resolve([] as SessionDto[])).catch((err) => {
         log.warn('could not list the controllable sessions', err);
         return [] as SessionDto[];
       }),

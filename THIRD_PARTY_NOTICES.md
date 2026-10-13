@@ -21,6 +21,10 @@
   7. Demo media. The table below was built from demo-assets/sources.mjs and the live Wikimedia
      Commons metadata (2026-10-11). Diff it against the final generated ATTRIBUTION.json and
      commit ATTRIBUTION.md to tools/mock-server/demo/.
+  8. Plex (plex-spec D-8). TODO(owner): before any public release that includes the Plex backend, read the
+     current plex.tv Terms of Service and the Plex trademark guidelines by hand (both refuse automated reads)
+     for clauses on third-party clients, rate limits and account sharing, and confirm the "works with Plex
+     Media Server" wording below and in the store listings.
 -->
 
 # Third-party notices
@@ -340,6 +344,14 @@ from their upstream repositories.
 
 The Wicaby logo and icons in `brand/` are original work, part of Wicaby and covered by its
 licence.
+
+## Plex
+
+Plex is a trademark of Plex, Inc. Wicaby is an unofficial client, not affiliated with or endorsed by Plex.
+Wicaby works with Plex Media Server through its publicly documented HTTP API
+([developer.plex.tv](https://developer.plex.tv/pms/), whose specification is published under the Apache License 2.0).
+No Plex software, code, logo or icon ships with Wicaby, and none was decompiled or reverse engineered. Features that
+Plex reserves to Plex Pass or a Remote Watch Pass are detected and explained, never worked around.
 
 ## Demo media in screenshots
 

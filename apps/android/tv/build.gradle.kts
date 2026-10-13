@@ -20,8 +20,8 @@ android {
         applicationId = "com.wika.wicaby.tv"
         minSdk = libs.versions.minSdkTv.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 17
-        versionName = "0.6.0"
+        versionCode = 19
+        versionName = "0.8.0"
         // Photos spec PH-05/PH-06/PH-07: Compose tests on an emulator against the mock (tools/checks/photos-android-check.mjs).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -115,6 +115,8 @@ dependencies {
     testImplementation(libs.junit)
     // TP-10: the PIN-lock gates on the real entry points (deep links, remote play).
     testImplementation(libs.robolectric)
+    // MusicTvTest (music spec MU-09): the album and its tracks served by a fake server.
+    testImplementation(libs.okhttp.mockwebserver3)
     // D-pad focus rules (row edges) driven through a real Compose tree under Robolectric.
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)

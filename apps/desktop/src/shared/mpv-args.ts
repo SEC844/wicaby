@@ -121,6 +121,12 @@ export function parseMpvArgs(text: unknown): { args: string[]; rejected: string[
   return { args, rejected };
 }
 
+// Music (music-spec §4.1): the windowless audio player takes only the audio part of the allow-listed arguments
+// (parseMpvArgs output): audio-*, volume*, replaygain* and gapless-audio. Video options mean nothing there.
+export function audioMpvArgs(args: string[]): string[] {
+  return args.filter((a) => /^--(no-)?(audio-|volume|replaygain|gapless-audio)/.test(a));
+}
+
 // Shape of an mpv path the user may point Wicaby at: an absolute path on a local drive
 // letter (no UNC, device or relative path), no "..", ending in mpv.exe. Existence is
 // checked by the main process. Linux: an absolute path, no "." or ".." or empty segment,

@@ -62,6 +62,14 @@ export const languageOptions = () => [
   ...(['fre', 'eng', 'ger', 'spa', 'ita', 'jpn'] as const).map((v) => ({ value: v as string, label: t(`settings.audio.languages.${v}`) })),
 ];
 
+// The output device menu (Settings → Audio and the music bar): Default first, then mpv's real outputs; a saved device
+// that is not listed stays shown. devices === null: not loaded yet.
+export function deviceOptions(devices: AudioDevice[] | null, current: string, linux: boolean): { value: string; label: string }[] {
+  const list = (devices ?? []).filter((d) => d.name !== 'auto' && /^(wasapi|pipewire|pulse|alsa)\//.test(d.name)).map((d) => ({ value: d.name, label: d.description || d.name }));
+  if (current !== 'auto' && !list.some((d) => d.value === current)) list.unshift({ value: current, label: devices === null ? t('settings.audio.output.saved') : t('settings.audio.output.missing') });
+  return [{ value: 'auto', label: t(linux ? 'settings.audio.output.defaultLinux' : 'settings.audio.output.default') }, ...list];
+}
+
 // Hovering a colour previews it across the whole app; leaving restores the saved one.
 export function previewAccent(a: Accent | null): void {
   document.documentElement.dataset.accent = a ?? settings.value?.ui.accent ?? 'blue';

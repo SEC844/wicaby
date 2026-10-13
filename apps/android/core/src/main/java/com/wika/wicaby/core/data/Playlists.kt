@@ -42,6 +42,15 @@ suspend fun Api.createList(kind: ListKind, name: String, item: Item) {
     raw("POST", "/Playlists", body.toString(), "Name" to name, "Ids" to item.id, "UserId" to userId, "MediaType" to type)
 }
 
+// Music spec MU-01 (§3.7): entries by PlaylistItemId, the same routes on both servers (desktop lib/playlists.ts).
+suspend fun Api.playlistRemove(listId: String, entryIds: List<String>) {
+    raw("DELETE", "/Playlists/$listId/Items", null, "EntryIds" to entryIds.joinToString(","))
+}
+
+suspend fun Api.playlistMove(listId: String, entryId: String, newIndex: Int) {
+    raw("POST", "/Playlists/$listId/Items/$entryId/Move/$newIndex")
+}
+
 suspend fun Api.addToList(kind: ListKind, listId: String, item: Item) {
     if (kind == ListKind.Playlist) raw("POST", "/Playlists/$listId/Items", null, "Ids" to item.id, "UserId" to userId)
     else raw("POST", "/Collections/$listId/Items", null, "Ids" to item.id)

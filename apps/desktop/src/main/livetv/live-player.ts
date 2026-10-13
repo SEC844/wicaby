@@ -425,7 +425,7 @@ export class LivePlayback {
     const load: LoadParams & { live: true; timeshift: [string, string][] } = {
       url,
       isHls: o.isHls,
-      httpHeaders: kind === 'mpv' && ownOrigin ? ([api.mediaAuthHeader()].filter(Boolean) as string[]) : [],
+      httpHeaders: kind === 'mpv' && ownOrigin ? api.mediaAuthHeaders() : [],
       startMs: 0,
       title: item.Name,
       volume: h.state.volume,

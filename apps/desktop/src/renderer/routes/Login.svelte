@@ -20,6 +20,26 @@
   const server = $derived(sessionFor(sid)?.server);
   // Other servers are still signed in: leaving this page keeps them.
   const others = $derived(onlineSessions().some((s) => s.server.id !== sid));
+  // Plex (plex-spec §5.5): Home users with a PIN, no "other user"; D-3: first the plain-http address question.
+  const plex = $derived(server?.kind === 'plex');
+  const confirmAddress = $derived(sessionFor(sid)?.confirm);
+  let confirming = $state(false);
+
+  async function confirmPlex() {
+    if (!sid || !confirmAddress) return;
+    confirming = true;
+    try {
+      const state = await w.servers.plexConfirm(sid, confirmAddress);
+      if (state.sessions.find((s) => s.server.id === sid)?.status === 'signed-in') {
+        if (onsignedin) onsignedin();
+        else navigate('/home', { replace: true });
+      }
+    } catch (err) {
+      toast('error', errorMessage(err));
+    } finally {
+      confirming = false;
+    }
+  }
 
   let users = $state<PublicUser[]>([]);
   let loadingUsers = $state(true);
@@ -157,7 +177,15 @@
     {#if askUser}
       <input class="field" placeholder={t('onboarding.fields.username')} bind:this={userEl} bind:value={username} autocomplete="username" spellcheck="false" />
     {/if}
-    <input class="field" type="password" placeholder={t('onboarding.fields.password')} bind:this={passwordEl} bind:value={password} autocomplete="current-password" />
+    <input
+      class="field"
+      type="password"
+      placeholder={plex ? t('plex.login.pin') : t('onboarding.fields.password')}
+      inputmode={plex ? 'numeric' : undefined}
+      bind:this={passwordEl}
+      bind:value={password}
+      autocomplete={plex ? 'off' : 'current-password'}
+    />
     {#if error}
       <p class="error" role="alert" transition:fly={{ y: -4, duration: 180 * tempo() }}><Icon name="exclamation" size={15} /> {error}</p>
     {/if}
@@ -182,7 +210,18 @@
       <h1>{t('onboarding.login.title')}</h1>
     </header>{/if}
 
-    {#if loadingUsers}
+    {#if confirmAddress}
+      <div class="card" role="alertdialog" aria-labelledby="plex-confirm-title">
+        <h2 id="plex-confirm-title" class="card-lead">{t('plex.login.confirmTitle')}</h2>
+        <p class="sheet-sub">{t('plex.login.confirmBody', { address: confirmAddress })}</p>
+        <div class="actions">
+          <button class="btn primary" onclick={confirmPlex} disabled={confirming}>
+            {#if confirming}<span class="spinner"></span>{/if}
+            {t('plex.login.confirm')}
+          </button>
+        </div>
+      </div>
+    {:else if loadingUsers}
       <div class="profiles" aria-busy="true">
         {#each Array(3) as _, i (i)}
           <div class="profile ghost"><span class="avatar skeleton" style:--size="120px"></span><span class="line skeleton"></span></div>
@@ -203,10 +242,12 @@
             <span class="uname">{user.name}</span>
           </button>
         {/each}
-        <button class="profile" style:--i={Math.min(users.length, 12)} onclick={() => openSheet(null)} disabled={busy}>
-          <span class="lift"><span class="avatar other" style:--size="120px"><Icon name="plus" size={34} stroke={1.6} /></span></span>
-          <span class="uname">{t('onboarding.login.otherUser')}</span>
-        </button>
+        {#if !plex}
+          <button class="profile" style:--i={Math.min(users.length, 12)} onclick={() => openSheet(null)} disabled={busy}>
+            <span class="lift"><span class="avatar other" style:--size="120px"><Icon name="plus" size={34} stroke={1.6} /></span></span>
+            <span class="uname">{t('onboarding.login.otherUser')}</span>
+          </button>
+        {/if}
       </div>
     {:else}
       <div class="card">
@@ -226,7 +267,7 @@
       {#if sheet.user}
         {@render avatar(sheet.user, 76)}
         <h2 id="sheet-title">{sheet.user.name}</h2>
-        <p class="sheet-sub">{t('onboarding.login.passwordLead')}</p>
+        <p class="sheet-sub">{plex ? t('plex.login.pinLead') : t('onboarding.login.passwordLead')}</p>
       {:else}
         <span class="avatar other" style:--size="76px"><Icon name="user" size={30} /></span>
         <h2 id="sheet-title">{t('onboarding.login.otherUser')}</h2>

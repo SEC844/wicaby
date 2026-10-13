@@ -55,6 +55,12 @@ const bridge: WicabyBridge = {
     select: (id) => invoke(Channels.serversSelect, id),
     remove: (id) => invoke(Channels.serversRemove, id),
     wake: (id) => invoke(Channels.serversWake, id),
+    plexLink: () => invoke(Channels.serversPlexLink),
+    plexPoll: () => invoke(Channels.serversPlexPoll),
+    plexAccounts: () => invoke(Channels.serversPlexAccounts),
+    plexUnlink: (accountId) => invoke(Channels.serversPlexUnlink, accountId),
+    plexSetHidden: (id, hidden) => invoke(Channels.serversPlexSetHidden, id, hidden),
+    plexConfirm: (id, address) => invoke(Channels.serversPlexConfirm, id, address),
   },
   session: {
     get: () => invoke(Channels.sessionGet),

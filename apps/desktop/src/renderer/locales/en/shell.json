@@ -61,7 +61,8 @@
     "route": {
       "local": "Local",
       "remote": "Remote",
-      "mesh": "Through the VPN"
+      "mesh": "Through the VPN",
+      "relay": "Plex relay (limited speed)"
     },
     "socket": {
       "open": "Live updates on",

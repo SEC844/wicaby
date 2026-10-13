@@ -6,6 +6,7 @@
   import BrowseMenu from '../components/BrowseMenu.svelte';
   import ItemMenu from '../components/ItemMenu.svelte';
   import PlaylistItems from '../components/PlaylistItems.svelte';
+  import AlbumTracks from '../components/music/AlbumTracks.svelte';
   import Card from '../components/Card.svelte';
   import Icon from '../components/Icon.svelte';
   import Row from '../components/Row.svelte';
@@ -17,6 +18,7 @@
   import { fmt, t } from '../lib/i18n.svelte';
   import { backdropUrl, imageUrl, logoUrl, posterUrl, thumbUrl } from '../lib/images';
   import { morphFrom, morphName, peek, peekSrc, remember, reveal, scrollMemory, takeMorph } from '../lib/motion';
+  import { playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue, queueModes } from '../lib/queue.svelte';
   import { resumeAt } from '../lib/resume.svelte';
   import { navigate } from '../lib/router.svelte';
@@ -41,11 +43,21 @@
   let error = $state('');
   let seasons = $state<BaseItem[]>([]);
   let seasonId = $state<string | null>(null);
+  const ALL_EPISODES = '*';
   let episodes = $state<BaseItem[]>([]);
   let episodesLoading = $state(false);
   let tracks = $state<BaseItem[]>([]);
   let children = $state<BaseItem[]>([]);
   let filmography = $state<BaseItem[]>([]);
+  // Artist page (music-spec §4.3): top songs; the discography splits into own albums, singles & EPs and "appears on".
+  let topSongs = $state<BaseItem[]>([]);
+  const own = $derived(item?.Type === 'MusicArtist' ? filmography.filter((a) => !a.AlbumArtists?.length || a.AlbumArtists.some((x) => x.Id === item!.Id)) : filmography);
+  // shortcut: a single/EP is an album of 1 to 3 tracks (spec's ChildCount ≤ 3 heuristic). UNVERIFIED that Emby fills
+  // ChildCount with the track count on albums; without it the album stays under Albums. Upgrade to a release-type tag if servers expose one.
+  const isSingle = (a: BaseItem) => item?.Type === 'MusicArtist' && a.Type === 'MusicAlbum' && typeof a.ChildCount === 'number' && a.ChildCount >= 1 && a.ChildCount <= 3;
+  const ownAlbums = $derived(own.filter((a) => !isSingle(a)));
+  const singles = $derived(own.filter(isSingle));
+  const appearsOn = $derived(item?.Type === 'MusicArtist' ? filmography.filter((a) => !own.includes(a)) : []);
   let similar = $state<BaseItem[]>([]);
   let siblings = $state<BaseItem[]>([]);
   let nextUpId = $state<string | null>(null);
@@ -148,7 +160,8 @@
           seasons = r.Items;
           if (!seasonId || !r.Items.some((s) => s.Id === seasonId)) {
             const unwatched = r.Items.find((s) => !s.UserData?.Played && (s.IndexNumber ?? 0) > 0);
-            seasonId = (unwatched ?? r.Items.find((s) => (s.IndexNumber ?? 0) > 0) ?? r.Items[0])?.Id ?? null;
+            // No seasons (a Plex show with seasons hidden, plex-spec §4): every episode of the series.
+            seasonId = (unwatched ?? r.Items.find((s) => (s.IndexNumber ?? 0) > 0) ?? r.Items[0])?.Id ?? ALL_EPISODES;
           }
         }),
       );
@@ -177,6 +190,8 @@
           ? { PersonIds: it.Id, Recursive: true, IncludeItemTypes: 'Movie,Series', SortBy: 'ProductionYear,SortName', SortOrder: 'Descending' }
           : { ArtistIds: it.Id, Recursive: true, IncludeItemTypes: 'MusicAlbum', SortBy: 'ProductionYear,SortName', SortOrder: 'Descending' };
       tasks.push(api.items(q).then((r) => (filmography = r.Items)));
+      if (it.Type === 'MusicArtist')
+        tasks.push(api.items({ ArtistIds: it.Id, Recursive: true, IncludeItemTypes: 'Audio', SortBy: 'PlayCount,SortName', SortOrder: 'Descending', Limit: 5 }).then((r) => (topSongs = r.Items)));
     }
     await Promise.allSettled(tasks);
   }
@@ -191,7 +206,7 @@
     void dataVersion.userData;
     episodesLoading = untrack(() => episodes.length === 0);
     api
-      .episodes(seriesId, sid)
+      .episodes(seriesId, sid === ALL_EPISODES ? undefined : sid)
       .then((r) => {
         if (seasonId === sid) episodes = r.Items;
       })
@@ -299,14 +314,6 @@
       const at = await resumeAt(ep.UserData?.PlaybackPositionTicks, ep.Name);
       if (at === null) return;
       await w.playback.play({ ...q, startPositionTicks: at });
-    } catch (err) {
-      toast('error', errorMessage(err));
-    }
-  }
-
-  async function playTrack(index: number): Promise<void> {
-    try {
-      await w.playback.play({ itemIds: tracks.map((tr) => tr.Id), startIndex: index, serverId: sid });
     } catch (err) {
       toast('error', errorMessage(err));
     }
@@ -513,9 +520,14 @@
                 <Icon name="refresh" size={16} stroke={2} /> {t('item.actions.fromStart')}
               </button>
             {/if}
-            {#if queueModes(item).includes('shuffle')}
+            {#if queueModes(item).includes('shuffle') || item.Type === 'MusicAlbum'}
               <button class="btn lg glass" onclick={() => item && queue(item, 'shuffle')}>
                 <Icon name="shuffle" size={16} stroke={2} /> {t('common.actions.shuffle')}
+              </button>
+            {/if}
+            {#if item.Type === 'MusicAlbum' || item.Type === 'Audio' || (item.Type === 'Playlist' && item.MediaType === 'Audio')}
+              <button class="btn lg glass" data-mix onclick={() => item && playMix(item)}>
+                <Icon name="sparkles" size={16} /> {t('music.actions.mix')}
               </button>
             {/if}
             {#if hasTrailer}
@@ -693,22 +705,7 @@
       {/if}
 
       {#if item.Type === 'Playlist'}<PlaylistItems playlist={item} />{/if}
-      {#if item.Type === 'MusicAlbum' && tracks.length > 0}
-        <section class="tracks">
-          {#each tracks as track, i (track.Id)}
-            <button class="track" onclick={() => playTrack(i)}>
-              <span class="num">{track.IndexNumber ?? i + 1}</span>
-              <span class="t-play"><Icon name="play" size={13} fill stroke={0} /></span>
-              <span class="t-name">
-                {track.Name}
-                {#if track.Artists?.length && track.Artists.join(', ') !== item.AlbumArtist}<span class="t-artist"> · {track.Artists.join(', ')}</span>{/if}
-              </span>
-              {#if track.UserData?.IsFavorite}<span class="t-fav"><Icon name="heart" size={12} fill stroke={0} /></span>{/if}
-              <span class="t-rt">{track.RunTimeTicks ? clock(track.RunTimeTicks / TICKS_PER_MS) : ''}</span>
-            </button>
-          {/each}
-        </section>
-      {/if}
+      {#if item.Type === 'MusicAlbum' && tracks.length > 0}<AlbumTracks album={item} {tracks} serverId={sid} />{/if}
 
       {#if children.length > 0}
         <section class="grid-section">
@@ -721,12 +718,47 @@
         </section>
       {/if}
 
-      {#if filmography.length > 0}
+      {#if item.Type === 'MusicArtist'}
+        <div class="artist-actions">
+          <button class="btn lg light" onclick={() => item && api.items({ ArtistIds: item.Id, Recursive: true, IncludeItemTypes: 'Audio', SortBy: 'Random', Limit: 300 }).then((r) => playTracks(r.Items.map((x) => x.Id), 0, sid))}>
+            <Icon name="shuffle" size={16} stroke={2} /> {t('music.actions.shuffle')}
+          </button>
+          <button class="btn lg glass" onclick={() => item && playMix(item)}><Icon name="sparkles" size={16} /> {t('music.actions.mix')}</button>
+        </div>
+        {#if topSongs.length > 0}
+          <h2 class="sec-title artist-sec">{t('music.artist.topSongs')}</h2>
+          <AlbumTracks album={item} tracks={topSongs} serverId={sid} plain />
+        {/if}
+      {/if}
+
+      {#if ownAlbums.length > 0}
         <section class="grid-section">
-          <h2 class="sec-title">{item.Type === 'MusicArtist' ? t('item.sections.discography') : t('item.sections.filmography')}</h2>
+          <h2 class="sec-title">{item.Type === 'MusicArtist' ? t('music.artist.albums') : t('item.sections.filmography')}</h2>
           <div class="grid">
-            {#each filmography as c, i (c.Id)}
+            {#each ownAlbums as c, i (c.Id)}
               <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant={c.Type === 'MusicAlbum' ? 'square' : 'poster'} /></div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if singles.length > 0}
+        <section class="grid-section">
+          <h2 class="sec-title">{t('music.artist.singles')}</h2>
+          <div class="grid">
+            {#each singles as c, i (c.Id)}
+              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if appearsOn.length > 0}
+        <section class="grid-section">
+          <h2 class="sec-title">{t('music.artist.appearsOn')}</h2>
+          <div class="grid">
+            {#each appearsOn as c, i (c.Id)}
+              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
             {/each}
           </div>
         </section>
@@ -1462,83 +1494,15 @@
     overflow: hidden;
   }
 
-  .tracks {
+  .artist-actions {
     display: flex;
-    flex-direction: column;
-    margin: 0 var(--gutter) 28px;
-    padding: 6px;
-    border-radius: var(--r-lg);
-    background: var(--fill-1);
+    gap: 10px;
+    padding: 0 var(--gutter) 24px;
   }
-  .track {
-    position: relative;
-    display: grid;
-    grid-template-columns: 30px 1fr auto auto;
-    align-items: center;
-    gap: 14px;
-    height: 44px;
-    padding: 0 14px;
-    border-radius: var(--r-sm);
-    text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
+  .artist-sec {
+    padding: 0 var(--gutter);
+    margin-bottom: 14px;
   }
-  .track + .track::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 58px;
-    right: 14px;
-    height: 1px;
-    background: var(--separator);
-  }
-  .track:hover,
-  .track:focus-visible {
-    background: var(--fill-2);
-  }
-  .track:hover::before,
-  .track:hover + .track::before {
-    opacity: 0;
-  }
-  .num {
-    color: var(--label-3);
-    font-size: var(--fs-callout);
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-  }
-  .t-play {
-    position: absolute;
-    left: 22px;
-    display: grid;
-    opacity: 0;
-    color: var(--label);
-  }
-  .track:hover .num,
-  .track:focus-visible .num {
-    opacity: 0;
-  }
-  .track:hover .t-play,
-  .track:focus-visible .t-play {
-    opacity: 1;
-  }
-  .t-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 500;
-  }
-  .t-artist {
-    color: var(--label-3);
-  }
-  .t-fav {
-    display: grid;
-    color: var(--label-2);
-  }
-  .t-rt {
-    color: var(--label-3);
-    font-size: var(--fs-footnote);
-    font-variant-numeric: tabular-nums;
-  }
-
   .grid-section {
     padding: 8px var(--gutter) 28px;
   }

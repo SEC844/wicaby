@@ -18,7 +18,10 @@ const log = logger.scope('relay');
 const ALLOWED = /^\/(Videos|Audio)\/[A-Za-z0-9_-]{1,64}\/(stream(\.\w+)?|master\.m3u8|main\.m3u8|hls1?\/[\w./-]+|[A-Za-z0-9_-]{1,64}\/Subtitles\/\d+\/(0\/)?Stream\.(vtt|srt))$/i;
 
 // A server path the relay forwards: the allow-list, and no dot segment, encoded slash or backslash.
-export const relayPathAllowed = (path: string): boolean => ALLOWED.test(path) && !apiPathRefused(`wicaby-media://api${path}`);
+// Plex (plex-spec §8): the transcoder's HLS (start.m3u8, then its session playlist and segments) and sidecar subtitles.
+const PLEX_ALLOWED = /^\/(video\/:\/transcode\/universal\/(start\.m3u8|session\/[\w-]{1,64}\/base\/(index\.m3u8|\d{1,6}\.ts))|library\/streams\/\d{1,12})$/;
+
+export const relayPathAllowed = (path: string): boolean => (ALLOWED.test(path) || PLEX_ALLOWED.test(path)) && !apiPathRefused(`wicaby-media://api${path}`);
 
 const bare = (ip: string | undefined) => (ip ?? '').replace(/^::ffff:/i, '');
 // Only the renderer the cast went to.

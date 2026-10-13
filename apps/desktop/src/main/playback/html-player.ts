@@ -57,8 +57,10 @@ export class HtmlPlayer extends EventEmitter implements ActivePlayer {
       subtitles: params.externalSubtitles.map((s) => ({ index: s.index, url: stripTokenParams(s.url), label: s.label, language: s.language })),
       subtitleIndex: params.subtitleIndex,
       rate: params.rate,
+      // A track plays in an <audio> element of the main window (music-spec §4.1.2), the page stays where it is.
+      audio: params.music ? { gainDb: params.music.htmlGainDb, paused: params.music.paused } : undefined,
     };
-    this.windows.focusMain();
+    if (!params.music) this.windows.focusMain();
     this.windows.send(this.windows.main, Channels.htmlPlayerLoad, load);
   }
 
@@ -115,6 +117,8 @@ export class HtmlPlayer extends EventEmitter implements ActivePlayer {
 
   // Back to the window first, under the paused picture; then Player.svelte fades out over the page kept under it.
   async leave(reduced: boolean, phase: (p: 'out' | 'reveal') => void): Promise<void> {
+    // Music never opened the player page: nothing to fade.
+    if (this.params?.music) return;
     const main = this.windows.main;
     if (main?.isFullScreen()) {
       const left = new Promise<void>((r) => main.once('leave-full-screen', () => r()));

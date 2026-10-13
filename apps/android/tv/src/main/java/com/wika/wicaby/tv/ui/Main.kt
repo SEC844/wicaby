@@ -118,14 +118,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.wika.wicaby.core.photos.homeMemories
 
-// music: the stopgap music views (albums, artists, songs) until the music player of .dev/specs/music-spec.md.
+// music: rows of albums, playlists, artists and genres (music/MusicHome.kt, MU-09).
 private val BROWSABLE = setOf("movies", "tvshows", "homevideos", "photos", "boxsets", "mixed", "livetv", "books", "music", null)
+
+/** The libraries that get a tab of their own (Home's rows take every library). */
+fun tabViews(libs: List<Item>) = libs.filter { it.collectionType in BROWSABLE }
 
 fun Item.route(): Route =
     Servers.extraOf(serverId)?.server?.id.let { sid ->
         when {
             // Photos (PH-06): an album opens its photo timeline.
             type == "PhotoAlbum" -> Route.PhotoAlbum(id, name, sid)
+            // Music (MU-09): an album or an audio playlist opens its page (art, tracks, Lire / Aléatoire / Mix).
+            type == "MusicAlbum" || (type == "Playlist" && mediaType == "Audio") -> Route.MusicAlbum(id, name, sid)
             isFolder && !isSeries && type != "Season" -> Route.Folder(id, name, sid)
             else -> Route.Detail(id, sid)
         }
@@ -150,7 +155,7 @@ fun MainScreen() {
     val activity = checkNotNull(LocalActivity.current)
     // TP-07: Home's rows need every library (music, Live TV…); the tabs only the browsable ones.
     val libs = rememberLoad("views") { allViews(api) }.value.value.orEmpty()
-    val views = libs.filter { it.collectionType in BROWSABLE }
+    val views = tabViews(libs)
     val user = rememberLoad("me-${api.userId}") { api.get<User>("/Users/${api.userId}") }.value.value
     var tab by rememberSaveable { mutableStateOf("home") }
     // Onboarding Done → Réglages > Accès à distance (SettingsTab picks the section and clears the link).
@@ -169,11 +174,7 @@ fun MainScreen() {
             add(
                 Dest(TopTab(if (extra == null) "lib:${v.id}" else "lib:${extra.server.id}:${v.id}", viewLabel(v, views))) {
                     if (v.collectionType == "livetv") com.wika.wicaby.tv.ui.livetv.LiveTvScreen(api, top = 104.dp, onScrolled = it)
-                    // Photos (PH-06; decision O3: home videos open in the photo timeline too).
-                    else if (v.collectionType in com.wika.wicaby.tv.ui.photos.PHOTO_COLLECTIONS) ServerScope(extra?.server?.id) {
-                        com.wika.wicaby.tv.ui.photos.PhotosTab(extra ?: api, v.id, v.name, top = 104.dp, onScrolled = it)
-                    }
-                    else ServerScope(extra?.server?.id) { LibraryGrid(extra ?: api, v.id, v.name, v.collectionType, top = 104.dp, onScrolled = it) }
+                    else ServerScope(extra?.server?.id) { LibraryTab(extra ?: api, v, onScrolled = it) }
                 },
             )
         }
@@ -662,6 +663,15 @@ fun HeroText(api: Api, item: Item, overviewLines: Int = 3) {
     }
 }
 
+/** A library tab's screen: music rows, the photo timeline, or the grid. */
+@Composable
+fun LibraryTab(api: Api, v: Item, top: androidx.compose.ui.unit.Dp = 104.dp, onScrolled: (Boolean) -> Unit = {}) = when (v.collectionType) {
+    "music" -> com.wika.wicaby.tv.music.MusicHome(api, v.id, v.name, top = top, onScrolled = onScrolled)
+    // Photos (PH-06; decision O3: home videos open in the photo timeline too).
+    in com.wika.wicaby.tv.ui.photos.PHOTO_COLLECTIONS -> com.wika.wicaby.tv.ui.photos.PhotosTab(api, v.id, v.name, top = top, onScrolled = onScrolled)
+    else -> LibraryGrid(api, v.id, v.name, v.collectionType, top = top, onScrolled = onScrolled)
+}
+
 // ---------------------------------------------------------------------------
 // Library grid (a tab, or a pushed folder).
 
@@ -687,6 +697,8 @@ fun LibraryGrid(
     top: androidx.compose.ui.unit.Dp,
     defaultFocus: Boolean = false,
     onScrolled: (Boolean) -> Unit = {},
+    // A music library: the grid it opens on (MUSIC_*).
+    initialMode: Int = MUSIC_ALBUMS,
 ) {
     val nav = LocalNav.current
     val context = LocalContext.current
@@ -694,7 +706,7 @@ fun LibraryGrid(
     val ns = LocalCacheNs.current
     // A music library: albums, artists or songs (MUSIC_*).
     val music = collectionType == "music"
-    var mode by rememberSaveable(parentId) { mutableIntStateOf(MUSIC_ALBUMS) }
+    var mode by rememberSaveable(parentId) { mutableIntStateOf(initialMode) }
     val artists = music && mode == MUSIC_ARTISTS
     val paged = remember(parentId, mode) { Cache.map.getOrPut(ns + "lib-$parentId" + if (music) "-$mode" else "") { Paged() } as Paged }
     val scope = rememberCoroutineScope()
@@ -846,8 +858,10 @@ fun LibraryGrid(
                             onClick = {
                                 when {
                                     item.type == "TvChannel" -> play(context, item)
-                                    // A track plays on through its album, an artist all their tracks (PlayQueue.tracks).
-                                    item.isAudio || item.type == "MusicArtist" -> scope.launch { com.wika.wicaby.tv.playMusic(context, api, item) }
+                                    // A track plays on through its album (play: the resume question, then the music session;
+                                    // an audiobook in the player), an artist all their tracks (PlayQueue.tracks).
+                                    item.isAudio -> play(context, item)
+                                    item.type == "MusicArtist" -> scope.launch { com.wika.wicaby.tv.playMusic(context, api, item) }
                                     else -> nav.push(item.route())
                                 }
                             },
@@ -873,9 +887,9 @@ fun LibraryGrid(
 // Fewer titles than this: no A–Z rail (a screen or two of posters).
 private const val RAIL_MIN = 28
 
-private const val MUSIC_ALBUMS = 0
-private const val MUSIC_ARTISTS = 1
-private const val MUSIC_SONGS = 2
+const val MUSIC_ALBUMS = 0
+const val MUSIC_ARTISTS = 1
+const val MUSIC_SONGS = 2
 
 private val Item.isMusic get() = isAudio || type == "MusicAlbum" || type == "MusicArtist"
 

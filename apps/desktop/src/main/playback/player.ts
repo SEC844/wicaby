@@ -35,6 +35,20 @@ export interface LoadParams {
   hdr: HdrFormat | null;
   // Starting playback speed ("Vitesse par défaut").
   rate?: number;
+  // A music track (music/music-playback.ts): no window, its loudness, and whether it starts paused (D8).
+  music?: MusicLoad;
+}
+
+export interface MusicLoad {
+  // mpv --replaygain for this file (its ReplayGain tags).
+  replayGain: 'no' | 'track' | 'album';
+  // dB for a file without tags (mpv --replaygain-fallback): the server's gain or the fallback, preamp included.
+  untaggedDb: number;
+  untagged: 'server' | 'none';
+  preampDb: number;
+  // The built-in <audio> reads no tags: the server's gain and the preamp only.
+  htmlGainDb: number;
+  paused: boolean;
 }
 
 export interface TimeUpdate {

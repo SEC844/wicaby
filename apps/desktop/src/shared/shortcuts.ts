@@ -59,10 +59,39 @@ export const VOD_SHORTCUTS: readonly Shortcut[] = [
   vod('speedReset', ['Backspace'], false, { noLive: true }),
 ];
 
-export const SHORTCUTS: readonly Shortcut[] = [...VOD_SHORTCUTS, ...LIVE_KEYS];
+const music = (id: string, keys: readonly string[], repeatable = false): Shortcut => ({
+  id: `music.${id}`,
+  context: 'music',
+  keys,
+  repeatable,
+  labelKey: `settings.general.shortcuts.action.music${id[0].toUpperCase()}${id.slice(1)}`,
+});
+
+// Music in the main window (music-spec §4.3), while a track plays and no text field has focus. Unmodified
+// arrows only act when nothing has focus: otherwise they move the focus (full-screen player included).
+export const MUSIC_SHORTCUTS: readonly Shortcut[] = [
+  music('playPause', ['Space']),
+  music('next', ['Ctrl+ArrowRight']),
+  music('previous', ['Ctrl+ArrowLeft']),
+  music('seekBack', ['ArrowLeft'], true),
+  music('seekForward', ['ArrowRight'], true),
+  music('seekBackLong', ['Shift+ArrowLeft'], true),
+  music('seekForwardLong', ['Shift+ArrowRight'], true),
+  music('volumeUp', ['ArrowUp'], true),
+  music('volumeDown', ['ArrowDown'], true),
+  music('mute', ['M']),
+  music('shuffle', ['S']),
+  music('repeat', ['R']),
+  music('lyrics', ['L']),
+  music('queue', ['Q']),
+  music('favorite', ['F']),
+  music('close', ['Escape']),
+];
+
+export const SHORTCUTS: readonly Shortcut[] = [...VOD_SHORTCUTS, ...LIVE_KEYS, ...MUSIC_SHORTCUTS];
 
 // Rows the editor offers (the Live TV rows stay read-only: LiveOverlay and the guide read keys.ts).
-export const editable = (r: Shortcut): boolean => r.context === 'vod' && !r.fixed;
+export const editable = (r: Shortcut): boolean => (r.context === 'vod' || r.context === 'music') && !r.fixed;
 
 export function applyOverrides(overrides: ShortcutOverrides | undefined | null, rows: readonly Shortcut[] = SHORTCUTS): Shortcut[] {
   if (!overrides) return [...rows];

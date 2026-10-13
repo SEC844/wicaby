@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { kindLabel } from '../../shared/server-caps';
+  import { caps, kindLabel } from '../../shared/server-caps';
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath } from '../lib/api';
   import { navigate, router } from '../lib/router.svelte';
@@ -24,7 +24,7 @@
       : [{ id: '', title: t('shell.sidebar.libraries'), kind: '', libs }],
   );
   // Administration appears only when the user administers at least one signed-in server.
-  const isAdmin = $derived(online.some((s) => s.user?.isAdmin));
+  const isAdmin = $derived(online.some((s) => s.user?.isAdmin && caps(s.server.kind).admin));
   const down = $derived(session.value.sessions.filter((s) => s.status === 'offline' && s.server.kind !== 'files').length);
   // File sources: one entry each under "Files" (file-sources-spec §9.1); hidden when there is none.
   const sources = $derived(fileSessions());

@@ -30,6 +30,14 @@ object AudioFx {
     @Volatile
     var config = Config()
 
+    // Music loudness (music spec MU-07, §3.6): the playing track's gain in dB (MusicSession sets it on each
+    // transition, 0 otherwise), applied after the effects; with preventClipping the limiter follows it.
+    @Volatile
+    var musicGainDb = 0f
+
+    @Volatile
+    var preventClipping = true
+
     // True while the sink plays a bitstream (set by Engine's sink): the player shows the effects disabled.
     var bitstream by mutableStateOf(false)
 }
@@ -55,8 +63,9 @@ class AudioFxChain(private val sampleRate: Int, private val channels: Int) {
     private var normGain = 1f
     private var limGain = 1f
 
-    fun process(buf: FloatArray, frames: Int, c: AudioFx.Config) {
-        if (!c.any) return
+    fun process(buf: FloatArray, frames: Int, c: AudioFx.Config, gainDb: Float = 0f, clip: Boolean = true) {
+        val g = if (gainDb == 0f) 1f else 10f.pow(gainDb / 20)
+        if (!c.any && g == 1f) return
         for (f in 0 until frames) {
             val o = f * channels
             if (c.dialogue) {
@@ -86,7 +95,8 @@ class AudioFxChain(private val sampleRate: Int, private val channels: Int) {
                 gain(buf, o, normGain)
             }
             if (c.boost) gain(buf, o, BOOST)
-            limit(buf, o)
+            if (g != 1f) gain(buf, o, g)
+            if (c.any || clip) limit(buf, o)
         }
     }
 
@@ -180,7 +190,8 @@ class AudioFxProcessor : BaseAudioProcessor() {
         val out = replaceOutputBuffer(bytes)
         val c = AudioFx.config
         val ch = chain
-        if (!c.any || ch == null) {
+        val gainDb = AudioFx.musicGainDb
+        if ((!c.any && gainDb == 0f) || ch == null) {
             out.put(inputBuffer).flip()
             return
         }
@@ -192,7 +203,7 @@ class AudioFxProcessor : BaseAudioProcessor() {
         if (float) for (i in 0 until n) s[i] = inputBuffer.getFloat(p + 4 * i)
         else for (i in 0 until n) s[i] = inputBuffer.getShort(p + 2 * i) / 32768f
         inputBuffer.position(inputBuffer.limit())
-        ch.process(s, n / inputAudioFormat.channelCount, c)
+        ch.process(s, n / inputAudioFormat.channelCount, c, gainDb, AudioFx.preventClipping)
         if (float) for (i in 0 until n) out.putFloat(s[i])
         else for (i in 0 until n) out.putShort((s[i] * 32768f).roundToInt().coerceIn(-32768, 32767).toShort())
         out.flip()

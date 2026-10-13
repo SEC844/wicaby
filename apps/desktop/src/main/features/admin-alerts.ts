@@ -1,4 +1,5 @@
 import { adminAlerts, type AlertSystemInfo, type AlertTask } from '../../shared/admin-alerts';
+import { caps } from '../../shared/server-caps';
 import type { ConnectionManager } from '../connection/connection-manager';
 import { JsonStore } from '../core/json-store';
 import { logger } from '../core/log';
@@ -39,7 +40,8 @@ export class AdminAlerts {
     try {
       for (const serverId of connection.onlineIds()) {
         const s = connection.sessionFor(serverId);
-        if (!s?.user?.isAdmin) continue;
+        // caps.admin: a Plex owner has no Emby admin API to poll.
+        if (!s?.user?.isAdmin || !caps(s.server.kind).admin) continue;
         const api = connection.apiFor(serverId);
         const quiet = (what: string) => (err: unknown) => (log.debug(`${what} on ${s.server.name}: ${String(err)}`), null);
         const [info, tasks] = await Promise.all([

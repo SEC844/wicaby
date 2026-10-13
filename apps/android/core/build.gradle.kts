@@ -72,6 +72,8 @@ dependencies {
     // Fake qBittorrent Web API for QbitClient tests.
     testImplementation(libs.okhttp.mockwebserver3)
     testImplementation(libs.kxml2)
+    // MusicSessionTest (music spec MU-07): a real ExoPlayer, never prepared, under Robolectric.
+    testImplementation(libs.robolectric)
 }
 
 // CK/fixtures/cast/ onto the unit-test classpath as /cast/* (cast spec CA-08 checks): DlnaTest, CastProfilesTest and

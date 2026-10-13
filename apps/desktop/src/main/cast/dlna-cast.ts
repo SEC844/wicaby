@@ -79,6 +79,8 @@ export async function deviceUrls(d: { api: ApiClient; relay: Relay | null; seed:
     if (prev) relay.close(prev);
     return { urls: paths.map((p) => r.base + p), nonce: r.nonce };
   }
+  // A Plex token never goes into a URL (plex-spec §2): Plex casts through the relay only.
+  if (api.kind === 'plex') throw new CastFailure('plex.errors.castNeedsRelay');
   // The mesh forwarder (127.0.0.1:<port>/tok/) is never a URL for a TV.
   const base = await lanServerBase(api, d.seed);
   if (!base) throw new CastFailure('cast.error.lanOnly');
@@ -220,6 +222,9 @@ export class DlnaCast {
     if (!src || info.ErrorCode) throw new CastFailure('cast.error.rejected');
     const playSessionId = info.PlaySessionId;
     const direct = src.SupportsDirectPlay === true && !src.TranscodingUrl;
+    // Plex transcodes to HLS only here (decision.ts), which a DLNA renderer does not play: direct play or nothing.
+    // shortcut: no progressive Plex transcode for DLNA; add one if PMS's http protocol is ever confirmed.
+    if (!direct && api.kind === 'plex') throw new CastFailure('plex.errors.dlnaNeedsDirectPlay');
     const container = (direct ? src.Container : src.TranscodingContainer) || (audioItem ? 'mp3' : 'ts');
     let path: string;
     if (direct) {

@@ -4,7 +4,13 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.content.ComponentName
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.data.Item
+import com.wika.wicaby.core.music.MusicSession
 import com.wika.wicaby.core.data.OfflineProgress
 import com.wika.wicaby.core.data.withPending
 import com.wika.wicaby.core.player.LocalMedia
@@ -33,9 +39,33 @@ object PlayerHolder {
     var visible = false
     private val releaseListeners = mutableListOf<() -> Unit>()
 
+    // Music spec MU-07/MU-08: the music session on the same engine. Video and music are exclusive: starting one ends the other.
+    var music by mutableStateOf<MusicSession?>(null)
+        internal set
+    private var controller: ListenableFuture<MediaController>? = null
+
+    /** Plays [items] from [index] as the music queue ([shuffle]: a random first track, then shuffled). */
+    fun startMusic(context: Context, api: Api, items: List<Item>, index: Int = 0, shuffle: Boolean = false): MusicSession {
+        val app = context.applicationContext
+        playback?.stop()
+        playback = null
+        music?.release()
+        Casting.stopDirect()
+        val eng = engine ?: buildEngine(app, api.authHeaders(), "Wicaby/${BuildConfig.VERSION_NAME} (Android)").also { engine = it }
+        val start = if (shuffle && items.isNotEmpty()) items.indices.random() else index
+        val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(id) }, onReleased = { if (music === it) music = null })
+        s.start()
+        if (shuffle) s.toggleShuffle()
+        music = s
+        // Binding a controller starts PlaybackService (notification, lock screen, Bluetooth), as PlayerActivity does for video.
+        if (controller == null) controller = MediaController.Builder(app, SessionToken(app, ComponentName(app, PlaybackService::class.java))).buildAsync()
+        return s
+    }
+
     fun start(context: Context, api: Api, id: String, fromStart: Boolean, trailer: Boolean = false): Playback {
         // The engine is kept across users and servers: Core.http's ServerAuthInterceptor adds the
         // active server's auth to each request, so the MediaSession survives a token change.
+        music?.release()
         playback?.stop()
         // A direct DLNA cast reports as this device's session: it ends before local playback starts (cast spec §1).
         Casting.stopDirect()
@@ -68,6 +98,9 @@ object PlayerHolder {
     fun release() {
         playback?.stop()
         playback = null
+        music?.release()
+        controller?.let(MediaController::releaseFuture)
+        controller = null
         releaseEngine()
         val ls = releaseListeners.toList()
         releaseListeners.clear()

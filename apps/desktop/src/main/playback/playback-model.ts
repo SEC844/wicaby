@@ -27,6 +27,8 @@ export interface PlaybackDeps {
   mpvConfigDir: string;
   deviceId: string;
   onMessage: (kind: 'info' | 'error', message: string) => void;
+  // D8 (music-spec): where the music queue is kept between runs; none = not kept.
+  musicQueueFile?: string;
 }
 
 export interface Current {
@@ -49,6 +51,13 @@ export interface Current {
   // A file source item (files/files-client.ts): duration and title go to its local progress ('tagged' once the
   // title was read).
   files?: boolean | 'tagged';
+  // A Plex transcode that starts at the resume point (MediaSource.StartTimeTicks): the player counts from 0 there.
+  baseMs?: number;
+  // A Plex multi-part film played one part at a time (D-4: the HTML player, a transcode): where this part ends in
+  // the whole film. The next part loads there; the duration stays the film's.
+  partEndMs?: number;
+  // Ended by the server (a Plex termination): no further report.
+  terminated?: boolean;
 }
 
 export interface StartOptions {
@@ -62,6 +71,8 @@ export interface StartOptions {
   maxBitrate?: number;
   // X-02 switch: runs once the new PlaybackInfo resolved, before the new stream replaces the old one.
   beforeLoad?: () => Promise<void>;
+  // D-4: the next part of a multi-part Plex film continues this session.
+  playSessionId?: string;
 }
 
 export function idle(volume = 100, muted = false): PlaybackState {
@@ -189,6 +200,17 @@ export function nowPlaying(item: BaseItem, serverId?: string): NowPlayingItem {
       .map((c, i) => ({ c, index: c.ChapterIndex ?? i }))
       .filter(({ c }) => !c.MarkerType || c.MarkerType === 'Chapter')
       .map(({ c, index }, n) => ({ name: c.Name || `Chapitre ${n + 1}`, startMs: c.StartPositionTicks / TICKS_PER_MS, index, imageTag: c.ImageTag })),
+    // A track: its album and artists, and the album's art (SMTC, music-spec §4.2).
+    ...(item.MediaType === 'Audio'
+      ? {
+          album: item.Album,
+          albumId: item.AlbumId,
+          artists: item.Artists?.length ? item.Artists : item.ArtistItems?.map((a) => a.Name),
+          albumArtist: item.AlbumArtist,
+          indexNumber: item.IndexNumber,
+          ...(item.AlbumId && item.AlbumPrimaryImageTag ? { imageItemId: item.AlbumId, imageTag: item.AlbumPrimaryImageTag } : {}),
+        }
+      : {}),
   };
 }
 

@@ -11,6 +11,10 @@
     <!-- Live TV reminders: re-armed at boot; notifications are asked for when the first one is set (13+). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Music (MU-09): MusicService plays on while browsing or on the TV's home screen; the CPU and Wi-Fi stay awake while it plays. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Installs on Android TV, Google TV, Fire TV and anything else without touch. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -65,6 +69,22 @@
             android:exported="false"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Wicaby.Player" />
+
+        <!-- Music now playing (MU-09); no keep-screen-on: the screensaver may start over it. -->
+        <activity
+            android:name=".music.MusicActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:theme="@style/Theme.Wicaby.Player" />
+
+        <service
+            android:name=".music.MusicService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
 
         <!-- Comic reader (CBZ). -->
         <activity

@@ -148,7 +148,8 @@ export class MpvController extends EventEmitter {
   async start(args: string[]): Promise<void> {
     const ipc = mpvIpcPath(randomUUID());
     const pipeName = ipc.path;
-    const full = [...args, `--input-ipc-server=${pipeName}`];
+    // Checks only (WICABY_TEST_SILENT=1, dropped by index.ts in a packaged build): no audio device is ever opened.
+    const full = [...args, ...(process.env.WICABY_TEST_SILENT === '1' ? ['--ao=null'] : []), `--input-ipc-server=${pipeName}`];
     log.info(`spawning ${this.exe}`);
     this.proc = spawn(this.exe, full, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     this.proc.stdout?.on('data', (d: Buffer) => this.logLines(d));

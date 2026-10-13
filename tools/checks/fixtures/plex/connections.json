@@ -1,0 +1,107 @@
+{
+  "about": "Plex connection ranking (plex-spec §5.3, PX-05): apps/desktop/src/shared/plex/connections.ts rankConnections(connections, options) -> { waves: [local, remote, relay], dropped }. Shared with the Android port (PX-14). Addresses are documentation or private ranges only.",
+  "cases": [
+    {
+      "name": "local before remote before relay, https first in each wave",
+      "connections": [
+        { "uri": "https://203-0-113-5.abc.plex.direct:32400", "protocol": "https", "address": "203.0.113.5", "local": false, "relay": false },
+        { "uri": "http://203.0.113.5:32400", "protocol": "http", "address": "203.0.113.5", "local": false, "relay": false },
+        { "uri": "https://198-51-100-9.abc.plex.direct:8443", "protocol": "https", "address": "198.51.100.9", "local": false, "relay": true },
+        { "uri": "http://10.0.0.5:32400", "protocol": "http", "address": "10.0.0.5", "local": true, "relay": false },
+        { "uri": "https://10-0-0-5.abc.plex.direct:32400", "protocol": "https", "address": "10.0.0.5", "local": true, "relay": false }
+      ],
+      "options": { "subnets": ["10.0.0.0/24"] },
+      "out": {
+        "waves": [
+          ["https://10-0-0-5.abc.plex.direct:32400", "http://10.0.0.5:32400"],
+          ["https://203-0-113-5.abc.plex.direct:32400", "http://203.0.113.5:32400"],
+          ["https://198-51-100-9.abc.plex.direct:8443"]
+        ],
+        "dropped": []
+      }
+    },
+    {
+      "name": "a Docker bridge address on no interface of this machine is dropped (Plezy #811)",
+      "connections": [
+        { "uri": "http://172.17.0.2:32400", "protocol": "http", "address": "172.17.0.2", "local": true },
+        { "uri": "http://192.168.1.20:32400", "protocol": "http", "address": "192.168.1.20", "local": true }
+      ],
+      "options": { "subnets": ["192.168.1.0/24", "127.0.0.0/8"] },
+      "out": { "waves": [["http://192.168.1.20:32400"], [], []], "dropped": [{ "uri": "http://172.17.0.2:32400", "why": "other-subnet" }] }
+    },
+    {
+      "name": "loopback always stays (no private range to check)",
+      "connections": [{ "uri": "http://127.0.0.1:32400", "protocol": "http", "address": "127.0.0.1", "local": true }],
+      "options": { "subnets": ["192.168.1.0/24"] },
+      "out": { "waves": [["http://127.0.0.1:32400"], [], []], "dropped": [] }
+    },
+    {
+      "name": "httpsRequired drops every plain http connection (Plezy #929)",
+      "connections": [
+        { "uri": "http://10.0.0.5:32400", "protocol": "http", "address": "10.0.0.5", "local": true },
+        { "uri": "https://10-0-0-5.abc.plex.direct:32400", "protocol": "https", "address": "10.0.0.5", "local": true },
+        { "uri": "http://203.0.113.5:32400", "protocol": "http", "address": "203.0.113.5", "local": false }
+      ],
+      "options": { "httpsRequired": true, "subnets": ["10.0.0.0/8"] },
+      "out": {
+        "waves": [["https://10-0-0-5.abc.plex.direct:32400"], [], []],
+        "dropped": [{ "uri": "http://10.0.0.5:32400", "why": "http-refused" }, { "uri": "http://203.0.113.5:32400", "why": "http-refused" }]
+      }
+    },
+    {
+      "name": "lastGood heads its wave, before https; a relay lastGood never jumps ahead of local",
+      "connections": [
+        { "uri": "http://10.0.0.5:32400", "protocol": "http", "address": "10.0.0.5", "local": true },
+        { "uri": "https://10-0-0-5.abc.plex.direct:32400", "protocol": "https", "address": "10.0.0.5", "local": true },
+        { "uri": "https://198-51-100-9.abc.plex.direct:8443", "protocol": "https", "address": "198.51.100.9", "relay": true }
+      ],
+      "options": { "subnets": ["10.0.0.0/24"], "lastGood": "http://10.0.0.5:32400" },
+      "out": { "waves": [["http://10.0.0.5:32400", "https://10-0-0-5.abc.plex.direct:32400"], [], ["https://198-51-100-9.abc.plex.direct:8443"]], "dropped": [] }
+    },
+    {
+      "name": "a relay lastGood stays in the relay wave",
+      "connections": [
+        { "uri": "http://10.0.0.5:32400", "protocol": "http", "address": "10.0.0.5", "local": true },
+        { "uri": "https://198-51-100-9.abc.plex.direct:8443", "protocol": "https", "address": "198.51.100.9", "relay": true }
+      ],
+      "options": { "subnets": ["10.0.0.0/24"], "lastGood": "https://198-51-100-9.abc.plex.direct:8443" },
+      "out": { "waves": [["http://10.0.0.5:32400"], [], ["https://198-51-100-9.abc.plex.direct:8443"]], "dropped": [] }
+    },
+    {
+      "name": "a lastGood that is no longer listed is ignored",
+      "connections": [{ "uri": "http://10.0.0.5:32400", "protocol": "http", "address": "10.0.0.5", "local": true }],
+      "options": { "subnets": ["10.0.0.0/24"], "lastGood": "http://10.0.0.9:32400" },
+      "out": { "waves": [["http://10.0.0.5:32400"], [], []], "dropped": [] }
+    },
+    {
+      "name": "duplicates and non-http URIs are skipped; without subnets nothing is dropped by network",
+      "connections": [
+        { "uri": "http://172.17.0.2:32400", "protocol": "http", "address": "172.17.0.2", "local": true },
+        { "uri": "http://172.17.0.2:32400", "protocol": "http", "address": "172.17.0.2", "local": true },
+        { "uri": "ftp://10.0.0.5", "address": "10.0.0.5", "local": true }
+      ],
+      "options": {},
+      "out": { "waves": [["http://172.17.0.2:32400"], [], []], "dropped": [] }
+    },
+    {
+      "name": "IPv6 local connections are kept (no IPv4 subnet test)",
+      "connections": [{ "uri": "http://[fd00::5]:32400", "protocol": "http", "address": "fd00::5", "local": true, "IPv6": true }],
+      "options": { "subnets": ["10.0.0.0/24"] },
+      "out": { "waves": [["http://[fd00::5]:32400"], [], []], "dropped": [] }
+    },
+    {
+      "name": "the mock's Maison list, on a machine with only loopback",
+      "connections": [
+        { "protocol": "http", "address": "127.0.0.1", "port": 32400, "uri": "http://127.0.0.1:32400", "local": true, "relay": false, "IPv6": false },
+        { "protocol": "http", "address": "172.17.0.2", "port": 32400, "uri": "http://172.17.0.2:32400", "local": true, "relay": false, "IPv6": false },
+        { "protocol": "http", "address": "203.0.113.5", "port": 32400, "uri": "http://203.0.113.5:32400", "local": false, "relay": false, "IPv6": false },
+        { "protocol": "http", "address": "127.0.0.1", "port": 32402, "uri": "http://127.0.0.1:32402", "local": false, "relay": true, "IPv6": false }
+      ],
+      "options": { "subnets": ["127.0.0.1/8"] },
+      "out": {
+        "waves": [["http://127.0.0.1:32400"], ["http://203.0.113.5:32400"], ["http://127.0.0.1:32402"]],
+        "dropped": [{ "uri": "http://172.17.0.2:32400", "why": "other-subnet" }]
+      }
+    }
+  ]
+}

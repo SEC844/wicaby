@@ -8,7 +8,8 @@
   // a conflict inside a context is refused and saves nothing. The Live TV rows are listed read-only.
   const overrides = $derived<ShortcutOverrides>(settings.value?.ui.shortcuts ?? {});
   const rows = $derived(applyOverrides(overrides));
-  const editRows = $derived(rows.filter(editable));
+  const editRows = $derived(rows.filter((r) => editable(r) && r.context === 'vod'));
+  const musicRows = $derived(rows.filter((r) => editable(r) && r.context === 'music'));
   const liveRows = rowsFor('live');
 
   let recording = $state<string | null>(null);
@@ -101,32 +102,34 @@
 
 <div class="sr" role="status" aria-live="polite">{status}</div>
 
-<div class="group">
-  {#each editRows as r (r.id)}
-    {@const label = t(r.labelKey)}
-    <div class="row compact">
-      <div class="txt">
-        <div class="lbl soft">{label}</div>
-        {#if error?.id === r.id}<div class="err" role="alert">{error.text}</div>{/if}
-      </div>
-      <span class="keys">
-        {#if recording === r.id}
-          <kbd class="rec">{t('settings.general.shortcuts.record')}</kbd>
-        {:else if r.keys.length}
-          {#each r.keys as k (k)}<kbd>{comboLabel(k)}</kbd>{/each}
-        {:else}
-          <span class="off">{t('settings.general.shortcuts.disabled')}</span>
-        {/if}
-      </span>
-      <span class="acts">
-        <button type="button" class="push" aria-pressed={recording === r.id} aria-label={t('settings.general.shortcuts.recordHint', { action: label })} onclick={() => startRecording(r.id)}>
-          {recording === r.id ? t('common.actions.cancel') : t('settings.general.shortcuts.record')}
-        </button>
-        <button type="button" class="push ghost" disabled={!Object.hasOwn(overrides, r.id)} onclick={() => setRow(r.id, undefined)}>{t('settings.general.shortcuts.reset')}</button>
-        <button type="button" class="push ghost" disabled={!r.keys.length} onclick={() => setRow(r.id, null)}>{t('settings.general.shortcuts.disable')}</button>
-      </span>
+{#snippet editRow(r: (typeof rows)[number])}
+  {@const label = t(r.labelKey)}
+  <div class="row compact">
+    <div class="txt">
+      <div class="lbl soft">{label}</div>
+      {#if error?.id === r.id}<div class="err" role="alert">{error.text}</div>{/if}
     </div>
-  {/each}
+    <span class="keys">
+      {#if recording === r.id}
+        <kbd class="rec">{t('settings.general.shortcuts.record')}</kbd>
+      {:else if r.keys.length}
+        {#each r.keys as k (k)}<kbd>{comboLabel(k)}</kbd>{/each}
+      {:else}
+        <span class="off">{t('settings.general.shortcuts.disabled')}</span>
+      {/if}
+    </span>
+    <span class="acts">
+      <button type="button" class="push" aria-pressed={recording === r.id} aria-label={t('settings.general.shortcuts.recordHint', { action: label })} onclick={() => startRecording(r.id)}>
+        {recording === r.id ? t('common.actions.cancel') : t('settings.general.shortcuts.record')}
+      </button>
+      <button type="button" class="push ghost" disabled={!Object.hasOwn(overrides, r.id)} onclick={() => setRow(r.id, undefined)}>{t('settings.general.shortcuts.reset')}</button>
+      <button type="button" class="push ghost" disabled={!r.keys.length} onclick={() => setRow(r.id, null)}>{t('settings.general.shortcuts.disable')}</button>
+    </span>
+  </div>
+{/snippet}
+
+<div class="group">
+  {#each editRows as r (r.id)}{@render editRow(r)}{/each}
   <div class="row compact">
     <span class="acts">
       <button type="button" class="push" onclick={() => fileInput?.click()}>{t('settings.general.shortcuts.import')}</button>
@@ -135,6 +138,11 @@
     <button type="button" class="push ghost" disabled={!Object.keys(overrides).length} onclick={() => void save({})}>{t('settings.general.shortcuts.resetAll')}</button>
     <input bind:this={fileInput} type="file" accept="application/json,.json" hidden onchange={importFile} />
   </div>
+</div>
+
+<h3 class="gh">{t('settings.general.shortcuts.context.music')}</h3>
+<div class="group">
+  {#each musicRows as r (r.id)}{@render editRow(r)}{/each}
 </div>
 
 <h3 class="gh">{t('settings.general.shortcuts.live')}</h3>

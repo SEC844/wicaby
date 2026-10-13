@@ -84,8 +84,8 @@ export class FilesClient extends ApiClient {
     return {};
   }
 
-  override mediaAuthHeader(): string | null {
-    return null;
+  override mediaAuthHeaders(): string[] {
+    return [];
   }
 
   // Pull-to-refresh / Refresh: the next listing goes to the backend.

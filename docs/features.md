@@ -85,7 +85,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 - **Several servers at once**, as on desktop: add more servers in Settings > Accounts. Home rows, search and libraries merge them, a title found on more than one server is shown once, and its page offers "Available on 2 servers" to pick the server it plays from.
 - **History**, from the profile menu, as on desktop: time watched over the last 7 and 30 days, top genres, and recently played titles by day, across every signed-in server (each card names its server when there are several). A title plays again, opens its page, or is removed from the history (marked unwatched on its server).
 - **A–Z jump rail** beside library grids sorted by name: LEFT from the first column opens it on the current title's letter, UP/DOWN scroll the grid live, OK or RIGHT jumps to that letter's first title, BACK returns. The server counts where each letter starts, so it jumps anywhere in a large library without loading it.
-- **Music (basic):** music libraries show albums, artists and songs; an album, artist, playlist or song plays all its tracks as a queue, with the album art full screen, the queue position and the next track; media keys play, pause and skip. A fuller music player is planned.
+- **Music:** music rows, a now-playing screen for the remote, music that plays on in the background, and an ambient view (see [Music](#music)).
 - **"Who's Watching?" profiles:** at start and from "Switch User", the server's public users with their avatars plus the accounts already signed in on this TV. A saved account opens without its password, behind an optional 4-digit PIN set in Settings > Accounts (stored salted and hashed; after 5 wrong tries each new try waits, from 30 s up to 1 h). Until the picker has opened an account the TV has no session: launcher rows, reminders, the screensaver and remote "Play" from another app wait or do nothing, and "Switch User" cannot be left with Back. A Settings option skips the picker when the TV has only one account. Emby and Jellyfin.
 - **Parental access schedules** (set in the desktop admin and enforced by the server): when the server refuses sign-in or playback outside the allowed hours, the TV says so with today's hours ("Access allowed from 8:00 AM to 8:00 PM"), and the player shows the time left once access ends within 15 minutes.
 - **Trakt**, as on desktop, in Settings > Trakt: your own Trakt app is authorized with a device code shown with a QR code to trakt.tv/activate. Plays are scrobbled (start, pause, stop), "Watched" set or cleared on an item page updates the Trakt history, and each server can be turned off (a server with the Trakt plugin is skipped). The client secret and tokens are sealed by the Android Keystore.
@@ -126,6 +126,26 @@ Emby and Jellyfin photo libraries, and home-video libraries, open in a Photos ti
 - **Android mobile:** pinch between three thumbnail sizes, a fast scroller with the month, swipe between photos, swipe down to close, and long-press to select photos for a slideshow or to add them to favourites.
 - **Android TV:** a grid built for the remote (Page or Channel +/−, or hold Down, to jump a month), a ×2 zoom, and the slideshow on the Play/Pause key. The screensaver can show your photos, one album or "On This Day" (Settings > Screen Saver); film and show artwork stays the default.
 
+## Music
+
+Emby and Jellyfin music libraries open in a music player instead of a poster grid.
+
+- **Library:** Albums (grid or list, sorts, favourite and genre filters), Artists (with an "album artists only" toggle), Songs, Genres and Playlists. Album pages show disc headers, the track count and length; artist pages add top songs and split the discography into albums and "appears on".
+- **Queue:** play next, add to queue, move, remove, clear upcoming, shuffle (turning it off restores the order), repeat all or one, and save the queue as a playlist. Every track has a menu with these actions, add to playlist, favourite, mix, and go to artist or album.
+- **Mix and radio:** the server's instant mix from a song, album, artist, genre or playlist. With radio on, the queue is topped up from the last track's mix when 3 or fewer tracks are left, never with one already played.
+- **Lyrics** come from the server only (Jellyfin's lyrics, or an Emby `lrc` subtitle stream). Synced lyrics follow the song; anything else reads as "no lyrics". Nothing is looked up online.
+- **Loudness:** ReplayGain in album mode by default. Untagged files use the server's gain when it sends one (Jellyfin), plus the preamp. There is no crossfade.
+- **Plays** are reported to your server like any other item; scrobbling to other services is left to server plugins.
+- **Desktop:**
+  - music plays through mpv with no window, audio only: gapless, ReplayGain, and bit-perfect output with WASAPI exclusive mode (ReplayGain off and the volume at 100 %);
+  - a now-playing bar, a queue panel (drag, `Alt` + `↑`/`↓`, `Delete`), and a full-screen player with lyrics or the queue; click a lyric line to jump there, and adjust the timing per song;
+  - music shortcuts, editable in Settings: `Space`, `Ctrl` + `←`/`→` for previous and next, `←`/`→` and `Shift` + `←`/`→` to seek, `↑`/`↓` volume, `M`, `S`, `R`, `L`, `Q`, `F`;
+  - media keys, Windows media controls and a window title that follows the song;
+  - the queue comes back, paused, at the next start;
+  - the built-in player is a simpler fallback: no gapless and no ReplayGain tags.
+- **Android mobile:** a music section with five tabs, a mini player above the navigation, a full-screen now playing with lyrics and the queue, and lock-screen and notification controls.
+- **Android TV:** music rows (recent albums, recently played, playlists, artists, genres), a now-playing screen built for the remote with queue editing (`←`/`→` to move, hold OK to remove), and music that keeps playing after Home or Back. The screen is allowed to sleep: after 2 minutes without a key it turns to an ambient view, which the screensaver also shows while music plays.
+
 ## File sources
 
 Videos straight from a folder, a WebDAV server or an SMB share, next to your Emby and Jellyfin servers. There is no scan and no server: Wicaby browses the folders as they are.
@@ -143,6 +163,32 @@ Videos straight from a folder, a WebDAV server or an SMB share, next to your Emb
   - a self-signed WebDAV certificate is trusted only after you check its fingerprint, for that one source; a changed certificate stops playback until you decide again;
   - on desktop, WebDAV plays through a relay on this computer, so the player never sees the password.
 - **Not supported yet:** search across files, downloads, casting and Trakt for file items, NFS, FTP and cloud drives. Files the device cannot decode cannot be converted.
+
+## Plex
+
+Desktop only for now (Windows and Linux); the Android apps come later. Wicaby is an unofficial client, not affiliated with or endorsed by Plex. It talks to Plex Media Server through its documented HTTP API.
+
+- **Linking:** Servers › Plex account › Link with a code. Enter the code at plex.tv/link or scan the QR code; there is no password form. Your servers and the ones shared with you are added; shared servers show by default with their owner, and each one can be hidden (it stays stored). The list is cached, so startup never waits on plex.tv.
+- **Profiles:** Plex Home users appear in the profile picker. A protected profile always asks for its PIN.
+- **Connections:** Wicaby tries the addresses plex.tv lists, local first, then remote, then Plex's relay (shown with a badge; Plex limits its bandwidth). A server that requires secure connections is never reached over http, and an unencrypted local address gets your Plex access only after you confirm it.
+- **Tokens:** the account token goes only to plex.tv. Each server gets only its own access token, kept in the encrypted vault and sent in a header, never in an address.
+- **What works:**
+  - Home rows from the server's own hubs, libraries with sorting and filters, search, shows (also with seasons hidden), editions, Continue Watching and Up Next;
+  - played and unplayed, playlists and collections, and your plex.tv watchlist as Favorites;
+  - music libraries in the music player, photo libraries in Photos, trailers and extras, downloads when the server allows them;
+  - for the server owner, "Refresh metadata" in the item menu; everything else stays in Plex Web.
+- **Playback:**
+  - the server decides for every quality: direct play when this device can, otherwise conversion to HLS, which starts at your resume point;
+  - multi-part films play as one queue; a missing file is hidden;
+  - audio and subtitle choices are saved to Plex too, so other Plex apps agree;
+  - progress goes to Plex with exactly one stop report, so history has no duplicates; a server that ends the stream shows its reason;
+  - Skip intro and credits from Plex markers, and BIF trickplay thumbnails;
+  - casting to a Chromecast, or to a DLNA TV for files it plays as they are, through the cast relay, so the token never leaves this computer.
+- **Not supported:** the Admin panel, Live TV and DVR, "Play on" and remote control of Plex sessions (Wicaby is not a Plex player target), mix and radio, subtitle search, comics, cinema intros (prerolls), Wake-on-LAN and access schedules. A request Wicaby cannot translate fails with a clear error, never a wrong answer.
+- **Plex Pass.** Wicaby detects these gates and explains them; it never works around them.
+  - Playing away from the server's network needs a Plex Pass (yours or the owner's) or a Remote Watch Pass. On the server's network it still works.
+  - Live TV and DVR, intro and credits detection (so the Skip intro button) and hardware transcoding need a Plex Pass on the server owner's account.
+  - When a remote quality is over the account's limit, Wicaby retries once at the limit, then asks for a lower quality.
 
 ## Casting and "Play on"
 
@@ -205,6 +251,7 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
 
 - **No telemetry, no analytics, no crash reporting.** Wicaby talks only to:
   - your servers;
+  - plex.tv, only when you link a Plex account (sign-in, your server list, the watchlist);
   - the services you choose to use: Emby Connect, your qBittorrent, Tailscale or NetBird, and the update URL you configure;
   - YouTube (youtube-nocookie.com), only when you play a YouTube trailer on desktop.
   - the map tile service (OpenStreetMap by default), only after you turn the photo map on (desktop). It sees which areas you look at, not your photos.

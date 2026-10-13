@@ -258,6 +258,28 @@ export function registerIpc(deps: IpcDeps): void {
     if (isString(id, 128)) connection.remove(id);
   });
   handle(Channels.serversWake, (_e, id: unknown) => (isString(id, 128) ? connection.wake(id) : false));
+  // Plex (plex-spec §5): tokens only ever stay in main.
+  const plexId = (v: unknown): string => {
+    if (!isString(v, 64) || !/^[0-9a-f]{8,40}$/i.test(v)) throw new Error(t('errors.ipc.invalidId'));
+    return v;
+  };
+  handle(Channels.serversPlexLink, () => connection.plexLink());
+  handle(Channels.serversPlexPoll, () => connection.plexPoll());
+  handle(Channels.serversPlexAccounts, () => connection.plexAccounts());
+  handle(Channels.serversPlexUnlink, async (_e, id: unknown) => {
+    const account = plexId(id);
+    if (connection.plexServerIds(account).includes(playback.serverId ?? '')) await playback.stop();
+    connection.plexUnlink(account);
+  });
+  handle(Channels.serversPlexSetHidden, async (_e, id: unknown, hidden: unknown) => {
+    const sid = plexId(id);
+    if (hidden === true && playback.serverId === sid) await playback.stop();
+    return connection.plexSetHidden(sid, hidden === true);
+  });
+  handle(Channels.serversPlexConfirm, (_e, id: unknown, address: unknown) => {
+    if (!isString(address, 512)) throw new Error(t('errors.ipc.invalidAddress'));
+    return connection.plexConfirm(plexId(id), address);
+  });
   handle(Channels.sessionGet, () => connection.session);
   handle(Channels.sessionPublicUsers, (_e, serverId: unknown) => connection.publicUsers(serverArg(serverId)));
   handle(Channels.sessionLogin, (_e, username: unknown, password: unknown, serverId: unknown) => {

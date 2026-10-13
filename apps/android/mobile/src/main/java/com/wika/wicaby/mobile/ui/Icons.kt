@@ -72,6 +72,18 @@ object Ic {
     val Info = stroke(circle(12f, 12f, 10f), "M12 16v-4", "M12 8h.01")
     val Slideshow = stroke("M2 3h20", "M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3", "m7 21 5-5 5 5")
 
+    // Music (music spec MU-08).
+    val Shuffle = stroke("m18 14 4 4-4 4", "m18 2 4 4-4 4", "M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22", "M2 6h1.972a4 4 0 0 1 3.6 2.2", "M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45")
+    val Repeat = stroke("m17 2 4 4-4 4", "M3 11v-1a4 4 0 0 1 4-4h14", "m7 22-4-4 4-4", "M21 13v1a4 4 0 0 1-4 4H3")
+    val RepeatOne = stroke("m17 2 4 4-4 4", "M3 11v-1a4 4 0 0 1 4-4h14", "m7 22-4-4 4-4", "M21 13v1a4 4 0 0 1-4 4H3", "M11 10h1v4")
+    val Previous = fill("M19 5.2v13.6a1 1 0 0 1-1.55.83l-9.6-6.8a1 1 0 0 1 0-1.66l9.6-6.8A1 1 0 0 1 19 5.2z", rect(4.8f, 4.5f, 2.2f, 15f, 1.1f))
+    val Queue = stroke("M21 15V6", "M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z", "M12 12H3", "M16 6H3", "M12 18H3")
+    val Lyrics = stroke("m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12", "M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5", circle(16f, 7f, 5f))
+    val Grip = stroke(circle(9f, 12f, 1f), circle(9f, 5f, 1f), circle(9f, 19f, 1f), circle(15f, 12f, 1f), circle(15f, 5f, 1f), circle(15f, 19f, 1f))
+    val More = stroke(circle(12f, 12f, 1f), circle(12f, 5f, 1f), circle(12f, 19f, 1f))
+    val Music = stroke("M9 18V5l12-2v13", circle(6f, 18f, 3f), circle(18f, 16f, 3f))
+    val Mix = stroke("M4.9 19.1C1 15.2 1 8.8 4.9 4.9", "M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5", circle(12f, 12f, 2f), "M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5", "M19.1 4.9C23 8.8 23 15.1 19.1 19")
+
     private fun circle(cx: Float, cy: Float, r: Float) = "M${cx - r} ${cy}a$r $r 0 1 0 ${2 * r} 0a$r $r 0 1 0 ${-2 * r} 0"
 
     private fun rect(x: Float, y: Float, w: Float, h: Float, r: Float) =

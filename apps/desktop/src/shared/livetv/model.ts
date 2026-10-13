@@ -5,8 +5,9 @@
 import { parseChannelNumber } from './channel-order';
 import { genreFlags } from './lens';
 
-// 'files' never has Live TV (server-caps.ts) but flows through the same API types.
-export type ServerKind = 'emby' | 'jellyfin' | 'files';
+// 'files' never has Live TV (server-caps.ts) but flows through the same API types; 'plex' Live TV is PX-11
+// (plex-spec §7): until then its /LiveTv probe answers PLEX-UNMAPPED and the section stays hidden.
+export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex';
 
 export const PF = { Live: 1, New: 2, Premiere: 4, Repeat: 8, HD: 16, Movie: 32, Sports: 64, News: 128, Kids: 256, Series: 512 } as const;
 export type PfName = keyof typeof PF;

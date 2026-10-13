@@ -288,6 +288,8 @@ class PlayerActivity : ComponentActivity() {
         externalId = savedInstanceState?.getString("externalId")
         if (externalId != null) return
 
+        // A video ends the music session (MU-09): one player at a time.
+        com.wika.wicaby.tv.music.Music.release()
         val engine = buildEngine(this, api.authHeaders(), "Wicaby/${BuildConfig.VERSION_NAME} (Android TV)")
         val exo = engine.player
         val ass = engine.ass

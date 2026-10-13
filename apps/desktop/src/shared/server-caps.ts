@@ -3,8 +3,6 @@
 // flag only where a third answer is needed; the Plex column is filled ahead of its adapter.
 import type { ServerKind } from './contract';
 
-export type CapsKind = ServerKind | 'plex';
-
 export interface ServerCaps {
   admin: boolean;
   // 'probed': asked at run time (/LiveTv/Info).
@@ -41,10 +39,11 @@ const SERVER: ServerCaps = {
   homeOptIn: false,
 };
 
-const TABLE: Record<CapsKind, ServerCaps> = {
+const TABLE: Record<ServerKind, ServerCaps> = {
   emby: SERVER,
   jellyfin: { ...SERVER, hideFromResume: false },
-  plex: { ...SERVER, admin: false, sessionsRemote: false, castReceiver: false, favorites: false, serverHubs: true, comics: false },
+  // Favorites: the plex.tv watchlist (D-6).
+  plex: { ...SERVER, admin: false, sessionsRemote: false, castReceiver: false, serverHubs: true, comics: false },
   files: {
     admin: false,
     liveTv: false,
@@ -64,7 +63,7 @@ const TABLE: Record<CapsKind, ServerCaps> = {
 
 // An unknown kind (a newer settings file, a missing session) gets the server row.
 export function caps(kind: string | undefined): ServerCaps {
-  return TABLE[kind as CapsKind] ?? SERVER;
+  return TABLE[kind as ServerKind] ?? SERVER;
 }
 
 // The label next to a source's name. Brand names: not translated.

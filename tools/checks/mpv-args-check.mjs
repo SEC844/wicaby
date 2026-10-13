@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { isAllowedMpvOption, isMpvPathShape, mpvAtLeast, mpvOutputArgs, parseMpvArgs } from '../../apps/desktop/src/shared/mpv-args.ts';
+import { audioMpvArgs, isAllowedMpvOption, isMpvPathShape, mpvAtLeast, mpvOutputArgs, parseMpvArgs } from '../../apps/desktop/src/shared/mpv-args.ts';
 
 const ok = (text) => assert.deepEqual(parseMpvArgs(text).rejected, [], `should accept: ${text}`);
 const no = (text) => assert.deepEqual(parseMpvArgs(text).args, [], `should reject: ${text}`);
@@ -299,5 +299,12 @@ assert.match(guideSrc, /set\('sub-visibility', !open\)/, 'guide overlay hides su
 assert.match(guideSrc, /if \(open\) await set\('keepaspect', true\)/, 'guide overlay forces keepaspect=yes');
 assert.match(guideSrc, /if \(!open\) this\.setAspect\(this\.aspect\)/, 'guide overlay close restores the aspect mode');
 assert.match(mpvPlayerSrc, /this\.aspect = a;\s*if \(this\.guide\) return;/, 'aspect changes wait for the guide overlay to close');
+
+// Music (music-spec MU-02 AC8): the windowless audio player keeps only the audio subset of the user's arguments.
+assert.deepEqual(
+  audioMpvArgs(parseMpvArgs('--deband=yes --audio-channels=stereo --volume-max=130 --replaygain=track --replaygain-preamp=2 --no-gapless-audio --scale=spline36 --audio-exclusive --sub-font=Arial').args),
+  ['--audio-channels=stereo', '--volume-max=130', '--replaygain=track', '--replaygain-preamp=2', '--no-gapless-audio', '--audio-exclusive=yes'],
+);
+assert.deepEqual(audioMpvArgs(['--video-sync=audio', '--hdr-compute-peak=no']), []);
 
 console.log('mpv-args-check: ok');

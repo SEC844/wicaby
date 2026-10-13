@@ -72,6 +72,13 @@ import com.wika.wicaby.mobile.R
 import com.wika.wicaby.mobile.WicabyApp
 import com.wika.wicaby.mobile.player.PlayerActivity
 import com.wika.wicaby.mobile.ui.livetv.LiveScreen
+import com.wika.wicaby.mobile.music.MiniPlayerSlot
+import com.wika.wicaby.mobile.music.MusicItemScreen
+import com.wika.wicaby.mobile.music.MusicOverlay
+import com.wika.wicaby.mobile.music.MusicRoute
+import com.wika.wicaby.mobile.music.MusicScreen
+import com.wika.wicaby.mobile.music.opensMusicPage
+import androidx.compose.foundation.layout.Column
 import kotlinx.serialization.Serializable
 
 val LocalSnapshot = staticCompositionLocalOf<Snapshot> { error("no prefs") }
@@ -190,6 +197,8 @@ fun NavController.open(item: Item) {
     // Photos (PH-05): a still opens the viewer, an album its timeline.
     if (item.type == "Photo") return navigate(PhotoRoute(item.id, sid))
     if (item.type == "PhotoAlbum") return navigate(GridRoute(item.name, parentId = item.id, collectionType = com.wika.wicaby.mobile.ui.photos.PHOTO_ALBUM, serverId = sid))
+    // Music (MU-08): albums, artists, genres and audio playlists have their own page.
+    if (item.opensMusicPage()) return navigate(MusicRoute(item.id, item.type, item.name, sid))
     if (item.isFolder && !item.isSeries && item.type != "Season") navigate(GridRoute(item.name, parentId = item.id, collectionType = item.collectionType, serverId = sid))
     else navigate(DetailRoute(item.seriesId?.takeIf { item.type == "Season" } ?: item.id, sid))
 }
@@ -238,14 +247,19 @@ private fun MainShell(api: Api) {
         // consumed so a screen's imePadding() only lifts it by the part the keyboard really covers.
         val insets = if (wide) Modifier.windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.End + WindowInsetsSides.Bottom))
         else Modifier.consumeWindowInsets(WindowInsets.navigationBars.add(WindowInsets(bottom = 80.dp)))
-        Box(Modifier.fillMaxSize().then(insets)) {
-            // Back on another tab's root returns to Accueil, like the platform's own apps.
-            BackHandler(enabled = tab != Tab.Home) { tab = Tab.Home }
-            holder.SaveableStateProvider(tab.name) {
-                TabHost(tab, api, reselect, openTab = { tab = it })
+        Column(Modifier.fillMaxSize().then(insets)) {
+            Box(Modifier.weight(1f)) {
+                // Back on another tab's root returns to Accueil, like the platform's own apps.
+                BackHandler(enabled = tab != Tab.Home) { tab = Tab.Home }
+                holder.SaveableStateProvider(tab.name) {
+                    TabHost(tab, api, reselect, openTab = { tab = it })
+                }
             }
+            // Music (MU-08): the mini player above the navigation bar while music plays.
+            MiniPlayerSlot()
         }
     }
+    MusicOverlay()
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -284,7 +298,11 @@ private fun TabHost(tab: Tab, api: Api, reselect: Int, openTab: (Tab) -> Unit) {
     }
 }
 
-private fun NavGraphBuilder.contentDestinations(api: Api, nav: NavController) {
+internal fun NavGraphBuilder.contentDestinations(api: Api, nav: NavController) {
+    composable<MusicRoute> { entry ->
+        val r = entry.toRoute<MusicRoute>()
+        Scoped { MusicItemScreen(Servers.of(r.serverId) ?: api, r, nav) }
+    }
     composable<DetailRoute> { entry ->
         val r = entry.toRoute<DetailRoute>()
         Scoped { DetailScreen(Servers.of(r.serverId) ?: api, r.id, nav) }
@@ -302,6 +320,7 @@ private fun NavGraphBuilder.contentDestinations(api: Api, nav: NavController) {
         Scoped {
             when (r.collectionType) {
                 "livetv" -> LiveScreen(a, r.title, onBack = { nav.popBackStack() })
+                "music" -> MusicScreen(a, r, nav)
                 // Photos (PH-05; decision O3: home videos open in the photo timeline too).
                 in com.wika.wicaby.mobile.ui.photos.PHOTO_COLLECTIONS -> com.wika.wicaby.mobile.ui.photos.PhotosScreen(a, r, nav)
                 else -> GridScreen(a, r, nav)

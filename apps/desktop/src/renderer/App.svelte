@@ -4,6 +4,11 @@
   import CastPicker from './components/CastPicker.svelte';
   import FpsMeter from './components/FpsMeter.svelte';
   import LogoLoader from './components/LogoLoader.svelte';
+  import MusicHost from './components/music/MusicHost.svelte';
+  import NowPlayingBar from './components/music/NowPlayingBar.svelte';
+  import TrackMenu from './components/music/TrackMenu.svelte';
+  import { musicActive } from './lib/music-ui.svelte';
+  import NowPlaying from './routes/NowPlaying.svelte';
   import QueueMenu from './components/QueueMenu.svelte';
   import ResumePrompt from './components/ResumePrompt.svelte';
   import Sidebar from './components/Sidebar.svelte';
@@ -42,8 +47,10 @@
   // The built-in player covers the page it was opened from, which stays mounted (inert) underneath: the way
   // back keeps its scroll, focus and data, and Player.svelte fades out over it.
   let lastPage = router.route;
-  const page = $derived(route.name === 'player' ? lastPage : (lastPage = route));
+  // The full-screen music player covers the page the same way (music-spec §4.3).
+  const page = $derived(route.name === 'player' || route.name === 'now-playing' ? lastPage : (lastPage = route));
   const playing = $derived(route.name === 'player');
+  const nowPlaying = $derived(route.name === 'now-playing');
   let returnFocus: HTMLElement | null = null;
   $effect.pre(() => {
     if (playing) returnFocus ??= document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
@@ -95,7 +102,8 @@
     const seq = htmlPlayer.seq;
     if (isOsd || seq <= seenSeq) return;
     seenSeq = seq;
-    if (router.route.name !== 'player') navigate('/player');
+    // A track plays in MusicHost's <audio>: the page stays.
+    if (router.route.name !== 'player' && !htmlPlayer.load?.audio) navigate('/player');
   });
 
   // Settings > Général > "Page de démarrage" (libraries load after sign-in, so the id is not checked here).
@@ -143,12 +151,12 @@
     {#if page.name === 'welcome'}<Welcome rerun={page.query.get('rerun') !== null} />{:else if page.name === 'login'}{#key page.params.id}<Login serverId={page.params.id} />{/key}{:else}<Servers />{/if}
   </div>
 {:else}
-  <div class="shell" style:--rail="{collapsed ? RAIL.closed : RAIL.open}px" inert={playing}>
+  <div class="shell" style:--rail="{collapsed ? RAIL.closed : RAIL.open}px" inert={playing || nowPlaying}>
     <Sidebar />
     <div class="pane" bind:this={pane}>
       <TitleBar />
       <CastBar />
-      <main class="scroller" id="main-scroller">
+      <main class="scroller" id="main-scroller" class:with-bar={musicActive()}>
         <!-- Admin switches sections and servers in place (its section list stays put). -->
         {#key page.name === 'admin' ? 'admin' : page.path}
           {#if page.name === 'home'}<Home />
@@ -165,15 +173,17 @@
           {:else}<Home />{/if}
         {/key}
       </main>
+      <NowPlayingBar />
     </div>
     <ProgramSheet />
   </div>
 {/if}
 {#if !isOsd && playing && session.ready && status !== 'connecting'}<Player />{/if}
+{#if !isOsd && nowPlaying && session.ready && status === 'signed-in'}<NowPlaying />{/if}
 
 <!-- Main is hidden while mpv plays: the OSD shows the toasts then (admin messages, errors). -->
 <Toasts />
-{#if !isOsd}<ResumePrompt /><QueueMenu /><CastPicker />{/if}
+{#if !isOsd}<ResumePrompt /><QueueMenu /><TrackMenu /><CastPicker /><MusicHost />{/if}
 {#if !isOsd && lonePhoto.assets}<PhotoViewer assets={lonePhoto.assets} start={0} onclose={() => (lonePhoto.assets = null)} />{/if}
 {#if settings.value?.ui.fpsMeter}<FpsMeter />{/if}
 
@@ -347,6 +357,10 @@
     overflow-y: auto;
     overflow-x: hidden;
     border-bottom-left-radius: var(--r-md);
+  }
+  /* The now-playing bar covers the bottom 72 px. */
+  .scroller.with-bar {
+    padding-bottom: 72px;
   }
   /* Keyboard and gamepad focus never parks a card flush against the pane edge. */
   .scroller :global(:is(a, button, [tabindex])) {

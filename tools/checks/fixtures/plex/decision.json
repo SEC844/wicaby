@@ -1,0 +1,1519 @@
+{
+  "about": "Golden vectors for apps/desktop/src/shared/plex/decision.ts (plex-spec §6.1 to §6.4, PX-08 and PX-09), run by plex-map-check.mjs next to vectors.json; the Kotlin twin (PX-15) replays them. A meta is PMS JSON; a body is the merged PlaybackInfo query and body.",
+  "cases": [
+    {
+      "name": "profile: mpv lists every codec",
+      "fn": "profileExtra",
+      "args": [
+        {
+          "DirectPlayProfiles": [
+            {
+              "Type": "Video"
+            },
+            {
+              "Type": "Audio"
+            }
+          ],
+          "TranscodingProfiles": [
+            {
+              "Container": "ts",
+              "Type": "Video",
+              "VideoCodec": "hevc,h264",
+              "AudioCodec": "aac,ac3",
+              "Protocol": "hls"
+            },
+            {
+              "Container": "mp3",
+              "Type": "Audio",
+              "AudioCodec": "mp3",
+              "Protocol": "http"
+            }
+          ]
+        }
+      ],
+      "out": "add-direct-play-profile(type=videoProfile&container=mkv,mp4,m4v,mov,avi,webm,mpegts,ts,m2ts,wmv,asf,flv,ogg,3gp&videoCodec=h264,hevc,av1,vp9,vp8,mpeg2video,mpeg4,msmpeg4v3,vc1,wmv3,mpeg1video,h263&audioCodec=aac,ac3,eac3,dca,dts,truehd,flac,mp3,mp2,opus,vorbis,pcm,alac,wmav2)+add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=hevc,h264&audioCodec=aac,ac3)"
+    },
+    {
+      "name": "profile: html direct plays mp4 and webm only",
+      "fn": "profileExtra",
+      "args": [
+        {
+          "DirectPlayProfiles": [
+            {
+              "Container": "mp4,m4v",
+              "Type": "Video",
+              "VideoCodec": "h264,hevc,av1,vp9",
+              "AudioCodec": "aac,mp3,opus,flac,alac"
+            },
+            {
+              "Container": "webm",
+              "Type": "Video",
+              "VideoCodec": "vp8,vp9,av1",
+              "AudioCodec": "opus,vorbis"
+            },
+            {
+              "Container": "mp3",
+              "Type": "Audio"
+            }
+          ],
+          "TranscodingProfiles": [
+            {
+              "Container": "ts",
+              "Type": "Video",
+              "VideoCodec": "h264",
+              "AudioCodec": "aac,mp3",
+              "Protocol": "hls"
+            }
+          ]
+        }
+      ],
+      "out": "add-direct-play-profile(type=videoProfile&container=mp4,m4v&videoCodec=h264,hevc,av1,vp9&audioCodec=aac,mp3,opus,flac,alac)+add-direct-play-profile(type=videoProfile&container=webm&videoCodec=vp8,vp9,av1&audioCodec=opus,vorbis)+add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,mp3)"
+    },
+    {
+      "name": "profile: empty",
+      "fn": "profileExtra",
+      "args": [
+        {}
+      ],
+      "out": ""
+    },
+    {
+      "name": "decision: resume at 600 s, Original, mpv",
+      "fn": "decisionRequest",
+      "args": [
+        "1000",
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10001,
+              "Part": [
+                {
+                  "id": 50001,
+                  "key": "/library/parts/50001/1/file.mkv",
+                  "Stream": [
+                    {
+                      "id": 48201,
+                      "streamType": 1,
+                      "codec": "h264"
+                    },
+                    {
+                      "id": 48202,
+                      "streamType": 2,
+                      "codec": "eac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 48203,
+                      "streamType": 3,
+                      "codec": "pgs"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "MediaSourceId": "10001",
+          "StartTimeTicks": 6000000000,
+          "MaxStreamingBitrate": 100000000,
+          "AudioStreamIndex": 48202,
+          "SubtitleStreamIndex": -1,
+          "DeviceProfile": {
+            "DirectPlayProfiles": [
+              {
+                "Type": "Video"
+              }
+            ],
+            "SubtitleProfiles": [
+              {
+                "Format": "pgs",
+                "Method": "Embed"
+              }
+            ]
+          }
+        },
+        "sess-1",
+        "client-1"
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1000",
+          "mediaIndex": "0",
+          "partIndex": "0",
+          "protocol": "hls",
+          "directPlay": "1",
+          "directStream": "1",
+          "directStreamAudio": "1",
+          "session": "sess-1",
+          "offset": "600",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "audioStreamID": "48202",
+          "subtitleStreamID": "0",
+          "subtitles": "auto"
+        },
+        "profile": "add-direct-play-profile(type=videoProfile&container=mkv,mp4,m4v,mov,avi,webm,mpegts,ts,m2ts,wmv,asf,flv,ogg,3gp&videoCodec=h264,hevc,av1,vp9,vp8,mpeg2video,mpeg4,msmpeg4v3,vc1,wmv3,mpeg1video,h263&audioCodec=aac,ac3,eac3,dca,dts,truehd,flac,mp3,mp2,opus,vorbis,pcm,alac,wmav2)",
+        "mediaIndex": 0
+      }
+    },
+    {
+      "name": "decision: third version past a missing one, 4 Mbps 720p cap",
+      "fn": "decisionRequest",
+      "args": [
+        "1004",
+        {
+          "ratingKey": "1004",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 1,
+              "Part": [
+                {
+                  "id": 2,
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 10041,
+              "Part": [
+                {
+                  "id": 50041,
+                  "key": "/library/parts/50041/1/file.mkv",
+                  "Stream": [
+                    {
+                      "id": 48241,
+                      "streamType": 1,
+                      "codec": "h264"
+                    },
+                    {
+                      "id": 48243,
+                      "streamType": 3,
+                      "codec": "pgs"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 10042,
+              "Part": [
+                {
+                  "id": 50042,
+                  "key": "/library/parts/50042/1/file.mkv",
+                  "Stream": [
+                    {
+                      "id": 48251,
+                      "streamType": 1,
+                      "codec": "h264"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "MediaSourceId": "10042",
+          "MaxStreamingBitrate": 4000000,
+          "DeviceProfile": {
+            "CodecProfiles": [
+              {
+                "Type": "Video",
+                "Conditions": [
+                  {
+                    "Condition": "LessThanEqual",
+                    "Property": "Width",
+                    "Value": "1280"
+                  },
+                  {
+                    "Condition": "LessThanEqual",
+                    "Property": "Height",
+                    "Value": "720"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "sess-2",
+        "client-1"
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1004",
+          "mediaIndex": "1",
+          "partIndex": "0",
+          "protocol": "hls",
+          "directPlay": "1",
+          "directStream": "1",
+          "directStreamAudio": "1",
+          "session": "sess-2",
+          "offset": "0",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "subtitles": "auto",
+          "maxVideoBitrate": "4000",
+          "videoResolution": "1280x720"
+        },
+        "profile": "",
+        "mediaIndex": 1
+      }
+    },
+    {
+      "name": "decision: PGS selected on html is burned",
+      "fn": "decisionRequest",
+      "args": [
+        "1004",
+        {
+          "ratingKey": "1004",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10041,
+              "Part": [
+                {
+                  "id": 50041,
+                  "Stream": [
+                    {
+                      "id": 48241,
+                      "streamType": 1,
+                      "codec": "h264"
+                    },
+                    {
+                      "id": 48243,
+                      "streamType": 3,
+                      "codec": "pgs"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "SubtitleStreamIndex": 48243,
+          "DeviceProfile": {
+            "SubtitleProfiles": [
+              {
+                "Format": "vtt",
+                "Method": "External"
+              }
+            ]
+          }
+        },
+        "sess-3",
+        "client-1"
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1004",
+          "mediaIndex": "0",
+          "partIndex": "0",
+          "protocol": "hls",
+          "directPlay": "1",
+          "directStream": "1",
+          "directStreamAudio": "1",
+          "session": "sess-3",
+          "offset": "0",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "subtitleStreamID": "48243",
+          "subtitles": "burn"
+        },
+        "profile": "",
+        "mediaIndex": 0
+      }
+    },
+    {
+      "name": "decision: forced transcode burns PGS even for mpv",
+      "fn": "decisionRequest",
+      "args": [
+        "1004",
+        {
+          "ratingKey": "1004",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10041,
+              "Part": [
+                {
+                  "id": 50041,
+                  "Stream": [
+                    {
+                      "id": 48243,
+                      "streamType": 3,
+                      "codec": "pgs"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "SubtitleStreamIndex": 48243,
+          "EnableDirectPlay": false,
+          "EnableDirectStream": false,
+          "AllowVideoStreamCopy": false,
+          "DeviceProfile": {
+            "SubtitleProfiles": [
+              {
+                "Format": "pgs",
+                "Method": "Embed"
+              }
+            ]
+          }
+        },
+        "sess-4",
+        "client-1"
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1004",
+          "mediaIndex": "0",
+          "partIndex": "0",
+          "protocol": "hls",
+          "directPlay": "0",
+          "directStream": "0",
+          "directStreamAudio": "1",
+          "session": "sess-4",
+          "offset": "0",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "subtitleStreamID": "48243",
+          "subtitles": "burn"
+        },
+        "profile": "",
+        "mediaIndex": 0
+      }
+    },
+    {
+      "name": "decision: the remote-cap retry overrides the bitrate",
+      "fn": "decisionRequest",
+      "args": [
+        "1000",
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10001,
+              "Part": [
+                {
+                  "id": 50001
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "MaxStreamingBitrate": 100000000
+        },
+        "sess-5",
+        "client-1",
+        2000
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1000",
+          "mediaIndex": "0",
+          "partIndex": "0",
+          "protocol": "hls",
+          "directPlay": "1",
+          "directStream": "1",
+          "directStreamAudio": "1",
+          "session": "sess-5",
+          "offset": "0",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "subtitles": "auto",
+          "maxVideoBitrate": "2000"
+        },
+        "profile": "",
+        "mediaIndex": 0
+      }
+    },
+    {
+      "name": "decision: a section id is unmapped",
+      "fn": "decisionRequest",
+      "args": [
+        "section-1",
+        {
+          "ratingKey": "1",
+          "type": "movie"
+        },
+        {},
+        "s",
+        "c"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Id=section-1",
+        "status": 404
+      }
+    },
+    {
+      "name": "answer: direct play",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "Metadata": [
+            {
+              "ratingKey": "1000",
+              "type": "movie",
+              "Media": [
+                {
+                  "id": 10001,
+                  "Part": [
+                    {
+                      "id": 50001,
+                      "decision": "directplay"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "duration": 600000,
+          "Media": [
+            {
+              "id": 10001,
+              "container": "mkv",
+              "bitrate": 8000,
+              "Part": [
+                {
+                  "id": 50001,
+                  "key": "/library/parts/50001/1/file.mkv",
+                  "Stream": [
+                    {
+                      "id": 48201,
+                      "streamType": 1,
+                      "codec": "h264"
+                    },
+                    {
+                      "id": 48202,
+                      "streamType": 2,
+                      "codec": "eac3",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "path": "/library/metadata/1000",
+            "session": "sess-1",
+            "offset": "0",
+            "subtitles": "auto",
+            "X-Plex-Client-Identifier": "client-1"
+          },
+          "profile": "add-direct-play-profile(type=videoProfile&container=mkv&videoCodec=h264&audioCodec=aac)",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "10001",
+            "Protocol": "File",
+            "SupportsDirectPlay": true,
+            "SupportsDirectStream": true,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 48201,
+                "Type": "Video",
+                "Codec": "h264",
+                "VideoRange": "SDR",
+                "VideoRangeType": "SDR"
+              },
+              {
+                "Index": 48202,
+                "Type": "Audio",
+                "Codec": "eac3"
+              }
+            ],
+            "Container": "mkv",
+            "Bitrate": 8000000,
+            "RunTimeTicks": 6000000000,
+            "DefaultAudioStreamIndex": 48202
+          }
+        ],
+        "PlaySessionId": "sess-1"
+      }
+    },
+    {
+      "name": "answer: transcode from 600 s carries StartTimeTicks and the profile",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "transcodeDecisionCode": 1001,
+          "Metadata": [
+            {
+              "ratingKey": "1002",
+              "type": "movie",
+              "Media": [
+                {
+                  "id": 10021,
+                  "Part": [
+                    {
+                      "id": 50021,
+                      "decision": "transcode"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "1002",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10021,
+              "container": "mkv",
+              "Part": [
+                {
+                  "id": 50021,
+                  "Stream": [
+                    {
+                      "id": 48221,
+                      "streamType": 1,
+                      "codec": "hevc"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "path": "/library/metadata/1002",
+            "mediaIndex": "0",
+            "session": "sess-2",
+            "offset": "600",
+            "subtitles": "auto",
+            "X-Plex-Client-Identifier": "client-1"
+          },
+          "profile": "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac)",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "10021",
+            "Protocol": "File",
+            "SupportsDirectPlay": false,
+            "SupportsDirectStream": false,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 48221,
+                "Type": "Video",
+                "Codec": "hevc",
+                "VideoRange": "SDR",
+                "VideoRangeType": "SDR"
+              }
+            ],
+            "Container": "mkv",
+            "TranscodingUrl": "/video/:/transcode/universal/start.m3u8?path=%2Flibrary%2Fmetadata%2F1002&mediaIndex=0&session=sess-2&offset=600&subtitles=auto&X-Plex-Client-Identifier=client-1&X-Plex-Client-Profile-Extra=add-transcode-target%28type%3DvideoProfile%26context%3Dstreaming%26protocol%3Dhls%26container%3Dmpegts%26videoCodec%3Dh264%26audioCodec%3Daac%29",
+            "TranscodingSubProtocol": "hls",
+            "StartTimeTicks": 6000000000
+          }
+        ],
+        "PlaySessionId": "sess-2"
+      }
+    },
+    {
+      "name": "answer: burned PGS is delivered by Encode",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "Metadata": [
+            {
+              "ratingKey": "1004",
+              "type": "movie",
+              "Media": [
+                {
+                  "id": 10041,
+                  "Part": [
+                    {
+                      "id": 50041,
+                      "decision": "transcode"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "1004",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10041,
+              "Part": [
+                {
+                  "id": 50041,
+                  "Stream": [
+                    {
+                      "id": 48243,
+                      "streamType": 3,
+                      "codec": "pgs"
+                    },
+                    {
+                      "id": 48244,
+                      "streamType": 3,
+                      "codec": "srt"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s",
+            "offset": "0",
+            "subtitles": "burn",
+            "subtitleStreamID": "48243",
+            "X-Plex-Client-Identifier": "c"
+          },
+          "profile": "",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "10041",
+            "Protocol": "File",
+            "SupportsDirectPlay": false,
+            "SupportsDirectStream": false,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 48243,
+                "Type": "Subtitle",
+                "Codec": "pgssub",
+                "IsTextSubtitleStream": false,
+                "DeliveryMethod": "Encode"
+              },
+              {
+                "Index": 48244,
+                "Type": "Subtitle",
+                "Codec": "subrip",
+                "IsTextSubtitleStream": true
+              }
+            ],
+            "TranscodingUrl": "/video/:/transcode/universal/start.m3u8?session=s&offset=0&subtitles=burn&subtitleStreamID=48243&X-Plex-Client-Identifier=c&X-Plex-Client-Profile-Extra=",
+            "TranscodingSubProtocol": "hls"
+          }
+        ],
+        "PlaySessionId": "s"
+      }
+    },
+    {
+      "name": "answer: a two-part film plays its parts as one queue",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "Metadata": [
+            {
+              "ratingKey": "1005",
+              "type": "movie",
+              "Media": [
+                {
+                  "id": 10051,
+                  "Part": [
+                    {
+                      "id": 50051,
+                      "decision": "directplay"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "1005",
+          "type": "movie",
+          "duration": 600000,
+          "Media": [
+            {
+              "id": 10051,
+              "container": "mkv",
+              "Part": [
+                {
+                  "id": 50051,
+                  "key": "/library/parts/50051/1/file.mkv",
+                  "duration": 300000,
+                  "Stream": [
+                    {
+                      "id": 1,
+                      "streamType": 1,
+                      "codec": "h264"
+                    }
+                  ]
+                },
+                {
+                  "id": 50052,
+                  "key": "/library/parts/50052/1/file.mkv",
+                  "duration": 300000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s",
+            "offset": "0",
+            "subtitles": "auto",
+            "X-Plex-Client-Identifier": "c"
+          },
+          "profile": "",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "10051",
+            "Protocol": "File",
+            "SupportsDirectPlay": true,
+            "SupportsDirectStream": true,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 1,
+                "Type": "Video",
+                "Codec": "h264",
+                "VideoRange": "SDR",
+                "VideoRangeType": "SDR"
+              }
+            ],
+            "Container": "mkv",
+            "RunTimeTicks": 6000000000,
+            "PartPaths": [
+              {
+                "path": "/library/parts/50051/1/file.mkv",
+                "durationMs": 300000
+              },
+              {
+                "path": "/library/parts/50052/1/file.mkv",
+                "durationMs": 300000
+              }
+            ]
+          }
+        ],
+        "PlaySessionId": "s"
+      }
+    },
+    {
+      "name": "decision: a two-part film resumed at 400 s transcodes part 2 from 100 s (D-4)",
+      "fn": "decisionRequest",
+      "args": [
+        "1005",
+        {
+          "ratingKey": "1005",
+          "type": "movie",
+          "duration": 600000,
+          "Media": [
+            {
+              "id": 10051,
+              "container": "mkv",
+              "Part": [
+                {
+                  "id": 50051,
+                  "key": "/library/parts/50051/1/file.mkv",
+                  "duration": 300000,
+                  "Stream": [
+                    {
+                      "id": 1,
+                      "streamType": 1,
+                      "codec": "h264"
+                    }
+                  ]
+                },
+                {
+                  "id": 50052,
+                  "key": "/library/parts/50052/1/file.mkv",
+                  "duration": 300000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "MediaSourceId": "10051",
+          "StartTimeTicks": 4000000000,
+          "MaxStreamingBitrate": 100000000,
+          "EnableDirectPlay": false,
+          "DeviceProfile": {}
+        },
+        "sess-2",
+        "client-1"
+      ],
+      "out": {
+        "query": {
+          "path": "/library/metadata/1005",
+          "mediaIndex": "0",
+          "partIndex": "1",
+          "protocol": "hls",
+          "directPlay": "0",
+          "directStream": "1",
+          "directStreamAudio": "1",
+          "session": "sess-2",
+          "offset": "100",
+          "hasMDE": "1",
+          "fastSeek": "1",
+          "X-Plex-Client-Identifier": "client-1",
+          "subtitles": "auto"
+        },
+        "profile": "",
+        "mediaIndex": 0,
+        "partStartMs": 300000
+      }
+    },
+    {
+      "name": "answer: a transcode of part 2 counts from the start of the film, with every part listed (D-4)",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "Metadata": [
+            {
+              "ratingKey": "1005",
+              "type": "movie",
+              "Media": [
+                {
+                  "id": 10051,
+                  "Part": [
+                    {
+                      "id": 50052,
+                      "decision": "transcode"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "1005",
+          "type": "movie",
+          "duration": 600000,
+          "Media": [
+            {
+              "id": 10051,
+              "container": "mkv",
+              "Part": [
+                {
+                  "id": 50051,
+                  "key": "/library/parts/50051/1/file.mkv",
+                  "duration": 300000,
+                  "Stream": [
+                    {
+                      "id": 1,
+                      "streamType": 1,
+                      "codec": "h264"
+                    }
+                  ]
+                },
+                {
+                  "id": 50052,
+                  "key": "/library/parts/50052/1/file.mkv",
+                  "duration": 300000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s",
+            "partIndex": "1",
+            "offset": "100",
+            "subtitles": "auto",
+            "X-Plex-Client-Identifier": "c"
+          },
+          "profile": "",
+          "mediaIndex": 0,
+          "partStartMs": 300000
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "10051",
+            "Protocol": "File",
+            "SupportsDirectPlay": false,
+            "SupportsDirectStream": false,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 1,
+                "Type": "Video",
+                "Codec": "h264",
+                "VideoRange": "SDR",
+                "VideoRangeType": "SDR"
+              }
+            ],
+            "Container": "mkv",
+            "RunTimeTicks": 6000000000,
+            "PartPaths": [
+              {
+                "path": "/library/parts/50051/1/file.mkv",
+                "durationMs": 300000
+              },
+              {
+                "path": "/library/parts/50052/1/file.mkv",
+                "durationMs": 300000
+              }
+            ],
+            "TranscodingUrl": "/video/:/transcode/universal/start.m3u8?session=s&partIndex=1&offset=100&subtitles=auto&X-Plex-Client-Identifier=c&X-Plex-Client-Profile-Extra=",
+            "TranscodingSubProtocol": "hls",
+            "StartTimeTicks": 4000000000
+          }
+        ],
+        "PlaySessionId": "s"
+      }
+    },
+    {
+      "name": "answer: a part with a BIF says so (Bif)",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 1000,
+          "Metadata": [
+            {
+              "ratingKey": "2003",
+              "type": "episode",
+              "Media": [
+                {
+                  "id": 20031,
+                  "Part": [
+                    {
+                      "id": 60031,
+                      "decision": "directplay"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ratingKey": "2003",
+          "type": "episode",
+          "duration": 10000,
+          "Media": [
+            {
+              "id": 20031,
+              "container": "mkv",
+              "Part": [
+                {
+                  "id": 60031,
+                  "key": "/library/parts/60031/1/file.mkv",
+                  "duration": 10000,
+                  "indexes": "sd"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s",
+            "offset": "0",
+            "subtitles": "auto",
+            "X-Plex-Client-Identifier": "c"
+          },
+          "profile": "",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "20031",
+            "Protocol": "File",
+            "SupportsDirectPlay": true,
+            "SupportsDirectStream": true,
+            "SupportsTranscoding": true,
+            "MediaStreams": [],
+            "Container": "mkv",
+            "RunTimeTicks": 100000000,
+            "Bif": true
+          }
+        ],
+        "PlaySessionId": "s"
+      }
+    },
+    {
+      "name": "answer: no playable media is an error",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {
+          "generalDecisionCode": 2000,
+          "generalDecisionText": "No playable media"
+        },
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 1,
+              "Part": [
+                {
+                  "id": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s"
+          },
+          "profile": "",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [],
+        "PlaySessionId": "s",
+        "ErrorCode": "No playable media"
+      }
+    },
+    {
+      "name": "answer: an empty answer is an error",
+      "fn": "toPlaybackInfo",
+      "args": [
+        {},
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 1,
+              "Part": [
+                {
+                  "id": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "query": {
+            "session": "s"
+          },
+          "profile": "",
+          "mediaIndex": 0
+        }
+      ],
+      "out": {
+        "MediaSources": [],
+        "PlaySessionId": "s",
+        "ErrorCode": "Plex decision empty"
+      }
+    },
+    {
+      "name": "failure: 403 remote",
+      "fn": "decisionFailure",
+      "args": [
+        403,
+        "{\"errors\":[{\"code\":1998}]}"
+      ],
+      "out": "remoteNeedsPass"
+    },
+    {
+      "name": "failure: 500 cannot make a decision",
+      "fn": "decisionFailure",
+      "args": [
+        500,
+        "Cannot make a decision"
+      ],
+      "out": "lowerQuality"
+    },
+    {
+      "name": "failure: other 500",
+      "fn": "decisionFailure",
+      "args": [
+        500,
+        "Internal error"
+      ],
+      "out": null
+    },
+    {
+      "name": "remote cap from prefs",
+      "fn": "remoteCapKbps",
+      "args": [
+        {
+          "Setting": [
+            {
+              "id": "FriendlyName",
+              "value": "Maison"
+            },
+            {
+              "id": "WanPerStreamMaxUploadRate",
+              "value": 2000
+            }
+          ]
+        }
+      ],
+      "out": 2000
+    },
+    {
+      "name": "remote cap: none set",
+      "fn": "remoteCapKbps",
+      "args": [
+        {
+          "Setting": [
+            {
+              "id": "WanPerStreamMaxUploadRate",
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "out": 0
+    },
+    {
+      "name": "remote cap: no prefs (not the owner)",
+      "fn": "remoteCapKbps",
+      "args": [
+        null
+      ],
+      "out": 0
+    },
+    {
+      "name": "track put: another audio",
+      "fn": "trackPut",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "Media": [
+            {
+              "id": 20000,
+              "Part": [
+                {
+                  "id": 50100,
+                  "Stream": [
+                    {
+                      "id": 48301,
+                      "streamType": 2,
+                      "default": true
+                    },
+                    {
+                      "id": 48302,
+                      "streamType": 2,
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "20000",
+        48301,
+        null
+      ],
+      "out": {
+        "path": "/library/parts/50100",
+        "query": {
+          "audioStreamID": "48301",
+          "allParts": "1"
+        }
+      }
+    },
+    {
+      "name": "track put: the selected audio again is no request",
+      "fn": "trackPut",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "Media": [
+            {
+              "id": 20000,
+              "Part": [
+                {
+                  "id": 50100,
+                  "Stream": [
+                    {
+                      "id": 48301,
+                      "streamType": 2
+                    },
+                    {
+                      "id": 48302,
+                      "streamType": 2,
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "20000",
+        48302,
+        -1
+      ],
+      "out": null
+    },
+    {
+      "name": "track put: subtitles off",
+      "fn": "trackPut",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "Media": [
+            {
+              "id": 20000,
+              "Part": [
+                {
+                  "id": 50100,
+                  "Stream": [
+                    {
+                      "id": 48302,
+                      "streamType": 2,
+                      "selected": true
+                    },
+                    {
+                      "id": 48303,
+                      "streamType": 3,
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "20000",
+        48302,
+        -1
+      ],
+      "out": {
+        "path": "/library/parts/50100",
+        "query": {
+          "subtitleStreamID": "0",
+          "allParts": "1"
+        }
+      }
+    },
+    {
+      "name": "track put: an unknown stream id is ignored",
+      "fn": "trackPut",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "Media": [
+            {
+              "id": 20000,
+              "Part": [
+                {
+                  "id": 50100,
+                  "Stream": [
+                    {
+                      "id": 48302,
+                      "streamType": 2,
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "20000",
+        1,
+        7
+      ],
+      "out": null
+    },
+    {
+      "name": "parts: a two-part film, in order",
+      "fn": "partPaths",
+      "args": [
+        {
+          "ratingKey": "1005",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10051,
+              "Part": [
+                {
+                  "id": 50051,
+                  "key": "/library/parts/50051/1/file.mkv",
+                  "duration": 300000
+                },
+                {
+                  "id": 50052,
+                  "key": "/library/parts/50052/1/file.mkv",
+                  "duration": 300000
+                }
+              ]
+            }
+          ]
+        },
+        "10051"
+      ],
+      "out": [
+        {
+          "path": "/library/parts/50051/1/file.mkv",
+          "durationMs": 300000
+        },
+        {
+          "path": "/library/parts/50052/1/file.mkv",
+          "durationMs": 300000
+        }
+      ]
+    },
+    {
+      "name": "parts: a missing version falls back to the readable one",
+      "fn": "partPaths",
+      "args": [
+        {
+          "ratingKey": "1001",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 10012,
+              "Part": [
+                {
+                  "id": 1,
+                  "key": "/library/parts/1/1/file.mkv",
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 10011,
+              "Part": [
+                {
+                  "id": 2,
+                  "key": "/library/parts/2/1/file.mkv"
+                }
+              ]
+            }
+          ]
+        },
+        "nope"
+      ],
+      "out": [
+        {
+          "path": "/library/parts/2/1/file.mkv"
+        }
+      ]
+    },
+    {
+      "name": "part window: 400 s of two 300 s parts is part 2, from 300 s to the end",
+      "fn": "partWindow",
+      "args": [
+        [
+          {
+            "durationMs": 300000
+          },
+          {
+            "durationMs": 300000
+          }
+        ],
+        400000
+      ],
+      "out": {
+        "index": 1,
+        "startMs": 300000
+      }
+    },
+    {
+      "name": "part window: the start is part 1, which ends at 300 s",
+      "fn": "partWindow",
+      "args": [
+        [
+          {
+            "durationMs": 300000
+          },
+          {
+            "durationMs": 300000
+          }
+        ],
+        0
+      ],
+      "out": {
+        "index": 0,
+        "startMs": 0,
+        "endMs": 300000
+      }
+    },
+    {
+      "name": "part window: exactly at a boundary is the next part",
+      "fn": "partWindow",
+      "args": [
+        [
+          {
+            "durationMs": 300000
+          },
+          {
+            "durationMs": 200000
+          },
+          {
+            "durationMs": 100000
+          }
+        ],
+        300000
+      ],
+      "out": {
+        "index": 1,
+        "startMs": 300000,
+        "endMs": 500000
+      }
+    },
+    {
+      "name": "part window: a part without a duration places nothing",
+      "fn": "partWindow",
+      "args": [
+        [
+          {
+            "durationMs": 300000
+          },
+          {}
+        ],
+        400000
+      ],
+      "out": null
+    }
+  ]
+}

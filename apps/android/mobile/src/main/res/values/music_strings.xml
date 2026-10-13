@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Music on the phone (music spec MU-08). French is the reference; values-en mirrors every key. -->
+<resources>
+    <string name="music_tab_albums">Albums</string>
+    <string name="music_tab_artists">Artistes</string>
+    <string name="music_tab_songs">Titres</string>
+    <string name="music_tab_genres">Genres</string>
+    <string name="music_tab_playlists">Playlists</string>
+    <string name="music_play">Lire</string>
+    <string name="music_shuffle">Lecture aléatoire</string>
+    <string name="music_mix">Mix</string>
+    <string name="music_play_next">Lire ensuite</string>
+    <string name="music_add_to_queue">Ajouter à la file</string>
+    <string name="music_add_to_playlist">Ajouter à une playlist…</string>
+    <string name="music_mix_from_track">Mix à partir de ce titre</string>
+    <string name="music_go_to_artist">Aller à l’artiste</string>
+    <string name="music_go_to_album">Aller à l’album</string>
+    <string name="music_disc">Disque %1$d</string>
+    <string name="music_queue">File d’attente</string>
+    <string name="music_up_next">À suivre</string>
+    <string name="music_clear_upcoming">Effacer la suite</string>
+    <string name="music_save_queue">Enregistrer comme playlist</string>
+    <string name="music_lyrics">Paroles</string>
+    <string name="music_no_lyrics">Aucune parole pour ce titre.</string>
+    <string name="music_repeat_off">Ne pas répéter</string>
+    <string name="music_repeat_all">Répéter la file</string>
+    <string name="music_repeat_one">Répéter le titre</string>
+    <string name="music_shuffle_on">Lecture aléatoire activée</string>
+    <string name="music_shuffle_off">Lecture aléatoire désactivée</string>
+    <string name="music_now_playing">En cours de lecture</string>
+    <string name="music_album_artists_only">Artistes d’album seulement</string>
+    <string name="music_pause">Pause</string>
+    <string name="music_next">Suivant</string>
+    <string name="music_previous">Précédent</string>
+    <string name="music_close">Fermer le lecteur</string>
+    <string name="music_options">Plus d’options</string>
+    <string name="music_favorite_add">Ajouter aux favoris</string>
+    <string name="music_favorite_remove">Retirer des favoris</string>
+    <string name="music_remove">Retirer de la file</string>
+    <string name="music_move_up">Monter</string>
+    <string name="music_move_down">Descendre</string>
+    <string name="music_seek">Position</string>
+    <string name="music_new_playlist">Nouvelle playlist…</string>
+    <string name="music_playlist_name">Nom de la playlist</string>
+    <string name="music_create">Créer</string>
+    <string name="music_saved_playlist">Playlist « %1$s » créée</string>
+    <string name="music_added">Ajouté !</string>
+    <string name="music_empty">Aucune musique dans cette bibliothèque.</string>
+    <string name="music_queue_empty">La file est vide.</string>
+    <plurals name="music_songs_count">
+        <item quantity="one">%1$d titre</item>
+        <item quantity="many">%1$d titres</item>
+        <item quantity="other">%1$d titres</item>
+    </plurals>
+</resources>

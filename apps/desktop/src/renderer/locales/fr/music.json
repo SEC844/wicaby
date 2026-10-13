@@ -1,0 +1,128 @@
+{
+  "tabs": {
+    "label": "Vues de la bibliothèque",
+    "albums": "Albums",
+    "artists": "Artistes",
+    "songs": "Titres",
+    "genres": "Genres",
+    "playlists": "Playlists",
+    "folders": "Dossiers"
+  },
+  "filters": {
+    "albumArtistsOnly": "Artistes d’album seulement",
+    "favorites": "Favoris",
+    "genre": "Genre",
+    "allGenres": "Tous les genres",
+    "clearGenre": "Retirer le filtre de genre",
+    "yearRange": "Années",
+    "allYears": "Toutes les années",
+    "decade": "Années {decade}"
+  },
+  "sort": {
+    "albumArtist": "Artiste de l’album",
+    "playCount": "Les plus écoutés",
+    "random": "Aléatoire"
+  },
+  "view": {
+    "label": "Affichage",
+    "grid": "Grille",
+    "list": "Liste"
+  },
+  "actions": {
+    "play": "Lire",
+    "shuffle": "Lecture aléatoire",
+    "mix": "Mix",
+    "playNext": "Lire ensuite",
+    "addToQueue": "Ajouter à la file",
+    "addToPlaylist": "Ajouter à une playlist…",
+    "mixFromTrack": "Mix à partir de ce titre",
+    "goToArtist": "Aller à l’artiste",
+    "goToAlbum": "Aller à l’album",
+    "more": "Plus d’actions pour {name}"
+  },
+  "album": {
+    "disc": "Disque {n}",
+    "summary": "{count, plural, one {# titre} other {# titres}}, {duration}"
+  },
+  "artist": {
+    "topSongs": "Titres populaires",
+    "albums": "Albums",
+    "singles": "Singles et EP",
+    "appearsOn": "Apparaît sur"
+  },
+  "empty": {
+    "library": "Aucune musique dans cette bibliothèque.",
+    "tab": "Rien à afficher ici."
+  },
+  "columns": {
+    "number": "N°",
+    "title": "Titre",
+    "album": "Album",
+    "duration": "Durée"
+  },
+  "bar": {
+    "label": "Lecture en cours",
+    "play": "Lecture",
+    "pause": "Pause",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "shuffleOn": "Lecture aléatoire activée",
+    "shuffleOff": "Lecture aléatoire désactivée",
+    "repeatOff": "Ne pas répéter",
+    "repeatAll": "Répéter la file",
+    "repeatOne": "Répéter le titre",
+    "lyrics": "Paroles",
+    "queue": "File d’attente",
+    "fullScreen": "Plein écran",
+    "close": "Fermer le lecteur",
+    "volume": "Volume",
+    "mute": "Couper le son",
+    "unmute": "Rétablir le son",
+    "seek": "Position dans le titre",
+    "art": "Ouvrir le lecteur en plein écran",
+    "output": "Sortie audio"
+  },
+  "queue": {
+    "nowPlaying": "En cours",
+    "upNext": "À suivre",
+    "upNextSummary": "{count, plural, one {# titre} other {# titres}} · {duration}",
+    "clearUpcoming": "Effacer la suite",
+    "saveAsPlaylist": "Enregistrer comme playlist",
+    "playlistName": "Nom de la playlist",
+    "defaultName": "File du {date}",
+    "save": "Enregistrer",
+    "remove": "Retirer de la file",
+    "removeNamed": "Retirer {name} de la file",
+    "empty": "La file est vide.",
+    "radioNote": "Le mix se complète automatiquement.",
+    "reorderHint": "Glisser, ou Alt+flèches, pour déplacer"
+  },
+  "toast": {
+    "savedPlaylist": "Playlist « {name} » créée"
+  },
+  "lyrics": {
+    "title": "Paroles",
+    "none": "Aucune parole pour ce titre.",
+    "offset": "Décalage",
+    "offsetValue": "{value} s",
+    "earlier": "Plus tôt",
+    "later": "Plus tard",
+    "unsynced": "Paroles non synchronisées",
+    "source": {
+      "server": "Paroles du serveur"
+    }
+  },
+  "radio": {
+    "on": "Radio activée",
+    "off": "Radio désactivée",
+    "start": "Lancer la radio"
+  },
+  "favorite": {
+    "add": "Ajouter aux favoris",
+    "remove": "Retirer des favoris"
+  },
+  "folders": {
+    "up": "Dossier parent",
+    "root": "Racine"
+  }
+}

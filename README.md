@@ -121,6 +121,8 @@
 - **One app for Emby and Jellyfin**, even several servers at once, on every device.
 - **The original file, whenever possible.** Wicaby plays your files directly and only asks the server to convert when the device truly can't.
 - **HDR and Dolby Vision done right**, with automatic Windows HDR switching and surround passthrough to your receiver.
+- **Music done properly**: gapless, ReplayGain and bit-perfect output on desktop, a queue you can edit, mixes, lyrics, and music that keeps playing on the TV.
+- **Plex too, on desktop**: link your Plex account with a code, and your Plex servers, and the ones shared with you, sit next to Emby and Jellyfin. An unofficial client, not affiliated with Plex.
 - **Your files too**: folders, WebDAV and SMB shares, browsed and played as they are, next to your servers.
 - **Real Live TV**: a full guide, quick zapping, a mini-guide and recordings, on every screen.
 - **Your server from anywhere**, with Tailscale and NetBird built in. No VPN app to install.
@@ -138,6 +140,7 @@
 - Live TV with guide, recordings and reminders.
 - Comic reader, synced to your server.
 - Photos: a timeline of your photo and home-video libraries, albums, favorites, a viewer with capture details, slideshows and "On This Day".
+- Music: albums, artists, songs, genres and playlists, an editable queue, mix and radio, synced lyrics from your server, and ReplayGain.
 - File sources: play videos from a folder, a WebDAV server or an SMB share, with NFO titles, posters, sidecar subtitles and progress kept on the device.
 - Every Wicaby app can be driven with "Play on" from another Wicaby, Emby or Jellyfin app.
 - A short welcome wizard on first launch (language, look, your server, remote access), and a Remote access page with diagnostics you can share.
@@ -147,6 +150,7 @@
 - Smooth playback with hardware decoding, refresh-rate matching and HDR output.
 - Surround passthrough to your receiver (Dolby, DTS, TrueHD).
 - Server administration without the web dashboard.
+- Plex servers: link with a code, Plex Home profiles with their PIN, browsing, playback and resume, and Plex's own Home rows ([what works](docs/features.md#plex)).
 - An optional photo map (OpenStreetMap), off until you turn it on.
 - Offline downloads and qBittorrent control.
 - Media keys, taskbar controls, Mica and OLED themes, gamepad support.

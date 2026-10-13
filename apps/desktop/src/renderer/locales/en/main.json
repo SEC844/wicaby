@@ -86,5 +86,10 @@
   },
   "vault": {
     "memoryOnly": "No system keyring found: sign-ins are kept only until Wicaby closes. See Settings > Privacy & Storage."
+  },
+  "music": {
+    "tray": {
+      "nowPlaying": "{title} · {artist}"
+    }
   }
 }

@@ -55,6 +55,7 @@ const checks = [
   ['profiles-mock-check.mjs'],
   ['access-schedule-mock-check.mjs'],
   ['music-mock-check.mjs'],
+  ['music-check.mjs'],
   ['photos-mock-check.mjs'],
   ['photos-check.mjs'],
   ['tiles-check.mjs'],
@@ -71,6 +72,18 @@ const checks = [
   ['files-playback-check.mjs'],
   ['files-smb-check.mjs'],
   ['files-mdns-check.mjs'],
+  // Plex backend (plex-spec PX-00 to PX-03).
+  ['plex-mock-check.mjs'],
+  ['plex-map-check.mjs'],
+  ['plex-routes-check.mjs', '--self-test'],
+  ['plex-routes-check.mjs'],
+  // Plex browse and sign-in on the desktop (PX-04 to PX-07).
+  ['plex-connections-check.mjs'],
+  ['plex-link-check.mjs'],
+  ['plex-browse-check.mjs'],
+  // Plex playback on the desktop (PX-08 to PX-10).
+  ['plex-playback-check.mjs'],
+  ['plex-cast-check.mjs'],
 ];
 
 const failed = [];

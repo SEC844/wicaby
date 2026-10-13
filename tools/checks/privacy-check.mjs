@@ -1,4 +1,5 @@
-// Keeps the repository free of personal and setup details before it is published:
+// Keeps the repository (tracked files and new ones not yet added, minus .gitignore) free of personal and setup
+// details before it is published:
 // owner wording, household room names, session links, private tooling and C2PA image metadata.
 // Maintainer-specific identifiers (addresses, names, paths) live in the untracked .dev/privacy-patterns.json
 // ({ "text": [[regex, label]], "binary": [substring] }) so the check never publishes what it guards.
@@ -25,7 +26,7 @@ if (existsSync(local)) {
   for (const s of extra.binary ?? []) binary.push([s, 'a personal identifier']);
 }
 
-const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
 const hits = [];
 for (const f of files) {
   if (f === 'tools/checks/privacy-check.mjs') continue;
@@ -49,4 +50,4 @@ if (hits.length) {
   console.error(`privacy-check: ${hits.length} problem(s)\n` + hits.join('\n'));
   process.exit(1);
 }
-console.log(`privacy-check: ok (${files.length} tracked files${existsSync(local) ? ', with local patterns' : ''})`);
+console.log(`privacy-check: ok (${files.length} tracked and new files${existsSync(local) ? ', with local patterns' : ''})`);

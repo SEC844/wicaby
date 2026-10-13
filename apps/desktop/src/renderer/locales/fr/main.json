@@ -86,5 +86,10 @@
   },
   "vault": {
     "memoryOnly": "Aucun trousseau système trouvé : vos connexions ne sont gardées que jusqu’à la fermeture de Wicaby. Voir Paramètres > Confidentialité et stockage."
+  },
+  "music": {
+    "tray": {
+      "nowPlaying": "{title} · {artist}"
+    }
   }
 }

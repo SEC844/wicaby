@@ -19,7 +19,19 @@
     onselect,
     align = 'start',
     active = false,
-  }: { label: string; icon?: IconName; options: MenuOption[]; onselect: (value: string) => void; align?: 'start' | 'end'; active?: boolean } = $props();
+    compact = false,
+    up = false,
+  }: {
+    label: string;
+    icon?: IconName;
+    options: MenuOption[];
+    onselect: (value: string) => void;
+    align?: 'start' | 'end';
+    active?: boolean;
+    // compact: the icon alone (label as tooltip); up: the menu opens above (bottom bars).
+    compact?: boolean;
+    up?: boolean;
+  } = $props();
 
   let open = $state(false);
   let root: HTMLDivElement | undefined = $state();
@@ -62,13 +74,15 @@
 </script>
 
 <div class="menu-root" bind:this={root}>
-  <button class="btn trigger" class:active class:open bind:this={button} onclick={toggle} aria-haspopup="menu" aria-expanded={open}>
-    {#if icon}<Icon name={icon} size={15} stroke={2} />{/if}
-    <span class="label">{label}</span>
-    <span class="chev"><Icon name="chevronDown" size={13} stroke={2.4} /></span>
+  <button class="btn trigger" class:active class:open class:compact bind:this={button} onclick={toggle} aria-haspopup="menu" aria-expanded={open} title={compact ? label : undefined} aria-label={compact ? label : undefined}>
+    {#if icon}<Icon name={icon} size={compact ? 17 : 15} stroke={compact ? undefined : 2} />{/if}
+    {#if !compact}
+      <span class="label">{label}</span>
+      <span class="chev"><Icon name="chevronDown" size={13} stroke={2.4} /></span>
+    {/if}
   </button>
   {#if open}
-    <div class="menu material" class:end={align === 'end'} role="menu">
+    <div class="menu material" class:end={align === 'end'} class:up role="menu">
       {#each options as o (o.value)}
         {#if o.section}
           <div class="sep" role="separator"></div>
@@ -90,6 +104,20 @@
   .trigger {
     gap: 6px;
     padding: 0 12px 0 14px;
+  }
+  .trigger.compact {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    background: none;
+    color: var(--label-2);
+  }
+  .trigger.compact:hover,
+  .trigger.compact:focus-visible,
+  .trigger.compact.open {
+    background: var(--fill-2);
+    color: var(--label);
   }
   .trigger.active {
     background: var(--fill-3);
@@ -130,6 +158,11 @@
     left: auto;
     right: 0;
     transform-origin: top right;
+  }
+  .menu.up {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform-origin: bottom right;
   }
   @keyframes pop {
     from {

@@ -41,8 +41,9 @@ import com.wika.wicaby.tv.ui.LocalAccent
 import com.wika.wicaby.tv.ui.Radius
 import com.wika.wicaby.tv.ui.Type
 
-// Music stopgap: a track has no picture, so the player shows its album art (blurred behind, sharp on the left) with
-// the title, artist and album, the progress and where it is in the queue. Drawn under the OSD and the key catcher.
+// Audio in the video player (an audiobook; music tracks play in music/MusicActivity, MU-09):
+// its album art (blurred behind, sharp on the left) with the title, artist and album, the progress and where it is in
+// the queue. Drawn under the OSD and the key catcher.
 @Composable
 fun AudioScreen(item: Item, api: Api, position: Long, duration: Long, queue: PlayQueue?, next: Item?) {
     val art = remember(item.id) { Servers.forItem(item, api).poster(item, 720) }

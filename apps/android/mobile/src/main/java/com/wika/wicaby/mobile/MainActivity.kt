@@ -23,6 +23,10 @@ import kotlinx.coroutines.launch
 
 // AppCompatActivity: AppCompatDelegate.setApplicationLocales relocalizes it below Android 13 too.
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val ACTION_NOW_PLAYING = "com.wika.wicaby.mobile.NOW_PLAYING"
+    }
+
     // Android 13+: asked when the first Live TV reminder is set; refused, reminders stay in-app.
     private val askNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (!ok) Toast.makeText(this, com.wika.wicaby.core.R.string.player_live_reminder_permission, Toast.LENGTH_LONG).show()
@@ -51,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         if (intent.action == RemotePlayNotification.ACTION_PLAY) {
             intent.action = null
             RemotePlayNotification.accept(this)
+        } else if (intent.action == ACTION_NOW_PLAYING) {
+            // The music notification or lock screen (PlaybackService's session activity while music plays).
+            intent.action = null
+            com.wika.wicaby.mobile.music.NowPlaying.open = true
         } else openLiveLink(intent)
     }
 

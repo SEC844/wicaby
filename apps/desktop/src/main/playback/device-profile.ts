@@ -84,7 +84,8 @@ export function buildDeviceProfile(player: 'mpv' | 'html', maxBitrate: number, s
       { Container: 'mp4,m4v', Type: 'Video', VideoCodec: 'h264,hevc,av1,vp9', AudioCodec: 'aac,mp3,opus,flac,alac' },
       { Container: 'webm', Type: 'Video', VideoCodec: 'vp8,vp9,av1', AudioCodec: 'opus,vorbis' },
       { Container: 'mp3', Type: 'Audio' },
-      { Container: 'aac,m4a,m4b', Type: 'Audio', AudioCodec: 'aac,alac' },
+      // No ALAC: Chromium does not decode it (music-spec §4.1); the server transcodes it.
+      { Container: 'aac,m4a,m4b', Type: 'Audio', AudioCodec: 'aac' },
       { Container: 'flac', Type: 'Audio' },
       { Container: 'opus,ogg,oga,webm', Type: 'Audio', AudioCodec: 'opus,vorbis' },
       { Container: 'wav', Type: 'Audio' },

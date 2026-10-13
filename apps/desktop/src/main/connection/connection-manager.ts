@@ -1,12 +1,18 @@
 import { EventEmitter } from 'node:events';
-import type { PublicUser, ServerInfo, ServerKind, ServerSession, SessionState, SessionStatus, VpnKind } from '../../shared/contract';
+import os from 'node:os';
+import type { PlexAccount, PlexLinkPin, PlexLinkPoll, PublicUser, ServerInfo, ServerKind, ServerSession, SessionState, SessionStatus, VpnKind } from '../../shared/contract';
 import type { AuthenticationResult, UserDto } from '../../shared/models';
 import { JsonStore } from '../core/json-store';
 import { logger } from '../core/log';
 import { t } from '../i18n';
 import type { CredentialVault, StoredCredential } from '../core/vault';
 import type { VpnService } from '../vpn';
-import { addressCandidates, ApiClient, ApiError, credentialOrigin, probeFirst, routed, tokenAllowed, type ClientIdentity, type ProbeResult } from './api-client';
+import { isLanAddress } from '../../shared/network';
+import { raceWaves, rankConnections, type PlexConnection } from '../../shared/plex/connections';
+import { accountSubtitles } from '../../shared/plex/map';
+import { addressCandidates, ApiClient, ApiError, credentialOrigin, probeFirst, probePlexIdentity, routed, tokenAllowed, type ClientIdentity, type ProbeResult } from './api-client';
+import { PlexTv, type PlexHomeUser, type PlexResource } from './plex-account';
+import { PlexClient, type PlexWatchlist } from './plex-client';
 import { hintAddress, sendWakeOnLan } from './discovery';
 import { connectAuthenticate, connectExchange, connectServers } from './emby-connect';
 import { ServerSocket, type SocketMessage } from './server-socket';
@@ -34,7 +40,28 @@ interface StoredServer {
   lastConnected?: number;
   wol?: WakeInfo[];
   vpn?: VpnKind;
+  plex?: PlexStored;
 }
+
+// A Plex server as plex.tv listed it (plex-spec §5.2), cached so startup never waits on plex.tv.
+interface PlexStored {
+  // The linked plex.tv account (uuid) that lists it.
+  account: string;
+  owned: boolean;
+  source?: string;
+  httpsRequired: boolean;
+  connections: PlexConnection[];
+  hidden?: boolean;
+  // Plain-http LAN origins the user agreed to send the token to (D-3).
+  confirmed?: string[];
+}
+
+// plex-account:<uuid>: the account token (plex.tv only) and the plex.tv token of each Home user signed in since.
+interface PlexAccountCred extends StoredCredential {
+  users?: Record<string, string>;
+}
+const PLEX_ACCOUNT = 'plex-account:';
+const PLEX_WAVE_TIMEOUT_MS = 2500;
 
 // The vault entry of a server, bound to where it was obtained.
 interface BoundCredential extends StoredCredential {
@@ -89,6 +116,8 @@ interface ServersDoc {
   activeIds?: string[];
   // Credential layout version (TOKEN_BINDING); absent in files written before token binding.
   tokenBinding?: number;
+  // Linked plex.tv accounts (their tokens are in the vault).
+  plexAccounts?: PlexAccount[];
 }
 
 // Where a probe got an answer; overlay: through a peer of a connected VPN network (see probeServer()).
@@ -137,6 +166,10 @@ export class ConnectionManager extends EventEmitter {
   private allowControl = true;
   // recheck() in flight, per server.
   private rechecks = new Map<string, Promise<boolean>>();
+  private readonly plexTv: PlexTv;
+  // The PIN being linked (one at a time), and the Home users last read per account.
+  private plexPin: { id: number; at: number; ttlMs: number; nextPoll: number; backoff: number } | null = null;
+  private plexHome = new Map<string, PlexHomeUser[]>();
 
   constructor(
     file: string,
@@ -148,6 +181,7 @@ export class ConnectionManager extends EventEmitter {
     // A new file starts in the current layout; one without the field predates token binding.
     this.store = new JsonStore<ServersDoc>(file, { servers: [], tokenBinding: TOKEN_BINDING });
     this.migrateCredentials();
+    this.plexTv = new PlexTv(identity);
   }
 
   // Once, for files written before token binding: each server's credential moves
@@ -301,9 +335,11 @@ export class ConnectionManager extends EventEmitter {
 
   private toInfo(s: StoredServer): ServerInfo {
     const cred = this.cred(s.id);
-    const { wol: _wol, extraAddresses: _extra, ...rest } = s;
+    const { wol: _wol, extraAddresses: _extra, plex, ...rest } = s;
     const vpn = s.vpn ?? this.addressesOf(s).map((a) => this.vpn?.networkOf(a)).find(Boolean);
-    return { ...rest, userId: cred?.userId, userName: cred?.userName, hasToken: Boolean(cred?.token), vpn };
+    const info: ServerInfo = { ...rest, userId: cred?.userId, userName: cred?.userName, hasToken: Boolean(cred?.token), vpn };
+    if (plex) info.plex = { account: plex.account, owned: plex.owned, source: plex.source, hidden: plex.hidden };
+    return info;
   }
 
   private addressesOf(s: StoredServer): string[] {
@@ -316,6 +352,8 @@ export class ConnectionManager extends EventEmitter {
   // https ones, overlay peers) race first; the others only when none of those
   // answers, and then a sign-in is asked there.
   private async probeServer(server: StoredServer): Promise<Reached> {
+    // A Plex server plex.tv listed races its connections; one added by address is probed like any other.
+    if (server.plex) return { probe: await this.probePlex(server), overlay: false };
     const known = this.addressesOf(server);
     const overlay: Promise<string[]> = this.vpn ? this.vpn.candidatesFor({ name: server.name, addresses: known }).catch(() => []) : Promise.resolve([]);
     const ok = (a: string) => this.eligible(server.id, a);
@@ -502,6 +540,8 @@ export class ConnectionManager extends EventEmitter {
     } catch (err) {
       log.warn(`server ${server.name} unreachable`, err);
       if (!stale()) this.setConn(conn, { status: 'offline', server: this.toInfo(server) });
+      // A Plex server that requires https and lists only plain http: the reason, not just "offline" (plex-spec §9).
+      if (server.plex?.httpsRequired && err instanceof Error && err.message === t('plex.errors.secureRequired')) throw err;
       return this.state;
     }
     if (stale()) return this.state;
@@ -520,7 +560,9 @@ export class ConnectionManager extends EventEmitter {
       if (s) s.lastConnected = Date.now();
     });
 
-    conn.client = new ApiClient(probe.address, probe.kind, this.identity, cred?.token, cred?.userId);
+    conn.client = this.makeClient(stored, probe.address, probe.kind, cred);
+    // D-3: a Plex server reached only at a plain-http LAN address waits for the user to agree to send it the token.
+    const confirm = !useToken && this.plexNeedsConfirm(stored, probe.address) ? probe.address : undefined;
 
     if (cred?.token) {
       try {
@@ -541,18 +583,26 @@ export class ConnectionManager extends EventEmitter {
         }
       }
     }
-    this.setConn(conn, { status: 'server-selected', server: this.toInfo(stored), address: probe.address });
+    this.setConn(conn, { status: 'server-selected', server: this.toInfo(stored), address: probe.address, ...(confirm ? { confirm } : {}) });
     return this.state;
   }
 
   // Every saved session, in parallel: a server that is down goes offline without holding up the others.
   async resumeLastSession(): Promise<void> {
     const doc = this.store.value;
-    const ids = (doc.activeIds ?? (doc.activeId ? [doc.activeId] : [])).filter((id) => doc.servers.some((s) => s.id === id));
+    const ids = (doc.activeIds ?? (doc.activeId ? [doc.activeId] : [])).filter((id) => doc.servers.some((s) => s.id === id && !s.plex?.hidden));
+    // Plex: fresh connections from plex.tv in the background; the cached ones serve meanwhile (or when it is down).
+    for (const a of doc.plexAccounts ?? []) void this.plexRefresh(a.id);
     await Promise.all(ids.map((id) => this.select(id).catch((err) => log.warn(`could not resume session ${id}`, err))));
   }
 
   async publicUsers(serverId?: string): Promise<PublicUser[]> {
+    const server = this.store.value.servers.find((s) => s.id === (serverId ?? this.primaryId));
+    // A Plex server signs in through its plex.tv account (link with a code), never with a password form.
+    if (server?.kind === 'plex') {
+      if (!server.plex) throw new Error(t('plex.errors.relink'));
+      return this.plexUsers(server.plex.account);
+    }
     const users = await this.apiFor(serverId).get<UserDto[]>('/Users/Public').catch(() => [] as UserDto[]);
     return users.map((u) => ({
       id: u.Id,
@@ -569,6 +619,10 @@ export class ConnectionManager extends EventEmitter {
     const client = conn?.client;
     const server = this.store.value.servers.find((s) => s.id === id);
     if (!conn || !client || !server) throw new Error(t('errors.connection.noServerSelected'));
+    if (server.kind === 'plex') {
+      if (!server.plex) throw new Error(t('plex.errors.relink'));
+      return this.plexLogin(server, server.plex.account, username, password);
+    }
     let result: AuthenticationResult;
     try {
       result = await client.post<AuthenticationResult>('/Users/AuthenticateByName', undefined, { Username: username, Pw: password });
@@ -663,7 +717,7 @@ export class ConnectionManager extends EventEmitter {
   async reportFailure(serverId: string): Promise<void> {
     const conn = this.conns.get(serverId);
     if (conn?.state.status !== 'signed-in' || !conn.client || conn.state.server.kind === 'files' || this.onlineIds().length < 2) return;
-    if (await probeFirst([conn.client.address], 4000).then(() => true, () => false)) return;
+    if (await this.probeAt(conn.state.server.kind, conn.client.address).then(() => true, () => false)) return;
     if (this.conns.get(serverId) !== conn || conn.state.status !== 'signed-in') return;
     log.warn(`${conn.state.server.name} stopped answering`);
     this.setConn(conn, { ...conn.state, status: 'offline' });
@@ -705,7 +759,7 @@ export class ConnectionManager extends EventEmitter {
       return this.isOnline(serverId);
     }
     const address = conn.client.address;
-    const here = await probeFirst([address], 4000).then((p) => p.info.Id === serverId, () => false);
+    const here = await this.probeAt(server.kind, address).then((p) => p.info.Id === serverId, () => false);
     if (stale()) return false;
     if (!here || moved) {
       const reached = await this.probeServer(server).catch(() => null);
@@ -725,7 +779,7 @@ export class ConnectionManager extends EventEmitter {
     if (probe.info.Id !== server.id || !this.admit(server.id, probe.address, probe.info.Id, overlay)) return false;
     const cred = this.cred(server.id);
     if (!cred?.token) return false;
-    const client = new ApiClient(probe.address, probe.kind, this.identity, cred.token, cred.userId);
+    const client = this.makeClient(server, probe.address, probe.kind, cred);
     const user = await client.get<UserDto>(`/Users/${cred.userId}`).catch(() => null);
     if (!user || this.conns.get(server.id) !== conn) return false;
     const stored = this.upsert(probe, false, true);
@@ -819,11 +873,271 @@ export class ConnectionManager extends EventEmitter {
   private live(c: Conn): ServerSession {
     const a = c.state.address;
     const host = a ? new URL(a).hostname.replace(/^\[|\]$/g, '') : '';
-    const route = !a ? undefined : routed(a) !== a || this.vpn?.networkOf(a) ? 'mesh' : privateHost(host) ? 'local' : 'remote';
+    const relay = c.state.server.kind === 'plex' && this.store.value.servers.find((s) => s.id === c.state.server.id)?.plex?.connections.some((x) => x.relay && x.uri === a);
+    const route = !a ? undefined : relay ? 'relay' : routed(a) !== a || this.vpn?.networkOf(a) ? 'mesh' : privateHost(host) ? 'local' : 'remote';
     return { ...c.state, socket: c.socket?.state, route };
   }
 
   flush(): void {
     this.store.flush();
   }
+
+  // The address in use still answers? A Plex server is asked /identity only (no Emby probe paths sent to it).
+  private probeAt(kind: ServerKind, address: string): Promise<ProbeResult> {
+    return kind === 'plex' ? probePlexIdentity(address, 4000) : probeFirst([address], 4000);
+  }
+
+  // ---- Plex (plex-spec §5) ----
+
+  // The client of a server: a PlexClient for a Plex one (the Plex dialect), else the Emby/Jellyfin client.
+  private makeClient(server: StoredServer, address: string, kind: ServerKind, cred: BoundCredential | undefined): ApiClient {
+    if (kind !== 'plex') return new ApiClient(address, kind, this.identity, cred?.token, cred?.userId);
+    const p = server.plex;
+    return new PlexClient(address, this.identity, cred?.token, cred?.userId, {
+      machineId: server.id,
+      userName: cred?.userName ?? '',
+      owner: Boolean(p?.owned && cred?.userId === p.account),
+      watchlist: p && cred?.userId ? this.watchlistOf(p.account, cred.userId) : undefined,
+      // A listed connection says local or not; a custom URL counts as local on a private address.
+      remote: !(p?.connections.find((c) => c.uri === address)?.local ?? privateHost(new URL(address).hostname.replace(/^\[|\]$/g, ''))),
+    });
+  }
+
+  private plexAccount(id: string): PlexAccountCred | undefined {
+    const c: unknown = /^[0-9a-f]{8,40}$/i.test(id) ? this.vault.get(PLEX_ACCOUNT + id) : undefined;
+    return isCredential(c) ? (c as PlexAccountCred) : undefined;
+  }
+
+  // The plex.tv token of a Home user (the account's own for its owner).
+  private plexUserToken(account: string, user: string): string | undefined {
+    const a = this.plexAccount(account);
+    return a?.users?.[user] ?? (a?.userId === user ? a.token : undefined);
+  }
+
+  private watchlistOf(account: string, user: string): PlexWatchlist {
+    const token = () => {
+      const tok = this.plexUserToken(account, user);
+      if (!tok) throw new ApiError(t('plex.errors.relink'), 401);
+      return tok;
+    };
+    return { guids: () => this.plexTv.watchlist(token()), set: (guid, on) => this.plexTv.setWatchlisted(token(), guid, on) };
+  }
+
+  // This machine's IPv4 networks: a "local" address on none of them (a Docker bridge) cannot answer.
+  private localSubnets(): string[] {
+    return Object.values(os.networkInterfaces())
+      .flat()
+      .filter((i) => i && i.family === 'IPv4' && i.cidr)
+      .map((i) => i!.cidr!);
+  }
+
+  // The connections plex.tv listed, ranked and raced (shared/plex/connections.ts); the winner must answer
+  // /identity with this server's machineIdentifier.
+  private async probePlex(server: StoredServer): Promise<ProbeResult> {
+    const p = server.plex;
+    if (!p) throw new Error(t('errors.connection.noAddress'));
+    const { waves, dropped } = rankConnections(p.connections, { httpsRequired: p.httpsRequired, subnets: this.localSubnets(), lastGood: server.lastAddress });
+    if (!waves.flat().length) throw new Error(dropped.some((d) => d.why === 'http-refused') ? t('plex.errors.secureRequired') : t('errors.connection.unreachable'));
+    const won = await raceWaves(waves, async (uri) => {
+      const probe = await probePlexIdentity(uri, PLEX_WAVE_TIMEOUT_MS);
+      if (probe.info.Id !== server.id) throw new Error('another server answered');
+      return probe;
+    }).catch(() => {
+      throw new Error(t('errors.connection.unreachable'));
+    });
+    return won.value;
+  }
+
+  // Origins plex.tv vouched for over TLS (https, or http on a public address) plus the http LAN ones the user
+  // confirmed (D-3): the only places this server's token goes.
+  private plexOrigins(p: PlexStored): string[] {
+    const listed = p.connections.map((c) => credentialOrigin(c.uri)).filter((o): o is string => !!o && (isHttps(o) || !isLanAddress(o)));
+    return union(listed, p.confirmed ?? []);
+  }
+
+  // A plain-http LAN connection plex.tv listed for the server: the token goes there once the user agrees (D-3).
+  private plexHttpLan(server: StoredServer, address: string): string | null {
+    const origin = credentialOrigin(address);
+    return origin && !isHttps(origin) && isLanAddress(origin) && server.plex?.connections.some((c) => credentialOrigin(c.uri) === origin) ? origin : null;
+  }
+
+  private plexNeedsConfirm(server: StoredServer, address: string): boolean {
+    const origin = this.plexHttpLan(server, address);
+    return Boolean(origin && !server.plex?.confirmed?.includes(origin));
+  }
+
+  // Stores what plex.tv lists for an account: one server per resource, its connections, and (with `user`) that
+  // user's token for each server, bound to the vouched origins.
+  private storeResources(account: string, resources: PlexResource[], user?: { uuid: string; title: string }): void {
+    this.store.update((doc) => {
+      for (const r of resources) {
+        let s = doc.servers.find((x) => x.id === r.clientIdentifier);
+        if (!s) {
+          s = { id: r.clientIdentifier, name: r.name, kind: 'plex', version: r.productVersion ?? '' };
+          doc.servers.push(s);
+        }
+        if (s.kind !== 'plex') continue;
+        s.name = r.name || s.name;
+        s.version = r.productVersion ?? s.version;
+        const connections = (r.connections ?? []).filter((c) => typeof c?.uri === 'string' && /^https?:\/\//i.test(c.uri)).slice(0, 24);
+        s.plex = { ...s.plex, account, owned: Boolean(r.owned), source: r.sourceTitle ?? undefined, httpsRequired: Boolean(r.httpsRequired), connections };
+      }
+    });
+    if (!user) return;
+    for (const r of resources) {
+      const s = this.store.value.servers.find((x) => x.id === r.clientIdentifier);
+      if (s?.plex && r.accessToken) this.saveCred(s.id, { token: r.accessToken, userId: user.uuid, userName: user.title, origins: this.plexOrigins(s.plex) });
+    }
+  }
+
+  plexAccounts(): PlexAccount[] {
+    return this.store.value.plexAccounts ?? [];
+  }
+
+  // The subtitle default of the account that lists this Plex server (plex-spec §6.4); undefined elsewhere.
+  plexSubtitles(serverId: string | undefined): PlexAccount['subtitles'] {
+    const account = this.store.value.servers.find((s) => s.id === serverId)?.plex?.account;
+    return account ? this.plexAccounts().find((a) => a.id === account)?.subtitles : undefined;
+  }
+
+  plexServerIds(account: string): string[] {
+    return this.store.value.servers.filter((s) => s.plex?.account === account).map((s) => s.id);
+  }
+
+  // Link with a code: a PIN the user enters at plex.tv/link (no password form, no browser redirect).
+  async plexLink(): Promise<PlexLinkPin> {
+    const pin = await this.plexTv.createPin();
+    if (!pin?.id || !pin.code) throw new Error(t('errors.connection.unreachable'));
+    const ttl = Math.max(60, pin.expiresIn ?? 900);
+    this.plexPin = { id: pin.id, at: Date.now(), ttlMs: ttl * 1000, nextPoll: 0, backoff: 2000 };
+    return { code: pin.code, url: `https://plex.tv/link?code=${encodeURIComponent(pin.code)}`, expiresIn: ttl };
+  }
+
+  async plexPoll(): Promise<PlexLinkPoll> {
+    const p = this.plexPin;
+    if (!p || Date.now() - p.at > p.ttlMs) {
+      this.plexPin = null;
+      return { status: 'expired' };
+    }
+    if (Date.now() < p.nextPoll) return { status: 'waiting' };
+    let pin;
+    try {
+      pin = await this.plexTv.pin(p.id);
+    } catch (err) {
+      // Rate limited or unreachable: wait longer before asking again.
+      p.backoff = Math.min(err instanceof ApiError && err.status === 429 ? p.backoff * 2 : p.backoff, 30_000);
+      p.nextPoll = Date.now() + p.backoff;
+      return { status: 'waiting' };
+    }
+    if (!pin) {
+      this.plexPin = null;
+      return { status: 'expired' };
+    }
+    if (!pin.authToken || this.plexPin !== p) return { status: 'waiting' };
+    this.plexPin = null;
+    return { status: 'linked', servers: await this.plexLinked(pin.authToken) };
+  }
+
+  private async plexLinked(token: string): Promise<ServerInfo[]> {
+    const me = await this.plexTv.user(token);
+    if (!me?.uuid || !/^[0-9a-f]{8,40}$/i.test(me.uuid)) throw new Error(t('plex.errors.relink'));
+    const name = me.title || me.username || 'Plex';
+    void this.vault.set(PLEX_ACCOUNT + me.uuid, { token, userId: me.uuid, userName: name, users: this.plexAccount(me.uuid)?.users } as PlexAccountCred);
+    this.store.update((doc) => {
+      // shortcut: the profile is read at link time and is the account's, not a switched Home user's; re-link to refresh.
+      doc.plexAccounts = [...(doc.plexAccounts ?? []).filter((a) => a.id !== me.uuid), { id: me.uuid, name, pass: me.subscription?.active === true, subtitles: accountSubtitles(me.profile) }];
+    });
+    const [resources, home] = await Promise.all([this.plexTv.servers(token), this.plexTv.homeUsers(token).catch(() => [] as PlexHomeUser[])]);
+    if (resources.length === 0) throw new Error(t('plex.link.noServers'));
+    this.plexHome.set(me.uuid, home);
+    // Nobody else in the Home: no one to pick, the account is who is watching.
+    const alone = home.length <= 1 && !home.some((u) => u.protected);
+    this.storeResources(me.uuid, resources, alone ? { uuid: me.uuid, title: name } : undefined);
+    log.info(`plex.tv: linked, ${resources.length} server(s)`);
+    return this.plexServerIds(me.uuid).map((id) => this.toInfo(this.store.value.servers.find((s) => s.id === id)!));
+  }
+
+  // Background: the account's connections again (addresses change); the cache stays when plex.tv is down.
+  private async plexRefresh(account: string): Promise<void> {
+    const a = this.plexAccount(account);
+    if (!a) return;
+    try {
+      this.storeResources(account, await this.plexTv.servers(a.token));
+    } catch (err) {
+      log.info(`plex.tv not reachable, cached servers kept (${String(err)})`);
+    }
+  }
+
+  // Who is watching (plex-spec §5.5): the Home users, protected ones with a PIN.
+  private async plexUsers(account: string): Promise<PublicUser[]> {
+    const a = this.plexAccount(account);
+    if (!a) throw new Error(t('plex.errors.relink'));
+    const home = await this.plexTv.homeUsers(a.token).catch(() => this.plexHome.get(account) ?? []);
+    this.plexHome.set(account, home);
+    const users = home.length ? home : [{ uuid: a.userId, title: a.userName, protected: false }];
+    return users.map((u) => ({ id: u.uuid, name: u.title, hasPassword: Boolean(u.protected) }));
+  }
+
+  // Signs a Home user in: their plex.tv token (the switch, with their PIN when protected), then their own token
+  // for every server of the account. A protected user is never picked without the PIN.
+  private async plexLogin(server: StoredServer, account: string, name: string, pin: string): Promise<SessionState> {
+    const a = this.plexAccount(account);
+    if (!a) throw new Error(t('plex.errors.relink'));
+    const home = this.plexHome.get(account) ?? (await this.plexTv.homeUsers(a.token).catch(() => []));
+    const user = home.find((u) => u.title === name || u.uuid === name) ?? (name === a.userName || name === a.userId ? { uuid: a.userId, title: a.userName, protected: false } : undefined);
+    if (!user) throw new Error(t('errors.connection.wrongCredentials'));
+    let token = user.uuid === a.userId && !user.protected ? a.token : undefined;
+    if (!token) {
+      if (user.protected && !pin) throw new Error(t('plex.errors.wrongPin'));
+      try {
+        token = await this.plexTv.switchUser(a.token, user.uuid, pin || undefined);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) throw new Error(t('plex.errors.wrongPin'));
+        throw err;
+      }
+    }
+    void this.vault.set(PLEX_ACCOUNT + account, { ...a, users: { ...a.users, [user.uuid]: token } } as PlexAccountCred);
+    this.storeResources(account, await this.plexTv.servers(token), { uuid: user.uuid, title: user.title });
+    if (!this.cred(server.id)?.token) throw new Error(t('plex.errors.noAccess'));
+    // Every other server of the account signed in as someone else follows on its next connect.
+    this.close(server.id);
+    return this.select(server.id);
+  }
+
+  // D-3: the user agrees to send the token to this plain-http LAN address of the server, from now on.
+  async plexConfirm(id: string, address: string): Promise<SessionState> {
+    const server = this.store.value.servers.find((s) => s.id === id);
+    const origin = server && this.plexHttpLan(server, address);
+    if (!server?.plex || !origin) throw new Error(t('errors.connection.wrongServer'));
+    this.store.update((doc) => {
+      const s = doc.servers.find((x) => x.id === id);
+      if (s?.plex) s.plex.confirmed = union(s.plex.confirmed, [origin]);
+    });
+    const cred = this.cred(id);
+    if (cred) this.saveCred(id, { ...cred, origins: union(cred.origins, [origin]) });
+    this.close(id);
+    return this.select(id);
+  }
+
+  // D-10: shared servers show by default; a hidden one stays stored, and leaves the merged views.
+  plexSetHidden(id: string, hidden: boolean): ServerInfo[] {
+    if (!this.store.value.servers.some((s) => s.id === id && s.plex)) throw new Error(t('errors.connection.unknownServer'));
+    this.store.update((doc) => {
+      const s = doc.servers.find((x) => x.id === id);
+      if (s?.plex) s.plex.hidden = hidden || undefined;
+    });
+    if (hidden && this.conns.has(id)) this.disconnect(id);
+    return this.list();
+  }
+
+  // Forgets the account: its token, and the servers only it listed.
+  plexUnlink(account: string): void {
+    for (const id of this.plexServerIds(account)) this.remove(id);
+    void this.vault.delete(PLEX_ACCOUNT + account);
+    this.plexHome.delete(account);
+    this.store.update((doc) => {
+      doc.plexAccounts = (doc.plexAccounts ?? []).filter((a) => a.id !== account);
+    });
+  }
 }
+

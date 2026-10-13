@@ -4,8 +4,10 @@
   import { onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import type { DiscoveredServer, ServerInfo, ServerSession, SessionState } from '../../shared/contract';
+  import type { DiscoveredServer, PlexAccount, PlexLinkPin, ServerInfo, ServerSession, SessionState } from '../../shared/contract';
   import Icon from '../components/Icon.svelte';
+  import Toggle from '../components/Toggle.svelte';
+  import { qrPath } from '../lib/qr';
   import Logo from '../components/Logo.svelte';
   import VpnPanel from '../components/VpnPanel.svelte';
   import { w } from '../lib/bridge';
@@ -37,6 +39,13 @@
   let mode = $state<'address' | 'connect'>('address');
   let connectUser = $state('');
   let connectPass = $state('');
+  // Plex (plex-spec §5.6): the linked accounts, and the code being linked.
+  let plexAccounts = $state<PlexAccount[]>([]);
+  let plexPin = $state<(PlexLinkPin & { expired?: boolean }) | null>(null);
+  let plexTimer: ReturnType<typeof setTimeout> | undefined;
+  const plexQr = $derived(plexPin ? qrPath(plexPin.url) : null);
+  // Hidden Plex servers stay stored (and listed in their account's card), out of "your servers".
+  const shown = $derived(saved.filter((s) => !s.plex?.hidden));
 
   // Already signed in somewhere: this page adds servers instead of choosing one.
   const signedIn = $derived(onlineSessions().length > 0);
@@ -71,7 +80,7 @@
 
   async function refreshSaved() {
     try {
-      saved = await w.servers.list();
+      [saved, plexAccounts] = await Promise.all([w.servers.list(), w.servers.plexAccounts()]);
     } catch (err) {
       toast('error', errorMessage(err));
     }
@@ -131,6 +140,64 @@
       toast('error', errorMessage(err));
     } finally {
       busy = null;
+    }
+  }
+
+  // Link with a code: the code and its QR code, then a poll every 2 s until plex.tv says it was entered.
+  async function plexLink() {
+    clearTimeout(plexTimer);
+    busy = 'plex';
+    try {
+      plexPin = await w.servers.plexLink();
+      plexTimer = setTimeout(plexPoll, 2000);
+    } catch (err) {
+      toast('error', errorMessage(err));
+    } finally {
+      busy = null;
+    }
+  }
+
+  async function plexPoll() {
+    if (!plexPin || plexPin.expired) return;
+    try {
+      const r = await w.servers.plexPoll();
+      if (!plexPin) return;
+      if (r.status === 'waiting') plexTimer = setTimeout(plexPoll, 2000);
+      else if (r.status === 'expired') plexPin = { ...plexPin, expired: true };
+      else {
+        plexPin = null;
+        toast('success', t('plex.link.linked', { count: r.servers.length }));
+        await refreshSaved();
+        // The account's own server first: on to who is watching (or the D-3 question).
+        const first = r.servers.find((s) => s.plex?.owned) ?? r.servers[0];
+        if (first && !signedIn) await select(first);
+      }
+    } catch (err) {
+      plexPin = null;
+      toast('error', errorMessage(err));
+    }
+  }
+
+  function plexCancel() {
+    clearTimeout(plexTimer);
+    plexPin = null;
+  }
+
+  async function plexUnlink(account: PlexAccount) {
+    try {
+      await w.servers.plexUnlink(account.id);
+      await refreshSaved();
+      toast('info', t('plex.account.unlinked'));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  }
+
+  async function plexShow(server: ServerInfo, show: boolean) {
+    try {
+      saved = await w.servers.plexSetHidden(server.id, !show);
+    } catch (err) {
+      toast('error', errorMessage(err));
     }
   }
 
@@ -204,6 +271,8 @@
     if (section !== 'vpn' && section !== 'public') void scan();
     // Opened from a card: focus goes to the part's first control.
     if (section) void tick().then(() => embedEl?.querySelector<HTMLElement>(section === 'lan' ? 'input' : 'input, button')?.focus());
+    // The Plex poll stops with the page.
+    return () => clearTimeout(plexTimer);
   });
 </script>
 
@@ -243,6 +312,62 @@
           </li>
         {/each}
       </ul>
+    {/if}
+  </section>
+{/snippet}
+
+{#snippet plexCard()}
+  <section class="group plex">
+    <h2 class="group-title">{t('plex.link.title')}</h2>
+    {#each plexAccounts as account (account.id)}
+      {@const mine = saved.filter((s) => s.plex?.account === account.id)}
+      <ul class="inset">
+        <li class="row static">
+          <span class="tile"><Icon name="user" size={17} /></span>
+          <span class="meta">
+            <span class="name">{t('plex.account.linkedAs', { name: account.name })}</span>
+            <span class="sub">{account.pass ? t('plex.account.passOn') : t('plex.account.unofficial')}</span>
+          </span>
+          <button class="btn ghost" onclick={() => plexUnlink(account)}>{t('plex.account.unlink')}</button>
+        </li>
+        {#each mine as server (server.id)}
+          <li class="row static" data-plex-server={server.id}>
+            <span class="tile"><Icon name="server" size={17} /></span>
+            <span class="meta">
+              <span class="name">{server.name}</span>
+              <span class="sub">{server.plex?.owned ? t('plex.account.owned') : server.plex?.source ? t('plex.account.sharedBy', { name: server.plex.source }) : t('plex.account.shared')}{server.plex?.hidden ? '' : ` · ${status(server)}`}</span>
+            </span>
+            <Toggle checked={!server.plex?.hidden} label={t('plex.account.show', { name: server.name })} onchange={(v) => plexShow(server, v)} />
+          </li>
+        {/each}
+      </ul>
+      {#if !account.pass}<p class="hint">{t('plex.account.passOff')}</p>{/if}
+    {/each}
+    {#if plexPin}
+      <div class="inset plex-link" aria-live="polite">
+        {#if plexQr}
+          <svg class="qr" viewBox="0 0 {plexQr.size} {plexQr.size}" role="img" aria-label={t('plex.link.qrAlt')} shape-rendering="crispEdges">
+            <rect width={plexQr.size} height={plexQr.size} fill="#fff" />
+            <path d={plexQr.d} fill="#000" />
+          </svg>
+        {/if}
+        <div class="plex-code">
+          <p>{t('plex.link.lead')}</p>
+          <strong class="code mono" class:dim={plexPin.expired}>{plexPin.code}</strong>
+          {#if plexPin.expired}
+            <p class="caution" role="status"><Icon name="exclamation" size={14} /> {t('plex.link.expired')}</p>
+            <button class="btn primary" onclick={plexLink}>{t('plex.link.newCode')}</button>
+          {:else}
+            <p class="waiting"><span class="spinner small"></span> {t('plex.link.waiting')}</p>
+          {/if}
+          <button class="btn ghost" onclick={plexCancel}>{t('common.actions.cancel')}</button>
+        </div>
+      </div>
+    {:else}
+      <button class="btn files-add" onclick={plexLink} disabled={busy !== null}>
+        {#if busy === 'plex'}<span class="spinner"></span>{:else}<Icon name="key" size={16} />{/if} {t('plex.link.start')}
+      </button>
+      {#if plexAccounts.length === 0}<p class="hint">{t('plex.link.body')} {t('plex.account.unofficial')}</p>{/if}
     {/if}
   </section>
 {/snippet}
@@ -336,7 +461,7 @@
             <strong>{t('onboarding.servers.unreachable.title', { name: unreachable.name })}</strong>
             <span>{t('onboarding.servers.unreachable.body')}</span>
             <div class="banner-actions">
-              <button class="btn" onclick={() => unreachable && wake(unreachable)}><Icon name="power" size={15} /> {t('onboarding.servers.unreachable.wake')}</button>
+              {#if unreachable.kind !== 'plex'}<button class="btn" onclick={() => unreachable && wake(unreachable)}><Icon name="power" size={15} /> {t('onboarding.servers.unreachable.wake')}</button>{/if}
               <button class="btn ghost" onclick={() => unreachable && select(unreachable)}><Icon name="refresh" size={15} /> {t('common.actions.retry')}</button>
               <button class="btn ghost" onclick={() => navigate('/downloads')}><Icon name="download" size={15} /> {t('common.status.offline')}</button>
             </div>
@@ -352,11 +477,11 @@
         </div>
       {/if}
 
-      {#if saved.length > 0}
+      {#if shown.length > 0}
         <section class="group">
           <h2 class="group-title">{t('onboarding.servers.yours.title')}</h2>
           <ul class="inset">
-            {#each saved as server, i (server.id)}
+            {#each shown as server, i (server.id)}
               {@const on = stateOf(server.id)?.status === 'signed-in'}
               <li class="reveal" style:--i={Math.min(i, 12)}>
                 <button class="row" onclick={() => select(server)} disabled={busy !== null}>
@@ -398,6 +523,8 @@
 
       {@render methods()}
 
+      {@render plexCard()}
+
       <section class="group">
         <h2 class="group-title">{t('files.sources')}</h2>
         <button class="btn files-add" onclick={() => (addingFiles = true)}><Icon name="folderOpen" size={16} /> {t('files.add.open')}</button>
@@ -412,6 +539,47 @@
 {/if}
 
 <style>
+  .row.static {
+    cursor: default;
+  }
+  .row.static:hover {
+    background: none;
+  }
+  .inset.plex-link {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 16px;
+  }
+  .qr {
+    width: 148px;
+    height: 148px;
+    flex: none;
+    border-radius: var(--r-md);
+  }
+  .plex-code {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .plex-code p {
+    margin: 0;
+    color: var(--label-2);
+  }
+  .code {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+  .code.dim {
+    opacity: 0.4;
+  }
+  .waiting {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
   .files-add {
     align-self: flex-start;
     gap: 8px;

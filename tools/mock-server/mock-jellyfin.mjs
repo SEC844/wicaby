@@ -29,6 +29,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import * as E from './mock-emby.mjs';
 import { jellyfinPhoto } from './photos-fixture.mjs';
+import { GAIN, LOG as MUSIC_LOG, logReport, LYRICS } from './music-fixture.mjs';
 import { createSessions } from './sessions.mjs';
 
 const PORT = E.PORT;
@@ -100,6 +101,13 @@ E.hooks.view = (out, item) => {
   if (out.MediaSources) out.MediaSources = out.MediaSources.map((s) => ({ ...s, HasSegments: true }));
   // Episodes keep no Trickplay field so clients exercise the tiles.m3u8 fallback.
   if (item.Type === 'Movie' && item.RunTimeTicks) out.Trickplay = { [item.Id]: { [TRICK.Width]: trickInfo(item) } };
+  // Music (spec §3.5, §3.6): NormalizationGain on tracks and albums, HasLyrics instead of Emby's lrc subtitle stream.
+  if (GAIN.has(item.Id)) out.NormalizationGain = GAIN.get(item.Id);
+  if (item.Type === 'Audio') {
+    out.HasLyrics = LYRICS.has(item.Id);
+    out.MediaStreams = out.MediaStreams?.filter((st) => st.Type !== 'Subtitle');
+    out.MediaSources = out.MediaSources?.map((src) => ({ ...src, MediaStreams: src.MediaStreams.filter((st) => st.Type !== 'Subtitle') }));
+  }
   return jellyfinPhoto(out, item);
 };
 
@@ -189,6 +197,7 @@ async function route(req, res) {
       return send(res, 200, {
         ...store.state(),
         reports: reports.slice(-20),
+        music: MUSIC_LOG,
         userData: Object.fromEntries(ids.map((id) => [id, E.ud(id)])),
       });
     }
@@ -327,7 +336,7 @@ async function route(req, res) {
     // Item metadata admin (tools/mock-server/mock-admin/40-metadata.mjs): save, delete, identify, artwork, subtitles.
     if ((parts.length === 2 && req.method !== 'GET') || lp[1] === 'remotesearch' || ['metadataeditor', 'remoteimages', 'remotesearch', 'delete'].includes(lp[2])) return forward(req, res, p, q);
     if (parts.length === 2) return forward(req, res, `/Users/${E.USER.Id}/Items/${parts[1]}`, q, ['userid']);
-    if (['playbackinfo', 'similar', 'file', 'download', 'refresh'].includes(lp[2])) return forward(req, res, p, q);
+    if (['playbackinfo', 'similar', 'file', 'download', 'refresh', 'instantmix'].includes(lp[2])) return forward(req, res, p, q);
     if (lp[2] === 'localtrailers' || lp[2] === 'specialfeatures')
       return forward(req, res, `/Users/${E.USER.Id}/Items/${parts[1]}/${lp[2] === 'localtrailers' ? 'LocalTrailers' : 'SpecialFeatures'}`, q, ['userid']);
   }
@@ -335,8 +344,13 @@ async function route(req, res) {
     tag('REMOVED in 10.11', req, url);
     return send(res, 404, '', 'text/plain');
   }
-  // Music (music-fixture.mjs): the album artists and a track's audio stream.
-  if (lp[0] === 'artists' || (lp[0] === 'audio' && (lp[2] === 'stream' || lp[2] === 'universal'))) return forward(req, res, p, q, ['userid']);
+  // Music (music-fixture.mjs): artists, streams, lyrics, instant mix (12.2 dropped /Artists/InstantMix), genres.
+  if (p === '/Artists/InstantMix') {
+    tag('REMOVED in 12.2', req, url, 'use /Items/{id}/InstantMix');
+    return send(res, 404, '', 'text/plain');
+  }
+  if (lp[0] === 'musicgenres') tag('DEPRECATED', req, url, 'use /Genres?includeItemTypes=MusicAlbum');
+  if (['artists', 'albums', 'songs', 'musicgenres'].includes(lp[0]) || (lp[0] === 'audio' && (lp[2] === 'stream' || lp[2] === 'universal' || lp[2] === 'lyrics'))) return forward(req, res, p, q, ['userid']);
   if (lp[0] === 'videos') {
     if (lp[1] === 'activeencodings') {
       const gone = JF_VERSION === '12.2';
@@ -396,6 +410,7 @@ async function route(req, res) {
       const missing = kind === 'ping' ? (qget(q, 'playSessionId') ? [] : ['PlaySessionId']) : ['ItemId', 'MediaSourceId', 'PlaySessionId', 'PlayMethod'].filter((k) => !b[k]);
       const r = { kind, at: Date.now(), ItemId: b.ItemId, PositionTicks: b.PositionTicks, IsPaused: b.IsPaused, PlayMethod: b.PlayMethod, EventName: b.EventName, PlaySessionId: b.PlaySessionId ?? qget(q, 'playSessionId'), missing };
       reports.push(r);
+      logReport(E.items, kind, b);
       // What GET /Sessions shows as NowPlayingItem / PlayState ("Lire sur…" on the phone).
       store.report(a.session, kind, b);
       console.log(`REPORT ${kind} item=${r.ItemId ?? '-'} pos=${r.PositionTicks ?? '-'} method=${r.PlayMethod ?? '-'}${missing.length ? ` MISSING ${missing.join(',')}` : ''}`);

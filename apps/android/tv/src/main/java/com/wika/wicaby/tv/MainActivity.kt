@@ -28,6 +28,7 @@ import com.wika.wicaby.core.livetv.liveLinkQuery
 import com.wika.wicaby.core.livetv.resolveLiveLink
 import com.wika.wicaby.tv.ui.livetv.LiveTv
 import kotlinx.coroutines.launch
+import com.wika.wicaby.tv.music.tracksOf
 import androidx.annotation.RequiresApi
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -203,13 +204,28 @@ fun openDeepLink(activity: ComponentActivity) {
 
 // "Play on Wicaby" from another app (the server socket): only with a session open (TP-10: none while locked).
 fun playRemote(context: Context, r: RemotePlay): Boolean {
-    if (Core.api == null) return false
-    context.startActivity(
-        Intent(context, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_ID, r.itemId)
-            .putStringArrayListExtra(PlayerActivity.EXTRA_QUEUE, ArrayList(r.queue)),
-    )
+    val api = Core.api ?: return false
+    Core.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        // A music track (with the rest of the queue's tracks) plays in the music session (MU-09); anything else, or a
+        // failed look-up, in the player as before.
+        val item = runCatching { api.item(r.itemId) }.getOrNull()
+        if (item != null && item.playsAsMusic) {
+            val tracks = runCatching { api.tracksOf(r.queue.ifEmpty { listOf(r.itemId) }) }.getOrNull()?.filter { it.isAudio }.orEmpty().ifEmpty { listOf(item) }
+            RemoteControl.take(r.itemId)
+            com.wika.wicaby.tv.music.Music.play(context, api, tracks, tracks.indexOfFirst { it.id == r.itemId }.coerceAtLeast(0), r.startMs ?: 0)
+            return@launch
+        }
+        context.startActivity(
+            Intent(context, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_ID, r.itemId)
+                .putStringArrayListExtra(PlayerActivity.EXTRA_QUEUE, ArrayList(r.queue)),
+        )
+    }
     return true
 }
+
+// A music track goes to the music session; an audiobook (Jellyfin's AudioBook, mediaType Audio) stays in the player.
+// Emby may type a book's chapter "Audio" too (unverified): the music session then resumes it at its position anyway.
+val Item.playsAsMusic get() = type == "Audio"
 
 // A detail page asked for by the launcher; App() pushes it.
 object OpenItem {
@@ -231,6 +247,9 @@ sealed interface Route {
     data class PhotoAlbum(val id: String, val name: String, val serverId: String? = null) : Route
     // File sources (FS-10): one folder of a source; id is the folder's reversible path id (core files.pure.Ids).
     data class Files(val sourceId: String, val id: String, val name: String) : Route
+    // Music (MU-09): an album or audio playlist page, and a music library's full grid (albums, artists or songs).
+    data class MusicAlbum(val id: String, val name: String, val serverId: String? = null) : Route
+    data class MusicLibrary(val id: String, val name: String, val mode: Int, val serverId: String? = null) : Route
     // Onboarding (OB-T1): the first-run wizard; rerun: Réglages > Interface > Relancer la configuration.
     data class Welcome(val rerun: Boolean = false) : Route
 }
@@ -264,7 +283,11 @@ class Nav(private val stack: SnapshotStateList<Route>, private val gone: (Route)
         if (stack.size > 1) forget(listOf(stack.removeAt(stack.lastIndex)))
     }
     fun reset(r: Route) {
-        if (r.picker) SessionGate.lock()
+        if (r.picker) {
+            SessionGate.lock()
+            // TP-10: the account's music ends with it (no more reports with its token, no remote control, no screensaver).
+            com.wika.wicaby.tv.music.Music.release()
+        }
         val old = stack.toList()
         stack.clear()
         stack.add(r)
@@ -322,21 +345,33 @@ suspend fun shuffle(context: Context, api: com.wika.wicaby.core.data.Api, parent
     else playQueue(context, ids, Servers.extraOf(api.server.id)?.server?.id, fromStart = true)
 }
 
-// Music stopgap: an album, artist, playlist or track plays all its tracks as a queue (PlayQueue.tracks), a track
-// from itself.
-suspend fun playMusic(context: Context, api: Api, item: Item) {
-    val ids = try {
-        com.wika.wicaby.core.player.PlayQueue.tracks(api, item)
+// Music (music spec MU-09): an album, artist, playlist or track plays all its tracks in the TV's music session
+// (PlayQueue.tracks, music/MusicService.kt), a track from itself; the now-playing screen opens over the page.
+suspend fun playMusic(context: Context, api: Api, item: Item, startMs: Long = 0) {
+    val tracks = try {
+        // A file source answers no Ids look-up: its track plays alone.
+        if (api is com.wika.wicaby.core.files.FilesApi) listOf(item)
+        else api.tracksOf(com.wika.wicaby.core.player.PlayQueue.tracks(api, item))
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
         return Toast.makeText(context, R.string.load_error, Toast.LENGTH_SHORT).show()
     }
-    if (ids.isEmpty()) Toast.makeText(context, com.wika.wicaby.core.R.string.nothing_to_play, Toast.LENGTH_SHORT).show()
-    else playQueue(context, ids, Servers.extraOf(api.server.id)?.server?.id, start = item.id.takeIf { it in ids } ?: ids[0])
+    // The session and its player live on the main thread, whichever dispatcher the caller resumed on.
+    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
+        if (tracks.isEmpty()) Toast.makeText(context, com.wika.wicaby.core.R.string.nothing_to_play, Toast.LENGTH_SHORT).show()
+        else com.wika.wicaby.tv.music.Music.play(context, api, tracks, tracks.indexOfFirst { it.id == item.id }.coerceAtLeast(0), startMs.takeIf { tracks.any { t -> t.id == item.id } } ?: 0)
+    }
 }
 
 private fun startPlayer(context: Context, item: Item, fromStart: Boolean) {
+    // A music track (MU-09) plays in the music session, after the resume question like any title: at its position, or
+    // from the start.
+    val musicApi = if (item.playsAsMusic) Core.api?.let { Servers.forItem(item, it) } else null
+    if (musicApi != null) {
+        Core.scope.launch(kotlinx.coroutines.Dispatchers.Main) { playMusic(context, musicApi, item, if (fromStart) 0 else item.resumeMs) }
+        return
+    }
     context.startActivity(
         Intent(context, PlayerActivity::class.java)
             .putExtra(PlayerActivity.EXTRA_ID, item.id)
@@ -361,7 +396,7 @@ private fun App() {
     val stack = remember {
         val first = startRoute(start)
         if (first == Route.Main) SessionGate.unlock(start.session!!)
-        if (first.picker) SessionGate.lock()
+        if (first.picker) { SessionGate.lock(); com.wika.wicaby.tv.music.Music.release() }
         mutableStateListOf(first).apply { if (rerunOpen && first == Route.Main) add(Route.Welcome(rerun = true)) }
     }
     LaunchedEffect(stack.last()) { rerunOpen = (stack.last() as? Route.Welcome)?.rerun == true }
@@ -513,6 +548,12 @@ private fun App() {
                                 }
                                 is Route.Welcome -> com.wika.wicaby.tv.ui.WelcomeScreen(route.rerun)
                                 is Route.Files -> if (api != null) com.wika.wicaby.tv.ui.FilesFolderScreen(route.sourceId, route.id, route.name)
+                                is Route.MusicAlbum -> if (api != null) ServerScope(route.serverId) {
+                                    LocalApi.current?.let { com.wika.wicaby.tv.music.AlbumScreen(it, route.id, route.name) }
+                                }
+                                is Route.MusicLibrary -> if (api != null) ServerScope(route.serverId) {
+                                    com.wika.wicaby.tv.music.MusicLibraryScreen(route.id, route.name, route.mode)
+                                }
                             }
                         }
                     }
@@ -528,6 +569,7 @@ private fun App() {
 
 fun signOutCleanup() {
     Cache.map.clear()
+    com.wika.wicaby.tv.music.Music.release() // no playback keeps a signed-out account's token alive
 }
 
 // "Bande-annonce" with a local trailer: the normal player, in trailer mode (nothing reported).

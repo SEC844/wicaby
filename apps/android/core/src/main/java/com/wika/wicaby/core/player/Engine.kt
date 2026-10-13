@@ -63,7 +63,7 @@ fun buildEngine(context: Context, @Suppress("UNUSED_PARAMETER") headers: Map<Str
         .setMediaSourceFactory(sources)
         .setRenderersFactory(subtitleShift(AssRenderersFactory(ass, renderers)))
         .setTrackSelector(selector)
-        .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
+        .setAudioAttributes(audioAttributes(music = false), true)
         .setHandleAudioBecomingNoisy(true)
         // VOD capped at vodBufferBytes (LiveLoadControl.kt), the live profile while a channel plays.
         .setLoadControl(profile)
@@ -72,6 +72,10 @@ fun buildEngine(context: Context, @Suppress("UNUSED_PARAMETER") headers: Map<Str
     ass.init(exo)
     return Engine(exo, ass)
 }
+
+// Music spec MU-07: MUSIC while a music session owns the player (core/music/MusicSession.kt), MOVIE otherwise.
+fun audioAttributes(music: Boolean): AudioAttributes =
+    AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(if (music) C.AUDIO_CONTENT_TYPE_MUSIC else C.AUDIO_CONTENT_TYPE_MOVIE).build()
 
 // Codecs the user turned passthrough off for (Core.passthroughOverride) are refused by the
 // sink as bitstream, so ExoPlayer decodes them (platform decoder or FFmpeg) to PCM instead.

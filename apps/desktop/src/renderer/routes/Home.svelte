@@ -16,7 +16,10 @@
     collections: Item[];
     live: LiveChannel[];
     memories: MemoryGroup[];
+    hubs: Hub[];
   };
+  // A server-defined row (Plex hubs, caps.serverHubs), with the server it came from.
+  type Hub = { sid: string; key: string; name: string; items: Item[] };
   let last: Shelves | null = null;
 </script>
 
@@ -63,6 +66,8 @@
   let channels = $state<LiveChannel[]>(last?.live ?? []);
   // "Ce jour-là" (photos PH-08): every server's memories, one card per year.
   let memories = $state<MemoryGroup[]>(last?.memories ?? []);
+  let hubs = $state<Hub[]>(last?.hubs ?? []);
+  const hubId = (h: Hub) => `hub:${h.sid}:${h.key}`;
   let loading = $state(last === null);
   // Settings > Bibliothèque et accueil opens the sheet through /home?customize=1.
   let customizing = $state(router.route.query.get('customize') === '1');
@@ -87,6 +92,7 @@
     ...(mergeOn ? [] : [{ id: 'nextUp', label: t('browse.home.rows.nextUp') }]),
     { id: 'upcoming', label: t('browse.home.rows.upcoming') },
     ...(liveTv.available ? [{ id: 'liveNow', label: t('browse.home.rows.liveNow') }] : []),
+    ...hubs.map((h) => ({ id: hubId(h), label: h.name, server: multi ? serverName(h.sid) : undefined })),
     ...libs.map((l) => ({ id: `latest:${libraryRef(l)}`, label: t('browse.home.rows.latest', { name: l.Name }), server: multi ? serverName(l.ServerId) : undefined })),
     ...(hasPhotos ? [{ id: 'memories', label: t('photos.memories.title') }] : []),
     { id: 'because', label: t('browse.home.rows.becauseAny') },
@@ -151,6 +157,13 @@
       (l) => (favorites = merge(l)),
     );
     row(wants('playlists'), (_, s) => listOf('playlist', s), (l) => (playlists = merge(l)));
+    // Server hubs: Continue Watching and On Deck are the row above already.
+    rows.push(
+      fanOut(
+        (a, sid) => a.hubs().then((list) => list.filter((h) => !/continue|ondeck/i.test(h.Key)).map((h) => ({ sid, key: h.Key, name: h.Name, items: h.Items }))),
+        (parts) => current() && (hubs = parts.flatMap((x) => x ?? [])),
+      ),
+    );
     row(wants('collections'), (_, s) => listOf('collection', s), (l) => (collections = merge(l)));
     if (merged) {
       // Per server: its resume and next-up lists (the same cached requests as the rows above), then the
@@ -232,7 +245,7 @@
       return { seed, items: kept };
     });
     loading = false;
-    last = { resume, nextUp, cont, upcoming, latest, because, favorites, playlists, collections, live: channels, memories };
+    last = { resume, nextUp, cont, upcoming, latest, because, favorites, playlists, collections, live: channels, memories, hubs };
   }
 
   // Reloads only when what the rows show can change; a string, so a session or settings update that
@@ -347,7 +360,7 @@
 
   const empty = $derived(
     !loading &&
-      [resume, nextUp, cont, upcoming, favorites, playlists, collections, channels, memories, ...because.map((b) => b.items)].every((l) => l.length === 0) &&
+      [resume, nextUp, cont, upcoming, favorites, playlists, collections, channels, memories, ...because.map((b) => b.items), ...hubs.map((h) => h.items)].every((l) => l.length === 0) &&
       Object.values(latest).every((l) => l.length === 0),
   );
 </script>
@@ -417,6 +430,9 @@
       <Row title={t('browse.home.rows.playlists')} items={playlists} variant="square" showServer={multi} />
     {:else if row.id === 'collections'}
       <Row title={t('browse.home.rows.collections')} items={collections} showServer={multi} />
+    {:else if row.id.startsWith('hub:')}
+      {@const hub = hubs.find((h) => hubId(h) === row.id)}
+      {#if hub}<Row title={hub.name} items={hub.items} showServer={multi} />{/if}
     {:else if row.id === 'libraries'}
       {#if libs.length > 0}
         <Row title={t('browse.home.rows.libraries')} variant="thumb">

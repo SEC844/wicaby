@@ -1,0 +1,6088 @@
+{
+  "about": "plex-spec §4 / PX-03: the Plex dialect core (apps/desktop/src/shared/plex) as {name, fn, args, out}. Desktop: tools/checks/plex-map-check.mjs; Android (PX-13) replays the same file. out {throws, status} = a PlexUnmapped (the adapter answers 404).",
+  "cases": [
+    {
+      "name": "guid: Guid[] imdb, tmdb, tvdb",
+      "fn": "providerIds",
+      "args": [
+        {
+          "Guid": [
+            {
+              "id": "imdb://tt1254207"
+            },
+            {
+              "id": "tmdb://10378"
+            },
+            {
+              "id": "tvdb://81189"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Imdb": "tt1254207",
+        "Tmdb": "10378",
+        "Tvdb": "81189"
+      }
+    },
+    {
+      "name": "guid: legacy imdb agent with lang",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.imdb://tt1254207?lang=en"
+        }
+      ],
+      "out": {
+        "Imdb": "tt1254207"
+      }
+    },
+    {
+      "name": "guid: legacy themoviedb agent",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.themoviedb://10378?lang=fr"
+        }
+      ],
+      "out": {
+        "Tmdb": "10378"
+      }
+    },
+    {
+      "name": "guid: legacy thetvdb show",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.thetvdb://81189?lang=en"
+        }
+      ],
+      "out": {
+        "Tvdb": "81189"
+      }
+    },
+    {
+      "name": "guid: legacy thetvdb episode path is not the episode id",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.thetvdb://81189/2/5?lang=en"
+        }
+      ],
+      "out": {}
+    },
+    {
+      "name": "guid: HAMA anidb",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.hama://anidb-1234?lang=en"
+        }
+      ],
+      "out": {
+        "AniDB": "1234"
+      }
+    },
+    {
+      "name": "guid: HAMA tvdb3 numbering variant",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.hama://tvdb3-81189?lang=en"
+        }
+      ],
+      "out": {
+        "Tvdb": "81189"
+      }
+    },
+    {
+      "name": "guid: HAMA anidb2 variant",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.hama://anidb2-55?lang=en"
+        }
+      ],
+      "out": {
+        "AniDB": "55"
+      }
+    },
+    {
+      "name": "guid: plex:// carries no provider id",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "plex://movie/5d776825880197001ec967c8"
+        }
+      ],
+      "out": {}
+    },
+    {
+      "name": "guid: local and none agents",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "local://42",
+          "Guid": [
+            {
+              "id": "com.plexapp.agents.none://abc"
+            }
+          ]
+        }
+      ],
+      "out": {}
+    },
+    {
+      "name": "guid: xbmcnfo tt id",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.xbmcnfo://tt0111161?lang=xn"
+        }
+      ],
+      "out": {
+        "Imdb": "tt0111161"
+      }
+    },
+    {
+      "name": "guid: xbmcnfotv numeric is tvdb",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.xbmcnfotv://81189?lang=xn"
+        }
+      ],
+      "out": {
+        "Tvdb": "81189"
+      }
+    },
+    {
+      "name": "guid: Guid[] wins over the legacy scalar",
+      "fn": "providerIds",
+      "args": [
+        {
+          "guid": "com.plexapp.agents.imdb://tt0000001",
+          "Guid": [
+            {
+              "id": "imdb://tt0000002"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Imdb": "tt0000002"
+      }
+    },
+    {
+      "name": "guid: a malformed imdb id is dropped",
+      "fn": "providerIds",
+      "args": [
+        {
+          "Guid": [
+            {
+              "id": "imdb://12345"
+            },
+            {
+              "id": "garbage"
+            },
+            {}
+          ]
+        }
+      ],
+      "out": {}
+    },
+    {
+      "name": "guid: nothing",
+      "fn": "providerIds",
+      "args": [
+        {}
+      ],
+      "out": {}
+    },
+    {
+      "name": "imageTag: the path timestamp",
+      "fn": "imageTag",
+      "args": [
+        "/library/metadata/101/thumb/1700000101"
+      ],
+      "out": "1700000101"
+    },
+    {
+      "name": "imageTag: query ignored",
+      "fn": "imageTag",
+      "args": [
+        "/library/metadata/101/art/1700000101?x=1"
+      ],
+      "out": "1700000101"
+    },
+    {
+      "name": "imageTag: a CDN URL gets a stable hash",
+      "fn": "imageTag",
+      "args": [
+        "https://metadata-static.plex.tv/people/5d7768.jpg"
+      ],
+      "out": "9c1d354e"
+    },
+    {
+      "name": "imageTag: none",
+      "fn": "imageTag",
+      "args": [
+        null
+      ],
+      "out": null
+    },
+    {
+      "name": "imagePaths: movie with Image[] (poster, background, logo)",
+      "fn": "imagePaths",
+      "args": [
+        {
+          "ratingKey": "101",
+          "type": "movie",
+          "thumb": "/library/metadata/101/thumb/1",
+          "art": "/library/metadata/101/art/1",
+          "Image": [
+            {
+              "type": "coverPoster",
+              "url": "/library/metadata/101/thumb/2"
+            },
+            {
+              "type": "clearLogo",
+              "url": "/library/metadata/101/clearLogo/3"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "101/Primary": "/library/metadata/101/thumb/2",
+        "101/Backdrop": "/library/metadata/101/art/1",
+        "101/Logo": "/library/metadata/101/clearLogo/3"
+      }
+    },
+    {
+      "name": "imagePaths: episode with season and show images",
+      "fn": "imagePaths",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "thumb": "/library/metadata/2002/thumb/9",
+          "parentRatingKey": "2001",
+          "parentThumb": "/library/metadata/2001/thumb/8",
+          "grandparentRatingKey": "2000",
+          "grandparentThumb": "/library/metadata/2000/thumb/7",
+          "grandparentArt": "/library/metadata/2000/art/7"
+        }
+      ],
+      "out": {
+        "2002/Primary": "/library/metadata/2002/thumb/9",
+        "2001/Primary": "/library/metadata/2001/thumb/8",
+        "2000/Primary": "/library/metadata/2000/thumb/7",
+        "2000/Backdrop": "/library/metadata/2000/art/7"
+      }
+    },
+    {
+      "name": "imagePaths: people thumbs",
+      "fn": "imagePaths",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Role": [
+            {
+              "id": 901,
+              "tag": "A",
+              "thumb": "https://metadata-static.plex.tv/a.jpg"
+            },
+            {
+              "id": 902,
+              "tag": "B"
+            }
+          ],
+          "Director": [
+            {
+              "id": 903,
+              "tag": "C",
+              "thumb": "/library/people/903/thumb/1"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "person-901/Primary": "https://metadata-static.plex.tv/a.jpg",
+        "person-903/Primary": "/library/people/903/thumb/1"
+      }
+    },
+    {
+      "name": "parseImageRoute: Primary",
+      "fn": "parseImageRoute",
+      "args": [
+        "/Items/101/Images/Primary"
+      ],
+      "out": {
+        "id": "101",
+        "type": "Primary"
+      }
+    },
+    {
+      "name": "parseImageRoute: Backdrop with an index",
+      "fn": "parseImageRoute",
+      "args": [
+        "/Items/101/Images/Backdrop/0"
+      ],
+      "out": {
+        "id": "101",
+        "type": "Backdrop"
+      }
+    },
+    {
+      "name": "parseImageRoute: a person",
+      "fn": "parseImageRoute",
+      "args": [
+        "/Items/person-901/Images/Primary"
+      ],
+      "out": {
+        "id": "person-901",
+        "type": "Primary"
+      }
+    },
+    {
+      "name": "parseImageRoute: Chapter is not a Plex image",
+      "fn": "parseImageRoute",
+      "args": [
+        "/Items/101/Images/Chapter/2"
+      ],
+      "out": null
+    },
+    {
+      "name": "parseImageRoute: a dot segment is refused",
+      "fn": "parseImageRoute",
+      "args": [
+        "/Items/../Images/Primary"
+      ],
+      "out": null
+    },
+    {
+      "name": "transcodePath: maxWidth fits",
+      "fn": "transcodePath",
+      "args": [
+        "/library/metadata/1/thumb/2",
+        "Primary",
+        {
+          "maxWidth": 300,
+          "quality": 90
+        }
+      ],
+      "out": "/photo/:/transcode?url=%2Flibrary%2Fmetadata%2F1%2Fthumb%2F2&width=300&height=1200&minSize=0&upscale=1&quality=90"
+    },
+    {
+      "name": "transcodePath: fillWidth and fillHeight cover",
+      "fn": "transcodePath",
+      "args": [
+        "/library/metadata/1/art/2",
+        "Backdrop",
+        {
+          "FillWidth": 1280,
+          "FillHeight": 720
+        }
+      ],
+      "out": "/photo/:/transcode?url=%2Flibrary%2Fmetadata%2F1%2Fart%2F2&width=1280&height=720&minSize=1&upscale=1"
+    },
+    {
+      "name": "transcodePath: fillHeight alone",
+      "fn": "transcodePath",
+      "args": [
+        "/p",
+        "Primary",
+        {
+          "fillHeight": 400
+        }
+      ],
+      "out": "/photo/:/transcode?url=%2Fp&width=1&height=400&minSize=1&upscale=1"
+    },
+    {
+      "name": "transcodePath: no size, a backdrop",
+      "fn": "transcodePath",
+      "args": [
+        "/p",
+        "Backdrop",
+        {}
+      ],
+      "out": "/photo/:/transcode?url=%2Fp&width=1920&height=7680&minSize=0&upscale=1"
+    },
+    {
+      "name": "transcodePath: no size, a poster",
+      "fn": "transcodePath",
+      "args": [
+        "/p",
+        "Primary"
+      ],
+      "out": "/photo/:/transcode?url=%2Fp&width=600&height=2400&minSize=0&upscale=1"
+    },
+    {
+      "name": "transcodePath: maxHeight only",
+      "fn": "transcodePath",
+      "args": [
+        "/p",
+        "Primary",
+        {
+          "maxHeight": 450
+        }
+      ],
+      "out": "/photo/:/transcode?url=%2Fp&width=1800&height=450&minSize=0&upscale=1"
+    },
+    {
+      "name": "transcodePath: sizes clamped to 4096",
+      "fn": "transcodePath",
+      "args": [
+        "/p",
+        "Primary",
+        {
+          "maxWidth": 99999,
+          "maxHeight": 99999,
+          "quality": 500
+        }
+      ],
+      "out": "/photo/:/transcode?url=%2Fp&width=4096&height=4096&minSize=0&upscale=1&quality=100"
+    },
+    {
+      "name": "itemType: movie",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "movie"
+        }
+      ],
+      "out": "Movie"
+    },
+    {
+      "name": "itemType: show",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "show"
+        }
+      ],
+      "out": "Series"
+    },
+    {
+      "name": "itemType: season",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "season"
+        }
+      ],
+      "out": "Season"
+    },
+    {
+      "name": "itemType: episode",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "episode"
+        }
+      ],
+      "out": "Episode"
+    },
+    {
+      "name": "itemType: artist",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "artist"
+        }
+      ],
+      "out": "MusicArtist"
+    },
+    {
+      "name": "itemType: album",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "album"
+        }
+      ],
+      "out": "MusicAlbum"
+    },
+    {
+      "name": "itemType: track",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "track"
+        }
+      ],
+      "out": "Audio"
+    },
+    {
+      "name": "itemType: collection",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "collection"
+        }
+      ],
+      "out": "BoxSet"
+    },
+    {
+      "name": "itemType: playlist",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "playlist"
+        }
+      ],
+      "out": "Playlist"
+    },
+    {
+      "name": "itemType: photo",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "photo"
+        }
+      ],
+      "out": "Photo"
+    },
+    {
+      "name": "itemType: person",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "person"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "itemType: a trailer clip",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "clip",
+          "extraType": 1
+        }
+      ],
+      "out": "Trailer"
+    },
+    {
+      "name": "itemType: another extra clip",
+      "fn": "itemType",
+      "args": [
+        {
+          "type": "clip",
+          "extraType": 5
+        }
+      ],
+      "out": "Video"
+    },
+    {
+      "name": "toView: movie section",
+      "fn": "toView",
+      "args": [
+        {
+          "key": "1",
+          "type": "movie",
+          "title": "Films",
+          "thumb": "/:/resources/movie.png"
+        }
+      ],
+      "out": {
+        "Id": "section-1",
+        "Name": "Films",
+        "Type": "CollectionFolder",
+        "IsFolder": true,
+        "CollectionType": "movies",
+        "ImageTags": {
+          "Primary": "movie.png"
+        }
+      }
+    },
+    {
+      "name": "toView: show section",
+      "fn": "toView",
+      "args": [
+        {
+          "key": "2",
+          "type": "show",
+          "title": "Séries"
+        }
+      ],
+      "out": {
+        "Id": "section-2",
+        "Name": "Séries",
+        "Type": "CollectionFolder",
+        "IsFolder": true,
+        "CollectionType": "tvshows"
+      }
+    },
+    {
+      "name": "toView: music section",
+      "fn": "toView",
+      "args": [
+        {
+          "key": "3",
+          "type": "artist",
+          "title": "Musique"
+        }
+      ],
+      "out": {
+        "Id": "section-3",
+        "Name": "Musique",
+        "Type": "CollectionFolder",
+        "IsFolder": true,
+        "CollectionType": "music"
+      }
+    },
+    {
+      "name": "toView: photo section (D-7)",
+      "fn": "toView",
+      "args": [
+        {
+          "key": "4",
+          "type": "photo",
+          "title": "Photos"
+        }
+      ],
+      "out": {
+        "Id": "section-4",
+        "Name": "Photos",
+        "Type": "CollectionFolder",
+        "IsFolder": true,
+        "CollectionType": "homevideos"
+      }
+    },
+    {
+      "name": "toUserData: unwatched film",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "duration": 600000
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 0,
+        "PlaybackPositionTicks": 0,
+        "Played": false
+      }
+    },
+    {
+      "name": "toUserData: watched film",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "viewCount": 2,
+          "lastViewedAt": 1700000000
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 2,
+        "PlaybackPositionTicks": 0,
+        "Played": true,
+        "LastPlayedDate": "2023-11-14T22:13:20.000Z"
+      }
+    },
+    {
+      "name": "toUserData: in progress",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "viewOffset": 300000,
+          "duration": 1200000
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 0,
+        "PlaybackPositionTicks": 3000000000,
+        "Played": false,
+        "PlayedPercentage": 25
+      }
+    },
+    {
+      "name": "toUserData: show half watched",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "2",
+          "type": "show",
+          "leafCount": 10,
+          "viewedLeafCount": 4
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 0,
+        "PlaybackPositionTicks": 0,
+        "UnplayedItemCount": 6,
+        "Played": false
+      }
+    },
+    {
+      "name": "toUserData: season fully watched",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "3",
+          "type": "season",
+          "leafCount": 3,
+          "viewedLeafCount": 3
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 0,
+        "PlaybackPositionTicks": 0,
+        "UnplayedItemCount": 0,
+        "Played": true
+      }
+    },
+    {
+      "name": "toUserData: empty show is not played",
+      "fn": "toUserData",
+      "args": [
+        {
+          "ratingKey": "3",
+          "type": "show",
+          "leafCount": 0
+        }
+      ],
+      "out": {
+        "IsFavorite": false,
+        "PlayCount": 0,
+        "PlaybackPositionTicks": 0,
+        "UnplayedItemCount": 0,
+        "Played": false
+      }
+    },
+    {
+      "name": "toStream: h264 SDR video, Index = stream id",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 48213,
+          "streamType": 1,
+          "codec": "h264",
+          "index": 0,
+          "default": true,
+          "width": 1920,
+          "height": 1080,
+          "frameRate": 23.976,
+          "displayTitle": "1080p (H.264)"
+        }
+      ],
+      "out": {
+        "Index": 48213,
+        "Type": "Video",
+        "Codec": "h264",
+        "DisplayTitle": "1080p (H.264)",
+        "IsDefault": true,
+        "Width": 1920,
+        "Height": 1080,
+        "RealFrameRate": 23.976,
+        "VideoRange": "SDR",
+        "VideoRangeType": "SDR"
+      }
+    },
+    {
+      "name": "toStream: HDR10",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 2,
+          "streamType": 1,
+          "codec": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "colorTrc": "smpte2084",
+          "colorPrimaries": "bt2020"
+        }
+      ],
+      "out": {
+        "Index": 2,
+        "Type": "Video",
+        "Codec": "hevc",
+        "Width": 3840,
+        "Height": 2160,
+        "ColorTransfer": "smpte2084",
+        "VideoRange": "HDR",
+        "VideoRangeType": "HDR10"
+      }
+    },
+    {
+      "name": "toStream: Dolby Vision profile 8.1",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 3,
+          "streamType": 1,
+          "codec": "hevc",
+          "colorTrc": "smpte2084",
+          "DOVIPresent": true,
+          "DOVIProfile": 8,
+          "DOVIBLCompatID": 1
+        }
+      ],
+      "out": {
+        "Index": 3,
+        "Type": "Video",
+        "Codec": "hevc",
+        "ColorTransfer": "smpte2084",
+        "VideoRange": "HDR",
+        "VideoRangeType": "DOVI",
+        "DvProfile": 8,
+        "DvBlSignalCompatibilityId": 1
+      }
+    },
+    {
+      "name": "toStream: HLG",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 4,
+          "streamType": 1,
+          "codec": "hevc",
+          "colorTrc": "arib-std-b67"
+        }
+      ],
+      "out": {
+        "Index": 4,
+        "Type": "Video",
+        "Codec": "hevc",
+        "ColorTransfer": "arib-std-b67",
+        "VideoRange": "HDR",
+        "VideoRangeType": "HLG"
+      }
+    },
+    {
+      "name": "toStream: audio with language and layout",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 5,
+          "streamType": 2,
+          "codec": "EAC3",
+          "channels": 6,
+          "audioChannelLayout": "5.1(side)",
+          "languageCode": "eng",
+          "language": "English",
+          "bitrate": 640,
+          "selected": true,
+          "extendedDisplayTitle": "English (EAC3 5.1)"
+        }
+      ],
+      "out": {
+        "Index": 5,
+        "Type": "Audio",
+        "Codec": "eac3",
+        "Language": "eng",
+        "DisplayTitle": "English (EAC3 5.1)",
+        "Channels": 6,
+        "ChannelLayout": "5.1(side)",
+        "BitRate": 640000
+      }
+    },
+    {
+      "name": "toStream: audio with only a languageTag",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 6,
+          "streamType": 2,
+          "codec": "aac",
+          "languageTag": "fr"
+        }
+      ],
+      "out": {
+        "Index": 6,
+        "Type": "Audio",
+        "Codec": "aac",
+        "Language": "fr"
+      }
+    },
+    {
+      "name": "toStream: sidecar srt is external, delivered by key",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 7,
+          "streamType": 3,
+          "codec": "srt",
+          "key": "/library/streams/7",
+          "languageCode": "fre"
+        }
+      ],
+      "out": {
+        "Index": 7,
+        "Type": "Subtitle",
+        "Codec": "subrip",
+        "Language": "fre",
+        "IsTextSubtitleStream": true,
+        "IsExternal": true,
+        "DeliveryMethod": "External",
+        "DeliveryUrl": "/library/streams/7"
+      }
+    },
+    {
+      "name": "toStream: embedded PGS is an image subtitle",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 8,
+          "streamType": 3,
+          "codec": "pgs",
+          "languageCode": "eng"
+        }
+      ],
+      "out": {
+        "Index": 8,
+        "Type": "Subtitle",
+        "Codec": "pgssub",
+        "Language": "eng",
+        "IsTextSubtitleStream": false
+      }
+    },
+    {
+      "name": "toStream: VobSub",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 9,
+          "streamType": 3,
+          "codec": "vobsub"
+        }
+      ],
+      "out": {
+        "Index": 9,
+        "Type": "Subtitle",
+        "Codec": "dvdsub",
+        "IsTextSubtitleStream": false
+      }
+    },
+    {
+      "name": "toStream: forced ass",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 10,
+          "streamType": 3,
+          "codec": "ass",
+          "forced": true,
+          "title": "Signs"
+        }
+      ],
+      "out": {
+        "Index": 10,
+        "Type": "Subtitle",
+        "Codec": "ass",
+        "Title": "Signs",
+        "IsForced": true,
+        "IsTextSubtitleStream": true
+      }
+    },
+    {
+      "name": "toStream: a lyrics stream is not mapped",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 11,
+          "streamType": 4,
+          "codec": "lrc"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "toStream: no index is fine (Plezy #1589)",
+      "fn": "toStream",
+      "args": [
+        {
+          "id": 12,
+          "streamType": 2
+        }
+      ],
+      "out": {
+        "Index": 12,
+        "Type": "Audio"
+      }
+    },
+    {
+      "name": "toStream: no id is dropped",
+      "fn": "toStream",
+      "args": [
+        {
+          "streamType": 2,
+          "codec": "aac"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "toMediaSources: two editions are two versions; no server path",
+      "fn": "toMediaSources",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "duration": 60000,
+          "Media": [
+            {
+              "id": 11,
+              "bitrate": 8000,
+              "container": "mkv",
+              "editionTitle": "Theatrical",
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "videoResolution": "4k",
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "11",
+          "Protocol": "File",
+          "SupportsDirectPlay": true,
+          "SupportsDirectStream": true,
+          "SupportsTranscoding": true,
+          "MediaStreams": [
+            {
+              "Index": 1011,
+              "Type": "Video",
+              "Codec": "h264",
+              "Width": 1920,
+              "Height": 1080,
+              "VideoRange": "SDR",
+              "VideoRangeType": "SDR"
+            },
+            {
+              "Index": 1012,
+              "Type": "Audio",
+              "Codec": "aac",
+              "IsDefault": true
+            },
+            {
+              "Index": 1013,
+              "Type": "Audio",
+              "Codec": "ac3"
+            },
+            {
+              "Index": 1014,
+              "Type": "Subtitle",
+              "Codec": "subrip",
+              "IsTextSubtitleStream": true
+            }
+          ],
+          "Name": "Theatrical",
+          "Container": "mkv",
+          "Bitrate": 8000000,
+          "Size": 1000,
+          "RunTimeTicks": 600000000,
+          "DefaultAudioStreamIndex": 1013,
+          "DefaultSubtitleStreamIndex": 1014
+        },
+        {
+          "Id": "12",
+          "Protocol": "File",
+          "SupportsDirectPlay": true,
+          "SupportsDirectStream": true,
+          "SupportsTranscoding": true,
+          "MediaStreams": [
+            {
+              "Index": 1021,
+              "Type": "Video",
+              "Codec": "h264",
+              "Width": 1920,
+              "Height": 1080,
+              "VideoRange": "SDR",
+              "VideoRangeType": "SDR"
+            },
+            {
+              "Index": 1022,
+              "Type": "Audio",
+              "Codec": "aac",
+              "IsDefault": true
+            },
+            {
+              "Index": 1023,
+              "Type": "Audio",
+              "Codec": "ac3"
+            },
+            {
+              "Index": 1024,
+              "Type": "Subtitle",
+              "Codec": "subrip",
+              "IsTextSubtitleStream": true
+            }
+          ],
+          "Name": "4K",
+          "Size": 1000,
+          "RunTimeTicks": 600000000,
+          "DefaultAudioStreamIndex": 1023,
+          "DefaultSubtitleStreamIndex": 1024
+        }
+      ]
+    },
+    {
+      "name": "toMediaSources: a version with a missing part is hidden (Plezy #919)",
+      "fn": "toMediaSources",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 11,
+              "videoResolution": "1080",
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "exists": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "11",
+          "Protocol": "File",
+          "SupportsDirectPlay": true,
+          "SupportsDirectStream": true,
+          "SupportsTranscoding": true,
+          "MediaStreams": [
+            {
+              "Index": 1011,
+              "Type": "Video",
+              "Codec": "h264",
+              "Width": 1920,
+              "Height": 1080,
+              "VideoRange": "SDR",
+              "VideoRangeType": "SDR"
+            },
+            {
+              "Index": 1012,
+              "Type": "Audio",
+              "Codec": "aac",
+              "IsDefault": true
+            },
+            {
+              "Index": 1013,
+              "Type": "Audio",
+              "Codec": "ac3"
+            },
+            {
+              "Index": 1014,
+              "Type": "Subtitle",
+              "Codec": "subrip",
+              "IsTextSubtitleStream": true
+            }
+          ],
+          "Name": "1080p",
+          "Size": 1000,
+          "DefaultAudioStreamIndex": 1013,
+          "DefaultSubtitleStreamIndex": 1014
+        }
+      ]
+    },
+    {
+      "name": "toMediaSources: inaccessible only: nothing to play",
+      "fn": "toMediaSources",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "accessible": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "toMediaSources: a two-part film is one source (D-4)",
+      "fn": "toMediaSources",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 13,
+              "videoResolution": "720",
+              "duration": 7200000,
+              "Part": [
+                {
+                  "id": 103,
+                  "key": "/library/parts/103/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/103.mkv",
+                  "Stream": [
+                    {
+                      "id": 1031,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1032,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1033,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1034,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                },
+                {
+                  "id": 104,
+                  "key": "/library/parts/104/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/104.mkv",
+                  "Stream": [
+                    {
+                      "id": 1041,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1042,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1043,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1044,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "13",
+          "Protocol": "File",
+          "SupportsDirectPlay": true,
+          "SupportsDirectStream": true,
+          "SupportsTranscoding": true,
+          "MediaStreams": [
+            {
+              "Index": 1031,
+              "Type": "Video",
+              "Codec": "h264",
+              "Width": 1920,
+              "Height": 1080,
+              "VideoRange": "SDR",
+              "VideoRangeType": "SDR"
+            },
+            {
+              "Index": 1032,
+              "Type": "Audio",
+              "Codec": "aac",
+              "IsDefault": true
+            },
+            {
+              "Index": 1033,
+              "Type": "Audio",
+              "Codec": "ac3"
+            },
+            {
+              "Index": 1034,
+              "Type": "Subtitle",
+              "Codec": "subrip",
+              "IsTextSubtitleStream": true
+            }
+          ],
+          "Name": "720p",
+          "Size": 2000,
+          "RunTimeTicks": 72000000000,
+          "DefaultAudioStreamIndex": 1033,
+          "DefaultSubtitleStreamIndex": 1034
+        }
+      ]
+    },
+    {
+      "name": "toMediaSources: no media",
+      "fn": "toMediaSources",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie"
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "toItem: a film, every §4 row",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "title": "Big Buck Bunny",
+          "titleSort": "Big Buck Bunny",
+          "librarySectionID": 1,
+          "summary": "A rabbit.",
+          "tagline": "The big buck is back.",
+          "year": 2008,
+          "originallyAvailableAt": "2008-04-10",
+          "contentRating": "G",
+          "audienceRating": 6.9,
+          "rating": 9.1,
+          "ratingImage": "rottentomatoes://image.rating.ripe",
+          "duration": 596000,
+          "viewOffset": 60000,
+          "addedAt": 1700000000,
+          "updatedAt": 1700001000,
+          "thumb": "/library/metadata/1000/thumb/1700001000",
+          "art": "/library/metadata/1000/art/1700001000",
+          "guid": "com.plexapp.agents.imdb://tt1254207?lang=en",
+          "studio": "Blender Studio",
+          "Genre": [
+            {
+              "id": 100,
+              "tag": "Animation"
+            },
+            {
+              "id": 101,
+              "tag": "Comedy"
+            }
+          ],
+          "Director": [
+            {
+              "id": 901,
+              "tag": "Sacha Goedegebure"
+            }
+          ],
+          "Role": [
+            {
+              "id": 902,
+              "tag": "Bunny",
+              "role": "Himself",
+              "thumb": "/library/people/902/thumb/5"
+            }
+          ],
+          "Label": [
+            {
+              "tag": "Kids"
+            }
+          ],
+          "Rating": [
+            {
+              "image": "imdb://image.rating",
+              "value": 6.9,
+              "type": "audience"
+            },
+            {
+              "image": "rottentomatoes://image.rating.ripe",
+              "value": 9.1,
+              "type": "critic"
+            }
+          ],
+          "Media": [
+            {
+              "id": 11,
+              "bitrate": 8000,
+              "container": "mkv",
+              "videoResolution": "1080",
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "Chapter": [
+            {
+              "tag": "Start",
+              "startTimeOffset": 0
+            },
+            {
+              "tag": "Meadow",
+              "startTimeOffset": 120000
+            }
+          ],
+          "Extras": {
+            "size": 2,
+            "Metadata": [
+              {
+                "ratingKey": "7000",
+                "type": "clip",
+                "extraType": 1,
+                "title": "Trailer",
+                "duration": 33000
+              },
+              {
+                "ratingKey": "7001",
+                "type": "clip",
+                "extraType": 5,
+                "title": "Making of"
+              }
+            ]
+          }
+        }
+      ],
+      "out": {
+        "Id": "1000",
+        "Name": "Big Buck Bunny",
+        "Type": "Movie",
+        "IsFolder": false,
+        "MediaType": "Video",
+        "Overview": "A rabbit.",
+        "Taglines": [
+          "The big buck is back."
+        ],
+        "ProductionYear": 2008,
+        "PremiereDate": "2008-04-10T00:00:00.0000000Z",
+        "OfficialRating": "G",
+        "CommunityRating": 6.9,
+        "CriticRating": 91,
+        "ProviderRatings": [
+          {
+            "Source": "imdb",
+            "Type": "audience",
+            "Value": 6.9
+          },
+          {
+            "Source": "rottentomatoes",
+            "Type": "critic",
+            "Value": 9.1
+          }
+        ],
+        "RunTimeTicks": 5960000000,
+        "ParentId": "section-1",
+        "ProviderIds": {
+          "Imdb": "tt1254207"
+        },
+        "Genres": [
+          "Animation",
+          "Comedy"
+        ],
+        "Studios": [
+          {
+            "Name": "Blender Studio"
+          }
+        ],
+        "Tags": [
+          "Kids"
+        ],
+        "People": [
+          {
+            "Id": "person-901",
+            "Name": "Sacha Goedegebure",
+            "Type": "Director"
+          },
+          {
+            "Id": "person-902",
+            "Name": "Bunny",
+            "Type": "Actor",
+            "Role": "Himself",
+            "PrimaryImageTag": "5"
+          }
+        ],
+        "ImageTags": {
+          "Primary": "1700001000"
+        },
+        "BackdropImageTags": [
+          "1700001000"
+        ],
+        "DateCreated": "2023-11-14T22:13:20.000Z",
+        "Etag": "1700001000",
+        "MediaSources": [
+          {
+            "Id": "11",
+            "Protocol": "File",
+            "SupportsDirectPlay": true,
+            "SupportsDirectStream": true,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 1011,
+                "Type": "Video",
+                "Codec": "h264",
+                "Width": 1920,
+                "Height": 1080,
+                "VideoRange": "SDR",
+                "VideoRangeType": "SDR"
+              },
+              {
+                "Index": 1012,
+                "Type": "Audio",
+                "Codec": "aac",
+                "IsDefault": true
+              },
+              {
+                "Index": 1013,
+                "Type": "Audio",
+                "Codec": "ac3"
+              },
+              {
+                "Index": 1014,
+                "Type": "Subtitle",
+                "Codec": "subrip",
+                "IsTextSubtitleStream": true
+              }
+            ],
+            "Name": "1080p",
+            "Container": "mkv",
+            "Bitrate": 8000000,
+            "Size": 1000,
+            "RunTimeTicks": 5960000000,
+            "DefaultAudioStreamIndex": 1013,
+            "DefaultSubtitleStreamIndex": 1014
+          }
+        ],
+        "MediaStreams": [
+          {
+            "Index": 1011,
+            "Type": "Video",
+            "Codec": "h264",
+            "Width": 1920,
+            "Height": 1080,
+            "VideoRange": "SDR",
+            "VideoRangeType": "SDR"
+          },
+          {
+            "Index": 1012,
+            "Type": "Audio",
+            "Codec": "aac",
+            "IsDefault": true
+          },
+          {
+            "Index": 1013,
+            "Type": "Audio",
+            "Codec": "ac3"
+          },
+          {
+            "Index": 1014,
+            "Type": "Subtitle",
+            "Codec": "subrip",
+            "IsTextSubtitleStream": true
+          }
+        ],
+        "Width": 1920,
+        "Height": 1080,
+        "Container": "mkv",
+        "Chapters": [
+          {
+            "StartPositionTicks": 0,
+            "Name": "Start"
+          },
+          {
+            "StartPositionTicks": 1200000000,
+            "Name": "Meadow"
+          }
+        ],
+        "LocalTrailerCount": 1,
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 600000000,
+          "Played": false,
+          "PlayedPercentage": 10.07
+        }
+      }
+    },
+    {
+      "name": "toItem: an episode with its series and season",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "2003",
+          "type": "episode",
+          "title": "Gran Dillama",
+          "index": 2,
+          "parentIndex": 1,
+          "parentRatingKey": "2001",
+          "parentTitle": "Season 1",
+          "grandparentRatingKey": "2000",
+          "grandparentTitle": "Caminandes",
+          "grandparentThumb": "/library/metadata/2000/thumb/5",
+          "grandparentArt": "/library/metadata/2000/art/5",
+          "thumb": "/library/metadata/2003/thumb/6",
+          "duration": 146000,
+          "viewCount": 1,
+          "librarySectionID": 2
+        }
+      ],
+      "out": {
+        "Id": "2003",
+        "Name": "Gran Dillama",
+        "Type": "Episode",
+        "IsFolder": false,
+        "MediaType": "Video",
+        "RunTimeTicks": 1460000000,
+        "IndexNumber": 2,
+        "ParentIndexNumber": 1,
+        "SeriesId": "2000",
+        "SeriesName": "Caminandes",
+        "SeasonId": "2001",
+        "SeasonName": "Season 1",
+        "ParentId": "2001",
+        "ImageTags": {
+          "Primary": "6"
+        },
+        "SeriesPrimaryImageTag": "5",
+        "ParentBackdropItemId": "2000",
+        "ParentBackdropImageTags": [
+          "5"
+        ],
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 1,
+          "PlaybackPositionTicks": 0,
+          "Played": true
+        }
+      }
+    },
+    {
+      "name": "toItem: a season",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "2001",
+          "type": "season",
+          "title": "Season 1",
+          "index": 1,
+          "parentRatingKey": "2000",
+          "parentTitle": "Caminandes",
+          "leafCount": 3,
+          "viewedLeafCount": 1,
+          "thumb": "/library/metadata/2001/thumb/4"
+        }
+      ],
+      "out": {
+        "Id": "2001",
+        "Name": "Season 1",
+        "Type": "Season",
+        "IsFolder": true,
+        "IndexNumber": 1,
+        "SeriesId": "2000",
+        "ParentId": "2000",
+        "SeriesName": "Caminandes",
+        "RecursiveItemCount": 3,
+        "ImageTags": {
+          "Primary": "4"
+        },
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "UnplayedItemCount": 2,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: a show with seasons hidden",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "2100",
+          "type": "show",
+          "title": "Studio Diaries",
+          "flattenSeasons": 1,
+          "childCount": 1,
+          "leafCount": 4,
+          "viewedLeafCount": 0,
+          "librarySectionID": 2,
+          "Guid": [
+            {
+              "id": "tvdb://270000"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Id": "2100",
+        "Name": "Studio Diaries",
+        "Type": "Series",
+        "IsFolder": true,
+        "ParentId": "section-2",
+        "ChildCount": 1,
+        "RecursiveItemCount": 4,
+        "ProviderIds": {
+          "Tvdb": "270000"
+        },
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "UnplayedItemCount": 4,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: an album",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "3001",
+          "type": "album",
+          "title": "Altiplano",
+          "parentRatingKey": "3000",
+          "parentTitle": "Les Lamas Sonores",
+          "year": 2019,
+          "leafCount": 4,
+          "viewedLeafCount": 0,
+          "thumb": "/library/metadata/3001/thumb/1"
+        }
+      ],
+      "out": {
+        "Id": "3001",
+        "Name": "Altiplano",
+        "Type": "MusicAlbum",
+        "IsFolder": true,
+        "ProductionYear": 2019,
+        "AlbumArtist": "Les Lamas Sonores",
+        "AlbumArtists": [
+          {
+            "Name": "Les Lamas Sonores",
+            "Id": "3000"
+          }
+        ],
+        "RecursiveItemCount": 4,
+        "ImageTags": {
+          "Primary": "1"
+        },
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "UnplayedItemCount": 4,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: a track with a guest artist",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "30011",
+          "type": "track",
+          "title": "Altiplano 1",
+          "index": 1,
+          "parentIndex": 1,
+          "parentRatingKey": "3001",
+          "parentTitle": "Altiplano",
+          "parentThumb": "/library/metadata/3001/thumb/1",
+          "grandparentRatingKey": "3000",
+          "grandparentTitle": "Les Lamas Sonores",
+          "originalTitle": "Guest Singer",
+          "duration": 187000,
+          "Media": [
+            {
+              "id": 300110,
+              "container": "flac",
+              "Part": [
+                {
+                  "id": 9,
+                  "key": "/library/parts/9/1/file.flac",
+                  "Stream": [
+                    {
+                      "id": 91,
+                      "streamType": 2,
+                      "codec": "flac",
+                      "channels": 2,
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Id": "30011",
+        "Name": "Altiplano 1",
+        "Type": "Audio",
+        "IsFolder": false,
+        "MediaType": "Audio",
+        "RunTimeTicks": 1870000000,
+        "IndexNumber": 1,
+        "ParentIndexNumber": 1,
+        "Album": "Altiplano",
+        "AlbumId": "3001",
+        "AlbumArtist": "Les Lamas Sonores",
+        "AlbumArtists": [
+          {
+            "Name": "Les Lamas Sonores",
+            "Id": "3000"
+          }
+        ],
+        "Artists": [
+          "Guest Singer"
+        ],
+        "AlbumPrimaryImageTag": "1",
+        "MediaSources": [
+          {
+            "Id": "300110",
+            "Protocol": "File",
+            "SupportsDirectPlay": true,
+            "SupportsDirectStream": true,
+            "SupportsTranscoding": true,
+            "MediaStreams": [
+              {
+                "Index": 91,
+                "Type": "Audio",
+                "Codec": "flac",
+                "Channels": 2
+              }
+            ],
+            "Container": "flac",
+            "RunTimeTicks": 1870000000,
+            "DefaultAudioStreamIndex": 91
+          }
+        ],
+        "MediaStreams": [
+          {
+            "Index": 91,
+            "Type": "Audio",
+            "Codec": "flac",
+            "Channels": 2
+          }
+        ],
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: a collection",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "5000",
+          "type": "collection",
+          "title": "Sagas",
+          "childCount": 3,
+          "librarySectionID": 1,
+          "thumb": "/library/collections/5000/composite/1"
+        }
+      ],
+      "out": {
+        "Id": "5000",
+        "Name": "Sagas",
+        "Type": "BoxSet",
+        "IsFolder": true,
+        "ChildCount": 3,
+        "ImageTags": {
+          "Primary": "1"
+        },
+        "UserData": {
+          "IsFavorite": false,
+          "Played": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0
+        }
+      }
+    },
+    {
+      "name": "toItem: an audio playlist",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "6001",
+          "type": "playlist",
+          "title": "Mix",
+          "playlistType": "audio",
+          "leafCount": 12
+        }
+      ],
+      "out": {
+        "Id": "6001",
+        "Name": "Mix",
+        "Type": "Playlist",
+        "IsFolder": true,
+        "MediaType": "Audio",
+        "RecursiveItemCount": 12,
+        "UserData": {
+          "IsFavorite": false,
+          "Played": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0
+        }
+      }
+    },
+    {
+      "name": "toItem: a trailer extra",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "7000",
+          "type": "clip",
+          "extraType": 1,
+          "title": "Trailer",
+          "duration": 33000
+        }
+      ],
+      "out": {
+        "Id": "7000",
+        "Name": "Trailer",
+        "Type": "Trailer",
+        "IsFolder": false,
+        "MediaType": "Video",
+        "RunTimeTicks": 330000000,
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: a photo (D-7)",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "8000",
+          "type": "photo",
+          "title": "IMG_0001",
+          "year": 2024,
+          "Media": [
+            {
+              "id": 80,
+              "width": 4000,
+              "height": 3000,
+              "container": "jpeg",
+              "Part": [
+                {
+                  "id": 81,
+                  "key": "/library/parts/81/1/file.jpg"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Id": "8000",
+        "Name": "IMG_0001",
+        "Type": "Photo",
+        "IsFolder": false,
+        "MediaType": "Photo",
+        "ProductionYear": 2024,
+        "Width": 4000,
+        "Height": 3000,
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItem: an unmapped type is left out",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "9",
+          "type": "person",
+          "title": "X"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "toItem: no ratingKey",
+      "fn": "toItem",
+      "args": [
+        {
+          "type": "movie",
+          "title": "X"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "toItem: a plain critic rating (not RT) is the community one",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "5",
+          "type": "movie",
+          "title": "Y",
+          "rating": 7.2
+        }
+      ],
+      "out": {
+        "Id": "5",
+        "Name": "Y",
+        "Type": "Movie",
+        "IsFolder": false,
+        "MediaType": "Video",
+        "CommunityRating": 7.2,
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "toItemsResult: totalSize and offset",
+      "fn": "toItemsResult",
+      "args": [
+        {
+          "size": 1,
+          "totalSize": 12,
+          "offset": 5,
+          "Metadata": [
+            {
+              "ratingKey": "1005",
+              "type": "movie",
+              "title": "Cosmos"
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": [
+          {
+            "Id": "1005",
+            "Name": "Cosmos",
+            "Type": "Movie",
+            "IsFolder": false,
+            "MediaType": "Video",
+            "UserData": {
+              "IsFavorite": false,
+              "PlayCount": 0,
+              "PlaybackPositionTicks": 0,
+              "Played": false
+            }
+          }
+        ],
+        "TotalRecordCount": 12,
+        "StartIndex": 5
+      }
+    },
+    {
+      "name": "toItemsResult: no totalSize: the page size plus offset",
+      "fn": "toItemsResult",
+      "args": [
+        {
+          "size": 2,
+          "Metadata": [
+            {
+              "ratingKey": "1",
+              "type": "movie",
+              "title": "A"
+            },
+            {
+              "ratingKey": "9",
+              "type": "person",
+              "title": "skip"
+            }
+          ]
+        },
+        10
+      ],
+      "out": {
+        "Items": [
+          {
+            "Id": "1",
+            "Name": "A",
+            "Type": "Movie",
+            "IsFolder": false,
+            "MediaType": "Video",
+            "UserData": {
+              "IsFavorite": false,
+              "PlayCount": 0,
+              "PlaybackPositionTicks": 0,
+              "Played": false
+            }
+          }
+        ],
+        "TotalRecordCount": 12,
+        "StartIndex": 10
+      }
+    },
+    {
+      "name": "toItemsResult: an empty container",
+      "fn": "toItemsResult",
+      "args": [
+        null
+      ],
+      "out": {
+        "Items": [],
+        "TotalRecordCount": 0,
+        "StartIndex": 0
+      }
+    },
+    {
+      "name": "toExtras: the trailers",
+      "fn": "toExtras",
+      "args": [
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "title": "Big Buck Bunny",
+          "titleSort": "Big Buck Bunny",
+          "librarySectionID": 1,
+          "summary": "A rabbit.",
+          "tagline": "The big buck is back.",
+          "year": 2008,
+          "originallyAvailableAt": "2008-04-10",
+          "contentRating": "G",
+          "audienceRating": 6.9,
+          "rating": 9.1,
+          "ratingImage": "rottentomatoes://image.rating.ripe",
+          "duration": 596000,
+          "viewOffset": 60000,
+          "addedAt": 1700000000,
+          "updatedAt": 1700001000,
+          "thumb": "/library/metadata/1000/thumb/1700001000",
+          "art": "/library/metadata/1000/art/1700001000",
+          "guid": "com.plexapp.agents.imdb://tt1254207?lang=en",
+          "studio": "Blender Studio",
+          "Genre": [
+            {
+              "id": 100,
+              "tag": "Animation"
+            },
+            {
+              "id": 101,
+              "tag": "Comedy"
+            }
+          ],
+          "Director": [
+            {
+              "id": 901,
+              "tag": "Sacha Goedegebure"
+            }
+          ],
+          "Role": [
+            {
+              "id": 902,
+              "tag": "Bunny",
+              "role": "Himself",
+              "thumb": "/library/people/902/thumb/5"
+            }
+          ],
+          "Label": [
+            {
+              "tag": "Kids"
+            }
+          ],
+          "Rating": [
+            {
+              "image": "imdb://image.rating",
+              "value": 6.9,
+              "type": "audience"
+            },
+            {
+              "image": "rottentomatoes://image.rating.ripe",
+              "value": 9.1,
+              "type": "critic"
+            }
+          ],
+          "Media": [
+            {
+              "id": 11,
+              "bitrate": 8000,
+              "container": "mkv",
+              "videoResolution": "1080",
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "Chapter": [
+            {
+              "tag": "Start",
+              "startTimeOffset": 0
+            },
+            {
+              "tag": "Meadow",
+              "startTimeOffset": 120000
+            }
+          ],
+          "Extras": {
+            "size": 2,
+            "Metadata": [
+              {
+                "ratingKey": "7000",
+                "type": "clip",
+                "extraType": 1,
+                "title": "Trailer",
+                "duration": 33000
+              },
+              {
+                "ratingKey": "7001",
+                "type": "clip",
+                "extraType": 5,
+                "title": "Making of"
+              }
+            ]
+          }
+        },
+        true
+      ],
+      "out": [
+        {
+          "Id": "7000",
+          "Name": "Trailer",
+          "Type": "Trailer",
+          "IsFolder": false,
+          "MediaType": "Video",
+          "RunTimeTicks": 330000000,
+          "UserData": {
+            "IsFavorite": false,
+            "PlayCount": 0,
+            "PlaybackPositionTicks": 0,
+            "Played": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "toExtras: the special features",
+      "fn": "toExtras",
+      "args": [
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "title": "Big Buck Bunny",
+          "titleSort": "Big Buck Bunny",
+          "librarySectionID": 1,
+          "summary": "A rabbit.",
+          "tagline": "The big buck is back.",
+          "year": 2008,
+          "originallyAvailableAt": "2008-04-10",
+          "contentRating": "G",
+          "audienceRating": 6.9,
+          "rating": 9.1,
+          "ratingImage": "rottentomatoes://image.rating.ripe",
+          "duration": 596000,
+          "viewOffset": 60000,
+          "addedAt": 1700000000,
+          "updatedAt": 1700001000,
+          "thumb": "/library/metadata/1000/thumb/1700001000",
+          "art": "/library/metadata/1000/art/1700001000",
+          "guid": "com.plexapp.agents.imdb://tt1254207?lang=en",
+          "studio": "Blender Studio",
+          "Genre": [
+            {
+              "id": 100,
+              "tag": "Animation"
+            },
+            {
+              "id": 101,
+              "tag": "Comedy"
+            }
+          ],
+          "Director": [
+            {
+              "id": 901,
+              "tag": "Sacha Goedegebure"
+            }
+          ],
+          "Role": [
+            {
+              "id": 902,
+              "tag": "Bunny",
+              "role": "Himself",
+              "thumb": "/library/people/902/thumb/5"
+            }
+          ],
+          "Label": [
+            {
+              "tag": "Kids"
+            }
+          ],
+          "Rating": [
+            {
+              "image": "imdb://image.rating",
+              "value": 6.9,
+              "type": "audience"
+            },
+            {
+              "image": "rottentomatoes://image.rating.ripe",
+              "value": 9.1,
+              "type": "critic"
+            }
+          ],
+          "Media": [
+            {
+              "id": 11,
+              "bitrate": 8000,
+              "container": "mkv",
+              "videoResolution": "1080",
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "Chapter": [
+            {
+              "tag": "Start",
+              "startTimeOffset": 0
+            },
+            {
+              "tag": "Meadow",
+              "startTimeOffset": 120000
+            }
+          ],
+          "Extras": {
+            "size": 2,
+            "Metadata": [
+              {
+                "ratingKey": "7000",
+                "type": "clip",
+                "extraType": 1,
+                "title": "Trailer",
+                "duration": 33000
+              },
+              {
+                "ratingKey": "7001",
+                "type": "clip",
+                "extraType": 5,
+                "title": "Making of"
+              }
+            ]
+          }
+        },
+        false
+      ],
+      "out": [
+        {
+          "Id": "7001",
+          "Name": "Making of",
+          "Type": "Video",
+          "IsFolder": false,
+          "MediaType": "Video",
+          "UserData": {
+            "IsFavorite": false,
+            "PlayCount": 0,
+            "PlaybackPositionTicks": 0,
+            "Played": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "toSegments: an episode intro and credits",
+      "fn": "toSegments",
+      "args": [
+        {
+          "ratingKey": "2002",
+          "type": "episode",
+          "Marker": [
+            {
+              "type": "credits",
+              "startTimeOffset": 70000,
+              "endTimeOffset": 90000,
+              "final": true
+            },
+            {
+              "type": "intro",
+              "startTimeOffset": 3000,
+              "endTimeOffset": 15000
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": [
+          {
+            "Type": "Intro",
+            "StartTicks": 30000000,
+            "EndTicks": 150000000
+          },
+          {
+            "Type": "Outro",
+            "StartTicks": 700000000,
+            "EndTicks": 900000000
+          }
+        ]
+      }
+    },
+    {
+      "name": "toSegments: no intro on a film (Plezy #2235)",
+      "fn": "toSegments",
+      "args": [
+        {
+          "ratingKey": "1000",
+          "type": "movie",
+          "Marker": [
+            {
+              "type": "intro",
+              "startTimeOffset": 5000,
+              "endTimeOffset": 25000
+            },
+            {
+              "type": "credits",
+              "startTimeOffset": 536000,
+              "endTimeOffset": 596000
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": [
+          {
+            "Type": "Outro",
+            "StartTicks": 5360000000,
+            "EndTicks": 5960000000
+          }
+        ]
+      }
+    },
+    {
+      "name": "toSegments: commercials (DVR)",
+      "fn": "toSegments",
+      "args": [
+        {
+          "ratingKey": "9",
+          "type": "episode",
+          "Marker": [
+            {
+              "type": "commercial",
+              "startTimeOffset": 600000,
+              "endTimeOffset": 780000
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": [
+          {
+            "Type": "Commercial",
+            "StartTicks": 6000000000,
+            "EndTicks": 7800000000
+          }
+        ]
+      }
+    },
+    {
+      "name": "toSegments: credits detection off: no Outro (Plezy #2137)",
+      "fn": "toSegments",
+      "args": [
+        {
+          "ratingKey": "9",
+          "type": "episode",
+          "Marker": [
+            {
+              "type": "intro",
+              "startTimeOffset": 0,
+              "endTimeOffset": 20000
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": [
+          {
+            "Type": "Intro",
+            "StartTicks": 0,
+            "EndTicks": 200000000
+          }
+        ]
+      }
+    },
+    {
+      "name": "toSegments: an empty or unknown marker is dropped",
+      "fn": "toSegments",
+      "args": [
+        {
+          "ratingKey": "9",
+          "type": "episode",
+          "Marker": [
+            {
+              "type": "intro",
+              "startTimeOffset": 5000,
+              "endTimeOffset": 5000
+            },
+            {
+              "type": "bookmark",
+              "startTimeOffset": 1,
+              "endTimeOffset": 2
+            }
+          ]
+        }
+      ],
+      "out": {
+        "Items": []
+      }
+    },
+    {
+      "name": "toHubs: promoted hubs, empty ones dropped",
+      "fn": "toHubs",
+      "args": [
+        {
+          "Hub": [
+            {
+              "hubIdentifier": "home.continue",
+              "title": "Continue Watching",
+              "Metadata": [
+                {
+                  "ratingKey": "1002",
+                  "type": "movie",
+                  "title": "Sintel",
+                  "viewOffset": 300000,
+                  "duration": 888000
+                }
+              ]
+            },
+            {
+              "hubIdentifier": "home.empty",
+              "title": "Nothing",
+              "Metadata": []
+            },
+            {
+              "key": "/hubs/x",
+              "title": "Shows",
+              "Metadata": [
+                {
+                  "ratingKey": "2000",
+                  "type": "show",
+                  "title": "Caminandes"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Name": "Continue Watching",
+          "Key": "home.continue",
+          "Items": [
+            {
+              "Id": "1002",
+              "Name": "Sintel",
+              "Type": "Movie",
+              "IsFolder": false,
+              "MediaType": "Video",
+              "RunTimeTicks": 8880000000,
+              "UserData": {
+                "IsFavorite": false,
+                "PlayCount": 0,
+                "PlaybackPositionTicks": 3000000000,
+                "Played": false,
+                "PlayedPercentage": 33.78
+              }
+            }
+          ]
+        },
+        {
+          "Name": "Shows",
+          "Key": "/hubs/x",
+          "Items": [
+            {
+              "Id": "2000",
+              "Name": "Caminandes",
+              "Type": "Series",
+              "IsFolder": true,
+              "UserData": {
+                "IsFavorite": false,
+                "PlayCount": 0,
+                "PlaybackPositionTicks": 0,
+                "Played": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "toChapters: names and ticks",
+      "fn": "toChapters",
+      "args": [
+        {
+          "Chapter": [
+            {
+              "tag": "Opening",
+              "startTimeOffset": 0
+            },
+            {
+              "startTimeOffset": 120000
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "StartPositionTicks": 0,
+          "Name": "Opening"
+        },
+        {
+          "StartPositionTicks": 1200000000
+        }
+      ]
+    },
+    {
+      "name": "toChapters: none",
+      "fn": "toChapters",
+      "args": [
+        {}
+      ],
+      "out": null
+    },
+    {
+      "name": "parseId: a ratingKey",
+      "fn": "parseId",
+      "args": [
+        "1000"
+      ],
+      "out": {
+        "kind": "item",
+        "key": "1000"
+      }
+    },
+    {
+      "name": "parseId: a section",
+      "fn": "parseId",
+      "args": [
+        "section-2"
+      ],
+      "out": {
+        "kind": "section",
+        "key": "2"
+      }
+    },
+    {
+      "name": "parseId: a person",
+      "fn": "parseId",
+      "args": [
+        "person-901"
+      ],
+      "out": {
+        "kind": "person",
+        "key": "901"
+      }
+    },
+    {
+      "name": "parseId: an Emby id is not a Plex one",
+      "fn": "parseId",
+      "args": [
+        "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+      ],
+      "out": null
+    },
+    {
+      "name": "parseId: injection refused",
+      "fn": "parseId",
+      "args": [
+        "1/../2"
+      ],
+      "out": null
+    },
+    {
+      "name": "msToTicks: ms × 10 000",
+      "fn": "msToTicks",
+      "args": [
+        596000
+      ],
+      "out": 5960000000
+    },
+    {
+      "name": "msToTicks: missing",
+      "fn": "msToTicks",
+      "args": [
+        null
+      ],
+      "out": null
+    },
+    {
+      "name": "ticksToMs: ticks / 10 000",
+      "fn": "ticksToMs",
+      "args": [
+        6000000000
+      ],
+      "out": 600000
+    },
+    {
+      "name": "ticksToMs: garbage is 0",
+      "fn": "ticksToMs",
+      "args": [
+        "x"
+      ],
+      "out": 0
+    },
+    {
+      "name": "epochToIso: seconds to ISO",
+      "fn": "epochToIso",
+      "args": [
+        1700000000
+      ],
+      "out": "2023-11-14T22:13:20.000Z"
+    },
+    {
+      "name": "epochToIso: 0 is none",
+      "fn": "epochToIso",
+      "args": [
+        0
+      ],
+      "out": null
+    },
+    {
+      "name": "playablePart: skips the missing version",
+      "fn": "playablePart",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 11,
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                },
+                {
+                  "id": 103,
+                  "key": "/library/parts/103/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/103.mkv",
+                  "Stream": [
+                    {
+                      "id": 1031,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1032,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1033,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1034,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": 102
+    },
+    {
+      "name": "playablePart: the chosen source",
+      "fn": "playablePart",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 11,
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                },
+                {
+                  "id": 103,
+                  "key": "/library/parts/103/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/103.mkv",
+                  "Stream": [
+                    {
+                      "id": 1031,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1032,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1033,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1034,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "12"
+      ],
+      "out": 102
+    },
+    {
+      "name": "playablePart: a missing source falls back to the first readable",
+      "fn": "playablePart",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 11,
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                },
+                {
+                  "id": 103,
+                  "key": "/library/parts/103/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/103.mkv",
+                  "Stream": [
+                    {
+                      "id": 1031,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1032,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1033,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1034,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "11"
+      ],
+      "out": 102
+    },
+    {
+      "name": "partQueue: both parts of a two-part film (D-4)",
+      "fn": "partQueue",
+      "args": [
+        {
+          "ratingKey": "1",
+          "type": "movie",
+          "Media": [
+            {
+              "id": 11,
+              "Part": [
+                {
+                  "id": 101,
+                  "key": "/library/parts/101/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/101.mkv",
+                  "Stream": [
+                    {
+                      "id": 1011,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1012,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1013,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1014,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ],
+                  "exists": false
+                }
+              ]
+            },
+            {
+              "id": 12,
+              "Part": [
+                {
+                  "id": 102,
+                  "key": "/library/parts/102/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/102.mkv",
+                  "Stream": [
+                    {
+                      "id": 1021,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1022,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1023,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1024,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                },
+                {
+                  "id": 103,
+                  "key": "/library/parts/103/1/file.mkv",
+                  "size": 1000,
+                  "file": "/data/103.mkv",
+                  "Stream": [
+                    {
+                      "id": 1031,
+                      "streamType": 1,
+                      "codec": "h264",
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    {
+                      "id": 1032,
+                      "streamType": 2,
+                      "codec": "aac",
+                      "default": true
+                    },
+                    {
+                      "id": 1033,
+                      "streamType": 2,
+                      "codec": "ac3",
+                      "selected": true
+                    },
+                    {
+                      "id": 1034,
+                      "streamType": 3,
+                      "codec": "srt",
+                      "selected": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        102,
+        103
+      ]
+    },
+    {
+      "name": "seasonsFlattened: 1",
+      "fn": "seasonsFlattened",
+      "args": [
+        {
+          "flattenSeasons": 1
+        }
+      ],
+      "out": true
+    },
+    {
+      "name": "seasonsFlattened: \"1\"",
+      "fn": "seasonsFlattened",
+      "args": [
+        {
+          "flattenSeasons": "1"
+        }
+      ],
+      "out": true
+    },
+    {
+      "name": "seasonsFlattened: -1 (library default)",
+      "fn": "seasonsFlattened",
+      "args": [
+        {
+          "flattenSeasons": -1
+        }
+      ],
+      "out": false
+    },
+    {
+      "name": "itemsRequest: a section, films by name, paged",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "IncludeItemTypes": "Movie",
+          "SortBy": "SortName",
+          "SortOrder": "Ascending",
+          "Recursive": true,
+          "StartIndex": 50,
+          "Limit": 50,
+          "Fields": "Overview",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": 1
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "type": "1",
+          "sort": "titleSort:asc"
+        },
+        "headers": {
+          "X-Plex-Container-Start": "50",
+          "X-Plex-Container-Size": "50"
+        },
+        "keep": [
+          "Movie"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: two sort keys, descending",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "SortBy": "PremiereDate,SortName",
+          "SortOrder": "Descending"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "sort": "originallyAvailableAt:desc,titleSort:desc"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: every Emby sort key",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "SortBy": "DateCreated,CommunityRating,DatePlayed,Runtime,PlayCount,ProductionYear",
+          "SortOrder": "Ascending"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "sort": "addedAt:asc,audienceRating:asc,lastViewedAt:asc,duration:asc,viewCount:asc,year:asc"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: Random sort",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "SortBy": "Random"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "sort": "random"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: unplayed filter",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-2",
+          "IncludeItemTypes": "Series",
+          "Filters": "IsUnplayed"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/2/all",
+        "query": {
+          "type": "2",
+          "unwatched": "1"
+        },
+        "keep": [
+          "Series"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: played filter",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Filters": "IsPlayed"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "viewCount>>": "0"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: resumable filter",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Filters": "IsResumable,IsNotFolder"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "inProgress": "1"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: favorites are the watchlist (D-6): the adapter adds guid= per entry",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Filters": "IsFavorite"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {},
+        "watchlist": true
+      }
+    },
+    {
+      "name": "itemsRequest: an unknown key is not dropped silently",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "HasSubtitles": true
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items hassubtitles",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: an unknown type",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "IncludeItemTypes": "TvChannel"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED IncludeItemTypes=TvChannel",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: Ids",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Ids": "1000,1002"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/1000,1002",
+        "query": {}
+      }
+    },
+    {
+      "name": "itemsRequest: an Emby id in Ids",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Ids": "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Ids=a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: search",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "agent",
+          "Recursive": true,
+          "IncludeItemTypes": "Movie,Series",
+          "Limit": 24
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/search",
+        "query": {
+          "query": "agent",
+          "limit": "24"
+        },
+        "hubs": true,
+        "keep": [
+          "Movie",
+          "Series"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: Recursive with no parent fans out over sections",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Recursive": true,
+          "IncludeItemTypes": "Movie",
+          "SortBy": "DateCreated",
+          "SortOrder": "Descending",
+          "Limit": 20
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/{section}/all",
+        "query": {
+          "type": "1",
+          "sort": "addedAt:desc"
+        },
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "20"
+        },
+        "keep": [
+          "Movie"
+        ],
+        "fanOut": "sections"
+      }
+    },
+    {
+      "name": "itemsRequest: no parent and not recursive",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "IncludeItemTypes": "Movie"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items without ParentId",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: a show's children (seasons)",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "2000"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/2000/children",
+        "query": {}
+      }
+    },
+    {
+      "name": "itemsRequest: a show's episodes, recursive",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "2000",
+          "IncludeItemTypes": "Episode",
+          "Recursive": true
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/2000/allLeaves",
+        "query": {},
+        "keep": [
+          "Episode"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: a collection",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "5000",
+          "SortBy": "ProductionYear"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/5000/children",
+        "query": {
+          "sort": "year:asc"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: NameStartsWith",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "NameStartsWith": "s",
+          "IncludeItemTypes": "Movie"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/firstCharacter/S",
+        "query": {
+          "type": "1"
+        },
+        "keep": [
+          "Movie"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: a person's films",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "PersonIds": "person-901",
+          "Recursive": true,
+          "IncludeItemTypes": "Movie,Series"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/{section}/all",
+        "query": {
+          "actor": "901"
+        },
+        "keep": [
+          "Movie",
+          "Series"
+        ],
+        "fanOut": "sections"
+      }
+    },
+    {
+      "name": "itemsRequest: a person as ParentId",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "person-901"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED ParentId=person-901",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: genres need a lookup",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Genres": "Animation|Comedy"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {},
+        "genres": [
+          "Animation",
+          "Comedy"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: an artist's albums",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ArtistIds": "3000",
+          "IncludeItemTypes": "MusicAlbum",
+          "SortBy": "ProductionYear",
+          "SortOrder": "Descending",
+          "Recursive": true
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/3000/children",
+        "query": {
+          "sort": "year:desc"
+        },
+        "keep": [
+          "MusicAlbum"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: an artist's tracks",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "AlbumArtistIds": "3000",
+          "IncludeItemTypes": "Audio",
+          "Recursive": true
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/3000/allLeaves",
+        "query": {},
+        "keep": [
+          "Audio"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: years and IsPlayed=false",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Years": "2008,2010",
+          "IsPlayed": false
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "unwatched": "1",
+          "year": "2008,2010"
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: StartIndex without Limit",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "StartIndex": 30
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "30"
+        }
+      }
+    },
+    {
+      "name": "withGenreIds: names to ids, any case",
+      "fn": "withGenreIds",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/library/sections/1/all",
+          "query": {},
+          "genres": [
+            "animation",
+            "Comedy"
+          ]
+        },
+        [
+          {
+            "key": "100",
+            "id": 100,
+            "title": "Animation"
+          },
+          {
+            "key": "101",
+            "id": 101,
+            "title": "Comedy"
+          }
+        ]
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "genre": "100,101"
+        }
+      }
+    },
+    {
+      "name": "withGenreIds: an unknown genre",
+      "fn": "withGenreIds",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/x",
+          "query": {},
+          "genres": [
+            "Western"
+          ]
+        },
+        [
+          {
+            "id": 100,
+            "title": "Animation"
+          }
+        ]
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Genres=Western",
+        "status": 404
+      }
+    },
+    {
+      "name": "withGenreIds: nothing to look up",
+      "fn": "withGenreIds",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/x",
+          "query": {
+            "a": "1"
+          }
+        },
+        []
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/x",
+        "query": {
+          "a": "1"
+        }
+      }
+    },
+    {
+      "name": "latestRequest: one section",
+      "fn": "latestRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "Limit": 16,
+          "IncludeItemTypes": "Movie"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/recentlyAdded",
+        "query": {
+          "type": "1"
+        },
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "16"
+        }
+      }
+    },
+    {
+      "name": "latestRequest: every section",
+      "fn": "latestRequest",
+      "args": [
+        {}
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/recentlyAdded",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "16"
+        }
+      }
+    },
+    {
+      "name": "latestRequest: not a section",
+      "fn": "latestRequest",
+      "args": [
+        {
+          "ParentId": "2000"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Latest ParentId=2000",
+        "status": 404
+      }
+    },
+    {
+      "name": "metadataRequest: markers, chapters, extras, checkFiles",
+      "fn": "metadataRequest",
+      "args": [
+        "1000"
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/metadata/1000",
+        "query": {
+          "includeMarkers": "1",
+          "includeChapters": "1",
+          "includeExtras": "1",
+          "includeOnDeck": "1",
+          "checkFiles": "1"
+        }
+      }
+    },
+    {
+      "name": "metadataRequest: a section id",
+      "fn": "metadataRequest",
+      "args": [
+        "section-1"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Id=section-1",
+        "status": 404
+      }
+    },
+    {
+      "name": "playedRequest: scrobble",
+      "fn": "playedRequest",
+      "args": [
+        "1000",
+        true
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/scrobble",
+        "query": {
+          "key": "1000",
+          "identifier": "com.plexapp.plugins.library"
+        }
+      }
+    },
+    {
+      "name": "playedRequest: unscrobble",
+      "fn": "playedRequest",
+      "args": [
+        "1000",
+        false
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/unscrobble",
+        "query": {
+          "key": "1000",
+          "identifier": "com.plexapp.plugins.library"
+        }
+      }
+    },
+    {
+      "name": "userDataRequest: offline progress (§6.6)",
+      "fn": "userDataRequest",
+      "args": [
+        "1000",
+        {
+          "PlaybackPositionTicks": 6000000000,
+          "Played": false
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/progress",
+        "query": {
+          "key": "1000",
+          "identifier": "com.plexapp.plugins.library",
+          "time": "600000",
+          "state": "stopped"
+        }
+      }
+    },
+    {
+      "name": "userDataRequest: played offline",
+      "fn": "userDataRequest",
+      "args": [
+        "1000",
+        {
+          "Played": true
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/scrobble",
+        "query": {
+          "key": "1000",
+          "identifier": "com.plexapp.plugins.library"
+        }
+      }
+    },
+    {
+      "name": "userDataRequest: nothing to write",
+      "fn": "userDataRequest",
+      "args": [
+        "1000",
+        {}
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED UserData without a position",
+        "status": 404
+      }
+    },
+    {
+      "name": "timelineRequest: start",
+      "fn": "timelineRequest",
+      "args": [
+        "",
+        {
+          "ItemId": "1008",
+          "PositionTicks": 0,
+          "IsPaused": false,
+          "PlaySessionId": "abc",
+          "RunTimeTicks": 6000000000
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/timeline",
+        "query": {
+          "ratingKey": "1008",
+          "key": "/library/metadata/1008",
+          "state": "playing",
+          "time": "0",
+          "duration": "600000"
+        },
+        "headers": {
+          "X-Plex-Session-Identifier": "abc"
+        }
+      }
+    },
+    {
+      "name": "timelineRequest: paused progress",
+      "fn": "timelineRequest",
+      "args": [
+        "Progress",
+        {
+          "ItemId": "1008",
+          "PositionTicks": 50000000,
+          "IsPaused": true,
+          "PlaySessionId": "abc"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/timeline",
+        "query": {
+          "ratingKey": "1008",
+          "key": "/library/metadata/1008",
+          "state": "paused",
+          "time": "5000"
+        },
+        "headers": {
+          "X-Plex-Session-Identifier": "abc"
+        }
+      }
+    },
+    {
+      "name": "timelineRequest: stopped",
+      "fn": "timelineRequest",
+      "args": [
+        "Stopped",
+        {
+          "ItemId": "1008",
+          "PositionTicks": 5800000000,
+          "IsPaused": false,
+          "PlaySessionId": "abc",
+          "RunTimeTicks": 6000000000
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/:/timeline",
+        "query": {
+          "ratingKey": "1008",
+          "key": "/library/metadata/1008",
+          "state": "stopped",
+          "time": "580000",
+          "duration": "600000"
+        },
+        "headers": {
+          "X-Plex-Session-Identifier": "abc"
+        }
+      }
+    },
+    {
+      "name": "timelineRequest: no item",
+      "fn": "timelineRequest",
+      "args": [
+        "Stopped",
+        {}
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED ItemId=",
+        "status": 404
+      }
+    },
+    {
+      "name": "transcodeRequest: ping",
+      "fn": "transcodeRequest",
+      "args": [
+        "ping",
+        "abc"
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/video/:/transcode/universal/ping",
+        "query": {
+          "session": "abc"
+        }
+      }
+    },
+    {
+      "name": "transcodeRequest: stop without a session",
+      "fn": "transcodeRequest",
+      "args": [
+        "stop",
+        ""
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED transcode stop without a session",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsUri: the server:// uri",
+      "fn": "itemsUri",
+      "args": [
+        "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0",
+        [
+          "1000",
+          "1002"
+        ]
+      ],
+      "out": "server://d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0/com.plexapp.plugins.library/library/metadata/1000,1002"
+    },
+    {
+      "name": "translate: views",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Views"
+      ],
+      "out": {
+        "op": "views",
+        "params": {
+          "user": "u1"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/sections",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: an item",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/1000"
+      ],
+      "out": {
+        "op": "item",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/1000",
+          "query": {
+            "includeMarkers": "1",
+            "includeChapters": "1",
+            "includeExtras": "1",
+            "includeOnDeck": "1",
+            "checkFiles": "1"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: a section's own item is the adapter's",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/section-1"
+      ],
+      "out": {
+        "op": "item",
+        "params": {
+          "user": "u1",
+          "id": "section-1"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: Resume is not an item id",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/Resume",
+        {
+          "Limit": 12,
+          "MediaTypes": "Video"
+        }
+      ],
+      "out": {
+        "op": "resume",
+        "params": {
+          "user": "u1"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/hubs/continueWatching/items",
+          "query": {},
+          "headers": {
+            "X-Plex-Container-Start": "0",
+            "X-Plex-Container-Size": "12"
+          },
+          "keep": [
+            "Movie",
+            "Episode",
+            "Video",
+            "Trailer"
+          ]
+        }
+      }
+    },
+    {
+      "name": "translate: Latest",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/Latest",
+        {
+          "ParentId": "section-2",
+          "Limit": 16
+        }
+      ],
+      "out": {
+        "op": "latest",
+        "params": {
+          "user": "u1"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/sections/2/recentlyAdded",
+          "query": {},
+          "headers": {
+            "X-Plex-Container-Start": "0",
+            "X-Plex-Container-Size": "16"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: NextUp",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/NextUp",
+        {
+          "UserId": "u1",
+          "Limit": 24
+        }
+      ],
+      "out": {
+        "op": "nextUp",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/library/onDeck",
+          "query": {},
+          "headers": {
+            "X-Plex-Container-Start": "0",
+            "X-Plex-Container-Size": "24"
+          },
+          "keep": [
+            "Episode"
+          ]
+        }
+      }
+    },
+    {
+      "name": "translate: Upcoming is empty (adapter)",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/Upcoming"
+      ],
+      "out": {
+        "op": "empty",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: seasons",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/2000/Seasons"
+      ],
+      "out": {
+        "op": "seasons",
+        "params": {
+          "id": "2000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/2000/children",
+          "query": {
+            "excludeAllLeaves": "1"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: episodes of a season",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/2000/Episodes",
+        {
+          "SeasonId": "2001"
+        }
+      ],
+      "out": {
+        "op": "episodes",
+        "params": {
+          "id": "2000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/2001/children",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: every episode",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/2000/Episodes"
+      ],
+      "out": {
+        "op": "episodes",
+        "params": {
+          "id": "2000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/2000/allLeaves",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: similar",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Items/1000/Similar",
+        {
+          "Limit": 12
+        }
+      ],
+      "out": {
+        "op": "similar",
+        "params": {
+          "id": "1000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/1000/similar",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: local trailers",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/1000/LocalTrailers"
+      ],
+      "out": {
+        "op": "trailers",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/1000",
+          "query": {
+            "includeMarkers": "1",
+            "includeChapters": "1",
+            "includeExtras": "1",
+            "includeOnDeck": "1",
+            "checkFiles": "1"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: mark played",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Users/u1/PlayedItems/1000"
+      ],
+      "out": {
+        "op": "played",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/:/scrobble",
+          "query": {
+            "key": "1000",
+            "identifier": "com.plexapp.plugins.library"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: mark unplayed",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Users/u1/PlayedItems/1000"
+      ],
+      "out": {
+        "op": "unplayed",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/:/unscrobble",
+          "query": {
+            "key": "1000",
+            "identifier": "com.plexapp.plugins.library"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: hide from Continue",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Users/u1/Items/1002/HideFromResume",
+        {
+          "Hide": true
+        }
+      ],
+      "out": {
+        "op": "hideFromResume",
+        "params": {
+          "user": "u1",
+          "id": "1002"
+        },
+        "req": {
+          "method": "PUT",
+          "path": "/actions/removeFromContinueWatching",
+          "query": {
+            "ratingKey": "1002"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: Plex cannot unhide",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Users/u1/Items/1002/HideFromResume",
+        {
+          "Hide": false
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED HideFromResume Hide=false",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: Refresh metadata (D-2)",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Items/1000/Refresh",
+        {
+          "MetadataRefreshMode": "FullRefresh"
+        }
+      ],
+      "out": {
+        "op": "refreshItem",
+        "params": {
+          "id": "1000"
+        },
+        "req": {
+          "method": "PUT",
+          "path": "/library/metadata/1000/refresh",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: library refresh",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Library/Refresh"
+      ],
+      "out": {
+        "op": "refreshLibrary",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/library/sections/all/refresh",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: refresh a section (a download landed in it)",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Items/section-1/Refresh",
+        {
+          "Recursive": true
+        }
+      ],
+      "out": {
+        "op": "refreshItem",
+        "params": {
+          "id": "section-1"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/sections/1/refresh",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: create a playlist",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Playlists",
+        {
+          "Name": "Mix",
+          "Ids": "1000,1001",
+          "UserId": "u1",
+          "MediaType": "Video"
+        },
+        null,
+        {
+          "machineId": "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0"
+        }
+      ],
+      "out": {
+        "op": "createPlaylist",
+        "params": {},
+        "req": {
+          "method": "POST",
+          "path": "/playlists",
+          "query": {
+            "type": "video",
+            "title": "Mix",
+            "smart": "0",
+            "uri": "server://d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0/com.plexapp.plugins.library/library/metadata/1000,1001"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: add to a playlist",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Playlists/6000/Items",
+        {
+          "Ids": "1003",
+          "UserId": "u1"
+        },
+        null,
+        {
+          "machineId": "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0"
+        }
+      ],
+      "out": {
+        "op": "playlistAdd",
+        "params": {
+          "id": "6000"
+        },
+        "req": {
+          "method": "PUT",
+          "path": "/playlists/6000/items",
+          "query": {
+            "uri": "server://d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0/com.plexapp.plugins.library/library/metadata/1003"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: remove a playlist entry",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Playlists/6000/Items",
+        {
+          "EntryIds": "2"
+        }
+      ],
+      "out": {
+        "op": "playlistRemove",
+        "params": {
+          "id": "6000"
+        },
+        "req": {
+          "method": "DELETE",
+          "path": "/playlists/6000/items/2",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: remove several entries at once",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Playlists/6000/Items",
+        {
+          "EntryIds": "2,3"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED DELETE /Playlists/{id}/Items with 2 entries",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: move is the adapter's",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Playlists/6000/Items/2/Move/0"
+      ],
+      "out": {
+        "op": "playlistMove",
+        "params": {
+          "id": "6000",
+          "entry": "2",
+          "index": "0"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: add to a collection",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Collections/5000/Items",
+        {
+          "Ids": "1003"
+        },
+        null,
+        {
+          "machineId": "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0"
+        }
+      ],
+      "out": {
+        "op": "collectionAdd",
+        "params": {
+          "id": "5000"
+        },
+        "req": {
+          "method": "PUT",
+          "path": "/library/collections/5000/items",
+          "query": {
+            "uri": "server://d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0/com.plexapp.plugins.library/library/metadata/1003"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: remove from a collection",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Collections/5000/Items",
+        {
+          "Ids": "1003"
+        }
+      ],
+      "out": {
+        "op": "collectionRemove",
+        "params": {
+          "id": "5000"
+        },
+        "req": {
+          "method": "DELETE",
+          "path": "/library/collections/5000/items/1003",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: PlaybackInfo is the adapter's (decision)",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Items/1000/PlaybackInfo"
+      ],
+      "out": {
+        "op": "playbackInfo",
+        "params": {
+          "id": "1000"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: MediaSegments",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/MediaSegments/2002"
+      ],
+      "out": {
+        "op": "segments",
+        "params": {
+          "id": "2002"
+        },
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/2002",
+          "query": {
+            "includeMarkers": "1",
+            "includeChapters": "1",
+            "includeExtras": "1",
+            "includeOnDeck": "1",
+            "checkFiles": "1"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: stopped report",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Sessions/Playing/Stopped",
+        {},
+        {
+          "ItemId": "1008",
+          "PositionTicks": 10000,
+          "PlaySessionId": "s"
+        }
+      ],
+      "out": {
+        "op": "timeline",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/:/timeline",
+          "query": {
+            "ratingKey": "1008",
+            "key": "/library/metadata/1008",
+            "state": "stopped",
+            "time": "1"
+          },
+          "headers": {
+            "X-Plex-Session-Identifier": "s"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: ping",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Sessions/Playing/Ping",
+        {
+          "PlaySessionId": "s"
+        }
+      ],
+      "out": {
+        "op": "ping",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/video/:/transcode/universal/ping",
+          "query": {
+            "session": "s"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: stop the transcode",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Videos/ActiveEncodings",
+        {
+          "DeviceId": "d",
+          "PlaySessionId": "s"
+        }
+      ],
+      "out": {
+        "op": "stopTranscode",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/video/:/transcode/universal/stop",
+          "query": {
+            "session": "s"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: capabilities are a no-op",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Sessions/Capabilities/Full"
+      ],
+      "out": {
+        "op": "noop",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: a music section's artists",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Artists/AlbumArtists",
+        {
+          "ParentId": "section-3",
+          "Limit": 100
+        }
+      ],
+      "out": {
+        "op": "artists",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/library/sections/3/all",
+          "query": {
+            "type": "8"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: genres need a section",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/MusicGenres",
+        {
+          "ParentId": "3001"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED genre without a section ParentId",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: a heart is a watchlist write (D-6), answered by the adapter",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Users/u1/FavoriteItems/1000"
+      ],
+      "out": {
+        "op": "favorite",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: Live TV is unmapped (PX-11)",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Info"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED GET /LiveTv/Info",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: a media route is not an API route",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Items/1000/Images/Primary"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED GET /Items/1000/Images/Primary",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: wrong method",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Users/u1/Views"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED DELETE /Users/u1/Views",
+        "status": 404
+      }
+    },
+    {
+      "name": "matchRoute: an image",
+      "fn": "matchRoute",
+      "args": [
+        "GET",
+        "/Items/1000/Images/Backdrop/0"
+      ],
+      "out": {
+        "op": "image",
+        "media": true,
+        "params": {
+          "id": "1000",
+          "type": "Backdrop",
+          "index": "0"
+        }
+      }
+    },
+    {
+      "name": "matchRoute: a stream with a container",
+      "fn": "matchRoute",
+      "args": [
+        "GET",
+        "/Videos/1000/stream.mkv?Static=true"
+      ],
+      "out": {
+        "op": "stream",
+        "media": true,
+        "params": {
+          "id": "1000",
+          "ext": "mkv"
+        }
+      }
+    },
+    {
+      "name": "matchRoute: a sidecar subtitle",
+      "fn": "matchRoute",
+      "args": [
+        "GET",
+        "/Videos/1004/11/Subtitles/48230/Stream.srt"
+      ],
+      "out": {
+        "op": "subtitle",
+        "media": true,
+        "params": {
+          "id": "1004",
+          "source": "11",
+          "index": "48230",
+          "ext": "srt"
+        }
+      }
+    },
+    {
+      "name": "matchRoute: the BIF",
+      "fn": "matchRoute",
+      "args": [
+        "GET",
+        "/Videos/2002/index.bif"
+      ],
+      "out": {
+        "op": "bif",
+        "media": true,
+        "params": {
+          "id": "2002"
+        }
+      }
+    },
+    {
+      "name": "matchRoute: unknown",
+      "fn": "matchRoute",
+      "args": [
+        "GET",
+        "/Items/1000/ThemeSongs"
+      ],
+      "out": null
+    },
+    {
+      "name": "translate: NextUp of one series (Series page)",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/NextUp",
+        {
+          "SeriesId": "2000",
+          "UserId": "u1",
+          "Limit": 1
+        }
+      ],
+      "out": {
+        "op": "nextUp",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/library/metadata/2000",
+          "query": {
+            "includeOnDeck": "1"
+          },
+          "onDeck": true,
+          "keep": [
+            "Episode"
+          ]
+        }
+      }
+    },
+    {
+      "name": "translate: NextUp with a ParentId is unmapped",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Shows/NextUp",
+        {
+          "ParentId": "section-2",
+          "Limit": 24
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Shows/NextUp parentid",
+        "status": 404
+      }
+    },
+    {
+      "name": "nextUpRequest: the home row, episodes only",
+      "fn": "nextUpRequest",
+      "args": [
+        {
+          "UserId": "u1",
+          "Limit": 24,
+          "Fields": "PrimaryImageAspectRatio",
+          "EnableImageTypes": "Primary"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/onDeck",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "24"
+        },
+        "keep": [
+          "Episode"
+        ]
+      }
+    },
+    {
+      "name": "nextUpRequest: a SeriesId that is a section is unmapped",
+      "fn": "nextUpRequest",
+      "args": [
+        {
+          "SeriesId": "section-2"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED SeriesId=section-2",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: Resume scoped to a section is unmapped",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Users/u1/Items/Resume",
+        {
+          "ParentId": "section-1"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items/Resume parentid",
+        "status": 404
+      }
+    },
+    {
+      "name": "resumeRequest: MediaTypes=Audio keeps tracks",
+      "fn": "resumeRequest",
+      "args": [
+        {
+          "MediaTypes": "Audio",
+          "Limit": 10
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/continueWatching/items",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "10"
+        },
+        "keep": [
+          "Audio"
+        ]
+      }
+    },
+    {
+      "name": "resumeRequest: an unknown MediaTypes is unmapped",
+      "fn": "resumeRequest",
+      "args": [
+        {
+          "MediaTypes": "Game"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED MediaTypes=Game",
+        "status": 404
+      }
+    },
+    {
+      "name": "resumeRequest: IncludeItemTypes keeps those types (notify followedSeries)",
+      "fn": "resumeRequest",
+      "args": [
+        {
+          "IncludeItemTypes": "Episode",
+          "Limit": 200,
+          "EnableImages": false,
+          "EnableUserData": false
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/continueWatching/items",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "200"
+        },
+        "keep": [
+          "Episode"
+        ]
+      }
+    },
+    {
+      "name": "resumeRequest: IncludeItemTypes with MediaTypes keeps what matches both",
+      "fn": "resumeRequest",
+      "args": [
+        {
+          "MediaTypes": "Video",
+          "IncludeItemTypes": "Movie,Audio"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/continueWatching/items",
+        "query": {},
+        "keep": [
+          "Movie"
+        ]
+      }
+    },
+    {
+      "name": "latestRequest: IsPlayed is unmapped",
+      "fn": "latestRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "IsPlayed": false
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items/Latest isplayed",
+        "status": 404
+      }
+    },
+    {
+      "name": "latestRequest: several types are kept by the adapter",
+      "fn": "latestRequest",
+      "args": [
+        {
+          "IncludeItemTypes": "Movie,Series",
+          "Limit": 12
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/recentlyAdded",
+        "query": {},
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "12"
+        },
+        "keep": [
+          "Movie",
+          "Series"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: the global search (Book has no Plex twin)",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "agent",
+          "Recursive": true,
+          "Limit": 60,
+          "IncludeItemTypes": "Movie,Series,Episode,MusicAlbum,MusicArtist,Audio,BoxSet,Book",
+          "Fields": "Overview"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/search",
+        "query": {
+          "query": "agent",
+          "limit": "60"
+        },
+        "hubs": true,
+        "keep": [
+          "Movie",
+          "Series",
+          "Episode",
+          "MusicArtist",
+          "MusicAlbum",
+          "Audio",
+          "BoxSet"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: findCopies searches one type",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "Agent",
+          "Recursive": true,
+          "IncludeItemTypes": "Movie",
+          "Limit": 20
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/search",
+        "query": {
+          "query": "Agent",
+          "limit": "20"
+        },
+        "hubs": true,
+        "keep": [
+          "Movie"
+        ]
+      }
+    },
+    {
+      "name": "itemsRequest: search in one section",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "agent",
+          "ParentId": "section-1"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/hubs/search",
+        "query": {
+          "query": "agent",
+          "limit": "20",
+          "sectionId": "1"
+        },
+        "hubs": true
+      }
+    },
+    {
+      "name": "itemsRequest: search with a sort is unmapped",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "agent",
+          "SortBy": "SortName"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items SearchTerm with sortby",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: search in a show is unmapped",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "SearchTerm": "agent",
+          "ParentId": "2000"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED SearchTerm ParentId=2000",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: Book alone is unmapped",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "IncludeItemTypes": "Book"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED IncludeItemTypes=Book",
+        "status": 404
+      }
+    },
+    {
+      "name": "itemsRequest: MediaTypes is unmapped",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "MediaTypes": "Video"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED /Items mediatypes",
+        "status": 404
+      }
+    },
+    {
+      "name": "answerMeta: a show OnDeck unwrapped",
+      "fn": "answerMeta",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/library/metadata/2000",
+          "query": {
+            "includeOnDeck": "1"
+          },
+          "onDeck": true,
+          "keep": [
+            "Episode"
+          ]
+        },
+        {
+          "Metadata": [
+            {
+              "ratingKey": "2000",
+              "type": "show",
+              "title": "S",
+              "OnDeck": {
+                "Metadata": [
+                  {
+                    "ratingKey": "2003",
+                    "type": "episode",
+                    "title": "E2003",
+                    "grandparentRatingKey": "2000"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "ratingKey": "2003",
+          "type": "episode",
+          "title": "E2003",
+          "grandparentRatingKey": "2000"
+        }
+      ]
+    },
+    {
+      "name": "answerMeta: a show with nothing on deck",
+      "fn": "answerMeta",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/library/metadata/2000",
+          "query": {},
+          "onDeck": true,
+          "keep": [
+            "Episode"
+          ]
+        },
+        {
+          "Metadata": [
+            {
+              "ratingKey": "2000",
+              "type": "show",
+              "title": "S"
+            }
+          ]
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "answerMeta: On Deck keeps episodes, drops movies",
+      "fn": "answerMeta",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/library/onDeck",
+          "query": {},
+          "keep": [
+            "Episode"
+          ]
+        },
+        {
+          "Metadata": [
+            {
+              "ratingKey": "1001",
+              "type": "movie",
+              "title": "M"
+            },
+            {
+              "ratingKey": "2003",
+              "type": "episode",
+              "title": "E2003",
+              "grandparentRatingKey": "2000"
+            },
+            {
+              "ratingKey": "2105",
+              "type": "episode",
+              "title": "E2105",
+              "grandparentRatingKey": "2100"
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "ratingKey": "2003",
+          "type": "episode",
+          "title": "E2003",
+          "grandparentRatingKey": "2000"
+        },
+        {
+          "ratingKey": "2105",
+          "type": "episode",
+          "title": "E2105",
+          "grandparentRatingKey": "2100"
+        }
+      ]
+    },
+    {
+      "name": "answerMeta: search hubs flattened, types kept",
+      "fn": "answerMeta",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/hubs/search",
+          "query": {},
+          "hubs": true,
+          "keep": [
+            "Movie"
+          ]
+        },
+        {
+          "Hub": [
+            {
+              "type": "movie",
+              "Metadata": [
+                {
+                  "ratingKey": "1001",
+                  "type": "movie",
+                  "title": "M"
+                }
+              ]
+            },
+            {
+              "type": "episode",
+              "Metadata": [
+                {
+                  "ratingKey": "2003",
+                  "type": "episode",
+                  "title": "E2003",
+                  "grandparentRatingKey": "2000"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "ratingKey": "1001",
+          "type": "movie",
+          "title": "M"
+        }
+      ]
+    },
+    {
+      "name": "answerMeta: no keep, the container as is",
+      "fn": "answerMeta",
+      "args": [
+        {
+          "method": "GET",
+          "path": "/library/sections/1/all",
+          "query": {}
+        },
+        {
+          "Metadata": [
+            {
+              "ratingKey": "1001",
+              "type": "movie",
+              "title": "M"
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "ratingKey": "1001",
+          "type": "movie",
+          "title": "M"
+        }
+      ]
+    },
+    {
+      "name": "toItem: a playlist entry carries its PlaylistItemId",
+      "fn": "toItem",
+      "args": [
+        {
+          "ratingKey": "1001",
+          "type": "movie",
+          "title": "M",
+          "playlistItemID": 77
+        }
+      ],
+      "out": {
+        "Id": "1001",
+        "Name": "M",
+        "Type": "Movie",
+        "IsFolder": false,
+        "MediaType": "Video",
+        "PlaylistItemId": "77",
+        "UserData": {
+          "IsFavorite": false,
+          "PlayCount": 0,
+          "PlaybackPositionTicks": 0,
+          "Played": false
+        }
+      }
+    },
+    {
+      "name": "itemsRequest: the playlists row lists /playlists",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "IncludeItemTypes": "Playlist",
+          "Recursive": true,
+          "SortBy": "SortName"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/playlists",
+        "query": {}
+      }
+    },
+    {
+      "name": "itemsRequest: Favorites row over every library (watchlist, fan-out)",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Filters": "IsFavorite",
+          "Recursive": true,
+          "IncludeItemTypes": "Movie,Series,Episode,MusicAlbum,BoxSet,Book",
+          "SortBy": "SortName",
+          "Limit": 24
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/{section}/all",
+        "query": {
+          "sort": "titleSort:asc"
+        },
+        "headers": {
+          "X-Plex-Container-Start": "0",
+          "X-Plex-Container-Size": "24"
+        },
+        "keep": [
+          "Movie",
+          "Series",
+          "Episode",
+          "MusicAlbum",
+          "BoxSet"
+        ],
+        "fanOut": "sections",
+        "watchlist": true
+      }
+    },
+    {
+      "name": "itemsRequest: IsFavorite=true in a library",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "ParentId": "section-1",
+          "IsFavorite": true,
+          "IncludeItemTypes": "Movie"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/1/all",
+        "query": {
+          "type": "1"
+        },
+        "keep": [
+          "Movie"
+        ],
+        "watchlist": true
+      }
+    },
+    {
+      "name": "itemsRequest: Video (extras, never listed) is dropped from a type list",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Recursive": true,
+          "IncludeItemTypes": "Movie,Video"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/library/sections/{section}/all",
+        "query": {
+          "type": "1"
+        },
+        "keep": [
+          "Movie"
+        ],
+        "fanOut": "sections"
+      }
+    },
+    {
+      "name": "itemsRequest: Video alone is unmapped",
+      "fn": "itemsRequest",
+      "args": [
+        {
+          "Recursive": true,
+          "IncludeItemTypes": "Video"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED IncludeItemTypes=Video",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: Home hubs are the promoted hubs",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Hubs",
+        {}
+      ],
+      "out": {
+        "op": "hubs",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/hubs/promoted",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: a library's hubs",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Hubs",
+        {
+          "ParentId": "section-2"
+        }
+      ],
+      "out": {
+        "op": "hubs",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/hubs/sections/2",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: hubs of an item are unmapped",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/Hubs",
+        {
+          "ParentId": "1000"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED Hubs ParentId=1000",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: heart off",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/Users/u1/FavoriteItems/1000",
+        {}
+      ],
+      "out": {
+        "op": "unfavorite",
+        "params": {
+          "user": "u1",
+          "id": "1000"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "accountSubtitles: autoSelectSubtitle 1 is foreign, with the account language",
+      "fn": "accountSubtitles",
+      "args": [
+        {
+          "autoSelectSubtitle": 1,
+          "defaultSubtitleLanguage": "fr"
+        }
+      ],
+      "out": {
+        "mode": "foreign",
+        "language": "fr"
+      }
+    },
+    {
+      "name": "accountSubtitles: 0 is manual",
+      "fn": "accountSubtitles",
+      "args": [
+        {
+          "autoSelectSubtitle": 0,
+          "defaultSubtitleLanguage": "en"
+        }
+      ],
+      "out": {
+        "mode": "manual",
+        "language": "en"
+      }
+    },
+    {
+      "name": "accountSubtitles: 2 is always",
+      "fn": "accountSubtitles",
+      "args": [
+        {
+          "autoSelectSubtitle": 2
+        }
+      ],
+      "out": {
+        "mode": "always",
+        "language": ""
+      }
+    },
+    {
+      "name": "accountSubtitles: an unknown mode or no profile seeds nothing but the language",
+      "fn": "accountSubtitles",
+      "args": [
+        {
+          "autoSelectSubtitle": 7,
+          "defaultSubtitleLanguage": "de"
+        }
+      ],
+      "out": {
+        "language": "de"
+      }
+    }
+  ]
+}

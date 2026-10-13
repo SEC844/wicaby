@@ -57,7 +57,10 @@ class Dream : DreamService(), SavedStateRegistryOwner {
                     val api = remember(snap) { snap?.let(::dreamApi) }
                     TvCanvas {
                         WicabyTheme(Accents[(snap?.accent ?: 0).coerceIn(Accents.indices)]) {
-                            if (api != null) Screensaver(api) else Box(Modifier.fillMaxSize().background(Color.Black))
+                            // Music playing (MU-09): what plays, in the ambient layout, for the open account only (TP-10).
+                            val music = com.wika.wicaby.tv.music.Music.ambient(api)
+                            if (music != null) com.wika.wicaby.tv.music.Ambient(music)
+                            else if (api != null) Screensaver(api) else Box(Modifier.fillMaxSize().background(Color.Black))
                         }
                     }
                 }

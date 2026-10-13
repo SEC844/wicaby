@@ -232,6 +232,12 @@ export function apiFor(serverId?: string) {
         : del(userRoute(`/FavoriteItems/${id}`))
     ),
 
+    // Server-defined Home rows (caps.serverHubs: Plex's promoted hubs, plex-spec §8); none elsewhere.
+    hubs: () =>
+      caps(sessionFor(serverId)?.server.kind).serverHubs
+        ? cached<{ Name: string; Key: string; Items: BaseItem[] }[]>("/Hubs").then((hubs) => hubs.map((h) => ({ ...h, Items: stamp(h.Items, sessionFor(serverId)?.server.id ?? "") })))
+        : Promise.resolve([]),
+
     // Series last played, for ordering next-up cards (X-01): one call for up to 24 series.
     seriesUserData: (ids: string[]) =>
       cached<ItemsResult>(...userRoute("/Items", { Ids: ids.slice(0, 24).join(","), Fields: "UserData", EnableImages: false })),

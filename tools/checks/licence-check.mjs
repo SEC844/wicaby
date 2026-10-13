@@ -71,4 +71,13 @@ const licFiles = ['vendor/vpn-helper/THIRD_PARTY_LICENSES.txt', 'vendor/android/
 for (const f of licFiles) assert.ok(smbIn(read(f)), `${f}: no go-smb2 entry (rebuild with npm run build:mesh / build:mesh-aar)`);
 ok(`go-smb2 (BSD-2) in THIRD_PARTY_NOTICES.md and ${licFiles.length} generated licence file(s)`);
 
+// 7. Plex (plex-spec §1.2, PX-00, D-8): the "not affiliated" line in the desktop About texts (fr and en, shown by
+//    AboutPane) and in the notices, with the owner's ToS reading still listed. Android joins with its Plex wave (PX-14).
+const plexAbout = { en: /Plex is a trademark of Plex, Inc\. Wicaby is an unofficial client, not affiliated with or endorsed by Plex\./, fr: /Plex est une marque de Plex, Inc\. Wicaby est un client non officiel, sans lien avec Plex/ };
+for (const [lang, re] of Object.entries(plexAbout)) assert.match(JSON.parse(read(`apps/desktop/src/renderer/locales/${lang}/plex.json`)).about.notAffiliated, re, `${lang}/plex.json: the not-affiliated line`);
+assert.ok(read('apps/desktop/src/renderer/routes/settings/AboutPane.svelte').includes("t('plex.about.notAffiliated')"), 'AboutPane shows the not-affiliated line');
+assert.match(notices, /## Plex\r?\n\r?\nPlex is a trademark of Plex, Inc\. Wicaby is an unofficial client, not affiliated with or endorsed by Plex\./, 'THIRD_PARTY_NOTICES.md: the Plex section');
+assert.match(notices, /TODO\(owner\)[^]*plex\.tv Terms of Service/, 'THIRD_PARTY_NOTICES.md: the D-8 ToS reading is listed');
+ok('Plex: not-affiliated line in About (fr, en) and the notices; D-8 TODO listed');
+
 console.log(`licence-check: ${n} checks passed`);

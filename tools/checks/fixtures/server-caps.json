@@ -36,7 +36,7 @@
     "liveTv": "probed",
     "sessionsRemote": false,
     "castReceiver": false,
-    "favorites": false,
+    "favorites": true,
     "serverHubs": true,
     "hideFromResume": true,
     "subtitleSearch": true,

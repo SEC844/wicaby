@@ -5,6 +5,7 @@
   import { w } from '../lib/bridge';
   import { locale, t } from '../lib/i18n.svelte';
   import { imageUrl } from '../lib/images';
+  import { installMediaHandlers, silentWavUrl } from '../lib/media-session.svelte';
   import { linux } from '../lib/platform';
   import { settings } from '../lib/stores.svelte';
 
@@ -13,55 +14,6 @@
   let audio: HTMLAudioElement | null = null;
   let silentUrl: string | null = null;
   let off: (() => void) | null = null;
-
-  // One second of 8 kHz mono 16-bit silence. Chromium only hands
-  // navigator.mediaSession to Windows (SMTC, media keys, volume flyout) while
-  // a media element plays, and mpv renders outside the page. Same on Linux, where
-  // Chromium publishes the session over MPRIS.
-  function silentWav(): string {
-    const rate = 8000;
-    const samples = rate;
-    const buf = new ArrayBuffer(44 + samples * 2);
-    const v = new DataView(buf);
-    const str = (o: number, s: string) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-    str(0, 'RIFF');
-    v.setUint32(4, 36 + samples * 2, true);
-    str(8, 'WAVE');
-    str(12, 'fmt ');
-    v.setUint32(16, 16, true);
-    v.setUint16(20, 1, true);
-    v.setUint16(22, 1, true);
-    v.setUint32(24, rate, true);
-    v.setUint32(28, rate * 2, true);
-    v.setUint16(32, 2, true);
-    v.setUint16(34, 16, true);
-    str(36, 'data');
-    v.setUint32(40, samples * 2, true);
-    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-  }
-
-  const cmd = (c: Parameters<typeof w.playback.command>[0]) => void w.playback.command(c).catch(() => undefined);
-
-  function installHandlers(): void {
-    const ms = navigator.mediaSession;
-    const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
-      try {
-        ms.setActionHandler(action, handler);
-      } catch {
-        // Action not supported by this Chromium build.
-      }
-    };
-    set('play', () => cmd({ type: 'resume' }));
-    set('pause', () => cmd({ type: 'pause' }));
-    set('stop', () => cmd({ type: 'stop' }));
-    set('nexttrack', () => cmd({ type: 'next' }));
-    set('previoustrack', () => cmd({ type: 'previous' }));
-    set('seekbackward', (d) => cmd({ type: 'seek-relative', deltaMs: -(d.seekOffset ?? 10) * 1000 }));
-    set('seekforward', (d) => cmd({ type: 'seek-relative', deltaMs: (d.seekOffset ?? 30) * 1000 }));
-    set('seekto', (d) => {
-      if (d.seekTime !== undefined) cmd({ type: 'seek', positionMs: d.seekTime * 1000 });
-    });
-  }
 
   // The veil over mpv's picture. Opening: main calls __wicabyVeil once it showed this window
   // (window-manager.ts createPlaybackWindows) and brings mpv's window in, and hides its own, when it resolves
@@ -91,7 +43,7 @@
       pbState = s;
     });
     void w.playback.getState().then((s) => (pbState ??= s));
-    installHandlers();
+    installMediaHandlers();
   });
 
   onDestroy(() => {
@@ -113,7 +65,7 @@
       return;
     }
     if (!audio) {
-      silentUrl = silentWav();
+      silentUrl = silentWavUrl();
       audio = new Audio(silentUrl);
       audio.loop = true;
     }

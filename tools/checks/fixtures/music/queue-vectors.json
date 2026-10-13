@@ -1,0 +1,1284 @@
+{
+  "about": "Queue operation vectors (music-spec MU-01): shared/music-queue.ts and core music/MusicQueue.kt. expect.next / nextManual: nextIndex after the ops.",
+  "cases": [
+    {
+      "name": "move from before to after the current",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 0,
+          "to": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "b",
+          "c",
+          "d",
+          "e",
+          "a"
+        ],
+        "index": 1,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 2,
+        "nextManual": 2
+      }
+    },
+    {
+      "name": "move from after to before the current",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 4,
+          "to": 0
+        }
+      ],
+      "expect": {
+        "ids": [
+          "e",
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "index": 3,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 4,
+        "nextManual": 4
+      }
+    },
+    {
+      "name": "move the current later",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 2,
+          "to": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "d",
+          "e",
+          "c"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "move the current to the top",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 2,
+          "to": 0
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "a",
+          "b",
+          "d",
+          "e"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "move among the upcoming",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 3,
+          "to": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "e",
+          "d"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "move among the played",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 0,
+          "to": 1
+        }
+      ],
+      "expect": {
+        "ids": [
+          "b",
+          "a",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "move onto the current slot from before",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 0,
+          "to": 2
+        }
+      ],
+      "expect": {
+        "ids": [
+          "b",
+          "c",
+          "a",
+          "d",
+          "e"
+        ],
+        "index": 1,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 2,
+        "nextManual": 2
+      }
+    },
+    {
+      "name": "move onto the current slot from after",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 4,
+          "to": 2
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "e",
+          "c",
+          "d"
+        ],
+        "index": 3,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 4,
+        "nextManual": 4
+      }
+    },
+    {
+      "name": "move out of range is ignored",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "move",
+          "from": 1,
+          "to": 9
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "remove before the current",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "remove",
+          "index": 0
+        }
+      ],
+      "expect": {
+        "ids": [
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 1,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 2,
+        "nextManual": 2
+      }
+    },
+    {
+      "name": "remove the current: the next one plays",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "remove",
+          "index": 2
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "remove after the current",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "remove",
+          "index": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "remove the current at the end",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "remove",
+          "index": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "index": 3,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "remove the only entry",
+      "state": {
+        "ids": [
+          "a"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "remove",
+          "index": 0
+        }
+      ],
+      "expect": {
+        "ids": [],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "jump",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "jump",
+          "index": 4
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "jump out of range is ignored",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "jump",
+          "index": 5
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "play next",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "insertNext",
+          "ids": [
+            "x",
+            "y"
+          ]
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "x",
+          "y",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "play next into an empty queue",
+      "state": {
+        "ids": [],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "insertNext",
+          "ids": [
+            "x"
+          ]
+        }
+      ],
+      "expect": {
+        "ids": [
+          "x"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "add to queue",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "append",
+          "ids": [
+            "x"
+          ]
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "x"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "clear the upcoming",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "clearUpcoming"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "next in order",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "repeat off ends",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "repeat all wraps",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "repeat",
+          "mode": "all"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "all",
+        "unshuffled": null,
+        "next": 0,
+        "nextManual": 0
+      }
+    },
+    {
+      "name": "repeat one replays, next goes on",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "repeat",
+          "mode": "one"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "one",
+        "unshuffled": null,
+        "next": 2,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "repeat one at the end: next wraps",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "one",
+        "unshuffled": null
+      },
+      "ops": [],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "one",
+        "unshuffled": null,
+        "next": 4,
+        "nextManual": 0
+      }
+    },
+    {
+      "name": "empty queue has no next",
+      "state": {
+        "ids": [],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [],
+      "expect": {
+        "ids": [],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "unshuffle restores the order",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 42
+        },
+        {
+          "op": "unshuffle"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 3,
+        "nextManual": 3
+      }
+    },
+    {
+      "name": "unshuffle follows a jump",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 7
+        },
+        {
+          "op": "jump",
+          "index": 3
+        },
+        {
+          "op": "unshuffle"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 4,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "unshuffle keeps removals and additions",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 3
+        },
+        {
+          "op": "remove",
+          "index": 1
+        },
+        {
+          "op": "append",
+          "ids": [
+            "x"
+          ]
+        },
+        {
+          "op": "insertNext",
+          "ids": [
+            "y"
+          ]
+        },
+        {
+          "op": "unshuffle"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "c",
+          "d",
+          "e",
+          "y",
+          "x"
+        ],
+        "index": 1,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 2,
+        "nextManual": 2
+      }
+    },
+    {
+      "name": "a second shuffle is a no-op",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 1
+        },
+        {
+          "op": "shuffle",
+          "seed": 2
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "e",
+          "b",
+          "a",
+          "d"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "shuffle a single entry",
+      "state": {
+        "ids": [
+          "a"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 9
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a"
+        ],
+        "next": -1,
+        "nextManual": -1
+      }
+    },
+    {
+      "name": "a copy resumes at its first place",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "a",
+          "c"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 5
+        },
+        {
+          "op": "unshuffle"
+        }
+      ],
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "a",
+          "c"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": null,
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "shuffle seed 42",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 42
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "a",
+          "e",
+          "b",
+          "d"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "shuffle seed 7",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 7
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "d",
+          "b",
+          "e",
+          "a"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "shuffle seed 1234567",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": 1234567
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "b",
+          "e",
+          "a",
+          "d"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "next": 1,
+        "nextManual": 1
+      }
+    },
+    {
+      "name": "shuffle seed -5",
+      "state": {
+        "ids": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "index": 2,
+        "repeat": "off",
+        "unshuffled": null
+      },
+      "ops": [
+        {
+          "op": "shuffle",
+          "seed": -5
+        }
+      ],
+      "expect": {
+        "ids": [
+          "c",
+          "d",
+          "e",
+          "a",
+          "b"
+        ],
+        "index": 0,
+        "repeat": "off",
+        "unshuffled": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "next": 1,
+        "nextManual": 1
+      }
+    }
+  ]
+}

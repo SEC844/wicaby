@@ -162,6 +162,8 @@ Environment variables:
 | `MOCK_SERVER_ID`, `MOCK_NAME` | Emby, Jellyfin | Server id and name, so several mocks can run side by side as distinct servers (multi-server tests). |
 | `MOCK_DURATION_S` | Emby, Jellyfin | Length of the test video in seconds, so intro/credits markers and trickplay fall inside it. |
 | `MOCK_SKIP_MODE` | Emby | The user's `IntroSkipMode` (default `ShowButton`). |
+| `MOCK_MUSIC=1` | Emby, Jellyfin | The music library of `tools/mock-server/music-fixture.mjs` (on by default with `MOCK_DATASET=demo`). Every track streams as generated silence. |
+| `MOCK_MUSIC_SCALE=big` | Emby, Jellyfin | 1,000 more songs (metadata only) for scroll tests. |
 | `MOCK_ADMIN_FLAVOR=jellyfin` | Emby (admin) | Jellyfin-shaped transcoding configuration and plugin list. |
 | `MOCK_QBIT_VERSION` | qBittorrent | `4.6.7` speaks the 4.x API (pause/resume); the default `5.0.4` speaks API 2.11 (stop/start). |
 | `MOCK_QBIT_NOQUEUE=1` | qBittorrent | Answers 409 to priority changes, like qBittorrent with queueing off. |

@@ -386,6 +386,29 @@
     <string name="music_albums">Albums</string>
     <string name="music_artists">Artistes</string>
     <string name="music_songs">Titres</string>
+    <!-- Music now playing (MU-09). -->
+    <string name="music_now_playing">En cours de lecture</string>
+    <string name="music_pause">Pause</string>
+    <string name="music_next">Suivant</string>
+    <string name="music_previous">Précédent</string>
+    <string name="music_shuffle_on">Lecture aléatoire activée</string>
+    <string name="music_shuffle_off">Lecture aléatoire désactivée</string>
+    <string name="music_repeat_off">Ne pas répéter</string>
+    <string name="music_repeat_all">Répéter la file</string>
+    <string name="music_repeat_one">Répéter le titre</string>
+    <string name="music_lyrics">Paroles</string>
+    <string name="music_no_lyrics">Aucune parole pour ce titre.</string>
+    <string name="music_mix">Mix</string>
+    <string name="music_mix_none">Aucun mix pour ce titre.</string>
+    <string name="music_position">Position dans le titre</string>
+    <string name="music_row_recent_albums">Albums récents</string>
+    <string name="music_row_recently_played">Écoutés récemment</string>
+    <string name="music_row_playlists">Playlists</string>
+    <string name="music_row_artists">Artistes</string>
+    <string name="music_row_genres">Genres</string>
+    <string name="music_shuffle">Aléatoire</string>
+    <string name="music_queue_edit">Déplacer</string>
+    <string name="music_queue_edit_hint">← → : déplacer · OK : terminé · maintenir OK : retirer</string>
 
     <!-- First-run wizard (OB-T1) -->
     <string name="welcome_continue">Continuer</string>

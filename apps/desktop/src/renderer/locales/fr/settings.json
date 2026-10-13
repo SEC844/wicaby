@@ -82,7 +82,26 @@
         "subSeekForward": "Réplique suivante (mpv)",
         "speedDown": "Ralentir de 0,25×",
         "speedUp": "Accélérer de 0,25×",
-        "speedReset": "Vitesse normale"
+        "speedReset": "Vitesse normale",
+        "musicPlayPause": "Lecture/Pause",
+        "musicNext": "Titre suivant",
+        "musicPrevious": "Titre précédent",
+        "musicSeekBack": "Reculer de 5 s",
+        "musicSeekForward": "Avancer de 5 s",
+        "musicSeekBackLong": "Reculer de 30 s",
+        "musicSeekForwardLong": "Avancer de 30 s",
+        "musicVolumeUp": "Volume +",
+        "musicVolumeDown": "Volume −",
+        "musicMute": "Couper le son",
+        "musicShuffle": "Lecture aléatoire",
+        "musicRepeat": "Répétition",
+        "musicLyrics": "Paroles",
+        "musicQueue": "File d’attente",
+        "musicFavorite": "Favori",
+        "musicClose": "Fermer le lecteur"
+      },
+      "context": {
+        "music": "Musique"
       }
     },
     "setup": {
@@ -458,7 +477,23 @@
     "passthrough": "Passthrough (bitstream)",
     "atmosIncluded": "Atmos inclus",
     "passthroughFoot": "Les formats activés sont envoyés tels quels à l’ampli via HDMI ou S/PDIF, qui se charge du décodage. Le passthrough force WASAPI en mode exclusif, quel que soit le réglage ci-dessus ; volume, mode nuit et dialogues renforcés ne s’appliquent pas à ces pistes. S’applique au prochain lancement de mpv.",
-    "passthroughFootLinux": "Les formats activés sont envoyés tels quels à l’ampli via HDMI ou S/PDIF, qui se charge du décodage. La sortie doit accepter le passthrough (activez-le dans PipeWire ou PulseAudio, ou activez le mode exclusif) ; sinon, Wicaby repasse en PCM. Volume, mode nuit et dialogues renforcés ne s’appliquent pas à ces pistes. S’applique au prochain lancement de mpv."
+    "passthroughFootLinux": "Les formats activés sont envoyés tels quels à l’ampli via HDMI ou S/PDIF, qui se charge du décodage. La sortie doit accepter le passthrough (activez-le dans PipeWire ou PulseAudio, ou activez le mode exclusif) ; sinon, Wicaby repasse en PCM. Volume, mode nuit et dialogues renforcés ne s’appliquent pas à ces pistes. S’applique au prochain lancement de mpv.",
+    "music": {
+      "title": "Musique",
+      "replayGain": "Normalisation ReplayGain",
+      "replayGainDesc": "Égalise le volume d’un titre à l’autre avec les gains des fichiers, sinon ceux du serveur.",
+      "replayGainOff": "Désactivée",
+      "replayGainTrack": "Par titre",
+      "replayGainAlbum": "Par album",
+      "replayGainAuto": "Automatique",
+      "preamp": "Préamplification",
+      "preampValue": "{db} dB",
+      "preventClipping": "Éviter la saturation",
+      "gapless": "Lecture sans blanc",
+      "gaplessHint": "Enchaîne les titres sans silence (lecteur mpv).",
+      "resumeQueue": "Reprendre la file au démarrage",
+      "fallbackNote": "Le lecteur intégré ne prend pas en charge la lecture sans blanc ni les gains ReplayGain des fichiers."
+    }
   },
   "subtitles": {
     "language": {

@@ -61,7 +61,8 @@
     "route": {
       "local": "Local",
       "remote": "Distant",
-      "mesh": "Via le VPN"
+      "mesh": "Via le VPN",
+      "relay": "Relais Plex (débit limité)"
     },
     "socket": {
       "open": "Temps réel actif",

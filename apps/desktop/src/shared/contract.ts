@@ -7,7 +7,8 @@ import type { QualityRow } from './quality-presets';
 export type { LensRef, ZapEntry } from './livetv/model';
 
 // 'files': a local folder, WebDAV folder or SMB share (file-sources-spec, main/files).
-export type ServerKind = 'emby' | 'jellyfin' | 'files';
+// 'plex': a Plex Media Server through the Plex dialect (plex-spec §3; shared/plex). Its server id is 40 hex.
+export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex';
 
 export interface ServerInfo {
   id: string;
@@ -26,7 +27,29 @@ export interface ServerInfo {
   vpn?: VpnKind;
   // File sources only: the protocol (icon) and the address as shown, never with credentials.
   files?: { protocol: FileProtocol; display: string };
+  // Plex servers (plex-spec §5.6): the linked plex.tv account that lists it, owned or shared by `source`, and
+  // whether the user hid it (D-10: shared servers show by default).
+  plex?: { account: string; owned: boolean; source?: string; hidden?: boolean };
 }
+
+// A plex.tv account linked with a code (plex-spec §5.1).
+export interface PlexAccount {
+  id: string;
+  name: string;
+  // Plex Pass on this account (plex.tv subscription): what gated features to explain (plex-spec §1.3).
+  pass?: boolean;
+  // The account's subtitle mode and language (plex.tv /api/v2/user profile), the default of a Plex play (§6.4, #1182).
+  subtitles?: { mode?: SubtitleMode; language: string };
+}
+
+export interface PlexLinkPin {
+  code: string;
+  // https://plex.tv/link?code=…, shown as a QR code.
+  url: string;
+  expiresIn: number;
+}
+
+export type PlexLinkPoll = { status: 'waiting' } | { status: 'expired' } | { status: 'linked'; servers: ServerInfo[] };
 
 export interface DiscoveredServer {
   id: string;
@@ -59,7 +82,10 @@ export interface ServerSession {
   address?: string;
   // Realtime socket of a signed-in server (absent without one), and how address is reached.
   socket?: 'connecting' | 'open' | 'down';
-  route?: 'local' | 'remote' | 'mesh';
+  // relay: a Plex relay connection (bandwidth-capped by Plex).
+  route?: 'local' | 'remote' | 'mesh' | 'relay';
+  // Plex (D-3): the server answered only at this plain-http LAN address, which gets the token once the user agrees.
+  confirm?: string;
 }
 
 // status/server/user/address describe the primary server (single-server UI bits);
@@ -293,6 +319,19 @@ export interface Settings {
   photos: {
     map: { enabled: boolean; tileUrl: string; attribution: string };
   };
+  // Music (music-spec §4.1, D2): ReplayGain album by default; 'auto' = album while an album plays in order.
+  music: {
+    replayGain: 'off' | 'track' | 'album' | 'auto';
+    // -15…+15 dB on top of the gain.
+    preampDb: number;
+    // Gain for a file without tags or server value (modern loud masters).
+    fallbackDb: number;
+    preventClipping: boolean;
+    gapless: boolean;
+    // D8: the queue comes back, paused, at start-up.
+    resumeQueue: boolean;
+    lyricsProvider: 'server' | 'server+lrclib';
+  };
 }
 
 export interface AudioDevice {
@@ -365,6 +404,24 @@ export interface NowPlayingItem {
   // Real chapters only (Emby intro/credits markers are moved to PlaybackState.markers).
   // index addresses /Items/{id}/Images/Chapter/{index}.
   chapters: { name: string; startMs: number; index: number; imageTag?: string }[];
+  // Audio only (music-spec MU-02): the album (its Primary image is the art), the track artists and the album artist.
+  album?: string;
+  albumId?: string;
+  artists?: string[];
+  albumArtist?: string;
+  indexNumber?: number;
+}
+
+// Music (music-spec §4.1): set while the current item is a track. The renderer fetches names and art by id.
+export interface MusicState {
+  shuffle: boolean;
+  repeat: 'off' | 'all' | 'one';
+  queue: { ids: string[]; index: number };
+  // Instant-mix top-up when the queue runs out.
+  radio: boolean;
+  // Where the loudness gain comes from: the file's ReplayGain tags, the server (Jellyfin NormalizationGain) or the fallback.
+  gain?: { source: 'tags' | 'server' | 'none'; db: number };
+  lyrics?: { kind: 'synced' | 'plain'; source: 'server' | 'lrclib' };
 }
 
 export type SkipMode = 'ask' | 'auto' | 'off';
@@ -460,6 +517,8 @@ export interface PlaybackState {
   trailer?: boolean;
   // Live TV player mode (livetv-spec-final.md §14): set while a channel plays.
   live?: LiveState;
+  // Music (music-spec MU-02): set while a track plays.
+  music?: MusicState;
   // X-04 sleep timer: 'eov' = end of this video (of this programme in live). endsAt is unset for
   // 'eov' in VOD; promptUntil is the "Still watching?" deadline once it fired.
   sleep?: { minutes: number | 'eov'; endsAt?: number; promptUntil?: number };
@@ -567,7 +626,15 @@ export type PlaybackCommand =
   // X-05 Réglages "Effacer les réglages mémorisés": speed, delays and aspect.
   | { type: 'forget-player-settings' }
   // The OSD's Retry while reconnecting: an attempt now.
-  | { type: 'reconnect-retry' };
+  | { type: 'reconnect-retry' }
+  // Music queue (music-spec §4.1): indexes in MusicState.queue.ids.
+  | { type: 'queue-move'; from: number; to: number }
+  | { type: 'queue-remove'; index: number }
+  | { type: 'queue-jump'; index: number }
+  | { type: 'queue-clear-upcoming' }
+  | { type: 'shuffle'; value: boolean }
+  | { type: 'repeat'; mode: 'off' | 'all' | 'one' }
+  | { type: 'radio'; value: boolean };
 
 // Live TV reminders (§9.6, LT-19), kept on this device per server and user.
 export interface LiveReminder {
@@ -597,6 +664,8 @@ export interface HtmlPlayerLoad {
   subtitles: { index: number; url: string; label: string; language?: string }[];
   subtitleIndex: number | null;
   rate?: number;
+  // Music (music-spec §4.1.2): an <audio> element in the main window, not the player route; gainDb through a GainNode.
+  audio?: { gainDb: number; paused: boolean };
 }
 
 export type HtmlPlayerCommand =
@@ -1013,6 +1082,14 @@ export interface WicabyBridge {
     select(id: string): Promise<SessionState>;
     remove(id: string): Promise<void>;
     wake(id: string): Promise<boolean>;
+    // Plex (plex-spec §5): link with a code, then poll every 2 s until linked or expired.
+    plexLink(): Promise<PlexLinkPin>;
+    plexPoll(): Promise<PlexLinkPoll>;
+    plexAccounts(): Promise<PlexAccount[]>;
+    plexUnlink(accountId: string): Promise<void>;
+    plexSetHidden(id: string, hidden: boolean): Promise<ServerInfo[]>;
+    // D-3: send this server's token to the http LAN address it answered at (session.confirm).
+    plexConfirm(id: string, address: string): Promise<SessionState>;
   };
   session: {
     get(): Promise<SessionState>;
@@ -1187,6 +1264,12 @@ export const Channels = {
   serversSelect: 'servers:select',
   serversRemove: 'servers:remove',
   serversWake: 'servers:wake',
+  serversPlexLink: 'servers:plex-link',
+  serversPlexPoll: 'servers:plex-poll',
+  serversPlexAccounts: 'servers:plex-accounts',
+  serversPlexUnlink: 'servers:plex-unlink',
+  serversPlexSetHidden: 'servers:plex-set-hidden',
+  serversPlexConfirm: 'servers:plex-confirm',
   sessionGet: 'session:get',
   sessionPublicUsers: 'session:public-users',
   sessionLogin: 'session:login',

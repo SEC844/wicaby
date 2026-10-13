@@ -2,6 +2,7 @@
 // identify, artwork, refresh, remote subtitles and deletion. Same endpoints on
 // Emby and Jellyfin unless noted; every call goes to the item's own server.
 import { MEDIA_SCHEME } from '../../../shared/contract';
+import { caps } from '../../../shared/server-caps';
 import type { BaseItem, MediaSource } from '../../../shared/models';
 import { invalidateApiCache } from '../../lib/api';
 import { comicCoverUrl } from '../../lib/images';
@@ -117,6 +118,8 @@ export function isAdminFor(item: Pick<BaseItem, 'ServerId'>): boolean {
 // The admin entries of the item page's "…" menu; [] for everyone else.
 export function adminEntries(item: BaseItem & { CanDelete?: boolean }): { kind: AdminAction; icon: IconName }[] {
   if (!isAdminFor(item) || item.Type === 'CollectionFolder' || item.Type === 'UserView') return [];
+  // A server without the admin panel (Plex, D-2): "Refresh metadata" for its owner, the rest stays in Plex Web.
+  if (!caps(sessionFor(item.ServerId)?.server.kind).admin) return [{ kind: 'refresh', icon: 'refresh' }];
   const out: { kind: AdminAction; icon: IconName }[] = [{ kind: 'edit', icon: 'pencil' }];
   if (IDENTIFIABLE.includes(item.Type)) out.push({ kind: 'identify', icon: 'scanSearch' });
   out.push({ kind: 'images', icon: 'image' }, { kind: 'refresh', icon: 'refresh' });

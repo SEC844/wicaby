@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { kindLabel } from '../../shared/server-caps';
+  import { caps, kindLabel } from '../../shared/server-caps';
   // Server administration: a quiet section list (like Settings) and the
   // section's own component. Only servers where the signed-in user is an
   // administrator are offered; every admin call goes to the picked server.
@@ -13,7 +13,8 @@
   import { navigate, router } from '../lib/router.svelte';
   import { onlineSessions } from '../lib/stores.svelte';
 
-  const admins = $derived(onlineSessions().filter((s) => s.user?.isAdmin));
+  // Servers with an admin panel (caps.admin: not Plex) the user administers.
+  const admins = $derived(onlineSessions().filter((s) => s.user?.isAdmin && caps(s.server.kind).admin));
   const params = $derived(router.route.params);
   // One segment is a section; two are server then section.
   const wanted = $derived(params.server ? { server: params.server, section: params.id } : { server: '', section: params.id ?? '' });
