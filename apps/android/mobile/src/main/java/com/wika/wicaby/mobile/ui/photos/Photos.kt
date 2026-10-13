@@ -55,6 +55,12 @@ import com.wika.wicaby.core.photos.Photo
 import com.wika.wicaby.core.photos.PhotoSource
 import com.wika.wicaby.core.photos.photoAlbums
 import com.wika.wicaby.core.photos.timelineQuery
+import com.wika.wicaby.core.photos.Immich
+import com.wika.wicaby.core.photos.ImmichException
+import com.wika.wicaby.core.photos.ImmichTimeline
+import com.wika.wicaby.core.photos.immichPhoto
+import com.wika.wicaby.core.photos.setPhotoFavorite
+import androidx.compose.foundation.shape.CircleShape
 import com.wika.wicaby.mobile.ui.Cache
 import com.wika.wicaby.mobile.ui.Centered
 import com.wika.wicaby.mobile.ui.Chip
@@ -71,12 +77,17 @@ import kotlinx.coroutines.launch
 
 // Photos spec §4.3 (PH-05): a photo library ("photos", or "homevideos" by decision O3) or one of its albums.
 // Tabs: Timeline, Albums (the library's PhotoAlbum folders), Favourites. An album shows its own timeline.
-val PHOTO_COLLECTIONS = setOf("photos", "homevideos", PHOTO_ALBUM)
+val PHOTO_COLLECTIONS = setOf("photos", "homevideos", PHOTO_ALBUM, IMMICH, IMMICH_ALBUM, IMMICH_PERSON)
 const val PHOTO_ALBUM = "photoalbum"
+// An Immich source (photos spec PH-13), its own library: the source (parentId = its id), one of its albums or people.
+const val IMMICH = "immich"
+const val IMMICH_ALBUM = "immich-album"
+const val IMMICH_PERSON = "immich-person"
 
 @Composable
 fun PhotosScreen(api: Api, route: GridRoute, nav: NavController) {
     val parent = route.parentId ?: return
+    if (route.collectionType in setOf(IMMICH, IMMICH_ALBUM, IMMICH_PERSON)) return ImmichPhotos(api, route, nav)
     val album = route.collectionType == PHOTO_ALBUM
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var density by rememberSaveable { mutableIntStateOf(1) }
@@ -88,17 +99,102 @@ fun PhotosScreen(api: Api, route: GridRoute, nav: NavController) {
         }
         when (tab) {
             1 -> Albums(api, parent) { a -> nav.navigate(GridRoute(a.name, parentId = a.id, collectionType = PHOTO_ALBUM, serverId = route.serverId)) }
-            else -> Timeline(api, parent, favorites = tab == 2, density = density, onDensity = { density = it })
+            else -> {
+                val favorites = tab == 2
+                Timeline(api, timelineKey(api, parent, favorites), timelineKey(api, parent, !favorites), density, { density = it }) { t, force ->
+                    t.load(PhotoSource(api.timelineQuery(parent, favorites)), force)
+                }
+            }
         }
     }
 }
 
 private fun timelineKey(api: Api, parent: String, favorites: Boolean) = "photos-${api.server.id}-$parent-$favorites"
 
+// Tabs of an Immich source: Timeline, Albums, Favourites, People; an album or a person shows its own timeline.
+// Its memories join the home row ("Ce jour-là"); a missing permission names itself where its tab would be.
+@Composable
+private fun ImmichPhotos(api: Api, route: GridRoute, nav: NavController) {
+    val id = route.parentId ?: return
+    val root = route.collectionType == IMMICH
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var density by rememberSaveable { mutableIntStateOf(1) }
+    Column(Modifier.fillMaxSize()) {
+        TopBar(route.title, onBack = { nav.popBackStack() })
+        if (root) LazyRow(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val tabs = listOf(CoreR.string.photos_tab_timeline, CoreR.string.photos_tab_albums, CoreR.string.photos_tab_favorites, CoreR.string.photos_tab_people)
+            tabs.forEachIndexed { i, label -> item(i) { Chip(stringResource(label), selected = i == tab) { tab = i } } }
+        }
+        val filter = when (route.collectionType) {
+            IMMICH_ALBUM -> ImmichTimeline.Filter(albumId = id)
+            IMMICH_PERSON -> ImmichTimeline.Filter(personId = id)
+            else -> ImmichTimeline.Filter(favorites = tab == 2)
+        }
+        when {
+            root && tab == 1 -> ImmichGrid("album", { Immich.client().albums().map { ImmichCard(it.id, it.name, it.coverId?.let { c -> Immich.client().thumb(c, "preview") }, it.count, it.shared, false) } }) { c ->
+                nav.navigate(GridRoute(c.name, parentId = c.id, collectionType = IMMICH_ALBUM))
+            }
+            root && tab == 3 -> ImmichGrid("person", { Immich.client().people().map { ImmichCard(it.id, it.name, Immich.client().face(it.id), null, false, true) } }) { c ->
+                nav.navigate(GridRoute(c.name, parentId = c.id, collectionType = IMMICH_PERSON))
+            }
+            else -> {
+                val key = "immich-${Immich.source?.id}-$filter"
+                val other = if (root) "immich-${Immich.source?.id}-${filter.copy(favorites = !filter.favorites)}" else null
+                Timeline(api, key, other, density, { density = it }) { t, force ->
+                    t.load(force) { onPage -> Immich.client().timeline(filter) { a, n -> onPage(a.map(::immichPhoto), n) }.assets.map(::immichPhoto) }
+                }
+            }
+        }
+    }
+}
+
+private class ImmichCard(val id: String, val name: String, val cover: String?, val count: Int?, val shared: Boolean, val round: Boolean)
+
+// Albums or people of the Immich source, read-only. A 403 shows which permission the key lacks.
+@Composable
+private fun ImmichGrid(kind: String, load: suspend () -> List<ImmichCard>, onOpen: (ImmichCard) -> Unit) {
+    var nonce by remember { mutableIntStateOf(0) }
+    val cards = rememberLoad("immich-$kind-${Immich.source?.id}", nonce) { load() }
+    val list = cards.value
+    val err = cards.error as? ImmichException
+    when {
+        list == null && err != null && (err.status == 403 || err.status == 401) -> Centered {
+            Text(
+                if (err.status == 401) stringResource(CoreR.string.photos_sources_key_refused) else stringResource(CoreR.string.photos_sources_scope_missing, if (kind == "album") "album.read" else "person.read"),
+                style = Type.body, color = G.label2, modifier = Modifier.padding(32.dp).testTag("immich-scope"),
+            )
+        }
+        list == null && cards.error != null -> Centered { ErrorState({ nonce++ }) }
+        list == null -> Centered { Spinner() }
+        list.isEmpty() -> Centered { Text(stringResource(if (kind == "album") CoreR.string.photos_empty else CoreR.string.photos_people_empty), style = Type.body, color = G.label2) }
+        else -> LazyVerticalGrid(
+            columns = GridCells.Adaptive(if (kind == "album") 150.dp else 110.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            items(list, key = { it.id }) { c ->
+                Column(Modifier.clickable(role = Role.Button) { onOpen(c) }, horizontalAlignment = if (c.round) Alignment.CenterHorizontally else Alignment.Start) {
+                    AsyncImage(
+                        c.cover, c.name, contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(if (c.round) CircleShape else RoundedCornerShape(Radius.sm)).background(G.fill1),
+                    )
+                    Text(c.name, style = Type.headline, color = G.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+                    c.count?.let {
+                        val n = pluralStringResource(CoreR.plurals.photos_count, it, it)
+                        Text(if (c.shared) "$n · ${stringResource(CoreR.string.photos_album_shared)}" else n, style = Type.footnote, color = G.label3)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// key: the session cache entry; other: the sibling view a favourite change invalidates (timeline <-> favourites).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Timeline(api: Api, parent: String, favorites: Boolean, density: Int, onDensity: (Int) -> Unit) {
-    val key = timelineKey(api, parent, favorites)
+private fun Timeline(api: Api, key: String, other: String?, density: Int, onDensity: (Int) -> Unit, load: suspend (TimelineState, Boolean) -> Unit) {
     val t = remember(key) { Cache.map.getOrPut(key) { TimelineState() } as TimelineState }
     var nonce by remember { mutableIntStateOf(0) }
     var open by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -107,11 +203,11 @@ private fun Timeline(api: Api, parent: String, favorites: Boolean, density: Int,
     var slideFrom by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     // A load cut short (the tab left mid-paging) resumes here: only a complete timeline is reused (TimelineState).
-    LaunchedEffect(t, nonce) { t.load(PhotoSource(api.timelineQuery(parent, favorites)), force = nonce > 0) }
+    LaunchedEffect(t, nonce) { load(t, nonce > 0) }
     fun setFavorite(i: Int, on: Boolean) {
         t.photos = t.photos.toMutableList().also { l -> l[i] = l[i].copy(asset = l[i].asset.copy(favorite = on)) }
         // The other tab reloads with the change.
-        Cache.map.remove(timelineKey(api, parent, !favorites))
+        other?.let { Cache.map.remove(it) }
     }
     BackHandler(selected.isNotEmpty()) { selected = emptySet() }
     PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
@@ -134,7 +230,7 @@ private fun Timeline(api: Api, parent: String, favorites: Boolean, density: Int,
                 selected.size, allFav, Modifier.align(Alignment.BottomCenter),
                 onFavorite = {
                     scope.launch {
-                        for (i in idx) runCatching { api.setFavorite(t.photos[i].asset.id, !allFav) }.onSuccess { setFavorite(i, !allFav) }
+                        for (i in idx) runCatching { api.setPhotoFavorite(t.photos[i].asset, !allFav) }.onSuccess { setFavorite(i, !allFav) }
                         selected = emptySet()
                     }
                 },

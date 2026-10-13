@@ -98,7 +98,8 @@
         "musicLyrics": "Paroles",
         "musicQueue": "File d’attente",
         "musicFavorite": "Favori",
-        "musicClose": "Fermer le lecteur"
+        "musicClose": "Fermer le lecteur",
+        "musicMini": "Mini-lecteur"
       },
       "context": {
         "music": "Musique"
@@ -492,7 +493,9 @@
       "gapless": "Lecture sans blanc",
       "gaplessHint": "Enchaîne les titres sans silence (lecteur mpv).",
       "resumeQueue": "Reprendre la file au démarrage",
-      "fallbackNote": "Le lecteur intégré ne prend pas en charge la lecture sans blanc ni les gains ReplayGain des fichiers."
+      "fallbackNote": "Le lecteur intégré ne prend pas en charge la lecture sans blanc ni les gains ReplayGain des fichiers.",
+      "lyricsOnline": "Chercher les paroles en ligne (LRCLIB)",
+      "lyricsOnlineHint": "Envoie l’artiste, le titre et l’album à lrclib.net quand le serveur n’a pas de paroles."
     }
   },
   "subtitles": {
@@ -773,6 +776,15 @@
     "none": "Aucune",
     "connected": "Connecté",
     "failed": "Connexion impossible",
+    "connectedDirect": "Connecté (direct)",
+    "connectedMesh": "Connecté via NetBird/Tailscale",
+    "path": {
+      "direct": "La connexion directe a échoué.",
+      "mesh": "La connexion via NetBird/Tailscale a échoué. Le pair de routage n’atteint pas cette adresse.",
+      "outside": "La connexion directe a échoué, et cette adresse n’est dans aucune route NetBird/Tailscale (ni pair, ni réseau routé).",
+      "off": "La connexion directe a échoué, et l’accès à distance (NetBird/Tailscale) n’est pas connecté.",
+      "failed": "La connexion directe a échoué, et NetBird/Tailscale n’a pas pu ouvrir de route vers cette adresse."
+    },
     "unreachable": "qBittorrent est injoignable",
     "hint": "Activez l’interface web dans qBittorrent (Options, Interface web), puis saisissez son adresse.",
     "testing": "Test…",

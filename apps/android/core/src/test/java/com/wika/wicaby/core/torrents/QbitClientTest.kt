@@ -5,6 +5,8 @@ import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import com.wika.wicaby.core.net.ServerTransport
+import com.wika.wicaby.core.net.TransportInterceptor
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -112,6 +114,21 @@ class QbitClientTest {
         assertEquals("v4.6.7", c.version())
         assertEquals(listOf("auth/login", "app/version"), fake.calls)
         assertEquals("username=admin&password=secret", fake.bodies["auth/login"])
+        assertEquals(1, fake.logins)
+    }
+
+    // Through the mesh forwarder (Core.transport rewrites the URL to it) qBittorrent still gets its own Host, so the
+    // CSRF headers must name the configured address, never the loopback forwarder.
+    @Test
+    fun csrfHeadersNameTheConfiguredAddressThroughTheMeshForwarder() = runBlocking {
+        start(FakeQbit())
+        fake.origin = "http://192.0.2.15:8080"
+        val forwarder = "http://${server.hostName}:${server.port}"
+        val transport = object : ServerTransport {
+            override fun forward(origin: String): String? = forwarder.takeIf { origin == "http://192.0.2.15:8080" }
+        }
+        val viaMesh = OkHttpClient.Builder().addInterceptor(TransportInterceptor { transport }).build()
+        assertEquals("v5.0.2", QbitClient("192.0.2.15:8080", "admin", "secret", viaMesh).version())
         assertEquals(1, fake.logins)
     }
 

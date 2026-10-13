@@ -4,6 +4,14 @@ import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +32,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,7 +42,7 @@ import org.robolectric.annotation.Config
 // The D-pad at a row's ends (a reported bug: RIGHT on the last card jumped to the row above or the tab bar).
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 class RowEdgesTest {
     @get:Rule
     val rule = createComposeRule()
@@ -107,5 +116,43 @@ class RowEdgesTest {
         rule.onNodeWithTag("g1").requestFocus()
         press(Key.DirectionRight)
         rule.onNodeWithTag("g1").assertIsFocused()
+    }
+
+    // Detail.kt: the page provides HeroSpec (vertical scroll); a horizontal row under it must provide its own EdgeSpec,
+    // or HeroSpec shifts the row by the page's small vertical offset whenever focus lands on a visible season (review POLISH).
+    @Test
+    fun aRowOnTheHeroPageKeepsTheFocusedCardInView() {
+        rule.setContent {
+            val page = rememberScrollState()
+            val margin = with(LocalDensity.current) { 56.dp.toPx() }
+            CompositionLocalProvider(LocalBringIntoViewSpec provides HeroSpec(page, margin)) {
+                Column(Modifier.size(400.dp).verticalScroll(page)) {
+                    // The seasons row sits just below the first screen: the page scrolls only a little to show it.
+                    Box(Modifier.height(300.dp))
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides EdgeSpec(margin)) {
+                        LazyRow(Modifier.width(400.dp).dpadEdges()) { items(12) { Box(Modifier.size(80.dp).testTag("s$it").focusable()) } }
+                    }
+                    Box(Modifier.height(300.dp))
+                }
+            }
+        }
+        rule.onNodeWithTag("s0").requestFocus()
+        repeat(8) { press(Key.DirectionRight) }
+        rule.onNodeWithTag("s8").assertIsFocused().assertIsDisplayed()
+        val before = rule.onNodeWithTag("s8").fetchSemanticsNode().boundsInRoot.left
+        // s7 is already clear of the edges: the row must not move.
+        press(Key.DirectionLeft)
+        rule.onNodeWithTag("s7").assertIsFocused().assertIsDisplayed()
+        assertEquals(before, rule.onNodeWithTag("s8").fetchSemanticsNode().boundsInRoot.left, 0.5f)
+    }
+
+    // Guard for the screen itself: every LazyRow on the Detail page sits under its own EdgeSpec.
+    @Test
+    fun everyDetailRowHasItsOwnEdgeSpec() {
+        val src = java.io.File("src/main/java/com/wika/wicaby/tv/ui/Detail.kt").readText()
+        val rows = src.split("LazyRow(").size - 1
+        val guarded = Regex("""EdgeSpec\(margin\) \}\) \{\s+LazyRow\(""").findAll(src).count()
+        assertEquals(3, rows) // seasons, episodes, Bonus
+        assertEquals(rows, guarded)
     }
 }

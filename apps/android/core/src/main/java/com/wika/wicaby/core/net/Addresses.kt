@@ -100,6 +100,7 @@ class AddressSwitch(val inner: ServerTransport, private val servers: () -> List<
 
     // A connection to a stored origin failed: pick again, at most every 15 s per server.
     override fun failed(origin: String) {
+        inner.failed(origin)
         val s = servers().firstOrNull { it.origin == origin } ?: return
         val last = lastPick[s.id] ?: 0L
         if (picks[s.id]?.isActive == true || SystemClock.elapsedRealtime() - last < 15_000) return

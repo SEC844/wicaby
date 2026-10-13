@@ -6,6 +6,7 @@ import https from 'node:https';
 import type { Readable } from 'node:stream';
 import { guardRel } from '../../shared/files/ids';
 import { MAX_PROPFIND_BYTES, parseMultistatus } from '../../shared/files/propfind';
+import { ensureRoute, routed } from '../connection/api-client';
 import { logger } from '../core/log';
 import { filesError, MAX_ENTRIES, type FileEntry, type FilesBackend, type OpenResult } from './backend';
 import { agentFor, isCertError, peekCertificate, PinMismatch, type TlsPolicy } from './tls-pin';
@@ -67,13 +68,20 @@ export class WebDavBackend implements FilesBackend {
     }
   }
 
-  private send(method: string, url: URL, headers: Record<string, string>, body: string | undefined, timeoutMs: number, hops = 0): Promise<Reply> {
-    const lib = url.protocol === 'https:' ? https : http;
+  // Direct, or through the mesh forwarder like a media server (ensureRoute): a peer, or a host in a NetBird routed
+  // network that does not answer directly. shortcut: through the mesh the helper checks https against the system
+  // roots, not this source's pin, so a pinned self-signed source fails closed there; upgrade if one must work away.
+  private async send(method: string, url: URL, headers: Record<string, string>, body: string | undefined, timeoutMs: number, hops = 0): Promise<Reply> {
+    if (hops === 0) await ensureRoute(this.base.origin);
+    const wire = new URL(routed(url.href));
+    const viaMesh = wire.origin !== url.origin;
+    const meshBase = viaMesh ? routed(this.base.origin) : '';
+    const lib = wire.protocol === 'https:' ? https : http;
     const auth = this.creds ? { Authorization: `Basic ${Buffer.from(`${this.creds.user}:${this.creds.pass}`, 'utf8').toString('base64')}` } : {};
     return new Promise<Reply>((resolve, reject) => {
       const req = lib.request(
-        url,
-        { method, agent: this.agent, headers: { ...headers, ...auth, ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}) }, timeout: CONNECT_MS },
+        wire,
+        { method, agent: viaMesh ? undefined : this.agent, headers: { ...headers, ...auth, ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}) }, timeout: CONNECT_MS },
         (res) => {
           const status = res.statusCode ?? 0;
           const location = res.headers.location;
@@ -81,7 +89,8 @@ export class WebDavBackend implements FilesBackend {
             res.resume();
             let next: URL;
             try {
-              next = new URL(location, url);
+              // The forwarder rewrites a same-origin Location onto itself: back to the real address.
+              next = new URL(meshBase && location.startsWith(`${meshBase}/`) ? this.base.origin + location.slice(meshBase.length) : location, url);
             } catch {
               return reject(filesError('notFound'));
             }

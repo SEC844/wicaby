@@ -109,6 +109,7 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
     val accent = LocalAccent.current
     val scope = rememberCoroutineScope()
     var sheet by remember { mutableStateOf<Int?>(null) }
+    var eqOpen by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf<Item?>(null) }
     val pos by rememberPosition(s)
     val dur = s.durationMs()
@@ -170,11 +171,13 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 IconBtn(Ic.Lyrics, stringResource(R.string.music_lyrics), { sheet = 0 })
+                IconBtn(Ic.Equalizer, stringResource(R.string.music_eq_title), { eqOpen = true })
                 IconBtn(Ic.Queue, stringResource(R.string.music_queue), { sheet = 1 })
             }
         }
     }
     sheet?.let { PlayerSheet(s, it) { sheet = null } }
+    if (eqOpen) EqualizerSheet { eqOpen = false }
     menu?.let { TrackMenu(api, it, onDismiss = { menu = null }) }
 }
 
@@ -243,6 +246,10 @@ fun LyricsPane(lyrics: Lyrics?, positionMs: Long, onSeek: (Long) -> Unit) {
                     .semantics { selected = i == cur }
                     .then(if (start != null) Modifier.clickable { onSeek(start) } else Modifier),
             )
+        }
+        // MU-13: lyrics from lrclib.net say so.
+        if (lyrics.lrclib) item("source") {
+            Text(stringResource(R.string.music_lyrics_source_lrclib), style = Type.caption, color = G.label3, modifier = Modifier.padding(top = 16.dp))
         }
     }
 }

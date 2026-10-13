@@ -194,6 +194,8 @@ export class WindowManager {
     });
     win.on('closed', () => {
       this.main = null;
+      // A lone mini player would keep the app alive with no way back.
+      if (this.mini && !this.mini.isDestroyed()) this.mini.destroy();
     });
     void win.loadURL(this.url('/'));
     this.main = win;
@@ -456,6 +458,63 @@ export class WindowManager {
   broadcast(channel: string, payload: unknown): void {
     this.send(this.main, channel, payload);
     if (this.playback) this.send(this.playback.osd, channel, payload);
+    this.send(this.mini, channel, payload);
+  }
+
+  // Music mini player (music-spec §4.4, MU-10): 360 × 96, frameless, always on top, where it was last left. Opening
+  // it sends the main window to the tray when "Réduire dans la barre" is on; closing it brings the main window back.
+  mini: BrowserWindow | null = null;
+
+  openMini(): void {
+    if (this.mini && !this.mini.isDestroyed()) return this.mini.show();
+    const size = { width: 360, height: 96 };
+    const at = this.opts.settings.value.window.mini;
+    const saved = at && Number.isFinite(at.x) && Number.isFinite(at.y) ? { ...size, x: Math.round(at.x), y: Math.round(at.y) } : null;
+    const a = screen.getPrimaryDisplay().workArea;
+    const bounds = saved && this.visibleOnSomeDisplay(saved) ? saved : { ...size, x: a.x + a.width - size.width - 24, y: a.y + a.height - size.height - 24 };
+    const win = new BrowserWindow({
+      ...bounds,
+      show: false,
+      frame: false,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      fullscreenable: false,
+      alwaysOnTop: true,
+      title: 'Wicaby',
+      icon: this.opts.icon,
+      backgroundColor: this.mica ? '#00000000' : INK,
+      backgroundMaterial: this.mica ? 'acrylic' : undefined,
+      webPreferences: this.webPreferences(),
+    });
+    this.harden(win);
+    win.setAlwaysOnTop(true, 'floating');
+    win.setBounds(bounds);
+    const save = () => {
+      if (win.isDestroyed()) return;
+      const { x, y } = win.getBounds();
+      this.opts.settings.update({ window: { mini: { x, y } } });
+    };
+    win.on('moved', save);
+    win.on('close', save);
+    win.on('closed', () => {
+      if (this.mini === win) this.mini = null;
+      // The main window comes back, unless the app is quitting.
+      if (!this.quitting) this.focusMain();
+    });
+    win.once('ready-to-show', () => win.show());
+    void win.loadURL(this.url('/mini', { mini: '1' }));
+    this.mini = win;
+    if (this.opts.settings.value.windows.closeToTray) this.hideMain();
+  }
+
+  closeMini(): void {
+    if (this.mini && !this.mini.isDestroyed()) this.mini.close();
+  }
+
+  toggleMini(): void {
+    if (this.mini && !this.mini.isDestroyed()) this.closeMini();
+    else this.openMini();
   }
 
   focusMain(): void {

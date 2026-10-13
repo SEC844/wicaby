@@ -85,6 +85,7 @@ export const MUSIC_SHORTCUTS: readonly Shortcut[] = [
   music('lyrics', ['L']),
   music('queue', ['Q']),
   music('favorite', ['F']),
+  music('mini', ['Ctrl+Shift+M']),
   music('close', ['Escape']),
 ];
 

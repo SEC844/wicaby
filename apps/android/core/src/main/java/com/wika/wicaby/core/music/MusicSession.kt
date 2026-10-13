@@ -103,6 +103,8 @@ class MusicSession(
     /** Builds the player's window and reports the first track; [start] also prepares and plays. */
     fun load() {
         player.setAudioAttributes(audioAttributes(music = true), true)
+        // MU-11: the equalizer applies to music only.
+        AudioFx.music = true
         player.addListener(listener)
         window = upcoming(queue.index)
         player.setMediaItems(window.map { mediaItem(queue.ids[it]) }, 0, 0)
@@ -196,6 +198,7 @@ class MusicSession(
         player.clearMediaItems()
         player.setAudioAttributes(audioAttributes(music = false), true)
         AudioFx.musicGainDb = 0f
+        AudioFx.music = false
         if (RemoteControl.target === remote) RemoteControl.target = null
         onReleased(this)
     }

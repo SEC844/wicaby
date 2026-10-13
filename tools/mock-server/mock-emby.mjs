@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { bif, comicPage, zip } from './cbz-fixture.mjs';
 import { createSessions } from './sessions.mjs';
-import { addMusic, isMusic, LOG as MUSIC_LOG, logReport, musicFilters, musicRoute, musicSource } from './music-fixture.mjs';
+import { addMusic, isMusic, LOG as MUSIC_LOG, logReport, lrclibRoute, musicFilters, musicRoute, musicSource } from './music-fixture.mjs';
 import { addPhotos, countAlbums, photoRoute } from './photos-fixture.mjs';
 
 const PORT = Number(process.argv[2] ?? 8096);
@@ -708,6 +708,7 @@ export async function handler(req, res) {
   hooks.log(req.method, url.pathname + url.search);
   if (/^\/mock\/livetv(\/|$)/i.test(url.pathname) && liveTv()) return lt.control(req, res, url.pathname, q);
   const mp = url.pathname.replace(/^\/emby(?=\/)/i, '').split('/').filter(Boolean);
+  if (url.pathname === '/mock/lrclib/api/get' && req.method === 'GET') return lrclibRoute({ req, res, q, items, send });
   if (mp[0] === 'Mock' && mp[1] === 'State' && req.method === 'GET') return send(res, 200, { ...store.state(), music: MUSIC_LOG });
   if (mp[0] === 'Mock' && mp[1] === 'AccessSchedules' && req.method === 'POST') {
     const list = await body(req);

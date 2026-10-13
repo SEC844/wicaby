@@ -265,19 +265,36 @@ func backendError(w http.ResponseWriter, err error) {
 }
 
 // FilesDialer is how an SMB host is reached: the mesh node's userspace dialer when the host is one of its peers
-// (a NAS on the tailnet works away from home), else the plain network.
+// (a NAS on the tailnet works away from home), else the plain network. A host inside a routed network (NetBird
+// network route) is often on the LAN itself (at home): it is dialled directly first, through the routing peer only
+// when it does not answer within directFirst.
 func (n *Node) FilesDialer(host string) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	if n == nil {
 		return nil
 	}
-	if ip, ok := n.hub.meshView().allowed(host); ok {
-		return func(ctx context.Context, network, addr string) (net.Conn, error) {
-			_, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-			return n.p.dial(ctx, network, net.JoinHostPort(ip, port))
-		}
+	v := n.hub.meshView()
+	ip, ok := v.allowed(host)
+	if !ok {
+		return nil
 	}
-	return nil
+	viaMesh := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		_, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		return n.p.dial(ctx, network, net.JoinHostPort(ip, port))
+	}
+	if !v.routedOnly(host) {
+		return viaMesh
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		d := net.Dialer{Timeout: directFirst}
+		if c, err := d.DialContext(ctx, network, addr); err == nil {
+			return c, nil
+		}
+		return viaMesh(ctx, network, addr)
+	}
 }
+
+// How long a routed-network host gets to answer directly, as the desktop app's routes.
+const directFirst = 1500 * time.Millisecond

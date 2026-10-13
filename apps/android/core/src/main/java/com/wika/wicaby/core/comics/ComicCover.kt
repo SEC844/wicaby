@@ -81,9 +81,10 @@ object ComicCovers {
             if (r.code != 206 || m == null) throw Refused(r.code)
             val src = r.body.source()
             val buf = Buffer()
-            while (buf.size <= max && src.read(buf, 64L * 1024) != -1L) Unit
-            if (buf.size > max) throw IOException("Range answer too long")
-            Ranged(buf.readByteArray(), m.groupValues[1].toLong(), m.groupValues[3].toLong())
+            // Some servers (Emby) ignore the end of "bytes=a-b" and stream to the end of the file:
+            // keep what was asked for and stop reading (closing the response cancels the rest).
+            while (buf.size < max && src.read(buf, 64L * 1024) != -1L) Unit
+            Ranged(buf.readByteArray(minOf(buf.size, max.toLong())), m.groupValues[1].toLong(), m.groupValues[3].toLong())
         }
 
     // The cover page's bytes (decompressed). /File first, as the reader; /Download when it is refused.

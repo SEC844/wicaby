@@ -47,6 +47,26 @@
     <string name="music_added">Ajouté !</string>
     <string name="music_empty">Aucune musique dans cette bibliothèque.</string>
     <string name="music_queue_empty">La file est vide.</string>
+    <!-- Wave 5 (MU-11 equalizer, MU-12 Android Auto, MU-13 LRCLIB). -->
+    <string name="music_settings_title">Musique</string>
+    <string name="music_lyrics_online">Chercher les paroles en ligne (LRCLIB)</string>
+    <string name="music_lyrics_online_hint">Envoie l’artiste, le titre et l’album à lrclib.net quand le serveur n’a pas de paroles.</string>
+    <string name="music_lyrics_source_lrclib">Paroles de LRCLIB</string>
+    <string name="music_eq_title">Égaliseur</string>
+    <string name="music_eq_preamp">Préamplification</string>
+    <string name="music_eq_reset">Réinitialiser</string>
+    <string name="music_eq_preset_flat">Plat</string>
+    <string name="music_eq_preset_bass">Graves</string>
+    <string name="music_eq_preset_vocal">Voix</string>
+    <string name="music_eq_preset_treble">Aigus</string>
+    <string name="music_eq_preset_custom">Personnalisé</string>
+    <string name="music_eq_band">Bande %1$s</string>
+    <string name="music_eq_value">%1$s dB</string>
+    <string name="music_eq_passthrough">Égaliseur désactivé en passthrough : le son part tel quel vers l’ampli, sans être décodé.</string>
+    <string name="music_auto_recent">Récents</string>
+    <string name="music_auto_playlists">Playlists</string>
+    <string name="music_auto_albums">Albums</string>
+    <string name="music_auto_artists">Artistes</string>
     <plurals name="music_songs_count">
         <item quantity="one">%1$d titre</item>
         <item quantity="many">%1$d titres</item>

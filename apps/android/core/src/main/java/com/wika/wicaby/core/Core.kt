@@ -66,6 +66,8 @@ object Core {
             .addInterceptor(TransportInterceptor { transport })
             // Per hop (redirects too): credentials for the active server only, stripped elsewhere.
             .addNetworkInterceptor(ServerAuthInterceptor({ transport }, { com.wika.wicaby.core.data.Servers.extra }) { api })
+            // Immich photo source (photos spec PH-13): x-api-key for its own origin only, dropped on any other hop.
+            .addNetworkInterceptor(com.wika.wicaby.core.photos.ImmichKeyInterceptor({ transport }) { com.wika.wicaby.core.photos.Immich.source })
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
@@ -177,6 +179,8 @@ object Core {
         mesh.resume()
         // File sources (core/files): their list, and Api.of() for their ids.
         com.wika.wicaby.core.files.FileSources.init()
+        // Immich photo source (photos spec PH-13): its address and sealed key.
+        com.wika.wicaby.core.photos.Immich.init(app)
         // B09: another network may reach the servers by another address.
         val cb = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) = addresses.repickAll()

@@ -61,6 +61,11 @@ export async function bundlePlex() {
         "export { PlexClient } from './main/connection/plex-client';",
         "export { CredentialVault } from './main/core/vault';",
         "export { rankConnections } from './shared/plex/connections';",
+        // Live TV through the Plex adapter (plex-livetv-check): the renderer's request builders and normalisers.
+        "export * as liveDialect from './shared/livetv/dialect';",
+        "export { normalizeChannel, normalizeProgram } from './shared/livetv/model';",
+        "export { buildOverlay, normalizeTimers } from './shared/livetv/timers';",
+        "export { pickPlay } from './main/livetv/live-session';",
       ].join('\n'),
       resolveDir: desktop,
       loader: 'ts',

@@ -37,12 +37,17 @@ export function asset(item: BaseItem, geo = false): GridAsset {
 // favorites: the Favourites tab (Filters=IsFavorite).
 export function skeleton(server: string | undefined, parentId: string, favorites = false): Skeleton {
   const geo = mapEnabled();
-  const key = `${server ?? ''}:${parentId}:${favorites ? 'fav' : 'all'}${geo ? ':geo' : ''}`;
+  return cachedSkeleton(`${server ?? ''}:${parentId}:${favorites ? 'fav' : 'all'}${geo ? ':geo' : ''}`, (s) => load(s, server, parentId, favorites, geo));
+}
+
+// The session cache every photo view shares (Immich's too, lib/photos/immich.svelte.ts), so a favourite changes
+// every loaded view. A key holding ':fav' is a favourites view. A failed load starts over on the next visit.
+export function cachedSkeleton(key: string, start: (s: Skeleton) => Promise<void>): Skeleton {
   let s = cache.get(key);
   if (!s || s.error) {
     s = new Skeleton();
     cache.set(key, s);
-    void load(s, server, parentId, favorites, geo);
+    void start(s);
   }
   return s;
 }
@@ -97,7 +102,8 @@ async function load(s: Skeleton, server: string | undefined, parentId: string, f
 // The heart in the viewer and `f` on a tile: the server first, then every loaded view of that asset. The favourites
 // views reload on their next visit.
 export async function setFavorite(a: PhotoAsset, value: boolean): Promise<void> {
-  await apiFor(a.serverId || undefined).setFavorite(a.id, value);
+  if (a.serverId.startsWith('immich:')) await w.photos.immich.request(a.serverId.slice(7), 'PUT', '/assets', undefined, { ids: [a.id], isFavorite: value });
+  else await apiFor(a.serverId || undefined).setFavorite(a.id, value);
   for (const [key, s] of cache) {
     if (key.includes(':fav')) cache.delete(key);
     let hit = false;

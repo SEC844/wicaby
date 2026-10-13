@@ -243,6 +243,7 @@ An optional qBittorrent panel uses the Web API v2 (`main/torrents/`):
 - **Configuration.** `settings.torrents.url` and `username`. The password lives in the vault. An empty URL means no polling at all.
 - **Polling.** Incremental `/sync/maindata`, every 1.5 s while the list is on screen (`fg`), every 10 s in the background (`bg`, only when completion features need it), and not at all otherwise (`off`).
 - **Self-signed HTTPS.** The certificate is shown and, once accepted, pinned by fingerprint per host (`torrents.json`).
+- **Away from home.** Each connect calls `ensureRoute` (api-client.ts), as media servers do: direct first, then the embedded mesh forwarder for a peer or a host in a NetBird routed network that does not answer within 1.5 s. The CSRF headers keep the configured origin: the forwarder sends qBittorrent that Host. The WebDAV backend uses the same path for listings and the playback relay. The test result carries `via` (direct/mesh) or the failed `path`.
 - **Categories → libraries.** `libraryMap` links a qBittorrent category to a library on a given server. When a torrent completes, Wicaby can notify, ask the server to scan, and look for the new item (after 15 s, 45 s, 2 min, 5 min and 10 min) to offer "Available in <library>".
 - **Adding.** Magnet links and `.torrent` files are accepted. Wicaby can register as the Windows `magnet:` handler (`magnetHandler`); the link reaches the running instance through `second-instance`. A magnet on the clipboard is offered too.
 

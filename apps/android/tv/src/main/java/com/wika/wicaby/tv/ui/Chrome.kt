@@ -54,6 +54,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -71,6 +72,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -342,14 +344,16 @@ private fun TabPill(
     onSelect: (String) -> Unit,
     modifier: Modifier,
 ) {
-    val bounds = remember { mutableStateMapOf<String, Pair<Float, Float>>() }
+    // Per tab: its group (0 = the scrolling text tabs, 1 = the pinned icon tabs), x and width in that group.
+    val bounds = remember { mutableStateMapOf<String, Triple<Int, Float, Float>>() }
     val target = bounds[selected]
     val x = remember { Animatable(0f) }
     val w = remember { Animatable(0f) }
+    var group by remember { mutableStateOf(-1) }
     LaunchedEffect(target) {
-        val (tx, tw) = target ?: return@LaunchedEffect
-        if (w.value == 0f) {
-            x.snapTo(tx); w.snapTo(tw)
+        val (g, tx, tw) = target ?: return@LaunchedEffect
+        if (w.value == 0f || g != group) {
+            group = g; x.snapTo(tx); w.snapTo(tw)
         } else {
             val spec = spring<Float>(dampingRatio = 0.82f, stiffness = 380f)
             coroutineScope {
@@ -362,58 +366,109 @@ private fun TabPill(
     var pillFocused by remember { mutableStateOf(false) }
     val lift by animateFloatAsState(if (pillFocused) 1f else 0f, spring(dampingRatio = 0.62f, stiffness = 420f), label = "pill-lift")
     val indicator = Color.White.copy(alpha = 0.16f + 0.8f * lift)
+    val scroll = rememberScrollState()
+    val edge = with(LocalDensity.current) { 28.dp.toPx() }
+    // With many libraries the text tabs scroll: the selected one stays in view, also when picked by touch or
+    // restored without focus (focus brings a tab into view by itself).
+    LaunchedEffect(target, scroll.viewportSize) {
+        val (g, tx, tw) = target ?: return@LaunchedEffect
+        val view = scroll.viewportSize
+        if (g != 0 || view == 0 || pillFocused) return@LaunchedEffect
+        when {
+            tx < scroll.value + edge -> scroll.animateScrollTo((tx - edge).toInt())
+            tx + tw > scroll.value + view - edge -> scroll.animateScrollTo((tx + tw - view + edge).toInt())
+        }
+    }
+    fun Modifier.indicator(g: Int) = drawBehind {
+        if (group == g && w.value > 0f) {
+            // The selected tab's pill grows a little when the bar has focus (the lift).
+            val grow = 0.06f * lift
+            val ww = w.value * (1 + grow)
+            val hh = size.height * (1 + grow)
+            drawRoundRect(
+                indicator,
+                topLeft = Offset(x.value - (ww - w.value) / 2, (size.height - hh) / 2),
+                size = Size(ww, hh),
+                cornerRadius = CornerRadius(hh / 2),
+            )
+        }
+    }
+
+    // Left/Right follow this order: geometric search would jump from a half-hidden tab to the pinned icons,
+    // skipping the scrolled-out tabs between them.
+    val order = tabs.filter { it.icon == null } + tabs.filter { it.icon != null }
+
+    @Composable
+    fun Tab(t: TopTab, g: Int) {
+        val i = order.indexOf(t)
+        val isSel = t.key == selected
+        val fg by animateColorAsState(
+            when {
+                isSel && pillFocused -> Color.Black
+                isSel -> C.label
+                else -> C.label2
+            },
+            tween(160),
+            label = "tab-fg",
+        )
+        Row(
+            Modifier
+                .onGloballyPositioned { bounds[t.key] = Triple(g, it.positionInParent().x, it.size.width.toFloat()) }
+                .focusRequester(requesters.getValue(t.key))
+                .focusProperties {
+                    down = content
+                    order.getOrNull(i - 1)?.let { left = requesters.getValue(it.key) }
+                    order.getOrNull(i + 1)?.let { right = requesters.getValue(it.key) }
+                }
+                .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 0.dp, onFocusChange = { if (it) onSelect(t.key) }, onClick = { onSelect(t.key) })
+                .padding(horizontal = if (t.icon != null) 12.dp else 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (t.icon != null) Icon(t.icon, t.label, tint = fg, modifier = Modifier.size(18.dp))
+            if (t.icon == null) Text(t.label, style = TabText, color = fg, maxLines = 1)
+        }
+    }
+
     Row(
         modifier
             .onFocusChanged { pillFocused = it.hasFocus }
             .focusRestorer(requesters[selected] ?: FocusRequester.Default)
             .clip(RoundedCornerShape(50))
             .background(C.elevated2.copy(alpha = 0.72f))
-            .horizontalScroll(rememberScrollState())
-            .drawBehind {
-                if (w.value > 0f) {
-                    // The selected tab's pill grows a little when the bar has focus (the lift).
-                    val grow = 0.06f * lift
-                    val ww = w.value * (1 + grow)
-                    val hh = (size.height - 10.dp.toPx()) * (1 + grow)
-                    drawRoundRect(
-                        indicator,
-                        topLeft = Offset(5.dp.toPx() + x.value - (ww - w.value) / 2, (size.height - hh) / 2),
-                        size = Size(ww, hh),
-                        cornerRadius = CornerRadius(hh / 2),
-                    )
-                }
-            }
             .padding(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Keyed: focusRestorer finds the tab to restore by its composite key, which unkeyed loop items share, so it
         // always restored the first tab (Home) and switched the screen to Home.
-        tabs.forEach { t -> key(t.key) {
-            val isSel = t.key == selected
-            val fg by animateColorAsState(
-                when {
-                    isSel && pillFocused -> Color.Black
-                    isSel -> C.label
-                    else -> C.label2
-                },
-                tween(160),
-                label = "tab-fg",
-            )
-            Row(
-                Modifier
-                    .onGloballyPositioned { bounds[t.key] = it.positionInParent().x to it.size.width.toFloat() }
-                    .focusRequester(requesters.getValue(t.key))
-                    .focusProperties { down = content }
-                    .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 0.dp, onFocusChange = { if (it) onSelect(t.key) }, onClick = { onSelect(t.key) })
-                    .padding(horizontal = if (t.icon != null) 12.dp else 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (t.icon != null) Icon(t.icon, t.label, tint = fg, modifier = Modifier.size(18.dp))
-                if (t.icon == null) Text(t.label, style = TabText, color = fg, maxLines = 1)
-            }
-        } }
+        Row(
+            Modifier.weight(1f, fill = false).fadeEdges(scroll, edge).horizontalScroll(scroll).indicator(0),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.filter { it.icon == null }.forEach { t -> key(t.key) { Tab(t, 0) } }
+        }
+        // Torrents, Recherche and Réglages stay in view however many libraries there are.
+        Row(Modifier.indicator(1), verticalAlignment = Alignment.CenterVertically) {
+            tabs.filter { it.icon != null }.forEach { t -> key(t.key) { Tab(t, 1) } }
+        }
     }
 }
+
+// Fades the scrolled-out edges of a horizontal scroller, so a cut tab reads as "more this way".
+private fun Modifier.fadeEdges(scroll: androidx.compose.foundation.ScrollState, width: Float) =
+    graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            val f = width.coerceAtMost(size.width / 2)
+            if (scroll.value > 0) {
+                drawRect(Brush.horizontalGradient(0f to Color.Transparent, 1f to Color.Black, startX = 0f, endX = f), size = Size(f, size.height), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+            }
+            if (scroll.value < scroll.maxValue) {
+                drawRect(
+                    Brush.horizontalGradient(0f to Color.Black, 1f to Color.Transparent, startX = size.width - f, endX = size.width),
+                    topLeft = Offset(size.width - f, 0f), size = Size(f, size.height), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                )
+            }
+        }
 
 @Composable
 fun UserAvatar(user: User?, api: Api, name: String, size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {

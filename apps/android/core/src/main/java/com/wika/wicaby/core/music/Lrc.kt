@@ -5,7 +5,8 @@ import kotlin.math.roundToLong
 /** A line of lyrics; [startMs] is null for plain (unsynced) lyrics. */
 data class LyricLine(val startMs: Long?, val text: String)
 
-data class Lyrics(val synced: Boolean, val lines: List<LyricLine>)
+// lrclib: from lrclib.net (MU-13), shown with its source caption.
+data class Lyrics(val synced: Boolean, val lines: List<LyricLine>, val lrclib: Boolean = false)
 
 /**
  * The LRC parser (music spec MU-01), the twin of desktop's shared/music.ts parseLrc: same grammar, same vectors

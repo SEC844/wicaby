@@ -98,7 +98,8 @@
         "musicLyrics": "Lyrics",
         "musicQueue": "Queue",
         "musicFavorite": "Favourite",
-        "musicClose": "Close player"
+        "musicClose": "Close player",
+        "musicMini": "Mini Player"
       },
       "context": {
         "music": "Music"
@@ -492,7 +493,9 @@
       "gapless": "Gapless playback",
       "gaplessHint": "Plays tracks back to back with no silence (mpv player).",
       "resumeQueue": "Restore the queue at startup",
-      "fallbackNote": "The built-in player supports neither gapless playback nor ReplayGain tags."
+      "fallbackNote": "The built-in player supports neither gapless playback nor ReplayGain tags.",
+      "lyricsOnline": "Look up lyrics online (LRCLIB)",
+      "lyricsOnlineHint": "Sends the artist, title and album to lrclib.net when the server has no lyrics."
     }
   },
   "subtitles": {
@@ -773,6 +776,15 @@
     "none": "None",
     "connected": "Connected",
     "failed": "Can’t Connect",
+    "connectedDirect": "Connected (direct)",
+    "connectedMesh": "Connected via NetBird/Tailscale",
+    "path": {
+      "direct": "The direct connection failed.",
+      "mesh": "The connection through NetBird/Tailscale failed. The routing peer can’t reach this address.",
+      "outside": "The direct connection failed, and this address is in no NetBird/Tailscale route (neither a peer nor in a routed network).",
+      "off": "The direct connection failed, and Remote Access (NetBird/Tailscale) isn’t connected.",
+      "failed": "The direct connection failed, and NetBird/Tailscale couldn’t open a route to this address."
+    },
     "unreachable": "qBittorrent can’t be reached",
     "hint": "Turn on the Web UI in qBittorrent (Options, Web UI), then enter its address.",
     "testing": "Testing…",

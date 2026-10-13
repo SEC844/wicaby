@@ -8,6 +8,7 @@
   import { settings } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
   import FileSourcesSettings from '../../components/FileSourcesSettings.svelte';
+  import ImmichSettings from '../../components/ImmichSettings.svelte';
 
   const s = $derived(settings.value);
 </script>
@@ -65,6 +66,7 @@
   </div>
   <p class="foot">{t('settings.library.foot')}</p>
   <FileSourcesSettings />
+  <ImmichSettings />
 {/if}
 
 <style>

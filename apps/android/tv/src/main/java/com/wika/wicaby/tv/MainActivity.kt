@@ -247,7 +247,8 @@ sealed interface Route {
     data object History : Route
     // Photos (PH-06): the viewer over a timeline loaded in Cache (key), and a photo album's timeline.
     data class PhotoView(val key: String, val index: Int, val serverId: String? = null) : Route
-    data class PhotoAlbum(val id: String, val name: String, val serverId: String? = null) : Route
+    // kind: an Immich album or person (photos spec PH-13), null for a server album.
+    data class PhotoAlbum(val id: String, val name: String, val serverId: String? = null, val kind: String? = null) : Route
     // File sources (FS-10): one folder of a source; id is the folder's reversible path id (core files.pure.Ids).
     data class Files(val sourceId: String, val id: String, val name: String) : Route
     // Music (MU-09): an album or audio playlist page, and a music library's full grid (albums, artists or songs).
@@ -549,7 +550,7 @@ private fun App() {
                                 Route.History -> if (api != null) com.wika.wicaby.tv.ui.HistoryScreen()
                                 is Route.PhotoView -> if (api != null) ServerScope(route.serverId) { com.wika.wicaby.tv.ui.photos.PhotoViewerScreen(route.key, route.index) }
                                 is Route.PhotoAlbum -> if (api != null) ServerScope(route.serverId) {
-                                    LocalApi.current?.let { com.wika.wicaby.tv.ui.photos.PhotoAlbumScreen(it, route.id, route.name) }
+                                    LocalApi.current?.let { com.wika.wicaby.tv.ui.photos.PhotoAlbumScreen(it, route.id, route.name, route.kind) }
                                 }
                                 is Route.Welcome -> com.wika.wicaby.tv.ui.WelcomeScreen(route.rerun)
                                 is Route.PlexLink -> com.wika.wicaby.tv.ui.PlexLinkScreen(route.add)

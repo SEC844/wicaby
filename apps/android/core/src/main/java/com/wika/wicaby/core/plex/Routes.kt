@@ -28,6 +28,14 @@ object PlexRoutes {
 
     private fun media(path: String, op: String) = Route("GET", path, op, true)
 
+    // A live channel's report (LiveTvMap ids), which no library timeline carries.
+    private fun liveItem(b: JsonElement?) = PlexLiveMap.parseLiveId(b["ItemId"].str() ?: "") != null
+
+    // A series rule's id is its subscription key (LiveTvMap.kt).
+    private val SUBSCRIPTION = Regex("^\\d{1,12}$")
+
+    private fun subscriptionKey(id: String): String = if (SUBSCRIPTION.matches(id)) id else throw PlexUnmapped("subscription $id")
+
     // A music section's directory (/Artists?ParentId=section-3): Plex lists by section.
     private val SECTION = Regex("^section-(\\d+)$")
 
@@ -119,13 +127,41 @@ object PlexRoutes {
         // Playback: the decision, markers and reports.
         route("POST", "/Items/{id}/PlaybackInfo", "playbackInfo"),
         route("GET", "/MediaSegments/{id}", "segments") { p, _, _, _ -> PlexQuery.metadataRequest(p["id"]!!) },
-        route("POST", "/Sessions/Playing", "timeline") { _, _, b, _ -> PlexQuery.timelineRequest("", b) },
-        route("POST", "/Sessions/Playing/Progress", "timeline") { _, _, b, _ -> PlexQuery.timelineRequest("Progress", b) },
-        route("POST", "/Sessions/Playing/Stopped", "timeline") { _, _, b, _ -> PlexQuery.timelineRequest("Stopped", b) },
+        // A live channel's reports: the adapter answers them (PlexLiveTv.report), no library timeline.
+        route("POST", "/Sessions/Playing", "timeline") { _, _, b, _ -> if (liveItem(b)) null else PlexQuery.timelineRequest("", b) },
+        route("POST", "/Sessions/Playing/Progress", "timeline") { _, _, b, _ -> if (liveItem(b)) null else PlexQuery.timelineRequest("Progress", b) },
+        route("POST", "/Sessions/Playing/Stopped", "timeline") { _, _, b, _ -> if (liveItem(b)) null else PlexQuery.timelineRequest("Stopped", b) },
         route("POST", "/Sessions/Playing/Ping", "ping") { _, q, _, _ -> PlexQuery.transcodeRequest("ping", q["PlaySessionId"] ?: "") },
         route("DELETE", "/Videos/ActiveEncodings", "stopTranscode") { _, q, _, _ -> PlexQuery.transcodeRequest("stop", q["PlaySessionId"] ?: "") },
         // Wicaby is not a controllable Plex player (caps.castReceiver false): nothing to register.
         route("POST", "/Sessions/Capabilities/Full", "noop"),
+
+        // Live TV and DVR (PX-11, LiveTvMap.kt; PlexLiveTv answers the "live*" ops). Channels, programmes, timers and rules
+        // come from the DVR, its EPG grid and the subscriptions; a channel's PlaybackInfo above tunes it.
+        route("GET", "/LiveTv/Info", "liveInfo"),
+        route("GET", "/LiveTv/GuideInfo", "liveGuideInfo"),
+        route("GET", "/LiveTv/Channels", "liveChannels"),
+        route("GET", "/LiveTv/Programs", "livePrograms"),
+        route("GET", "/LiveTv/Programs/Recommended", "livePrograms"),
+        route("GET", "/LiveTv/Programs/{id}", "liveProgram"),
+        route("GET", "/LiveTv/Timers", "liveTimers"),
+        route("GET", "/LiveTv/Timers/Defaults", "liveTimerDefaults"),
+        route("GET", "/LiveTv/Timers/{id}", "liveTimer"),
+        route("POST", "/LiveTv/Timers", "liveCreateTimer"),
+        route("POST", "/LiveTv/Timers/{id}", "liveUpdateTimer"),
+        route("DELETE", "/LiveTv/Timers/{id}", "liveCancelTimer"),
+        route("GET", "/LiveTv/SeriesTimers", "liveSeriesTimers"),
+        route("GET", "/LiveTv/SeriesTimers/{id}", "liveSeriesTimer"),
+        route("POST", "/LiveTv/SeriesTimers", "liveCreateSeriesTimer"),
+        route("POST", "/LiveTv/SeriesTimers/{id}", "liveUpdateSeriesTimer"),
+        route("DELETE", "/LiveTv/SeriesTimers/{id}", "liveDeleteSeriesTimer") { p, _, _, _ -> PlexLiveMap.deleteRequest(subscriptionKey(p["id"]!!)) },
+        route("GET", "/LiveTv/Recordings", "liveRecordings"),
+        // Plex picks the recording folder itself: no folders to offer.
+        route("GET", "/LiveTv/Recordings/Folders", "empty"),
+        // Only the item's recorded versions, never the item (LiveTvMap.kt deleteRecordingRequests).
+        route("DELETE", "/LiveTv/Recordings/{id}", "liveDeleteRecording"),
+        // A tune's stream is a transcode session: closing it stops the transcode, which frees the tuner.
+        route("POST", "/LiveStreams/Close", "liveClose") { _, q, _, _ -> PlexQuery.transcodeRequest("stop", q["PlaySessionId"] ?: "") },
 
         // Media (PlexApi.url): paths resolved from the item the adapter has seen.
         media("/Items/{id}/Images/{type}", "image"),
@@ -143,7 +179,7 @@ object PlexRoutes {
     // Emby routes a plex server does not answer (each with its UI fallback in desktop routes.ts PLEX_UNSUPPORTED).
     val PLEX_UNSUPPORTED: List<String> = listOf(
         "/Users/{user}/Items/{id}/Intros", "/Items/{id}/InstantMix", "/Items/{id}/RemoteSearch/Subtitles/{lang}", "/Items/{id}/File",
-        "/Videos/{id}/Trickplay/{width}/tiles.m3u8", "/Videos/{id}/Trickplay/{width}/{n}.jpg", "/LiveTv/*", "/DisplayPreferences/*",
+        "/Videos/{id}/Trickplay/{width}/tiles.m3u8", "/Videos/{id}/Trickplay/{width}/{n}.jpg", "/LiveTv/*", "/LiveStreams/Open", "/DisplayPreferences/*", "/UserFavoriteItems/{id}",
         "/Sessions", "/Sessions/{id}/*", "/Sessions/Logout", "/QuickConnect/*", "/Users/AuthenticateWithQuickConnect", "/Users/Public",
         "/Users/AuthenticateByName", "/Users/{user}/Images/Primary", "/System/WakeOnLanInfo", "/System/Info", "/ScheduledTasks", "/Plugins",
     )

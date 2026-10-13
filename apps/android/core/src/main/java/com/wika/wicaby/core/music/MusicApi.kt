@@ -40,9 +40,12 @@ suspend fun Api.instantMix(id: String, limit: Int = 100): ItemsResult =
 /**
  * Server lyrics (§3.5). Jellyfin: /Audio/{id}/Lyrics when HasLyrics. Emby has no lyrics route: an external lrc / text
  * subtitle stream of the audio item, fetched as Stream.lrc then Stream.txt. That Emby shape is UNVERIFIED (one real
- * Emby 4.8/4.9 observation pending): any failure reads as "no lyrics", never an error.
+ * Emby 4.8/4.9 observation pending): any failure reads as "no lyrics", never an error. None: lrclib.net when the user
+ * turned it on (MU-13, [LrcLib]); off, nothing leaves the app.
  */
-suspend fun Api.lyrics(item: Item): Lyrics? = runCatching {
+suspend fun Api.lyrics(item: Item): Lyrics? = serverLyrics(item) ?: if (MusicPrefs.lyricsOnline) LrcLib.default.lyrics(item) else null
+
+private suspend fun Api.serverLyrics(item: Item): Lyrics? = runCatching {
     if (!server.isEmby && item.hasLyrics == false) return null
     if (!server.isEmby) return json.decodeFromString(JellyfinLyrics.serializer(), raw("GET", "/Audio/${item.id}/Lyrics")).toLyrics()
     val source = item.mediaSources.firstOrNull()

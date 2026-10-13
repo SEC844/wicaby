@@ -180,6 +180,10 @@ fun MainScreen() {
         }
         // File sources (FS-10): after the libraries, once one exists (Réglages > Sources de fichiers adds the first).
         if (fileSources.isNotEmpty()) add(Dest(TopTab("files", stringResource(com.wika.wicaby.core.R.string.files_title))) { FilesTab(it) })
+        // Immich photo source (photos spec PH-13): its own library tab.
+        com.wika.wicaby.core.photos.Immich.source?.let { s ->
+            add(Dest(TopTab("immich", s.name)) { com.wika.wicaby.tv.ui.photos.PhotosTab(api, s.id, s.name, top = 104.dp, onScrolled = it, kind = com.wika.wicaby.tv.ui.photos.IMMICH) })
+        }
         addAll(extraTabs())
         add(Dest(TopTab("search", stringResource(R.string.tab_search), Ic.Search)) { SearchTab(api, live = views.any { it.collectionType == "livetv" }) })
         add(Dest(TopTab("settings", stringResource(R.string.tab_settings), Ic.Gear)) { SettingsTab(api, user, it) })

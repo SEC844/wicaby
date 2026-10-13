@@ -1,5 +1,6 @@
 package com.wika.wicaby.mobile.ui
 
+import com.wika.wicaby.core.music.MusicPrefs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,6 +116,8 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
             PlexSettings(snap)
             // File sources (FS-10).
             FilesSettings()
+            // Immich photo source (photos spec PH-13).
+            com.wika.wicaby.mobile.ui.photos.ImmichSettings()
 
             // OB-X: Sombre or OLED, as on the TV and the desktop.
             Eyebrow(stringResource(R.string.settings_theme))
@@ -213,6 +216,20 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri,
                         )
                     }
+                }
+            }
+
+            // Music spec MU-13: lrclib.net when the server has no lyrics. Off by default: it learns what is playing.
+            Eyebrow(stringResource(R.string.music_settings_title))
+            Group {
+                GroupRow(
+                    stringResource(R.string.music_lyrics_online), { MusicPrefs.setLyricsOnline(context, !MusicPrefs.lyricsOnline) },
+                    subtitle = stringResource(R.string.music_lyrics_online_hint), chevron = false,
+                ) {
+                    Switch(
+                        MusicPrefs.lyricsOnline, { v -> MusicPrefs.setLyricsOnline(context, v) },
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                    )
                 }
             }
 

@@ -74,10 +74,11 @@ class QbitClient(
     private val http: OkHttpClient = http.newBuilder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .callTimeout(20, TimeUnit.SECONDS)
-        // A network interceptor sees the final URL (after Core.transport rewrites it), so the
-        // CSRF headers always match the host qBittorrent actually receives.
+        // qBittorrent's CSRF check compares Referer/Origin with the Host it receives. Through the mesh forwarder
+        // (Core.transport rewrites the URL to 127.0.0.1) that Host is still the configured one (the forwarder
+        // sets it), so the headers always name [base], never the loopback forwarder.
         .addNetworkInterceptor { chain ->
-            val url = chain.request().url
+            val url = base
             val port = if (url.port == defaultPort(url.scheme)) "" else ":${url.port}"
             val origin = "${url.scheme}://${url.host}$port"
             chain.proceed(

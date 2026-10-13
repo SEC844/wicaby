@@ -2,7 +2,7 @@
   import { SORT_MODES } from '../../../shared/livetv/channel-order';
   import type { SortMode } from '../../../shared/livetv/channel-order';
   import { lensFromParam, lensToParam, sameLens } from '../../../shared/livetv/lens';
-  import { CATEGORIES } from '../../../shared/livetv/model';
+  import { categoriesOf } from '../../../shared/livetv/model';
   import type { Category, LensRef } from '../../../shared/livetv/model';
   import { t } from '../../lib/i18n.svelte';
   import type { LiveTvStore } from '../../lib/livetv.svelte';
@@ -36,7 +36,7 @@
   </div>
   {#if store.caps.categorySource !== 'unknown'}
     <div class="group cats" role="group" aria-label={t('livetv.category.label')}>
-      {#each CATEGORIES as c (c)}
+      {#each categoriesOf(store.kind) as c (c)}
         <button
           class="pill"
           aria-pressed={store.category === c}

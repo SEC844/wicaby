@@ -428,6 +428,25 @@
         {"streak":0,"skewMs":0},
         {"streak":1,"skewMs":0}
       ]
+    },
+    {
+      "name": "defaultCaps plex",
+      "fn": "defaultCaps",
+      "args": ["plex"],
+      "out": {
+        "kind": "plex",
+        "canRecord": true,
+        "channelTags": false,
+        "categorySource": "unknown",
+        "categoryFilterOnChannels": "unknown",
+        "programSearch": "items",
+        "recordingOptions": "jellyfin",
+        "onNowSource": "recommended",
+        "newFlag": false,
+        "hdFlag": "unknown",
+        "killEncodes": true,
+        "clockSkewMs": 0
+      }
     }
   ]
 }

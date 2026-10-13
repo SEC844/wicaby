@@ -11,6 +11,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.log10
 import kotlin.math.sin
 
 class AudioFxTest {
@@ -20,6 +21,54 @@ class AudioFxTest {
     @After
     fun tearDown() {
         AudioFx.config = AudioFx.Config()
+        AudioFx.eq = AudioFx.Eq()
+        AudioFx.music = false
+    }
+
+    // Music spec MU-11: a 1 kHz sine through the processor with the 1 kHz band at +6 dB comes out 6 dB louder.
+    private fun throughProcessor(src: FloatArray): FloatArray {
+        val p = AudioFxProcessor()
+        p.configure(AudioProcessor.AudioFormat(rate, 2, C.ENCODING_PCM_FLOAT))
+        p.flush()
+        val input = ByteBuffer.allocateDirect(src.size * 4).order(ByteOrder.nativeOrder())
+        src.forEach { input.putFloat(it) }
+        input.flip()
+        p.queueInput(input)
+        val out = p.output
+        return FloatArray(out.remaining() / 4) { out.float }
+    }
+
+    private val sixAt1k = AudioFx.FLAT.mapIndexed { i, g -> if (AudioFx.EQ_FREQS[i] == 1000) 6f else g }
+
+    @Test
+    fun equalizerBandRaisesOneKilohertzBySixDb() {
+        AudioFx.music = true
+        AudioFx.eq = AudioFx.Eq(sixAt1k)
+        val src = sine(0.1f, 2)
+        val out = throughProcessor(src)
+        val db = 20 * log10(peak(out, out.size / 2) / peak(src, src.size / 2))
+        assertEquals(6.0f, db, 0.5f)
+        // A neighbour two octaves away hardly moves.
+        val far = sine(0.1f, 2, hz = 250.0)
+        val farOut = throughProcessor(far)
+        assertEquals(0f, 20 * log10(peak(farOut, farOut.size / 2) / peak(far, far.size / 2)), 0.5f)
+    }
+
+    @Test
+    fun equalizerOnlyForMusicAndFlatIsIdentity() {
+        AudioFx.eq = AudioFx.Eq(sixAt1k)
+        val src = sine(0.1f, 2)
+        assertArrayEquals(src, throughProcessor(src), 0f)
+        AudioFx.music = true
+        AudioFx.eq = AudioFx.Eq()
+        assertArrayEquals(src, throughProcessor(src), 0f)
+    }
+
+    @Test
+    fun equalizerPresetsRoundTrip() {
+        for ((name, bands) in AudioFx.EQ_PRESETS) assertEquals(name, AudioFx.presetOf(bands.toList()))
+        assertEquals("custom", AudioFx.presetOf(sixAt1k))
+        assertEquals(listOf(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000), AudioFx.EQ_FREQS.toList())
     }
 
     private fun sine(amp: Float, channels: Int, frames: Int = rate, hz: Double = 1000.0) = FloatArray(frames * channels) { i ->

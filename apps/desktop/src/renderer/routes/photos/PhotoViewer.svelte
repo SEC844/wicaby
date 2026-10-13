@@ -9,7 +9,8 @@
   import { w } from '../../lib/bridge';
   import { clock } from '../../lib/format';
   import { fmt, locale, t } from '../../lib/i18n.svelte';
-  import { photoUrl } from '../../lib/images';
+  import { immichUrl, photoUrl } from '../../lib/images';
+  import { immichDetail } from '../../lib/photos/immich.svelte';
   import { rotation } from '../../lib/photos/asset';
   import { exifOf, formatExif, type ApertureUnit } from '../../lib/photos/exif';
   import { setFavorite, type GridAsset } from '../../lib/photos/source.svelte';
@@ -46,6 +47,9 @@
   let fav = $state(untrack(() => Boolean(assets[start]?.favorite)));
   let morph = $state(true);
   let detail = $state<BaseItem | null>(null);
+  // The URL of an Immich clip playing in place, through wicaby-media://immich: the key never reaches the page.
+  let clip = $state('');
+  const immichOf = (x?: GridAsset) => (x?.serverId.startsWith('immich:') ? x.serverId.slice(7) : '');
 
   // The layer fills the screen at zoom 1 (contain), in the shown picture's upright shape.
   const box = $derived.by(() => {
@@ -104,14 +108,15 @@
     z.reset();
     fav = Boolean(assets[i].favorite);
     detail = null;
+    clip = '';
   }
 
   // Info panel: the item itself carries the EXIF fields (list answers may not, gate G3).
   $effect(() => {
     if (!info || !a) return;
     const id = a.id;
-    void apiFor(a.serverId || undefined)
-      .item(id)
+    const source = immichOf(a);
+    void (source ? immichDetail(source, id) : apiFor(a.serverId || undefined).item(id))
       .then((it) => {
         if (assets[index]?.id === id) detail = it;
       })
@@ -133,7 +138,8 @@
         altitude: tpl('altitude', 'value'),
         location: tpl('location', 'lat', 'lon'),
       },
-      APERTURE,
+      // Immich reports the f-number itself.
+      immichOf(a) ? 'fnumber' : APERTURE,
     );
   });
 
@@ -158,6 +164,17 @@
     menu = false;
     if (!a) return;
     const { id, serverId } = a;
+    const source = immichOf(a);
+    if (source) {
+      try {
+        toast('info', t('photos.save.queued'));
+        await w.photos.immich.saveOriginal(source, id);
+        toast('success', t('photos.save.done'), { label: t('photos.save.reveal'), run: () => void w.app.openPath('downloads') });
+      } catch (err) {
+        toast('error', /immich:403/.test(errorMessage(err)) ? t('photos.sources.scopeMissing', { scope: 'asset.download' }) : errorMessage(err));
+      }
+      return;
+    }
     try {
       const off = w.downloads.onChange((list) => {
         const e = list.find((x) => x.itemId === id && (!serverId || x.serverId === serverId));
@@ -176,6 +193,7 @@
 
   function play(): void {
     if (!a) return;
+    if (immichOf(a)) return void (clip = immichUrl(immichOf(a), `assets/${a.id}/video/playback`));
     w.playback.play({ itemIds: [a.id], startIndex: 0, serverId: a.serverId || undefined }).catch((err) => toast('error', errorMessage(err)));
   }
 
@@ -351,7 +369,10 @@
         <img class="pic" src={thumb} alt="" draggable="false" />
       {/if}
     </div>
-    {#if a?.kind === 'video'}
+    {#if clip}
+      <!-- svelte-ignore a11y_media_has_caption -->
+      <video class="clip" src={clip} controls autoplay onpointerdown={(e) => e.stopPropagation()}></video>
+    {:else if a?.kind === 'video'}
       <button class="play" aria-label={t('photos.viewer.play')} onclick={play} onpointerdown={(e) => e.stopPropagation()}>
         <Icon name="play" size={34} fill stroke={0} />
         {#if a.durationMs}<span class="mono">{clock(a.durationMs)}</span>{/if}
@@ -448,6 +469,14 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%) rotate(var(--turn));
+  }
+  .clip {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    object-fit: contain;
   }
   .play {
     position: absolute;

@@ -15,9 +15,9 @@ import { pathToFileURL } from 'node:url';
 
 const srcDir = path.resolve(import.meta.dirname, '../../apps/desktop/src/shared/plex');
 const fixture = path.join(import.meta.dirname, 'fixtures', 'plex', 'vectors.json');
-const MODULES = ['types', 'guid', 'images', 'map', 'query', 'routes', 'decision'];
-// decision.json: the playback decision (PX-08, PX-09), in the same format.
-const FIXTURES = [fixture, path.join(import.meta.dirname, 'fixtures', 'plex', 'decision.json')];
+const MODULES = ['types', 'guid', 'images', 'map', 'query', 'routes', 'decision', 'livetv-map'];
+// decision.json: the playback decision (PX-08, PX-09); livetv.json: Live TV and DVR (PX-11); in the same format.
+const FIXTURES = [fixture, path.join(import.meta.dirname, 'fixtures', 'plex', 'decision.json'), path.join(import.meta.dirname, 'fixtures', 'plex', 'livetv.json')];
 
 // Extensionless relative imports (Vite and tsc resolve them); Node's type stripping needs the '.ts'.
 const srcUrl = pathToFileURL(path.dirname(srcDir)).href + '/';
@@ -114,7 +114,7 @@ if (fill && filled > before) fs.writeFileSync(file, `${JSON.stringify(data, null
 if (all.length < 80) problems.push(`only ${all.length} vectors (PX-03 asks for at least 80)`);
 // Every function the core exports for the adapter has a vector.
 const covered = new Set(all.map((c) => c.fn));
-for (const fn of ['providerIds', 'imageTag', 'imagePaths', 'parseImageRoute', 'transcodePath', 'itemType', 'toView', 'toUserData', 'toStream', 'toMediaSources', 'toItem', 'toItemsResult', 'toExtras', 'toSegments', 'toHubs', 'toChapters', 'parseId', 'msToTicks', 'ticksToMs', 'epochToIso', 'playablePart', 'partQueue', 'seasonsFlattened', 'itemsRequest', 'resumeRequest', 'nextUpRequest', 'answerMeta', 'latestRequest', 'metadataRequest', 'playedRequest', 'userDataRequest', 'timelineRequest', 'transcodeRequest', 'itemsUri', 'withGenreIds', 'translate', 'matchRoute', 'profileExtra', 'decisionRequest', 'toPlaybackInfo', 'decisionFailure', 'remoteCapKbps', 'trackPut', 'partPaths', 'partWindow', 'accountSubtitles'])
+for (const fn of ['providerIds', 'imageTag', 'imagePaths', 'parseImageRoute', 'transcodePath', 'itemType', 'toView', 'toUserData', 'toStream', 'toMediaSources', 'toItem', 'toItemsResult', 'toExtras', 'toSegments', 'toHubs', 'toChapters', 'parseId', 'msToTicks', 'ticksToMs', 'epochToIso', 'playablePart', 'partQueue', 'seasonsFlattened', 'itemsRequest', 'resumeRequest', 'nextUpRequest', 'answerMeta', 'latestRequest', 'metadataRequest', 'playedRequest', 'userDataRequest', 'timelineRequest', 'transcodeRequest', 'itemsUri', 'withGenreIds', 'translate', 'matchRoute', 'profileExtra', 'decisionRequest', 'toPlaybackInfo', 'decisionFailure', 'remoteCapKbps', 'trackPut', 'partPaths', 'partWindow', 'accountSubtitles', 'liveChannelId', 'parseLiveId', 'liveDvrs', 'toLiveInfo', 'liveGate', 'channelsRequest', 'toChannels', 'gridRequest', 'toPrograms', 'programWindow', 'selectPrograms', 'timerDefaults', 'parseTimerId', 'toTimers', 'toSeriesTimer', 'toSeriesTimers', 'templateRequest', 'createRequest', 'updateRequest', 'deleteRequest', 'recordingRequests', 'recordedMedia', 'isRecording', 'deleteRecordingRequests', 'tuneRequest', 'toLivePlayback'])
   if (!covered.has(fn)) problems.push(`no vector for ${fn}`);
 
 if (problems.length) {

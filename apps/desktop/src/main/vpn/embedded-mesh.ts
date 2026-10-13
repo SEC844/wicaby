@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
-import type { MeshProvider, VpnConnectOptions, VpnConnectResult, VpnPeer, VpnStatus } from '../../shared/contract';
+import type { MeshPath, MeshProvider, VpnConnectOptions, VpnConnectResult, VpnPeer, VpnStatus } from '../../shared/contract';
 import { setAddressRoute } from '../connection/api-client';
 import { JsonStore } from '../core/json-store';
 import { logger } from '../core/log';
@@ -352,13 +352,16 @@ export class EmbeddedMesh extends EventEmitter implements VpnProvider {
     return list.check(ip, family === 6 ? 'ipv6' : 'ipv4');
   }
 
-  private async ensureRoute(address: string): Promise<void> {
+  private async ensureRoute(address: string): Promise<MeshPath> {
     const origin = originOf(address);
-    if (!origin || this.routes.has(origin)) return;
+    if (!origin) return 'outside';
+    if (this.routes.has(origin)) return 'mesh';
+    if (this.helper?.state !== 'connected') return 'off';
     const { hostname, port, protocol } = new URL(origin);
     if (!this.isMeshHost(hostname)) {
+      if (!this.inRoutedNet(hostname)) return 'outside';
       // A routed network is often the LAN itself (at home): direct first, the mesh only when it does not answer.
-      if (!this.inRoutedNet(hostname) || (await reachable(host(hostname), Number(port) || (protocol === 'https:' ? 443 : 80)))) return;
+      if (await reachable(host(hostname), Number(port) || (protocol === 'https:' ? 443 : 80))) return 'direct';
     }
     const id = this.nextId++;
     const reply = await new Promise<{ base?: string; error?: string }>((resolve) => {
@@ -372,7 +375,10 @@ export class EmbeddedMesh extends EventEmitter implements VpnProvider {
       this.routes.set(origin, reply.base);
       this.wanted.add(origin);
       log.info(`route ${origin} via mesh`);
-    } else log.warn(`no route to ${origin}: ${reply.error ?? 'invalid reply'}`);
+      return 'mesh';
+    }
+    log.warn(`no route to ${origin}: ${reply.error ?? 'invalid reply'}`);
+    return 'failed';
   }
 
   private rewrite(url: string): string {

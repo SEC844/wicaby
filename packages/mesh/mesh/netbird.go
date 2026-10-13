@@ -4,6 +4,8 @@ package mesh
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +22,9 @@ import (
 	"time"
 
 	"github.com/netbirdio/netbird/client/embed"
+	"github.com/netbirdio/netbird/client/iface/netstack"
 	mgm "github.com/netbirdio/netbird/shared/management/client"
+	"github.com/netbirdio/netbird/util/embeddedroots"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc/codes"
 	gstatus "google.golang.org/grpc/status"
@@ -42,6 +46,10 @@ func newNetbird(dir, hostname, management string, h *hub, verbose bool) *netbird
 	if management == "" {
 		management = netbirdDefaultManagement
 	}
+	// embed.New sets this too, but the browser sign-in and logout dial management before it
+	// runs. Without it NetBird's Android dialer wants a VpnService socket protector, which an
+	// embedded node never has: every dial fails and gRPC only says "context deadline exceeded".
+	_ = os.Setenv(netstack.EnvUseNetstackMode, "true")
 	m := &netbirdMesh{dir: dir, hostname: hostname, management: management, hub: h, logOut: logw, logLevel: "error"}
 	if verbose {
 		m.logLevel = "info"
@@ -148,7 +156,73 @@ func (m *netbirdMesh) connect(ctx context.Context, setupKey string) error {
 			err = m.start(ctx, opts)
 		}
 	}
+	// gRPC hides why a management dial failed; say which phase it was.
+	if err != nil && ctx.Err() == nil && strings.Contains(err.Error(), "dial context") {
+		err = fmt.Errorf("%w [%s]", err, probeManagement(ctx, m.management))
+	}
 	return err
+}
+
+// probeManagement retraces a management dial one phase at a time (dns lookup, tcp connect,
+// tls handshake, grpc) and describes the first that fails, with the address family and
+// whether the address is on the LAN (Android 17 blocks those without local network access).
+func probeManagement(ctx context.Context, management string) string {
+	u, err := url.Parse(management)
+	if err != nil || u.Hostname() == "" {
+		return "failed at url: invalid management URL"
+	}
+	port := u.Port()
+	if port == "" {
+		port = map[bool]string{true: "443", false: "80"}[u.Scheme == "https"]
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", u.Hostname())
+	if err != nil {
+		return "failed at dns lookup: " + err.Error()
+	}
+	var tcpErrs []string
+	for _, ip := range ips {
+		ip = ip.Unmap()
+		where := net.JoinHostPort(ip.String(), port) + " (" + addrLabel(ip) + ")"
+		c, err := (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, "tcp", net.JoinHostPort(ip.String(), port))
+		if err != nil {
+			tcpErrs = append(tcpErrs, where+": "+err.Error())
+			continue
+		}
+		defer c.Close()
+		if u.Scheme != "https" {
+			return "failed at grpc: tcp connect to " + where + " ok, the management service did not answer"
+		}
+		// The roots NetBird's own dial uses (client/grpc CreateConnection).
+		roots, err := x509.SystemCertPool()
+		if err != nil || roots == nil {
+			roots = embeddedroots.Get()
+		}
+		tc := tls.Client(c, &tls.Config{ServerName: u.Hostname(), RootCAs: roots, NextProtos: []string{"h2"}})
+		if err := tc.HandshakeContext(ctx); err != nil {
+			return "failed at tls handshake with " + where + ": " + err.Error()
+		}
+		if tc.ConnectionState().NegotiatedProtocol != "h2" {
+			return "failed at grpc: " + where + " answers TLS without HTTP/2; a reverse proxy in front of management must pass gRPC"
+		}
+		return "failed at grpc: dns, tcp and tls to " + where + " ok, the management service did not answer"
+	}
+	if len(tcpErrs) == 0 {
+		return "failed at dns lookup: no address"
+	}
+	return "failed at tcp connect to " + strings.Join(tcpErrs, "; ")
+}
+
+func addrLabel(ip netip.Addr) string {
+	s := "ipv6"
+	if ip.Is4() {
+		s = "ipv4"
+	}
+	if ip.IsPrivate() || ip.IsLinkLocalUnicast() {
+		s += ", lan"
+	}
+	return s
 }
 
 func (m *netbirdMesh) start(ctx context.Context, opts embed.Options) error {

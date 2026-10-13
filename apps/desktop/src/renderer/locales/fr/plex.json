@@ -14,6 +14,9 @@
     "wrongPin": "Code PIN incorrect.",
     "noAccess": "Ce profil n’a pas accès à ce serveur Plex."
   },
+  "liveTv": {
+    "view": "TV en direct"
+  },
   "pass": {
     "markers": "Pas de bouton « Passer l’intro » : la détection des intros et des génériques est une fonction Plex Pass du serveur.",
     "transcode": "Ce serveur n’a pas de Plex Pass : le transcodage se fait sans accélération matérielle et peut être lent."

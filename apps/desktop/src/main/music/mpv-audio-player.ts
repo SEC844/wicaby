@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { BaseWindow } from 'electron';
 import type { Settings } from '../../shared/contract';
+import { eqAf } from '../../shared/equalizer';
 import { audioMpvArgs, mpvAtLeast, parseMpvArgs } from '../../shared/mpv-args';
 import { logger } from '../core/log';
 import { t } from '../i18n';
@@ -50,6 +51,7 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
   private hung = false;
   private timer: NodeJS.Timeout | null = null;
   private audioDevice = 'auto';
+  private af = '';
 
   private constructor(
     exe: string,
@@ -93,13 +95,14 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
       '--network-timeout=20',
       ...player.globalArgs(),
       `--audio-device=${p.audioDevice}`,
-      // Bit-perfect path: WASAPI exclusive takes the file's own format; with ReplayGain off and the volume at 100 %
-      // mpv hands the samples over untouched (no filter is ever set here, dynaudnorm included).
+      // Bit-perfect path: WASAPI exclusive takes the file's own format; with ReplayGain off, the volume at 100 % and
+      // the equalizer flat (no `af` at all, dynaudnorm included) mpv hands the samples over untouched.
       `--audio-exclusive=${p.audioExclusive ? 'yes' : 'no'}`,
       // The user's own audio options last (allow-listed, audio subset only).
       ...audioMpvArgs(extra.args),
     ];
     player.audioDevice = p.audioDevice;
+    player.af = eqAf(s.music.eq, s.music.preventClipping);
     try {
       await player.ctl.start(args);
       player.wire();
@@ -110,10 +113,11 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
     return player;
   }
 
-  // Global options that follow the settings: gapless, preamp, clipping, volume ceiling.
+  // Global options that follow the settings: gapless, preamp, clipping, volume ceiling, equalizer (MU-11).
   private globalArgs(): string[] {
     const { music, playback } = this.settings();
     return [
+      `--af=${eqAf(music.eq, music.preventClipping)}`,
       `--gapless-audio=${music.gapless ? 'weak' : 'no'}`,
       `--prefetch-playlist=${music.gapless ? 'yes' : 'no'}`,
       `--replaygain-preamp=${music.preampDb}`,
@@ -125,7 +129,12 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
   async applySettings(): Promise<void> {
     const sets = this.globalArgs().map((a) => /^--([^=]+)=(.*)$/.exec(a)!).map((m) => [m[1], m[2]] as const);
     const device = this.settings().playback.audioDevice;
-    for (const [name, value] of sets) await this.ctl.set(name, value).catch((err) => log.warn(`set ${name} failed`, err));
+    for (const [name, value] of sets) {
+      // A new filter chain reinitialises the output: only when the equalizer really changed.
+      if (name === 'af' && value === this.af) continue;
+      if (name === 'af') this.af = value;
+      await this.ctl.set(name, value).catch((err) => log.warn(`set ${name} failed`, err));
+    }
     if (device !== this.audioDevice) {
       this.audioDevice = device;
       await this.ctl.set('audio-device', device).catch((err) => log.warn('set audio-device failed', err));

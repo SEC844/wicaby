@@ -109,7 +109,8 @@
     "later": "Later",
     "unsynced": "Unsynced lyrics",
     "source": {
-      "server": "Lyrics from the server"
+      "server": "Lyrics from the server",
+      "lrclib": "Lyrics from LRCLIB"
     }
   },
   "radio": {
@@ -124,5 +125,27 @@
   "folders": {
     "up": "Parent folder",
     "root": "Root"
+  },
+  "mini": {
+    "open": "Mini player",
+    "expand": "Expand",
+    "close": "Close mini player"
+  },
+  "eq": {
+    "title": "Equalizer",
+    "desc": "With the mpv player. Flat means no filter: the sound stays untouched.",
+    "preset": {
+      "label": "Preset",
+      "flat": "Flat",
+      "bass": "Bass",
+      "vocal": "Vocal",
+      "treble": "Treble",
+      "custom": "Custom"
+    },
+    "preamp": "Preamp",
+    "reset": "Reset",
+    "band": "{freq} band",
+    "value": "{db} dB",
+    "htmlNote": "The built-in player doesn’t apply the equalizer."
   }
 }

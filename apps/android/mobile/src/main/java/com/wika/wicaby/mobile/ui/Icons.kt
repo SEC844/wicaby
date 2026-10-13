@@ -79,6 +79,8 @@ object Ic {
     val Previous = fill("M19 5.2v13.6a1 1 0 0 1-1.55.83l-9.6-6.8a1 1 0 0 1 0-1.66l9.6-6.8A1 1 0 0 1 19 5.2z", rect(4.8f, 4.5f, 2.2f, 15f, 1.1f))
     val Queue = stroke("M21 15V6", "M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z", "M12 12H3", "M16 6H3", "M12 18H3")
     val Lyrics = stroke("m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12", "M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5", circle(16f, 7f, 5f))
+    // Lucide sliders-vertical: the music equalizer (MU-11).
+    val Equalizer = stroke("M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3", "M20 21v-5", "M20 12V3", "M2 14h4", "M10 8h4", "M18 16h4")
     val Grip = stroke(circle(9f, 12f, 1f), circle(9f, 5f, 1f), circle(9f, 19f, 1f), circle(15f, 12f, 1f), circle(15f, 5f, 1f), circle(15f, 19f, 1f))
     val More = stroke(circle(12f, 12f, 1f), circle(12f, 5f, 1f), circle(12f, 19f, 1f))
     val Music = stroke("M9 18V5l12-2v13", circle(6f, 18f, 3f), circle(18f, 16f, 3f))

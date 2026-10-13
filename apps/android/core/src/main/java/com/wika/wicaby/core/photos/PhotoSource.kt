@@ -70,10 +70,13 @@ class TimelineState {
         private set
 
     // force: reload a complete timeline too (pull to refresh, retry).
-    suspend fun load(source: PhotoSource, force: Boolean = false) {
+    suspend fun load(source: PhotoSource, force: Boolean = false) = load(force) { onPage -> source.load(onPage) }
+
+    // Any paged source (an Immich timeline too): all() reports each page, then answers every photo.
+    suspend fun load(force: Boolean, fetch: suspend (onPage: (List<Photo>, Int) -> Unit) -> List<Photo>) {
         if (complete && !force) return
         try {
-            val all = source.load { p, n ->
+            val all = fetch { p, n ->
                 if (p.size >= photos.size) photos = p
                 total = n
             }
@@ -109,10 +112,38 @@ object PhotoSizes {
     fun tvTile(c: DeviceClass, px: Int): Int = if (c == DeviceClass.TV_LOW) minOf(px, TV_LOW_TILE) else px
 }
 
-fun Api.photoImage(a: PhotoAsset, maxWidth: Int? = null, maxHeight: Int? = null): String = url(
+fun Api.photoImage(a: PhotoAsset, maxWidth: Int? = null, maxHeight: Int? = null): String = if (Immich.owns(a)) immichImage(a, maxWidth, maxHeight) else url(
     "/Items/${a.id}/Images/Primary", "tag" to a.thumbTag, "maxWidth" to maxWidth, "maxHeight" to maxHeight, "quality" to 90,
     "AutoOrient" to true.takeIf { server.isEmby },
 )
+
+// An Immich asset's picture (spec PH-13): the 250 px thumbnail for tiles up to 400 px, the 1440 px preview for the
+// viewer, the full size past the zoom cap. The key rides in the header (ImmichKeyInterceptor), never in this URL.
+fun immichImage(a: PhotoAsset, maxWidth: Int?, maxHeight: Int?): String {
+    val px = maxOf(maxWidth ?: 0, maxHeight ?: 0)
+    val size = if (px >= PhotoSizes.ZOOM_CAP) "fullsize" else if (px in 1..400) "thumbnail" else "preview"
+    return runCatching { Immich.client().thumb(a.id, size) }.getOrDefault("")
+}
+
+// The asset as a timeline entry: an Immich asset has no server item, so a minimal one stands in (its type for the
+// viewer, its duration for the tile).
+fun immichPhoto(a: PhotoAsset) = Photo(a, Item(id = a.id, type = if (a.kind == "video") "Video" else "Photo", serverId = a.serverId, runTimeTicks = a.durationMs?.let { it * 10_000 }))
+
+// An Immich clip (photos spec PH-13): Media3 over Core.http, so ImmichKeyInterceptor adds the key and the URL holds
+// none. The caller releases it.
+fun immichClipPlayer(context: android.content.Context, url: String): androidx.media3.exoplayer.ExoPlayer =
+    androidx.media3.exoplayer.ExoPlayer.Builder(context)
+        .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(com.wika.wicaby.core.Core.http)))
+        .build().apply {
+            setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
+            prepare()
+            playWhenReady = true
+        }
+
+// The favourite toggle and the info panel's item, on the asset's own source.
+suspend fun Api.setPhotoFavorite(a: PhotoAsset, on: Boolean) = if (Immich.owns(a)) Immich.client().setFavorite(a.id, on) else setFavorite(a.id, on)
+
+suspend fun Api.photoDetail(p: Photo): Item = if (Immich.owns(p.asset)) Immich.client().detail(p.asset.id) else item(p.asset.id)
 
 // "2019-10-12T…" as "12 octobre 2019" (pattern "d MMMM yyyy") or "Octobre 2019" ("LLLL yyyy"): wall-clock fields,
 // no zone conversion.

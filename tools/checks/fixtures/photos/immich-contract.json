@@ -1,0 +1,27 @@
+{
+  "comment": "Photos spec PH-11: the Immich JSON field names Wicaby reads, written by hand from the published HTTP API reference (no file copied from the Immich repository). mock-immich answers them and immich-mock-check.mjs checks it; the clients' parsers (desktop renderer/lib/photos/immich-timeline.ts, Android core photos/ImmichTimeline.kt) read no other field.",
+  "immichVersion": "3.3.0",
+  "routes": {
+    "GET /api/server/version": ["major", "minor", "patch"],
+    "GET /api/timeline/buckets[]": ["timeBucket", "count"],
+    "GET /api/timeline/bucket": ["id", "ratio", "isImage", "isFavorite", "visibility", "fileCreatedAt", "localOffsetHours", "duration", "livePhotoVideoId", "city", "country", "latitude", "longitude"],
+    "GET /api/assets/{id}": ["id", "type", "originalFileName", "fileCreatedAt", "localDateTime", "isFavorite", "visibility", "duration", "exifInfo"],
+    "GET /api/assets/{id}.exifInfo": ["make", "model", "exposureTime", "fNumber", "focalLength", "iso", "exifImageWidth", "exifImageHeight", "orientation", "latitude", "longitude", "city", "country"],
+    "GET /api/albums[]": ["id", "albumName", "albumThumbnailAssetId", "assetCount", "isShared"],
+    "GET /api/people": ["people", "total"],
+    "GET /api/people.people[]": ["id", "name", "isHidden"],
+    "GET /api/map/markers[]": ["id", "lat", "lon", "city", "state", "country"],
+    "GET /api/memories[]": ["id", "type", "data", "assets"],
+    "POST /api/search/metadata.assets": ["items", "nextPage", "total"]
+  },
+  "scopes": {
+    "timeline": "asset.read",
+    "thumbnail": "asset.view",
+    "original": "asset.download",
+    "favorite": "asset.update",
+    "albums": "album.read",
+    "people": "person.read",
+    "map": "map.read",
+    "memories": "memory.read"
+  }
+}

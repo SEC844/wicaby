@@ -118,11 +118,12 @@
     <div class="row">
       <div class="txt">
         {#if result?.ok}
-          <div class="lbl">{t('settings.torrents.connected')}</div>
+          <div class="lbl">{t(result.via === 'mesh' ? 'settings.torrents.connectedMesh' : result.via ? 'settings.torrents.connectedDirect' : 'settings.torrents.connected')}</div>
           <div class="desc">qBittorrent {result.version} · API {result.apiVersion}</div>
         {:else if result}
           <div class="lbl">{t('settings.torrents.failed')}</div>
           <div class="desc">{result.error}</div>
+          {#if result.path}<div class="desc">{t(`settings.torrents.path.${result.path}`)}</div>{/if}
         {:else if configured && st?.status === 'online'}
           <div class="lbl">{t('settings.torrents.connected')}</div>
           <div class="desc">qBittorrent {st.version} · API {st.apiVersion}</div>

@@ -10,19 +10,24 @@
     mobile-home.png    phone home (French UI)
     mobile-player.png  phone player, paused, controls shown (Coffee Run)
     tv-livetv-guide.png Android TV Live TV guide grid (IPTV mock lineup)
+    tv-photos.png      Android TV photo timeline ("Photos de famille", generated pictures)
     mobile-livetv.png  phone Live TV, Guide tab
+    mobile-music.png   phone music section (invented artists, silent tracks)
 
   What it does:
     1. builds the debug APKs if they are missing (or with -Build);
-    2. boots two read-only emulators (AVDs wicaby_tv and wicaby_phone, no window, no audio)
-       unless they are already running on the given ports;
-    3. renders a silent still-image video (Coffee Run backdrop) for the player shot, with Electron;
-    4. starts tools/mock-server/mock-emby.mjs with MOCK_DATASET=demo and MOCK_LIVETV=iptv (French, then
+    2. renders a silent still-image video (Coffee Run backdrop) for the player shot, with Electron;
+    3. boots ONE read-only emulator at a time (AVD wicaby_tv, then wicaby_phone: no window, no audio,
+       software GPU), unless it is already running on its port, and stops it before the next one;
+    4. sets the emulator's clock to -Clock (automatic time off, `cmd alarm set-time`), again before each TV screen that
+       shows it, and on the phone the status bar's demo mode to the same time in 24-hour format; the mock starts at
+       -Clock too, so the guide's "now" matches;
+    5. starts tools/mock-server/mock-emby.mjs with MOCK_DATASET=demo and MOCK_LIVETV=iptv (French, then
        English) on -Port;
-    5. signs in as Wika / wicaby at 10.0.2.2:<Port>, walks to each screen and runs
+    6. signs in as Wika / wicaby at 10.0.2.2:<Port>, walks to each screen and runs
        `adb exec-out screencap -p`;
-    6. downscales and palette-quantises the captures (no external tool), then stops the mock and the
-       emulators it started.
+    7. downscales and palette-quantises the captures (no external tool), strips any metadata
+       (strip-metadata.mjs), then stops the mock and the emulator it started.
 
   Nothing here talks to a real server or device: only the emulators and the local mock.
   The debug APKs carry arm64/armv7 native code only for the mesh library; the x86_64 Android 16
@@ -41,6 +46,8 @@ param(
   [string]$PhoneAvd = 'wicaby_phone',
   [int]$TvPort = 5620,
   [int]$PhonePort = 5622,
+  # The moment every shot shows (local time), as SHOTS_CLOCK in desktop.mjs: a neutral Friday evening.
+  [string]$Clock = $(if ($env:SHOTS_CLOCK) { $env:SHOTS_CLOCK } else { '2026-10-09T20:30:00' }),
   [switch]$Build,
   [switch]$KeepEmulators
 )
@@ -60,10 +67,23 @@ $Raw = Join-Path $Work 'raw'
 New-Item -ItemType Directory -Force -Path $Raw, $OutDir | Out-Null
 $Started = @()
 $Mock = $null
+# The shots' clock: the emulator is set to -Clock right before the screens that show it, and the mock starts at -Clock.
+$ClockMs = ([DateTimeOffset](Get-Date $Clock)).ToUnixTimeMilliseconds()
+$ClockJs = Join-Path $Work 'shots-clock.cjs'
+$ClockSrc = @'
+// Shifts Date in the mock to the shots' clock (tools/screenshots/android.ps1), as desktop.mjs does.
+const RealDate = Date;
+const now = () => RealDate.now() + SHIFT_MS;
+class ShotDate extends RealDate { constructor(...a) { if (a.length) super(...a); else super(now()); } static now() { return now(); } }
+globalThis.Date = ShotDate;
+const res = require('node:http').ServerResponse.prototype;
+const writeHead = res.writeHead;
+res.writeHead = function (...a) { if (!this.headersSent && !this.hasHeader('date')) this.setHeader('Date', new ShotDate().toUTCString()); return writeHead.apply(this, a); };
+'@
 
 # Per-language labels the script taps (they come from the apps' strings.xml and the demo dataset).
 $L = @{
-  fr = @{ Films = 'Films'; Home = 'Accueil'; Libraries = "Biblioth$([char]0xE8)ques"; Play = 'Lire'; Continue = 'Continuer'; LiveTv = 'TV en direct'; Guide = 'Guide' }
+  fr = @{ Films = 'Films'; Home = 'Accueil'; Libraries = "Biblioth$([char]0xE8)ques"; Play = 'Lire'; Continue = 'Continuer'; LiveTv = 'TV en direct'; Guide = 'Guide'; Photos = 'Photos de famille'; Music = 'Musique' }
   en = @{ Films = 'Movies'; Home = 'Home'; Libraries = 'Libraries'; Play = 'Play'; Continue = 'Continue Watching'; LiveTv = 'TV en direct'; Guide = 'Guide' }
 }
 
@@ -90,8 +110,34 @@ function Start-Emulator([string]$Avd, [int]$EmuPort) {
   $state = (& $AdbExe -s $serial get-state 2>$null | Out-String).Trim()
   if ($state -eq 'device') { Write-Host "$serial already running"; return }
   Write-Host "Starting $Avd on $serial (read-only, no window, no audio, software GPU)"
+  # One emulator at a time: never start one next to another running emulator.
+  $others = @(& $AdbExe devices 2>$null | Select-String '^emulator-\d+\s+device' | ForEach-Object { ($_.Line -split '\s+')[0] } | Where-Object { $_ -ne $serial })
+  if ($others.Count) { throw "another emulator is running ($($others -join ', ')): the shots use one emulator at a time" }
   Start-Process -FilePath $EmuExe -WindowStyle Hidden -ArgumentList @('-avd', $Avd, '-read-only', '-no-window', '-no-audio', '-no-boot-anim', '-gpu', 'swiftshader_indirect', '-port', $EmuPort) | Out-Null
   $script:Started += $serial
+}
+
+# Stops an emulator this script started (unless -KeepEmulators), and waits until adb no longer lists it.
+function Stop-Emulator([string]$Serial) {
+  $ErrorActionPreference = 'Continue'
+  if ($script:Started -notcontains $Serial -or $KeepEmulators) { return }
+  & $AdbExe -s $Serial emu kill 2>$null | Out-Null
+  for ($i = 0; $i -lt 60; $i++) {
+    if (-not (& $AdbExe devices 2>$null | Select-String "^$Serial\s")) { break }
+    Pause-For 1
+  }
+  $script:Started = @($script:Started | Where-Object { $_ -ne $Serial })
+}
+
+# The device clock at exactly -Clock: automatic time off, then the alarm service's set-time (no root needed,
+# so it works on the user-build Android TV image too). Called again right before each screen that shows the clock,
+# then the app restarts: its clock reads the time when it opens, so the shot reads -Clock, not a minute or two later.
+function Set-Clock([string]$Serial) {
+  $ErrorActionPreference = 'Continue'
+  Sh $Serial "settings put global auto_time 0; cmd time_detector set_auto_detection_enabled false; cmd alarm set-time $ClockMs" | Out-Null
+  $device = [long](Sh $Serial 'date +%s' | Out-String).Trim()
+  if ([Math]::Abs($device * 1000 - $ClockMs) -gt 120000) { throw "$Serial`: could not set the clock" }
+  Write-Host "$Serial clock set to $Clock"
 }
 
 # UI nodes from uiautomator (Compose exposes its text and content descriptions).
@@ -128,6 +174,15 @@ function Tap-Text([string]$Serial, [string]$Text, [int]$Timeout = 30, [int]$DY =
   $n = Find-Node $Serial { $_.Text -eq $Text -or $_.Desc -eq $Text } $Text $Timeout
   Tap $Serial $n.X ($n.Y + $DY)
 }
+# A TV tab: tapped when on screen, else the tab bar is swiped left (it scrolls by touch) until the tab shows.
+function Select-Tab([string]$Serial, [string]$Text) {
+  for ($i = 0; $i -lt 6; $i++) {
+    $n = Get-Nodes $Serial | Where-Object { $_.Text -eq $Text -or $_.Desc -eq $Text } | Select-Object -First 1
+    if ($n) { Tap $Serial $n.X $n.Y; return }
+    Sh $Serial 'input swipe 1100 90 300 90 500' | Out-Null; Pause-For 1.5
+  }
+  throw "$Serial`: tab '$Text' not found"
+}
 # Also matches a longer label that starts with the text ("Continuer" / "Continuer a regarder").
 function Wait-Text([string]$Serial, [string]$Text, [int]$Timeout = 30) { Find-Node $Serial { $_.Text -eq $Text -or $_.Text -like "$Text *" } $Text $Timeout | Out-Null }
 function Type-Into-Field([string]$Serial, [string]$Value) {
@@ -148,15 +203,25 @@ function Shot([string]$Serial, [string]$Name) {
 function Start-Mock([string]$Lang, [string]$Video) {
   $busy = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
   if ($busy) { throw "port $Port is already in use" }
+  # The mock's clock starts at -Clock too (a fresh shift for each start).
+  $shift = $ClockMs - [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+  [IO.File]::WriteAllText($ClockJs, $ClockSrc.Replace('SHIFT_MS', "$shift"), (New-Object Text.UTF8Encoding $false))
   $env:MOCK_DATASET = 'demo'; $env:MOCK_DEMO_LANG = $Lang; $env:MOCK_LIVETV = 'iptv'
   $p = Start-Process -FilePath 'node' -WindowStyle Hidden -PassThru `
-    -ArgumentList @("`"$(Join-Path $Root 'tools\mock-server\mock-emby.mjs')`"", $Port, "`"$Video`"") `
+    -ArgumentList @('--require', "`"$ClockJs`"", "`"$(Join-Path $Root 'tools\mock-server\mock-emby.mjs')`"", $Port, "`"$Video`"") `
     -RedirectStandardOutput (Join-Path $Work "mock-$Lang.log") -RedirectStandardError (Join-Path $Work "mock-$Lang.err")
   Remove-Item Env:MOCK_DATASET, Env:MOCK_DEMO_LANG, Env:MOCK_LIVETV
   for ($i = 0; $i -lt 40; $i++) {
     try { Invoke-RestMethod "http://127.0.0.1:$Port/emby/System/Info/Public" -TimeoutSec 2 | Out-Null; return $p } catch { Pause-For 0.5 }
   }
   throw 'mock server did not start'
+}
+# Back to -Clock, then the app from its home (still signed in), so its clock shows -Clock.
+function Restart-At-Clock([string]$Serial, [string]$Component) {
+  Set-Clock $Serial
+  $pkg = $Component.Split('/')[0]
+  Sh $Serial "am force-stop $pkg" | Out-Null
+  Sh $Serial "am start -n $Component" | Out-Null
 }
 function Stop-Mock { if ($script:Mock -and -not $script:Mock.HasExited) { Stop-Process -Id $script:Mock.Id -Force }; $script:Mock = $null }
 
@@ -166,10 +231,15 @@ function Sign-In([string]$Serial, [string]$Package, [string]$Activity, [string]$
   Sh $Serial "cmd locale set-app-locales $Package --locales $Locale" | Out-Null
   Sh $Serial "am start -n $Package/$Activity" | Out-Null
   Pause-For 3
+  # The welcome wizard comes first on a fresh install: skip it to the server address.
+  $skip = @{ 'fr-FR' = 'Passer la configuration'; 'en-US' = 'Skip Setup' }[$Locale]
+  try { Tap-Text $Serial $skip 10; Pause-For 2 } catch { Write-Host "$Serial`: no welcome wizard" }
   Type-Into-Field $Serial "10.0.2.2:$Port"
   Tap-Text $Serial 'Wika' -DY -150   # the avatar above the name
   Pause-For 1.5
   Type-Into-Field $Serial 'wicaby'
+  # Android TV asks once whether to add the app's launcher channel to the home screen: say no (system language).
+  if ($Package -eq 'com.wika.wicaby.tv') { try { Tap-Text $Serial 'Cancel' 15; Pause-For 2 } catch { Write-Host "$Serial`: no channel prompt" } }
 }
 
 # --- embedded helpers (written to the temp folder) -------------------------------------------
@@ -354,40 +424,30 @@ console.log(`${outPath}: ${img.w}x${img.h}, ${(best.length / 1024).toFixed(0)} K
 try {
   # 1. APKs
   $TvApk = Join-Path $Root 'apps\android\tv\build\outputs\apk\debug\tv-universal-debug.apk'
-  $PhoneApk = Join-Path $Root 'apps\android\mobile\build\outputs\apk\debug\mobile-arm64-v8a-debug.apk'
+  $PhoneApk = Join-Path $Root 'apps\android\mobile\build\outputs\apk\foss\debug\mobile-foss-arm64-v8a-debug.apk'
   if ($Build -or -not (Test-Path $TvApk) -or -not (Test-Path $PhoneApk)) {
     Push-Location (Join-Path $Root 'apps\android')
-    try { & .\gradlew.bat :tv:assembleDebug :mobile:assembleDebug; if ($LASTEXITCODE) { throw 'gradle build failed' } } finally { Pop-Location }
+    try { & .\gradlew.bat :tv:assembleDebug :mobile:assembleFossDebug; if ($LASTEXITCODE) { throw 'gradle build failed' } } finally { Pop-Location }
   }
 
-  # 2. Emulators (boot while the video renders)
-  Start-Emulator $TvAvd $TvPort
-  Start-Emulator $PhoneAvd $PhonePort
-
-  # 3. Still video for the player: the Coffee Run backdrop, declared as the film's 3 min 4 s
+  # 2. Still video for the player: the Coffee Run backdrop, declared as the film's 3 min 4 s
   $Video = Join-Path $Work 'coffee-run.webm'
   $Electron = Join-Path $Root 'node_modules\.bin\electron.cmd'
   & { $ErrorActionPreference = 'Continue'; & $Electron $StillVideo (Join-Path $Root 'tools\mock-server\demo\coffee-run\backdrop.jpg') $Video 20 184 2>$null | Out-Null }
   if (-not (Test-Path $Video)) { throw 'could not render the still video' }
 
-  Wait-Boot $Tv; Wait-Boot $Phone
+  # 3-6. Android TV: French home, detail, Live TV guide and photos, then one English detail page
+  Start-Emulator $TvAvd $TvPort
+  Wait-Boot $Tv
+  Set-Clock $Tv
   Adb $Tv install -r $TvApk | Out-Null
-  Adb $Phone install -r $PhoneApk | Out-Null
+  Sh $Tv 'wm size reset' | Out-Null   # a clean 16:9 frame
 
-  # Clean frames: a 16:9 TV, and the phone's status bar in demo mode (fixed clock, full battery, Wi-Fi only).
-  Sh $Tv 'wm size reset' | Out-Null
-  Sh $Phone 'settings put global sysui_demo_allowed 1' | Out-Null
-  $demo = 'am broadcast -a com.android.systemui.demo -e command'
-  foreach ($c in @('enter', 'clock -e hhmm 1030', 'battery -e level 100 -e plugged false', 'network -e wifi show -e level 4 -e fully true',
-      'network -e mobile hide', 'notifications -e visible false', 'status -e volume hide -e bluetooth hide -e location hide -e alarm hide')) {
-    Sh $Phone "$demo $c" | Out-Null
-  }
-
-  # 4-5. French UI and catalogue
   $script:Mock = Start-Mock 'fr' $Video
   $t = $L.fr
-
   Sign-In $Tv 'com.wika.wicaby.tv' '.MainActivity' 'fr-FR'
+  Wait-Text $Tv $t.Continue
+  Restart-At-Clock $Tv 'com.wika.wicaby.tv/.MainActivity'
   Wait-Text $Tv $t.Continue; Pause-For 4
   Shot $Tv 'tv-home'
   Tap-Text $Tv $t.Films; Pause-For 3
@@ -395,13 +455,45 @@ try {
   Wait-Text $Tv 'Version'; Pause-For 4
   Shot $Tv 'tv-detail'
   # Live TV guide: restart the app (still signed in) on its home, then the Live TV tab and its Guide.
-  Sh $Tv 'am force-stop com.wika.wicaby.tv' | Out-Null
-  Sh $Tv 'am start -n com.wika.wicaby.tv/.MainActivity' | Out-Null
+  Restart-At-Clock $Tv 'com.wika.wicaby.tv/.MainActivity'
   Wait-Text $Tv $t.Continue; Pause-For 2
   Tap-Text $Tv $t.LiveTv; Pause-For 3
   Tap-Text $Tv $t.Guide; Pause-For 6
   Shot $Tv 'tv-livetv-guide'
+  # Photos: the "Photos de famille" tab and its timeline.
+  Restart-At-Clock $Tv 'com.wika.wicaby.tv/.MainActivity'
+  Wait-Text $Tv $t.Continue; Pause-For 2
+  Select-Tab $Tv $t.Photos; Pause-For 6
+  Shot $Tv 'tv-photos'
+  Stop-Mock
 
+  $script:Mock = Start-Mock 'en' $Video
+  $t = $L.en
+  Sign-In $Tv 'com.wika.wicaby.tv' '.MainActivity' 'en-US'
+  Wait-Text $Tv $t.Continue; Pause-For 2
+  Tap-Text $Tv $t.Films; Pause-For 3
+  Tap-Text $Tv 'Charge'
+  Wait-Text $Tv 'Charge'; Pause-For 4
+  Shot $Tv 'tv-detail-en'
+  Stop-Mock
+  Stop-Emulator $Tv
+
+  # 3-6. Phone: French home, player, Live TV guide and music
+  Start-Emulator $PhoneAvd $PhonePort
+  Wait-Boot $Phone
+  Set-Clock $Phone
+  Adb $Phone install -r $PhoneApk | Out-Null
+  # The status bar in demo mode: the shots' time (24-hour, as on the TV), full battery, Wi-Fi only.
+  Sh $Phone 'settings put system time_12_24 24' | Out-Null
+  Sh $Phone 'settings put global sysui_demo_allowed 1' | Out-Null
+  $demo = 'am broadcast -a com.android.systemui.demo -e command'
+  foreach ($c in @('enter', "clock -e hhmm $((Get-Date $Clock).ToString('HHmm'))", 'battery -e level 100 -e plugged false', 'network -e wifi show -e level 4 -e fully true',
+      'network -e mobile hide', 'notifications -e visible false', 'status -e volume hide -e bluetooth hide -e location hide -e alarm hide')) {
+    Sh $Phone "$demo $c" | Out-Null
+  }
+
+  $script:Mock = Start-Mock 'fr' $Video
+  $t = $L.fr
   Sign-In $Phone 'com.wika.wicaby' '.mobile.MainActivity' 'fr-FR'
   Wait-Text $Phone $t.Continue; Pause-For 4
   Shot $Phone 'mobile-home'
@@ -423,31 +515,29 @@ try {
   Tap-Text $Phone $t.LiveTv; Pause-For 3
   Tap-Text $Phone $t.Guide; Pause-For 5
   Shot $Phone 'mobile-livetv'
+  # Music: from a fresh start, Libraries > Musique opens the music section (nothing plays).
+  Sh $Phone 'am force-stop com.wika.wicaby' | Out-Null
+  Sh $Phone 'am start -n com.wika.wicaby/.mobile.MainActivity' | Out-Null
+  Wait-Text $Phone $t.Continue; Pause-For 2
+  Tap-Text $Phone $t.Libraries; Pause-For 2
+  Sh $Phone 'input swipe 540 1900 540 500 400' | Out-Null; Pause-For 2   # Musique is below the fold
+  Tap-Text $Phone $t.Music; Pause-For 5
+  Shot $Phone 'mobile-music'
   Stop-Mock
+  Stop-Emulator $Phone
 
-  # English: one TV detail page
-  $script:Mock = Start-Mock 'en' $Video
-  $t = $L.en
-  Sign-In $Tv 'com.wika.wicaby.tv' '.MainActivity' 'en-US'
-  Wait-Text $Tv $t.Continue; Pause-For 2
-  Tap-Text $Tv $t.Films; Pause-For 3
-  Tap-Text $Tv 'Charge'
-  Wait-Text $Tv 'Charge'; Pause-For 4
-  Shot $Tv 'tv-detail-en'
-  Stop-Mock
-
-  # 6. Optimise into docs/screenshots
-  $widths = @{ 'tv-home' = 1280; 'tv-detail' = 1280; 'tv-detail-en' = 1280; 'mobile-home' = 540; 'mobile-player' = 1200; 'tv-livetv-guide' = 1280; 'mobile-livetv' = 540 }
+  # 7. Optimise into docs/screenshots, without metadata
+  $widths = @{ 'tv-home' = 1280; 'tv-detail' = 1280; 'tv-detail-en' = 1280; 'tv-livetv-guide' = 1280; 'tv-photos' = 1280; 'mobile-home' = 540; 'mobile-player' = 1200; 'mobile-livetv' = 540; 'mobile-music' = 540 }
   foreach ($name in $widths.Keys) {
     & node $Optimize (Join-Path $Raw "$name.png") (Join-Path $OutDir "$name.png") $widths[$name]
     if ($LASTEXITCODE) { throw "optimising $name failed" }
   }
+  & node (Join-Path $Root 'tools\screenshots\strip-metadata.mjs') $OutDir
+  if ($LASTEXITCODE) { throw 'stripping metadata failed' }
 }
 finally {
   Stop-Mock
   $ErrorActionPreference = 'Continue'
-  if (-not $KeepEmulators) {
-    foreach ($s in $Started) { & $AdbExe -s $s emu kill 2>$null | Out-Null }
-  }
+  foreach ($s in @($Started)) { Stop-Emulator $s }
   Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
 }

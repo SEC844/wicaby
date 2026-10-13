@@ -22,6 +22,8 @@
     { "name": "loopback forwarder", "input": "proxy http://127.0.0.1:41234/AbCdEf0123456789 up", "expected": "proxy http://<host>:41234/*** up" },
     { "name": "server tokens", "input": "GET /Items?api_key=0123456789abcdef0123456789abcdef X-Emby-Token: fedcba9876543210fedcba9876543210", "expected": "GET /Items?api_key=*** X-Emby-Token: ***" },
     { "name": "WireGuard public key", "input": "pubkey Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2E= ok", "expected": "pubkey *** ok" },
-    { "name": "ordinary text stays", "input": "Wicaby 0.4.3 (android) · 2026-10-12T14:05Z · 14:03:22 state Running, wireguard-go v1.2.3", "expected": "Wicaby 0.4.3 (android) · 2026-10-12T14:05Z · 14:03:22 state Running, wireguard-go v1.2.3" }
+    { "name": "ordinary text stays", "input": "Wicaby 0.4.3 (android) · 2026-10-12T14:05Z · 14:03:22 state Running, wireguard-go v1.2.3", "expected": "Wicaby 0.4.3 (android) · 2026-10-12T14:05Z · 14:03:22 state Running, wireguard-go v1.2.3" },
+    {"name": "management dial phase (tcp, LAN)", "input": "last error: create connection: dial context: context deadline exceeded [failed at tcp connect to 192.168.1.20:443 (ipv4, lan): dial tcp 192.168.1.20:443: i/o timeout]", "expected": "last error: create connection: dial context: context deadline exceeded [failed at tcp connect to 192.*.*.*:443 (ipv4, lan): dial tcp 192.*.*.*:443: i/o timeout]"},
+    {"name": "management dial phase (dns, tls)", "input": "[failed at dns lookup: lookup netbird.example.org: no such host] [failed at tls handshake with [2001:db8::5]:443 (ipv6): x509: certificate is valid for proxy.example.org, not netbird.example.org]", "expected": "[failed at dns lookup: lookup <host>: no such host] [failed at tls handshake with [2001:…]:443 (ipv6): x509: certificate is valid for <host>, not <host>]"}
   ]
 }

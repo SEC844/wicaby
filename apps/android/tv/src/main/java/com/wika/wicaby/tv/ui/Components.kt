@@ -276,6 +276,16 @@ class EdgeSpec(private val margin: Float) : BringIntoViewSpec {
     }
 }
 
+// A page with a hero (Detail): focus within the first screen shows the page from the top, title included;
+// further down (Bonus…) it scrolls only as far as needed. The TV default pivot would push the title off the top.
+@OptIn(ExperimentalFoundationApi::class)
+class HeroSpec(private val scroll: androidx.compose.foundation.ScrollState, private val margin: Float) : BringIntoViewSpec {
+    private val edge = EdgeSpec(margin)
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
+        if (offset + scroll.value + size <= containerSize - margin) -scroll.value.toFloat()
+        else edge.calculateScrollDistance(offset, size, containerSize)
+}
+
 // Focused content settles at a fixed line, like tvOS.
 @OptIn(ExperimentalFoundationApi::class)
 class PivotSpec(private val fraction: Float, private val override: () -> Float? = { null }) : BringIntoViewSpec {

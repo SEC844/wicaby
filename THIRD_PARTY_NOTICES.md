@@ -353,6 +353,11 @@ Wicaby works with Plex Media Server through its publicly documented HTTP API
 No Plex software, code, logo or icon ships with Wicaby, and none was decompiled or reverse engineered. Features that
 Plex reserves to Plex Pass or a Remote Watch Pass are detected and explained, never worked around.
 
+## Immich
+
+Wicaby can connect to an Immich server through its public REST API. No Immich code is included: the requests are
+written by hand from the published API reference, and no Immich package, SDK or asset is a dependency.
+
 ## Demo media in screenshots
 
 The screenshots in `docs/screenshots/` and the README show a mock library

@@ -347,7 +347,7 @@
 
     <!-- First-run wizard (onboarding spec), shared by TV and mobile. -->
     <string name="onboarding_welcome_title">Bienvenue dans Wicaby</string>
-    <string name="onboarding_welcome_body">Tous tes médias au même endroit.</string>
+    <string name="onboarding_welcome_body">Tous vos médias au même endroit.</string>
     <string name="onboarding_language">Langue</string>
     <string name="onboarding_language_system">Système</string>
     <string name="onboarding_start">Commencer</string>
@@ -435,11 +435,34 @@
         <item quantity="many">Il y a %d ans</item>
         <item quantity="other">Il y a %d ans</item>
     </plurals>
+    <!-- Immich photo source (photos spec PH-13), mobile and TV. -->
+    <string name="photos_tab_people">Personnes</string>
+    <string name="photos_people_empty">Aucune personne nommée sur ce serveur.</string>
+    <string name="photos_album_shared">Partagé</string>
+    <string name="photos_sources_title">Sources de photos</string>
+    <string name="photos_sources_url">Serveur Immich</string>
+    <string name="photos_sources_key">Clé d’API</string>
+    <string name="photos_sources_key_hint">Créez une clé dans Immich (Paramètres du compte, Clés d’API) avec au moins asset.read et asset.view. album.read, person.read et memory.read ajoutent les albums, les personnes et les souvenirs.</string>
+    <string name="photos_sources_test">Tester</string>
+    <string name="photos_sources_add">Connecter</string>
+    <string name="photos_sources_remove">Retirer</string>
+    <string name="photos_sources_ok">Immich %1$s : connexion réussie.</string>
+    <string name="photos_sources_version_too_old">Immich %1$s est trop ancien : Wicaby demande la version 2.0 ou plus récente.</string>
+    <string name="photos_sources_scopes_missing">Permissions absentes de la clé : %1$s. Les fonctions concernées sont masquées.</string>
+    <string name="photos_sources_scope_missing">La clé d’API n’a pas la permission %1$s ; ajoutez-la dans Immich pour voir cette partie.</string>
+    <string name="photos_sources_key_refused">Le serveur Immich refuse la clé d’API. Reconnectez-le dans les réglages.</string>
+    <string name="photos_sources_error_url">Adresse invalide.</string>
+    <string name="photos_sources_error_network">Serveur injoignable.</string>
+    <string name="photos_sources_error_server">Ce serveur ne répond pas comme un serveur Immich.</string>
+    <string name="photos_sources_error_auth">Clé d’API refusée.</string>
+    <string name="photos_sources_error_scope">La clé n’a pas la permission asset.read, nécessaire pour la chronologie.</string>
+    <string name="photos_sources_foot">La clé reste chiffrée sur cet appareil et ne part que vers ce serveur. Les photos Immich forment leur propre bibliothèque, à côté de celles d’Emby ou de Jellyfin.</string>
     <!-- Plex (plex spec §9): what the Plex adapter explains (gates are explained, never worked around). -->
     <string name="plex_error_remote_needs_pass">La lecture à distance de ce serveur demande un Plex Pass (le vôtre ou celui du propriétaire) ou un Remote Watch Pass. Sur le réseau du serveur, elle reste possible.</string>
     <string name="plex_error_lower_quality">Le serveur refuse cette qualité à distance. Choisissez une qualité plus basse dans le menu Qualité.</string>
     <string name="plex_error_file_unavailable">Le fichier de cet élément est introuvable sur le serveur Plex.</string>
     <string name="plex_error_terminated">Le serveur a arrêté la lecture.</string>
+    <string name="plex_livetv_view">TV en direct</string>
     <string name="plex_error_secure_required">Ce serveur Plex exige une connexion sécurisée, et aucune adresse https ne répond.</string>
     <string name="plex_error_relink">Le compte Plex n’est plus lié : liez-le à nouveau avec un code.</string>
     <string name="plex_error_wrong_pin">Code PIN incorrect.</string>

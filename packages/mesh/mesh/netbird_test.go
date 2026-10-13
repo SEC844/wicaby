@@ -6,8 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"os"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/netbirdio/netbird/client/iface/netstack"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"google.golang.org/grpc"
 )
 
 func TestRetryBacksOffThenConnects(t *testing.T) {
@@ -67,5 +74,71 @@ func TestRetryStopsWithContext(t *testing.T) {
 	}
 	if time.Since(start) > 2*time.Second {
 		t.Fatal("retry kept waiting after ctx ended")
+	}
+}
+
+// The browser sign-in dials management before embed.New. On Android that dial failed in 0.9.0
+// with only "create connection: dial context: context deadline exceeded": NetBird's dialer was
+// not yet in userspace mode and asked for a VpnService socket protector. Only an Android run
+// tells (GOOS=android CGO_ENABLED=1 CC=<NDK clang> go test -c -ldflags=-checklinkname=0
+// ./mesh, then adb push and run it on an emulator); elsewhere the dialer has no protector.
+func TestManagementDialBeforeEmbed(t *testing.T) {
+	_ = os.Unsetenv(netstack.EnvUseNetstackMode)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := grpc.NewServer()
+	go srv.Serve(ln)
+	defer srv.Stop()
+	_, port, _ := net.SplitHostPort(ln.Addr().String())
+	m := newNetbird(t.TempDir(), "test", "http://localhost:"+port, &hub{}, false)
+	key, _ := wgtypes.GeneratePrivateKey()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	mc, err := m.managementClient(ctx, key)
+	if err != nil {
+		t.Fatalf("management dial before embed.New: %v", err)
+	}
+	_ = mc.Close()
+}
+
+func TestProbeManagementNamesThePhase(t *testing.T) {
+	listen := func(serve func(net.Conn)) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { ln.Close() })
+		go func() {
+			for {
+				c, err := ln.Accept()
+				if err != nil {
+					return
+				}
+				go serve(c)
+			}
+		}()
+		return ln.Addr().String()
+	}
+	notTLS := listen(func(c net.Conn) { c.Write([]byte("HTTP/1.0 400 Bad Request\r\n\r\n")); c.Close() })
+	silent := listen(func(c net.Conn) { time.Sleep(time.Second); c.Close() })
+	// Nothing listens there any more: connection refused.
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
+	refused := ln.Addr().String()
+	ln.Close()
+	for url, want := range map[string]string{
+		"https://wicaby-probe.invalid": "failed at dns lookup: ",
+		"http://" + refused:            "failed at tcp connect to " + refused + " (ipv4): ",
+		"https://" + notTLS:            "failed at tls handshake with " + notTLS + " (ipv4): ",
+		"http://" + silent:             "failed at grpc: tcp connect to " + silent + " (ipv4) ok",
+		"https://10.0.0.1:1":           "(ipv4, lan)",
+	} {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		got := probeManagement(ctx, url)
+		cancel()
+		if !strings.Contains(got, want) {
+			t.Errorf("probe %s = %q, want %q in it", url, got, want)
+		}
 	}
 }

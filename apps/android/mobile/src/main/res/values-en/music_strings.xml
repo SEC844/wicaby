@@ -47,6 +47,26 @@
     <string name="music_added">Added!</string>
     <string name="music_empty">No music in this library.</string>
     <string name="music_queue_empty">The queue is empty.</string>
+    <!-- Wave 5 (MU-11 equalizer, MU-12 Android Auto, MU-13 LRCLIB). -->
+    <string name="music_settings_title">Music</string>
+    <string name="music_lyrics_online">Look up lyrics online (LRCLIB)</string>
+    <string name="music_lyrics_online_hint">Sends the artist, title and album to lrclib.net when the server has no lyrics.</string>
+    <string name="music_lyrics_source_lrclib">Lyrics from LRCLIB</string>
+    <string name="music_eq_title">Equalizer</string>
+    <string name="music_eq_preamp">Preamp</string>
+    <string name="music_eq_reset">Reset</string>
+    <string name="music_eq_preset_flat">Flat</string>
+    <string name="music_eq_preset_bass">Bass</string>
+    <string name="music_eq_preset_vocal">Vocal</string>
+    <string name="music_eq_preset_treble">Treble</string>
+    <string name="music_eq_preset_custom">Custom</string>
+    <string name="music_eq_band">%1$s band</string>
+    <string name="music_eq_value">%1$s dB</string>
+    <string name="music_eq_passthrough">The equalizer is off during passthrough: the sound goes to the amplifier as is, without being decoded.</string>
+    <string name="music_auto_recent">Recent</string>
+    <string name="music_auto_playlists">Playlists</string>
+    <string name="music_auto_albums">Albums</string>
+    <string name="music_auto_artists">Artists</string>
     <plurals name="music_songs_count">
         <item quantity="one">%1$d song</item>
         <item quantity="other">%1$d songs</item>

@@ -34,9 +34,25 @@ export function imageUrl(itemId: string, type: ImageType, opts: { tag?: string; 
 // A photo or clip's Primary image (photos spec §3.1): grid thumbnails by height bucket, the viewer by viewport.
 // Emby turns the pixels upright with AutoOrient; Jellyfin has no such parameter (the client rotates, asset.ts).
 export function photoUrl(a: { id: string; serverId?: string; thumbTag?: string }, size: { maxWidth?: number; maxHeight?: number }): string {
+  if (a.serverId?.startsWith('immich:')) {
+    // Immich sizes: thumbnail (about 250 px, the grid), preview (about 1440 px), fullsize (zoom past ×2).
+    // shortcut: a tile up to 400 device px takes the 250 px thumbnail (slightly soft on large hi-DPI tiles).
+    const px = Math.max(size.maxWidth ?? 0, size.maxHeight ?? 0) * devicePixelRatio;
+    const kind = (size.maxWidth ?? 0) >= 4096 ? 'fullsize' : px > 0 && px <= 400 ? 'thumbnail' : 'preview';
+    return immichUrl(a.serverId.slice(7), `assets/${a.id}/thumbnail`, kind);
+  }
   const server = a.serverId || undefined;
   const url = imageUrl(a.id, 'Primary', { tag: a.thumbTag, server, ...size });
   return url && sessionFor(server)?.server.kind !== 'jellyfin' ? `${url}&AutoOrient=true` : url;
+}
+
+// An Immich source's picture or clip (photos spec PH-12), through main, which adds the key: rel is
+// assets/<uuid>/thumbnail|original|video/playback or people/<uuid>/thumbnail. '' when an id is not plain.
+const IMMICH_SOURCE = /^[0-9a-f]{12}$/;
+const IMMICH_REL = /^(?:assets\/[0-9a-f-]{36}\/(?:thumbnail|original|video\/playback)|people\/[0-9a-f-]{36}\/thumbnail)$/;
+export function immichUrl(source: string, rel: string, size?: 'thumbnail' | 'preview' | 'fullsize'): string {
+  if (!IMMICH_SOURCE.test(source) || !IMMICH_REL.test(rel)) return '';
+  return `${MEDIA_SCHEME}://immich/${source}/${rel}${size ? `?size=${size}` : ''}`;
 }
 
 // Emby: /Users/{id}/Images/Primary. Jellyfin 10.9+ moved avatars to /UserImage?userId=

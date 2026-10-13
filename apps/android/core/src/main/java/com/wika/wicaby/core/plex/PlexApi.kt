@@ -286,7 +286,11 @@ class PlexApi(
             "views" -> {
                 val secs = sections()
                 for (s in secs) s["thumb"].str()?.let { images["section-${s["key"].str()}/Primary"] = it }
-                out(result(secs.map(PlexMap::toView), secs.size, 0))
+                // The Live TV view the apps open Live TV from, only with Plex Pass and a tuner (PX-11).
+                val views = secs.map(PlexMap::toView) + listOfNotNull(
+                    buildJsonObject { put("Id", "livetv"); put("Name", text(R.string.plex_livetv_view, "Live TV")); put("Type", "CollectionFolder"); put("CollectionType", "livetv") }.takeIf { live.enabled() },
+                )
+                out(result(views, views.size, 0))
             }
             "hubs" -> {
                 val c = pms(req!!)
@@ -308,8 +312,11 @@ class PlexApi(
                 out(result(items, items.size, 0))
             }
             "segments" -> out(segments(p["id"]!!))
-            "playbackInfo" -> out(playbackInfo(p["id"]!!, query, body))
-            "timeline" -> out(timeline(if (path.endsWith("/Stopped")) "Stopped" else if (path.endsWith("/Progress")) "Progress" else "", body))
+            "playbackInfo" -> out(if (PlexLiveMap.parseLiveId(p["id"]!!) != null) live.tune(p["id"]!!, query, body) else playbackInfo(p["id"]!!, query, body))
+            "timeline" -> {
+                val event = if (path.endsWith("/Stopped")) "Stopped" else if (path.endsWith("/Progress")) "Progress" else ""
+                out(if (PlexLiveMap.parseLiveId(body["ItemId"].str().orEmpty()) != null) live.report(event, body) else timeline(event, body))
+            }
             "empty" -> out(result(emptyList(), 0, 0))
             "noop" -> ""
             "favorite", "unfavorite" -> out(watchlistSet(p["id"]!!, t.op == "favorite"))
@@ -321,7 +328,9 @@ class PlexApi(
             }
             else -> {
                 // Writes the table translated (played, refresh, playlist and collection edits, transcode stop): done.
-                if (req != null && method != "GET") {
+                if (req == null && t.op.startsWith("live")) {
+                    out(live.answer(t.op, p, query, body))
+                } else if (req != null && method != "GET") {
                     pms(req)
                     ""
                 } else {
@@ -399,6 +408,9 @@ class PlexApi(
         val after = if (index > 0) others.getOrNull(minOf(index, others.size) - 1) else null
         pms(PmsReq("PUT", "/playlists/$key/items/${PlexQuery.itemKey(entry)}/move", if (after != null) mapOf("after" to after) else emptyMap()))
     }
+
+    // Live TV and DVR (PX-11): the /LiveTv routes, a channel's tune and its reports (PlexLiveTv.kt).
+    private val live by lazy { PlexLiveTv({ pms(it) }, client.deviceId, { plexPass() }, { items(it) }) }
 
     // ---- Playback (plex-spec §6; desktop plex-playback.ts) ----
 

@@ -1,5 +1,5 @@
 {
-  "about": "Request builders (§5) for every op on emby and jellyfin: {method, path, query, body?}; null = the server has no such op. fn = the op name; args = [kind, op args]. Times in args are epoch ms; query dates are ISO UTC with milliseconds.",
+  "about": "Request builders (§5) for every op on emby and jellyfin (and a few on plex, which the Plex adapter answers, PX-11): {method, path, query, body?}; null = the server has no such op. fn = the op name; args = [kind, op args]. Times in args are epoch ms; query dates are ISO UTC with milliseconds.",
   "cases": [
     {
       "name": "emby info",
@@ -1366,6 +1366,79 @@
         "query": {"UserId":"u1","Client":"wicaby"},
         "body": {"CustomPrefs":{},"Id":"wicaby-livetv","Client":"wicaby"}
       }
+    },
+    {
+      "name": "plex info",
+      "fn": "info",
+      "args": ["plex",{}],
+      "out": {"method":"GET","path":"/LiveTv/Info","query":{}}
+    },
+    {
+      "name": "plex channelsPage {\"userId\":\"u1\",\"startIndex\":0,\"limit\":500}",
+      "fn": "channelsPage",
+      "args": ["plex",{"userId":"u1","startIndex":0,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "StartIndex": "0",
+          "Limit": "500",
+          "EnableTotalRecordCount": "true",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": "1",
+          "EnableUserData": "true",
+          "AddCurrentProgram": "false"
+        }
+      }
+    },
+    {
+      "name": "plex searchPrograms {\"userId\":\"u1\",\"query\":\"news\",\"now\":1700000000000,\"guideEnd\":1700604800000}",
+      "fn": "searchPrograms",
+      "args": ["plex",{"userId":"u1","query":"news","now":1700000000000,"guideEnd":1700604800000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SearchTerm": "news",
+          "MinEndDate": "2023-11-14T21:13:20.000Z",
+          "MaxStartDate": "2023-11-21T22:13:20.000Z",
+          "SortBy": "StartDate",
+          "Limit": "30",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "plex otherAirings {\"userId\":\"u1\",\"name\":\"News\",\"now\":1700000000000}",
+      "fn": "otherAirings",
+      "args": ["plex",{"userId":"u1","name":"News","now":1700000000000}],
+      "out": null
+    },
+    {
+      "name": "plex recordingOptions {\"userId\":\"u1\"}",
+      "fn": "recordingOptions",
+      "args": ["plex",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/LiveTv/Recordings/Folders","query":{"userId":"u1"}}
+    },
+    {
+      "name": "plex setFavorite {\"userId\":\"u1\",\"id\":\"livetv-31\",\"favorite\":true}",
+      "fn": "setFavorite",
+      "args": ["plex",{"userId":"u1","id":"livetv-31","favorite":true}],
+      "out": {"method":"POST","path":"/UserFavoriteItems/livetv-31","query":{"userId":"u1"}}
+    },
+    {
+      "name": "plex displayPrefs {\"userId\":\"u1\"}",
+      "fn": "displayPrefs",
+      "args": ["plex",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/DisplayPreferences/wicaby-livetv","query":{"userId":"u1","client":"wicaby"}}
+    },
+    {
+      "name": "plex onNow {\"userId\":\"u1\",\"now\":1700000000000,\"category\":\"new\"}",
+      "fn": "onNow",
+      "args": ["plex",{"userId":"u1","now":1700000000000,"category":"new"}],
+      "out": null
     }
   ]
 }

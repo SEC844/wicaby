@@ -28,6 +28,8 @@ class WicabyApp : Application(), SingletonImageLoader.Factory {
         Core.prefs.clearImages = { SingletonImageLoader.get(this).run { memoryCache?.clear(); diskCache?.clear() } }
         Core.setUiLocale(Lang.uiLocale(this))
         Downloads.init(this)
+        // Music wave 5: the LRCLIB toggle and the equalizer (handed to AudioFx).
+        com.wika.wicaby.core.music.MusicPrefs.load(this)
         // One update channel per flavour (cast spec CA-10): same versionCode, so a foss build must never pick up the gplay
         // APK and the reverse. "mobile" stays foss, which installed 0.2.0 builds read.
         com.wika.wicaby.core.update.Updater.init(if (BuildConfig.FLAVOR == "gplay") "mobile-gplay" else "mobile", BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)

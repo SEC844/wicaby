@@ -23,6 +23,8 @@
   import Downloads from './routes/Downloads.svelte';
   import Favorites from './routes/Favorites.svelte';
   import Files from './routes/Files.svelte';
+  import Photos from './routes/photos/Photos.svelte';
+  import { immich } from './lib/photos/immich.svelte';
   import History from './routes/History.svelte';
   import Home from './routes/Home.svelte';
   import Item from './routes/Item.svelte';
@@ -30,6 +32,7 @@
   import LiveTv from './routes/LiveTv.svelte';
   import ProgramSheet from './components/ProgramSheet.svelte';
   import Login from './routes/Login.svelte';
+  import MiniPlayer from './routes/MiniPlayer.svelte';
   import OsdWindow from './routes/OsdWindow.svelte';
   import Player from './routes/Player.svelte';
   import Reader from './routes/Reader.svelte';
@@ -42,6 +45,8 @@
   import { lonePhoto } from './lib/photos/source.svelte';
 
   const isOsd = document.documentElement.classList.contains('osd');
+  // The music mini player's own window (MU-10): stores and the mini layout only.
+  const isMini = document.documentElement.classList.contains('mini');
   const status = $derived(session.value.status);
   const route = $derived(router.route);
   // The built-in player covers the page it was opened from, which stays mounted (inert) underneath: the way
@@ -68,6 +73,7 @@
 
   onMount(() => {
     void initStores();
+    if (isMini) return;
     initCast();
     if (isOsd) return;
     const offNav = w.events.onNavigate((path) => void navigate(path));
@@ -100,7 +106,7 @@
   let seenSeq = 0;
   $effect(() => {
     const seq = htmlPlayer.seq;
-    if (isOsd || seq <= seenSeq) return;
+    if (isOsd || isMini || seq <= seenSeq) return;
     seenSeq = seq;
     // A track plays in MusicHost's <audio>: the page stays.
     if (router.route.name !== 'player' && !htmlPlayer.load?.audio) navigate('/player');
@@ -115,7 +121,7 @@
 
   // Route guard driven by the session state owned by main.
   $effect(() => {
-    if (isOsd || !session.ready) return;
+    if (isOsd || isMini || !session.ready) return;
     const name = router.route.name;
     if (name === 'player') return;
     // First run (onboarding spec 4): the setup until it is done or skipped. It keeps its page while it adds and
@@ -131,7 +137,9 @@
   });
 </script>
 
-{#if isOsd}
+{#if isMini}
+  <MiniPlayer />
+{:else if isOsd}
   <OsdWindow />
 {:else if !session.ready || (status === 'connecting' && page.name !== 'welcome')}
   <div class="splash drag">
@@ -162,6 +170,7 @@
           {#if page.name === 'home'}<Home />
           {:else if page.name === 'library'}<Library id={page.params.id} server={page.params.server} />
           {:else if page.name === 'files'}<Files id={page.params.id} server={page.params.server} />
+          {:else if page.name === 'immich'}<Photos lib={{ Id: page.params.id, Name: immich.sources.find((s) => s.id === page.params.id)?.name ?? 'Immich', Type: 'CollectionFolder' }} immich={page.params.id} />
           {:else if page.name === 'livetv'}<LiveTv />
           {:else if page.name === 'item'}<Item id={page.params.id} server={page.params.server} />
           {:else if page.name === 'search'}<Search />
@@ -183,8 +192,8 @@
 
 <!-- Main is hidden while mpv plays: the OSD shows the toasts then (admin messages, errors). -->
 <Toasts />
-{#if !isOsd}<ResumePrompt /><QueueMenu /><TrackMenu /><CastPicker /><MusicHost />{/if}
-{#if !isOsd && lonePhoto.assets}<PhotoViewer assets={lonePhoto.assets} start={0} onclose={() => (lonePhoto.assets = null)} />{/if}
+{#if !isOsd && !isMini}<ResumePrompt /><QueueMenu /><TrackMenu /><CastPicker /><MusicHost />{/if}
+{#if !isOsd && !isMini && lonePhoto.assets}<PhotoViewer assets={lonePhoto.assets} start={0} onclose={() => (lonePhoto.assets = null)} />{/if}
 {#if settings.value?.ui.fpsMeter}<FpsMeter />{/if}
 
 <style>

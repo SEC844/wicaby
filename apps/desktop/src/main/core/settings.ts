@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { app } from 'electron';
 import { ACCENTS, ASPECT_MODES, LIBRARY_SORTS, SUBTITLE_FONTS, type DeepPartial, type HwDec, type Settings } from '../../shared/contract';
+import { sanitizeEq } from '../../shared/equalizer';
 import { isMpvPathShape } from '../../shared/mpv-args';
 import { validateImport } from '../../shared/shortcuts';
 import { t } from '../i18n';
@@ -118,7 +119,7 @@ export function defaultSettings(): StoredSettings {
     windows: { closeToTray: false, launchAtStartup: false, trayHintShown: false, notifyDownloads: true, notifyNewEpisodes: true, notifyAdmin: true },
     live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
     photos: { map: { enabled: false, tileUrl: OSM_TILES, attribution: '© OpenStreetMap contributors' } },
-    music: { replayGain: 'album', preampDb: 0, fallbackDb: -6, preventClipping: true, gapless: true, resumeQueue: true, lyricsProvider: 'server' },
+    music: { replayGain: 'album', preampDb: 0, fallbackDb: -6, preventClipping: true, gapless: true, resumeQueue: true, lyricsProvider: 'server', eq: { bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], preampDb: 0 } },
     defaultsVersion: 1,
   };
 }
@@ -252,7 +253,7 @@ function merge<T>(base: T, patch: DeepPartial<T> | undefined): T {
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
   for (const [key, value] of Object.entries(patch)) {
     // Ignore unknown keys from the renderer; the optional window keys have no default.
-    if (!(key in out) && key !== 'bounds' && key !== 'maximized') continue;
+    if (!(key in out) && key !== 'bounds' && key !== 'maximized' && key !== 'mini') continue;
     const current = out[key];
     if (value && typeof value === 'object' && !Array.isArray(value) && current && typeof current === 'object' && !Array.isArray(current)) {
       out[key] = merge(current, value as DeepPartial<typeof current>);
@@ -432,6 +433,7 @@ function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
     gapless: mu.gapless !== false,
     resumeQueue: mu.resumeQueue !== false,
     lyricsProvider: oneOf(mu.lyricsProvider, ['server', 'server+lrclib'] as const, 'server'),
+    eq: sanitizeEq(mu.eq),
   };
   return s;
 }

@@ -1,26 +1,36 @@
 <script lang="ts">
   // The Photos page (photos spec PH-02..PH-04): photo and home-video libraries open here instead of the poster
   // grid. Timeline, albums (folders) and favourites; the viewer and the slideshow are overlays, so the grid keeps
-  // its scroll and focus underneath.
+  // its scroll and focus underneath. An Immich source (immich: its id, spec PH-12) is its own library here: its
+  // albums, its people, its memories above the timeline, and map markers from /api/map/markers.
   import { tick } from 'svelte';
   import type { BaseItem } from '../../../shared/models';
   import Icon from '../../components/Icon.svelte';
   import Segmented from '../../components/Segmented.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { reducedMotion } from '../../lib/motion';
-  import { mapEnabled, setFavorite, skeleton, type Skeleton } from '../../lib/photos/source.svelte';
+  import { immichError, immichMarkers, immichMemories, immichSkeleton, type ImmichPerson } from '../../lib/photos/immich.svelte';
+  import { localDay } from '../../lib/photos/memories';
+  import { mapEnabled, setFavorite, skeleton, type GridAsset, type MemoryGroup, type Skeleton } from '../../lib/photos/source.svelte';
   import { errorMessage, toast } from '../../lib/stores.svelte';
   import Albums from './Albums.svelte';
+  import MemoryCards from './MemoryCards.svelte';
+  import People from './People.svelte';
   import PhotoGrid from './PhotoGrid.svelte';
   import PhotoMap from './PhotoMap.svelte';
   import PhotoViewer from './PhotoViewer.svelte';
   import Slideshow from './Slideshow.svelte';
 
-  let { lib, server }: { lib: BaseItem; server?: string } = $props();
+  let { lib, server, immich }: { lib: BaseItem; server?: string; immich?: string } = $props();
 
-  type Tab = 'timeline' | 'albums' | 'favorites' | 'map';
+  type Tab = 'timeline' | 'albums' | 'favorites' | 'people' | 'map';
   let tab = $state<Tab>('timeline');
   let album = $state<BaseItem | null>(null);
+  let person = $state<ImmichPerson | null>(null);
+  let memories = $state.raw<MemoryGroup[]>([]);
+  // Immich's map: the timeline's assets placed by the markers (asset id -> position), or the caption of a failure.
+  let markers = $state.raw<Map<string, { lat: number; lon: number }> | null>(null);
+  let markerError = $state('');
   let view = $state.raw<Skeleton | null>(null);
   let viewing = $state<{ index: number; thumb?: string } | null>(null);
   let showing = $state<number | null>(null);
@@ -31,12 +41,35 @@
     if (tab === 'map' && !mapEnabled()) tab = 'timeline';
   });
   $effect(() => {
-    view = tab === 'albums' ? (album ? skeleton(server, album.Id) : null) : skeleton(server, lib.Id, tab === 'favorites');
+    if (immich)
+      view =
+        tab === 'albums' ? (album ? immichSkeleton(immich, { albumId: album.Id }) : null) : tab === 'people' ? (person ? immichSkeleton(immich, { personId: person.id }) : null) : immichSkeleton(immich, { favorites: tab === 'favorites' });
+    else view = tab === 'albums' ? (album ? skeleton(server, album.Id) : null) : skeleton(server, lib.Id, tab === 'favorites');
+  });
+  $effect(() => {
+    if (!immich) return;
+    const id = immich;
+    immichMemories(id, localDay())
+      .then((g) => (memories = g))
+      .catch(() => (memories = []));
+  });
+  $effect(() => {
+    if (!immich || tab !== 'map' || markers) return;
+    immichMarkers(immich)
+      .then((m) => (markers = m))
+      .catch((err) => (markerError = immichError(err, 'map.read')));
+  });
+  const mapAssets = $derived.by((): GridAsset[] => {
+    if (!view) return [];
+    if (!immich) return view.assets;
+    const pos = markers;
+    return pos ? view.assets.flatMap((a) => (pos.has(a.id) ? [{ ...a, ...pos.get(a.id)! }] : [])) : [];
   });
 
   function pick(next: Tab): void {
     tab = next;
     album = null;
+    person = null;
     document.getElementById('main-scroller')?.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -80,13 +113,15 @@
 
 <div class="photos">
   <header class="head">
-    <h1 class="large-title">{album?.Name ?? lib.Name}</h1>
+    <h1 class="large-title">{album?.Name ?? person?.name ?? lib.Name}</h1>
     {#if view && view.total > 0}<span class="count">{t('photos.count', { count: view.total })}</span>{/if}
   </header>
 
   <div class="toolbar">
     {#if album}
       <button class="btn" onclick={() => (album = null)}><Icon name="chevronLeft" size={15} /> {t('photos.albums.back')}</button>
+    {:else if person}
+      <button class="btn" onclick={() => (person = null)}><Icon name="chevronLeft" size={15} /> {t('photos.people.back')}</button>
     {/if}
     <Segmented
       value={tab}
@@ -95,6 +130,7 @@
         { value: 'timeline', label: t('photos.tabs.timeline') },
         { value: 'albums', label: t('photos.tabs.albums') },
         { value: 'favorites', label: t('photos.tabs.favorites') },
+        ...(immich ? [{ value: 'people' as Tab, label: t('photos.tabs.people') }] : []),
         ...(mapEnabled() ? [{ value: 'map' as Tab, label: t('photos.tabs.map') }] : []),
       ]}
       onchange={pick}
@@ -110,12 +146,17 @@
   </div>
 
   {#if tab === 'albums' && !album}
-    <Albums {lib} {server} onopen={(a) => (album = a)} />
+    <Albums {lib} {server} {immich} onopen={(a) => (album = a)} />
+  {:else if tab === 'people' && immich && !person}
+    <People source={immich} onopen={(p) => (person = p)} />
+  {:else if tab === 'map' && immich && markerError}
+    <div class="note"><Icon name="exclamation" size={16} /> {markerError}</div>
   {:else if tab === 'map' && view}
-    <PhotoMap assets={view.assets} done={view.done} />
+    <PhotoMap assets={mapAssets} done={view.done && (!immich || markers !== null)} />
   {:else if view}
+    {#if immich && tab === 'timeline' && memories.length > 0}<MemoryCards groups={memories} />{/if}
     {#if view.error}
-      <div class="note"><Icon name="exclamation" size={16} /> {t('photos.error.load')} {view.error}</div>
+      <div class="note"><Icon name="exclamation" size={16} /> {immich ? view.error : `${t('photos.error.load')} ${view.error}`}</div>
     {:else if view.done && view.assets.length === 0}
       <div class="note">{t(tab === 'favorites' ? 'photos.emptyFavorites' : 'photos.empty')}</div>
     {:else}

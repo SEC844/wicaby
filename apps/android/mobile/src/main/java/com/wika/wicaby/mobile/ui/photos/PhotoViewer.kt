@@ -64,6 +64,9 @@ import com.wika.wicaby.core.photos.ExifTemplates
 import com.wika.wicaby.core.photos.Photo
 import com.wika.wicaby.core.photos.PhotoSizes
 import com.wika.wicaby.core.photos.exifOf
+import com.wika.wicaby.core.photos.Immich
+import com.wika.wicaby.core.photos.photoDetail
+import com.wika.wicaby.core.photos.setPhotoFavorite
 import com.wika.wicaby.core.photos.formatExif
 import com.wika.wicaby.core.photos.photoDate
 import com.wika.wicaby.core.photos.photoImage
@@ -102,6 +105,8 @@ fun PhotoViewer(api: Api, photos: List<Photo>, start: Int, onClose: () -> Unit, 
     var zoomed by remember { mutableStateOf(false) }
     var drag by remember { mutableFloatStateOf(0f) }
     val favs = remember { mutableStateMapOf<String, Boolean>() }
+    // An Immich clip plays here, over the viewer (spec PH-13); a server video opens the player.
+    var clip by remember { mutableStateOf<String?>(null) }
     val dismiss = with(LocalDensity.current) { 120.dp.toPx() }
     BackHandler(info) { info = false }
     LaunchedEffect(pager.currentPage) { zoomed = false }
@@ -155,7 +160,7 @@ fun PhotoViewer(api: Api, photos: List<Photo>, start: Int, onClose: () -> Unit, 
                 if (p.asset.kind == "video") {
                     Box(
                         Modifier.align(Alignment.Center).size(72.dp).background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                            .clickable(role = Role.Button) { play(context, p.item) },
+                            .clickable(role = Role.Button) { if (Immich.owns(p.asset)) clip = Immich.client().video(p.asset.id) else play(context, p.item) },
                         contentAlignment = Alignment.Center,
                     ) { Icon(Ic.Play, stringResource(CoreR.string.photos_play_video), tint = Color.White, modifier = Modifier.size(32.dp)) }
                 }
@@ -178,7 +183,7 @@ fun PhotoViewer(api: Api, photos: List<Photo>, start: Int, onClose: () -> Unit, 
                         stringResource(if (fav) CoreR.string.photos_viewer_unfavorite else CoreR.string.photos_viewer_favorite),
                         {
                             scope.launch {
-                                runCatching { api.setFavorite(p.asset.id, !fav) }.onSuccess {
+                                runCatching { api.setPhotoFavorite(p.asset, !fav) }.onSuccess {
                                     favs[p.asset.id] = !fav
                                     onFavorite(pager.currentPage, !fav)
                                 }
@@ -201,6 +206,8 @@ fun PhotoViewer(api: Api, photos: List<Photo>, start: Int, onClose: () -> Unit, 
             current?.let { InfoPanel(api, it) }
         }
 
+        clip?.let { ImmichClip(it) { clip = null } }
+
         if (slideshow) Slideshow(api, photos, pager.currentPage) { i ->
             slideshow = false
             scope.launch { pager.scrollToPage(i) }
@@ -218,7 +225,7 @@ private val LABELS = mapOf(
 private fun InfoPanel(api: Api, p: Photo) {
     val locale = LocalConfiguration.current.locales[0]
     // Gate G3: list answers may lack the EXIF fields; the item's own answer has them. Held in memory only (spec §6.1).
-    val item by produceState(p.item, p.asset.id) { value = runCatching { api.item(p.asset.id) }.getOrDefault(p.item) }
+    val item by produceState(p.item, p.asset.id) { value = runCatching { api.photoDetail(p) }.getOrDefault(p.item) }
     val tpl = ExifTemplates(
         stringResource(CoreR.string.photos_exif_aperture_value), stringResource(CoreR.string.photos_exif_exposure_value),
         stringResource(CoreR.string.photos_exif_focal_value), stringResource(CoreR.string.photos_exif_iso_value),
@@ -226,7 +233,8 @@ private fun InfoPanel(api: Api, p: Photo) {
         stringResource(CoreR.string.photos_exif_location_value),
     )
     val lines = listOf(stringResource(CoreR.string.photos_exif_taken) to photoDate(p.asset.takenAt, locale)) +
-        formatExif(exifOf(item), locale.language, tpl).map { (k, v) -> stringResource(LABELS.getValue(k)) to v }
+        // Immich reports the f-number itself.
+        formatExif(exifOf(item), locale.language, tpl, if (Immich.owns(p.asset)) "fnumber" else "hidden").map { (k, v) -> stringResource(LABELS.getValue(k)) to v }
     Column(
         Modifier.fillMaxWidth().background(G.elevated2, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
             .navigationBarsPadding().padding(20.dp).testTag("photo-info"),

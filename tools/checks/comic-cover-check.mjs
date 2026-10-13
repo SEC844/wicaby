@@ -39,6 +39,19 @@ assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Movie' }), null);
 // 3. A server that ignores Range (200, whole file) is refused, not read.
 await assert.rejects(httpSource(async () => new Response(Buffer.alloc(1 << 20), { status: 200 })), /Range/, 'a 200 answer is refused');
 
+// 3b. A server that ignores the end of "bytes=a-b" (Emby streams to the end of the file): keep what was asked.
+{
+  const file = Buffer.from(Array.from({ length: 200_000 }, (_, i) => i % 251));
+  const src = await httpSource(async (range) => {
+    const m = /^bytes=(\d*)-(\d*)$/.exec(range);
+    const start = m[1] ? Number(m[1]) : file.length - Number(m[2]);
+    return new Response(file.subarray(start), { status: 206, headers: { 'content-range': `bytes ${start}-${file.length - 1}/${file.length}` } });
+  });
+  const got = await src.read(1000, 50);
+  assert.equal(got.length, 50, 'an open-ended 206 is cut to the asked length');
+  assert.deepEqual([...got], [...file.subarray(1000, 1050)], 'and holds the asked bytes');
+}
+
 // 4. Against the mock: the comics without a server cover, read with Range requests.
 E.hooks.log = () => {};
 let served = 0;

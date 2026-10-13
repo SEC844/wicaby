@@ -15,8 +15,10 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sinh
 
 // Desktop parity (mpv-player.ts audioFilters + volumeBoost): Enhance Dialogue, Reduce Loud Sounds
 // (night mode), Normalize Volume and the 150 % boost, as one chain on decoded PCM. A bitstream
@@ -40,6 +42,32 @@ object AudioFx {
 
     // True while the sink plays a bitstream (set by Engine's sink): the player shows the effects disabled.
     var bitstream by mutableStateOf(false)
+
+    // Same octave bands and presets as desktop's shared/equalizer.ts (keep both in step).
+    val EQ_FREQS = intArrayOf(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+    val FLAT = List(10) { 0f }
+    val EQ_PRESETS = linkedMapOf(
+        "flat" to FLAT,
+        "bass" to listOf(6f, 5f, 4f, 2f, 0f, 0f, 0f, 0f, 0f, 0f),
+        "vocal" to listOf(-2f, -2f, -1f, 0f, 2f, 4f, 4f, 2f, 0f, -1f),
+        "treble" to listOf(0f, 0f, 0f, 0f, 0f, 0f, 2f, 4f, 5f, 6f),
+    )
+    const val EQ_MAX_DB = 12f
+
+    // Music equalizer (music spec MU-11): desktop's shared/equalizer.ts on decoded PCM, so never under passthrough.
+    data class Eq(val bands: List<Float> = FLAT, val preampDb: Float = 0f) {
+        val active get() = preampDb != 0f || bands.any { it != 0f }
+    }
+
+    @Volatile
+    var eq = Eq()
+
+    // The equalizer is a music setting: on only while a MusicSession owns the player (it sets this).
+    @Volatile
+    var music = false
+
+    /** The preset these bands are, or "custom". */
+    fun presetOf(bands: List<Float>): String = EQ_PRESETS.entries.firstOrNull { it.value == bands }?.key ?: "custom"
 }
 
 // The DSP, on interleaved float samples (±1 = 0 dBFS). Plain Kotlin so unit tests drive it directly.
@@ -63,11 +91,39 @@ class AudioFxChain(private val sampleRate: Int, private val channels: Int) {
     private var normGain = 1f
     private var limGain = 1f
 
-    fun process(buf: FloatArray, frames: Int, c: AudioFx.Config, gainDb: Float = 0f, clip: Boolean = true) {
+    // The equalizer's filters, rebuilt when its settings change (one peaking biquad per band and channel).
+    private var eqFor: AudioFx.Eq? = null
+    private var eqFilters: Array<Biquad> = emptyArray()
+    private var eqPre = 1f
+
+    private fun eqSetup(e: AudioFx.Eq) {
+        if (e == eqFor) return
+        eqFor = e
+        eqPre = 10f.pow(e.preampDb / 20)
+        eqFilters = AudioFx.EQ_FREQS.indices
+            .filter { e.bands.getOrElse(it) { 0f } != 0f && AudioFx.EQ_FREQS[it] < sampleRate / 2 }
+            .flatMap { b -> List(channels) { Biquad.peaking(sampleRate, AudioFx.EQ_FREQS[b].toDouble(), e.bands[b].toDouble()) } }
+            .toTypedArray()
+    }
+
+    fun process(buf: FloatArray, frames: Int, c: AudioFx.Config, gainDb: Float = 0f, clip: Boolean = true, eq: AudioFx.Eq? = null) {
         val g = if (gainDb == 0f) 1f else 10f.pow(gainDb / 20)
-        if (!c.any && g == 1f) return
+        val e = eq?.takeIf { it.active }
+        if (!c.any && g == 1f && e == null) return
+        e?.let(::eqSetup)
         for (f in 0 until frames) {
             val o = f * channels
+            if (e != null) {
+                for (ch in 0 until channels) {
+                    var x = buf[o + ch] * eqPre
+                    var k = ch
+                    while (k < eqFilters.size) {
+                        x = eqFilters[k].run(x)
+                        k += channels
+                    }
+                    buf[o + ch] = x
+                }
+            }
             if (c.dialogue) {
                 if (centre) {
                     // Desktop's pan: centre +3 dB, the rest -3 dB.
@@ -119,27 +175,34 @@ class AudioFxChain(private val sampleRate: Int, private val channels: Int) {
         for (ch in 0 until channels) buf[o + ch] *= g
     }
 
-    // RBJ cookbook second-order Butterworth, transposed direct form II.
-    private class Biquad(fs: Int, f: Double, highPass: Boolean) {
-        private val b0: Float
-        private val b1: Float
-        private val b2: Float
-        private val a1: Float
-        private val a2: Float
+    // RBJ cookbook biquads, transposed direct form II: second-order Butterworth high/low pass, and peaking EQ.
+    private class Biquad(private val b0: Float, private val b1: Float, private val b2: Float, private val a1: Float, private val a2: Float) {
         private var z1 = 0f
         private var z2 = 0f
 
-        init {
-            val w = 2 * PI * f / fs
-            val cw = cos(w)
-            val alpha = sin(w) / (2 * 0.7071)
-            val a0 = 1 + alpha
-            val n = if (highPass) (1 + cw) / 2 else (1 - cw) / 2
-            b0 = (n / a0).toFloat()
-            b1 = ((if (highPass) -2 * n else 2 * n) / a0).toFloat()
-            b2 = b0
-            a1 = (-2 * cw / a0).toFloat()
-            a2 = ((1 - alpha) / a0).toFloat()
+        constructor(fs: Int, f: Double, highPass: Boolean) : this(pass(fs, f, highPass))
+
+        private constructor(c: DoubleArray) : this(c[0].toFloat(), c[1].toFloat(), c[2].toFloat(), c[3].toFloat(), c[4].toFloat())
+
+        companion object {
+            private fun pass(fs: Int, f: Double, highPass: Boolean): DoubleArray {
+                val w = 2 * PI * f / fs
+                val cw = cos(w)
+                val alpha = sin(w) / (2 * 0.7071)
+                val a0 = 1 + alpha
+                val n = if (highPass) (1 + cw) / 2 else (1 - cw) / 2
+                return doubleArrayOf(n / a0, (if (highPass) -2 * n else 2 * n) / a0, n / a0, -2 * cw / a0, (1 - alpha) / a0)
+            }
+
+            // One octave wide (mpv's equalizer=t=o:w=1), gain in dB at the centre.
+            fun peaking(fs: Int, f: Double, gainDb: Double): Biquad {
+                val a = 10.0.pow(gainDb / 40)
+                val w = 2 * PI * f / fs
+                val sw = sin(w)
+                val alpha = sw * sinh(ln(2.0) / 2 * w / sw)
+                val a0 = 1 + alpha / a
+                return Biquad(doubleArrayOf((1 + alpha * a) / a0, -2 * cos(w) / a0, (1 - alpha * a) / a0, -2 * cos(w) / a0, (1 - alpha / a) / a0))
+            }
         }
 
         fun run(x: Float): Float {
@@ -191,7 +254,8 @@ class AudioFxProcessor : BaseAudioProcessor() {
         val c = AudioFx.config
         val ch = chain
         val gainDb = AudioFx.musicGainDb
-        if ((!c.any && gainDb == 0f) || ch == null) {
+        val eq = AudioFx.eq.takeIf { AudioFx.music && it.active }
+        if ((!c.any && gainDb == 0f && eq == null) || ch == null) {
             out.put(inputBuffer).flip()
             return
         }
@@ -203,7 +267,7 @@ class AudioFxProcessor : BaseAudioProcessor() {
         if (float) for (i in 0 until n) s[i] = inputBuffer.getFloat(p + 4 * i)
         else for (i in 0 until n) s[i] = inputBuffer.getShort(p + 2 * i) / 32768f
         inputBuffer.position(inputBuffer.limit())
-        ch.process(s, n / inputAudioFormat.channelCount, c, gainDb, AudioFx.preventClipping)
+        ch.process(s, n / inputAudioFormat.channelCount, c, gainDb, AudioFx.preventClipping, eq)
         if (float) for (i in 0 until n) out.putFloat(s[i])
         else for (i in 0 until n) out.putShort((s[i] * 32768f).roundToInt().coerceIn(-32768, 32767).toShort())
         out.flip()

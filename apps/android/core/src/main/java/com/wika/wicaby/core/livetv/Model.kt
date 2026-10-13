@@ -32,6 +32,9 @@ import java.math.BigDecimal
 enum class ServerKind {
     @SerialName("emby") EMBY,
     @SerialName("jellyfin") JELLYFIN,
+
+    // Answered by the Plex adapter (C/plex/PlexLiveTv.kt, PX-11): the requests are the non-Emby forms.
+    @SerialName("plex") PLEX,
 }
 
 /** Programme flag bits (PF). */
@@ -242,7 +245,7 @@ fun defaultCaps(kind: ServerKind): LiveCaps = LiveCaps(
     categorySource = CategorySource.UNKNOWN,
     categoryFilterOnChannels = Tri.UNKNOWN,
     programSearch = if (kind == ServerKind.EMBY) ProgramSearch.SERVER else ProgramSearch.ITEMS,
-    recordingOptions = kind,
+    recordingOptions = if (kind == ServerKind.EMBY) ServerKind.EMBY else ServerKind.JELLYFIN,
     onNowSource = OnNowSource.RECOMMENDED,
     newFlag = kind == ServerKind.EMBY,
     hdFlag = if (kind == ServerKind.JELLYFIN) Tri.TRUE else Tri.UNKNOWN,

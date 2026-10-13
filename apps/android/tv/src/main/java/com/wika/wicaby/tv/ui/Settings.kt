@@ -841,4 +841,6 @@ private fun FilesSection() {
             Cache.changed()
         }
     }
+    // Immich photo source (photos spec PH-13).
+    com.wika.wicaby.tv.ui.photos.ImmichGroup()
 }

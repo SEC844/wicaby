@@ -7,10 +7,10 @@
 
 # Wicaby
 
-**Tous tes médias au même endroit.** Vos serveurs Emby et Jellyfin, superbement lus sur Windows, Linux, Android TV et Android.
+**Tous vos médias au même endroit.** Vos serveurs Emby, Jellyfin et Plex, superbement lus sur Windows, Linux, Android TV et Android.
 
 [![Plateformes](https://img.shields.io/badge/plateformes-Windows%20%7C%20Linux%20%7C%20Android%20TV%20%7C%20Android-informational.svg)](#téléchargement)
-[![Serveurs](https://img.shields.io/badge/serveurs-Emby%20%7C%20Jellyfin-52b54b.svg)](#pourquoi-wicaby-)
+[![Serveurs](https://img.shields.io/badge/serveurs-Emby%20%7C%20Jellyfin%20%7C%20Plex-52b54b.svg)](#pourquoi-wicaby-)
 [![Licence : GPL-3.0-or-later](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 [Téléchargement](#téléchargement) · [Fonctionnalités](#fonctionnalités) · [Prise en main](#prise-en-main) · [Docs](docs/features.md) · [English](README.md)
@@ -54,6 +54,35 @@
     <td align="center">
       <img src="docs/screenshots/desktop-settings.png" alt="Les réglages avec la section des raccourcis clavier" width="280"><br>
       <b>Réglages</b><br><sub>Avec recherche et raccourcis personnalisables</sub>
+    </td>
+  </tr>
+</table>
+
+### Photos, musique et Plex
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-photos.png" alt="La chronologie d'une bibliothèque de photos de famille, groupée par mois" width="280"><br>
+      <b>Photos</b><br><sub>Une chronologie, des albums, des diaporamas et « Ce jour-là »</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-music.png" alt="La page de l'album Neon Avenue avec ses titres et les boutons Lecture, Lecture aléatoire et Mix" width="280"><br>
+      <b>Musique</b><br><sub>Albums, file d'attente modifiable, mix et paroles</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-plex.png" alt="La section Films d'un serveur Plex, signalé comme Plex dans la barre latérale" width="280"><br>
+      <b>Plex</b><br><sub>Vos serveurs Plex, liés avec un code</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="docs/screenshots/tv-photos.png" alt="La chronologie des photos sur Android TV" width="420"><br>
+      <b>Photos sur Android TV</b><br><sub>Vos photos sur grand écran</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/mobile-music.png" alt="La musique sur téléphone" width="130"><br>
+      <b>Musique sur téléphone</b><br><sub>Avec les commandes de l'écran de verrouillage</sub>
     </td>
   </tr>
 </table>

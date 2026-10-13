@@ -14,8 +14,11 @@
 //  4. drives the renderer over CDP the way apps/desktop/scripts/cdp.mjs does, with the viewport pinned to
 //     1600x1000 at 1x, and captures each page;
 //  5. restarts the mock in English and captures the English home (desktop-home-en.png);
+//     then restarts the app on a fresh profile with no server, links the Plex mock (tools/mock-server/mock-plex.mjs:
+//     a fake plex.tv and PMS) with a code and captures its Films section (desktop-plex.png);
 //     (The reader shot opens a CBZ cut from the demo artwork, put in the reader cache: see seedComic.)
-//  6. quantizes every capture to a 256-colour PNG (no native dependency) and writes it to docs/screenshots/.
+//  6. quantizes every capture to a 256-colour PNG (no native dependency) and writes it to docs/screenshots/,
+//     with no metadata chunk (strip-metadata.mjs runs on every file written).
 //
 // Safety: the app only talks to the local mock. A small guard loaded through NODE_OPTIONS drops UDP sent
 // anywhere but loopback (the Servers page's LAN discovery, Wake-on-LAN), and keeps the window from taking
@@ -23,14 +26,16 @@
 // player shot is a fake PlaybackState pushed into the renderer: nothing plays, nothing makes a sound
 // (the mock is started without a video file, so even a real play request would fail to open).
 //
-// Options: --only=<names>  (home, item, player, settings, admin, livetv, livetv-guide, livetv-player, reader, home-en)
+// Options: --only=<names>  (home, item, player, settings, admin, livetv, livetv-guide, livetv-player, reader, photos,
+//                           music, plex, home-en)
 //          --out=<dir>     (default docs/screenshots)
 //          --raw           also keep the untouched captures next to the output, as <name>.raw.png
 //          --frames[=dir]  demo mode: home, item, player and Live TV guide captured untouched into <dir>
 //                          (default .dev/demo-frames), then joined by the bundled mpv into <out>/demo.webp
 //          --keep          keep the app and the mock running after the shots, until Ctrl+C (to poke at them
 //                          with CDP_PORT=9700 node apps/desktop/scripts/cdp.mjs)
-// Ports: SHOTS_MOCK_PORT (8900), SHOTS_DEV_PORT (5580), SHOTS_CDP_PORT (9700).
+// Ports: SHOTS_MOCK_PORT (8900), SHOTS_DEV_PORT (5580), SHOTS_CDP_PORT (9700), SHOTS_PLEX_PORT (8910, plex.tv on +1,
+// the relay on +2).
 // Clock: the mock, the app's main process and the renderer all start at SHOTS_CLOCK (local time, default
 // 2026-10-09T20:30:00) and run at real speed from there, so the shots never show when they were taken.
 import { spawn, spawnSync } from 'node:child_process';
@@ -39,6 +44,8 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { MACHINE_ID as PLEX_SERVER } from '../mock-server/mock-plex.mjs';
+import { strip } from './strip-metadata.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DESKTOP = path.join(ROOT, 'apps', 'desktop');
@@ -51,6 +58,9 @@ const HOLD = 3; // frames per scene in the demo: 2 s each at 1.5 fps
 const MOCK_PORT = Number(process.env.SHOTS_MOCK_PORT) || 8900;
 const DEV_PORT = Number(process.env.SHOTS_DEV_PORT) || 5580;
 const CDP_PORT = Number(process.env.SHOTS_CDP_PORT) || 9700;
+const PLEX_PORT = Number(process.env.SHOTS_PLEX_PORT) || 8910;
+const PLEXTV = `http://127.0.0.1:${PLEX_PORT + 1}`;
+const PLEX_OWNER = 'a1b2c3d4e5f60718'; // the mock's Home owner, Wika (no PIN)
 const WIDTH = 1600;
 const HEIGHT = 1000;
 const SERVER_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90'; // the mock's default SystemId
@@ -59,6 +69,7 @@ const SERVER_NAME = 'Home Cinema';
 const ITEM_FILM = 'movie-4'; // Spring (2019): 4K Dolby Vision 8.1
 const PLAYER_FILM = 'movie-0'; // Big Buck Bunny (2008)
 const COMIC = 'comic-1';
+const ALBUM = 'album-1-0'; // Neon Avenue, Night Arcade
 const CLOCK_SHIFT = new Date(process.env.SHOTS_CLOCK ?? '2026-10-09T20:30:00').getTime() - Date.now();
 // Runs first in every process that shows or serves a time (Node and the renderer alike).
 const CLOCK = `(() => {
@@ -184,18 +195,19 @@ if (process.versions.electron) {
 }
 `;
 
-function seedProfile(lang) {
+// emby: false leaves the server list empty (the Plex phase).
+function seedProfile(lang, { emby = true } = {}) {
   fs.rmSync(PROFILE, { recursive: true, force: true });
   fs.mkdirSync(PROFILE, { recursive: true });
   const address = `http://127.0.0.1:${MOCK_PORT}`;
-  fs.writeFileSync(
+  if (emby) fs.writeFileSync(
     path.join(PROFILE, 'servers.json'),
     JSON.stringify({ servers: [{ id: SERVER_ID, name: SERVER_NAME, kind: 'emby', version: '4.9.1.0', manualAddress: address, lastAddress: address }], activeId: SERVER_ID, tokenBinding: 1 }),
   );
   fs.writeFileSync(
     path.join(PROFILE, 'settings.json'),
     JSON.stringify({
-      ui: { language: lang, reduceTransparency: true, reduceMotion: true, heroAutoplay: false },
+      ui: { language: lang, reduceTransparency: true, reduceMotion: true, heroAutoplay: false, ...(emby ? {} : { onboarded: true }) },
       // The default download folder is under the user's profile: keep the account name out of the shots.
       downloads: { folder: 'D:\\Vidéos\\Wicaby' },
       window: { bounds: { x: 40, y: 30, width: WIDTH, height: HEIGHT } },
@@ -205,6 +217,23 @@ function seedProfile(lang) {
   const guard = path.join(PROFILE, 'shots-guard.cjs');
   fs.writeFileSync(guard, CLOCK + GUARD);
   return guard;
+}
+
+// The dev app on the seeded profile, with the guard and plex.tv pointed at the Plex mock.
+function startApp(guard) {
+  log(`dev app (renderer ${DEV_PORT}, CDP ${CDP_PORT}), profile ${path.relative(ROOT, PROFILE)}`);
+  appExited = null;
+  const app = start(process.execPath, [path.join('scripts', 'dev.mjs'), `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${CDP_PORT}`], {
+    cwd: DESKTOP,
+    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), WICABY_PLEXTV_BASE: PLEXTV, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require "${guard.replaceAll('\\', '/')}"`.trim() },
+  });
+  app.on('exit', (code) => (appExited = code ?? 'signal'));
+  return app;
+}
+
+async function stopApp(app) {
+  stop(app);
+  await until('the dev app to stop', async () => (await portFree(CDP_PORT)) && (await portFree(DEV_PORT)), 20000);
 }
 
 // ---------------------------------------------------------------- CDP (same target choice as apps/desktop/scripts/cdp.mjs)
@@ -294,6 +323,9 @@ async function setSettings(patch) {
 }
 
 async function capture(name) {
+  // A passing toast ("2 serveurs Plex ajoutés.") is not part of the screen: wait for it to leave (3.5 s, 6 s for errors).
+  await until('the toasts to go', () => cdp.evaluate(`!document.querySelector('.toasts > .toast')`), 15000);
+  await sleep(400);
   const r = await cdp.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const raw = Buffer.from(r.data, 'base64');
   if (FRAMES) {
@@ -302,7 +334,7 @@ async function capture(name) {
     return;
   }
   if (args.raw) fs.writeFileSync(path.join(OUT, `${name}.raw.png`), raw);
-  const png = optimize(raw);
+  const png = strip(optimize(raw)).out;
   fs.writeFileSync(path.join(OUT, `${name}.png`), png);
   log(`${name}.png  ${(png.length / 1024).toFixed(0)} KB (capture ${(raw.length / 1024).toFixed(0)} KB)`);
   written.push(path.join(OUT, `${name}.png`));
@@ -316,6 +348,7 @@ function assembleDemo() {
   const out = path.join(OUT, 'demo.webp');
   const r = spawnSync(mpv, [`mf://${FRAMES.replaceAll('\\', '/')}/*.png`, '--mf-fps=1.5', '--vf=scale=1200:-2', '--of=webp', '--ofopts=loop=0', '--ovc=libwebp_anim', '--ovcopts=quality=80', '--no-audio', `--o=${out}`], { stdio: 'ignore' });
   if (r.status !== 0 || !fs.existsSync(out)) throw new Error(`mpv could not write ${out} (exit ${r.status ?? r.error?.message})`);
+  fs.writeFileSync(out, strip(fs.readFileSync(out)).out);
   log(`demo.webp  ${(fs.statSync(out).size / 1024).toFixed(0)} KB from ${frameNo} frames`);
   written.push(out);
 }
@@ -548,6 +581,45 @@ async function shotReader() {
   await sleep(600);
   await capture('desktop-reader');
   await go('/home');
+}
+
+// The photo timeline of "Photos de famille" (generated pictures, tools/mock-server/photos-fixture.mjs).
+async function shotPhotos() {
+  await go('/library/lib-photos');
+  await until('the photo timeline', () => cdp.evaluate(`document.querySelectorAll('main img').length > 20`), 20000);
+  await settle(2000);
+  await capture('desktop-photos');
+}
+
+// A music album page (invented names, silent tracks: nothing plays).
+async function shotMusic() {
+  await go(`/item/${ALBUM}`);
+  await until('the album tracks', () => cdp.evaluate(`document.querySelectorAll('section.tracks button.track').length > 0`), 20000);
+  await settle(1500);
+  await capture('desktop-music');
+}
+
+// Plex alone (no Emby on this profile, see main): link the mock plex.tv with a code, confirm its plain-http LAN address, pick the owner's
+// profile, then capture its Films section. Main reaches plex.tv only through WICABY_PLEXTV_BASE (the mock).
+async function shotPlex() {
+  const click = (sel, text) => cdp.evaluate(`(() => { const b = [...document.querySelectorAll(${js(sel)})].find((x) => ${text ? `x.textContent.includes(${js(text)})` : 'true'}); if (!b) return false; b.click(); return true; })()`);
+  await go('/servers');
+  await until('the Plex link button', () => click('button', 'Lier avec un code'), 20000);
+  const code = await until('the Plex code', () => cdp.evaluate(`document.querySelector('.plex-link .code')?.textContent.trim() || null`), 15000);
+  const linked = await fetch(`${PLEXTV}/Mock/Pin/Link?code=${code}`, { method: 'POST' });
+  if (!linked.ok) throw new Error(`the Plex mock refused the code (${linked.status})`);
+  await until('the Plex sign-in', () => cdp.evaluate(`location.hash === ${js(`#/login/${PLEX_SERVER}`)}`), 20000);
+  // D-3: the mock's plain-http LAN address waits for the user's yes, then who is watching.
+  await until('the address question', () => click('[aria-labelledby="plex-confirm-title"] button'), 20000);
+  await until('the confirmed address', () => cdp.evaluate(`!document.querySelector('[aria-labelledby="plex-confirm-title"]')`), 15000);
+  await sleep(1000);
+  await until('the Plex profiles', () => click(`.profile[data-user="${PLEX_OWNER}"]`), 15000);
+  await until('the Plex home', () => cdp.evaluate(`location.hash.startsWith('#/home')`), 30000);
+  // The Films section: the demo posters, with "Maison · Plex" in the sidebar.
+  await go(`/library/${PLEX_SERVER}/section-1`);
+  await until('the Plex posters', () => cdp.evaluate(`[...document.querySelectorAll('.card img')].filter((i) => i.complete && i.naturalWidth > 0).length >= 12`), 30000);
+  await settle(1500);
+  await capture('desktop-plex');
 }
 
 // ---------------------------------------------------------------- PNG: decode, quantize, encode
@@ -787,7 +859,7 @@ function optimize(png) {
 // ---------------------------------------------------------------- main
 
 async function main() {
-  for (const [port, env] of [[MOCK_PORT, 'SHOTS_MOCK_PORT'], [DEV_PORT, 'SHOTS_DEV_PORT'], [CDP_PORT, 'SHOTS_CDP_PORT']]) {
+  for (const [port, env] of [[MOCK_PORT, 'SHOTS_MOCK_PORT'], [DEV_PORT, 'SHOTS_DEV_PORT'], [CDP_PORT, 'SHOTS_CDP_PORT'], [PLEX_PORT, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 1, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 2, 'SHOTS_PLEX_PORT']]) {
     if (!(await portFree(port))) throw new Error(`port ${port} is in use (set ${env} to another port)`);
   }
   fs.mkdirSync(OUT, { recursive: true });
@@ -800,13 +872,14 @@ async function main() {
 
   log(`mock server (demo dataset, French) on ${MOCK_PORT}`);
   await startMock('fr');
-  const guard = seedProfile('fr');
-
-  log(`dev app (renderer ${DEV_PORT}, CDP ${CDP_PORT}), profile ${path.relative(ROOT, PROFILE)}`);
-  start(process.execPath, [path.join('scripts', 'dev.mjs'), `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${CDP_PORT}`], {
-    cwd: DESKTOP,
-    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require "${guard.replaceAll('\\', '/')}"`.trim() },
-  }).on('exit', (code) => (appExited = code ?? 'signal'));
+  if (wanted('plex') && !FRAMES) {
+    start(process.execPath, ['--require', CLOCK_FILE, path.join(ROOT, 'tools', 'mock-server', 'mock-plex.mjs')], {
+      cwd: ROOT,
+      env: { ...process.env, PORT: String(PLEX_PORT), MOCK_PLEXTV_PORT: String(PLEX_PORT + 1), MOCK_PLEX_RELAY_PORT: String(PLEX_PORT + 2), NODE_OPTIONS: '' },
+    });
+    await until('the Plex mock', async () => (await fetch(`${PLEXTV}/Mock/State`)).ok);
+  }
+  let app = startApp(seedProfile('fr'));
   cdp = await connect();
   await signIn();
   log('signed in as Wika');
@@ -822,6 +895,8 @@ async function main() {
   if (wanted('livetv-guide')) await shotLiveTv('guide', 'desktop-livetv-guide');
   if (wanted('livetv-player')) await shotLivePlayer();
   if (wanted('reader')) await shotReader();
+  if (wanted('photos')) await shotPhotos();
+  if (wanted('music')) await shotMusic();
 
   if (FRAMES) assembleDemo();
 
@@ -841,6 +916,17 @@ async function main() {
     await signIn();
     await go('/home');
     await shotHome('desktop-home-en');
+  }
+
+  // Plex on its own profile: with a signed-in Emby server next to it, the merged home hangs the renderer
+  // (shortcut: the shot skips that case, upgrade once the merged Emby + Plex home is fixed).
+  if (wanted('plex') && !FRAMES) {
+    log('restarting the app on a fresh profile for Plex');
+    cdp.close();
+    await stopApp(app);
+    app = startApp(seedProfile('fr', { emby: false }));
+    cdp = await connect();
+    await shotPlex();
   }
 
   cdp.close();

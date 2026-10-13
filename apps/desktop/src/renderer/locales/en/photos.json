@@ -25,7 +25,8 @@
     "albums": "Albums",
     "favorites": "Favourites",
     "map": "Map",
-    "label": "View"
+    "label": "View",
+    "people": "People"
   },
   "empty": "No photos here yet.",
   "emptyFavorites": "No favourite photos. Press F on a photo or the heart in the viewer.",
@@ -69,7 +70,8 @@
     "title": "Albums",
     "empty": "No albums in this library.",
     "count": "{count, plural, one {# item} other {# items}}",
-    "back": "All albums"
+    "back": "All albums",
+    "shared": "Shared"
   },
   "slideshow": {
     "start": "Slideshow",
@@ -106,5 +108,34 @@
     "noLocation": "No geotagged photos here.",
     "cluster": "{count, plural, one {# photo} other {# photos}}",
     "loading": "Reading the positions…"
+  },
+  "people": {
+    "title": "People",
+    "empty": "No named people on this server.",
+    "back": "All people"
+  },
+  "sources": {
+    "title": "Photo sources",
+    "url": "Immich server",
+    "key": "API key",
+    "keyHint": "Create a key in Immich (Account Settings, API Keys) with at least asset.read and asset.view. album.read, person.read, map.read and memory.read add albums, people, the map and memories.",
+    "test": "Test",
+    "add": "Connect",
+    "added": "Immich server connected.",
+    "remove": "Remove",
+    "ok": "Immich {version}: connected.",
+    "versionTooOld": "Immich {version} is too old: Wicaby needs version 2.0 or later.",
+    "scopesMissing": "Permissions the key lacks: {scopes}. Those features are hidden.",
+    "scopeMissing": "The API key lacks the {scope} permission; add it in Immich to see this part.",
+    "keyRefused": "The Immich server refuses the API key. Connect it again in Settings, Library.",
+    "failed": "The Immich server answered with an error ({status}).",
+    "foot": "The key stays encrypted on this computer and is only sent to that server. Immich photos form their own library, next to those from Emby or Jellyfin.",
+    "error": {
+      "url": "Invalid address.",
+      "network": "Server unreachable.",
+      "server": "This server does not answer like an Immich server.",
+      "auth": "API key refused.",
+      "scope": "The key lacks the asset.read permission the timeline needs."
+    }
   }
 }

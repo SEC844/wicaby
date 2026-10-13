@@ -79,6 +79,10 @@ import com.wika.wicaby.core.photos.photoImage
 import com.wika.wicaby.core.photos.quarterTurn
 import com.wika.wicaby.core.photos.rotation
 import com.wika.wicaby.core.photos.timelineQuery
+import com.wika.wicaby.core.photos.Immich
+import com.wika.wicaby.core.photos.ImmichException
+import com.wika.wicaby.core.photos.ImmichTimeline
+import com.wika.wicaby.core.photos.immichPhoto
 import com.wika.wicaby.tv.LocalNav
 import com.wika.wicaby.tv.R
 import com.wika.wicaby.tv.Route
@@ -107,13 +111,17 @@ import kotlinx.coroutines.delay
 // tiles (a justified grid makes D-pad focus wander) under full-width month headers; Page/Channel down and up jump
 // a month. Tabs: Chronologie, Albums, Favoris. No map on the TV.
 val PHOTO_COLLECTIONS = setOf("photos", "homevideos")
+// An Immich source (photos spec PH-13): its own tab (parentId = its id) with People; one of its albums or people.
+const val IMMICH = "immich"
+const val IMMICH_ALBUM = "immich-album"
+const val IMMICH_PERSON = "immich-person"
 
 private const val COLUMNS = 6
 // The grids start under the header (PhotosTab).
 private val CONTENT_TOP = 8.dp
 
 @Composable
-fun PhotosTab(api: Api, parentId: String, title: String, top: Dp, album: Boolean = false, onScrolled: (Boolean) -> Unit = {}) {
+fun PhotosTab(api: Api, parentId: String, title: String, top: Dp, album: Boolean = false, onScrolled: (Boolean) -> Unit = {}, kind: String? = null) {
     var tab by rememberSaveable(parentId) { mutableIntStateOf(0) }
     val nav = LocalNav.current
     val sid = Servers.extraOf(api.server.id)?.server?.id
@@ -128,7 +136,7 @@ fun PhotosTab(api: Api, parentId: String, title: String, top: Dp, album: Boolean
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 48.dp, end = 48.dp, top = headTop, bottom = 4.dp)) {
             Text(title, style = Type.largeTitle, color = C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (!album) Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.onFocusChanged { pillsFocused = it.hasFocus }) {
-                listOf(CoreR.string.photos_tab_timeline, CoreR.string.photos_tab_albums, CoreR.string.photos_tab_favorites).forEachIndexed { i, label ->
+                (listOf(CoreR.string.photos_tab_timeline, CoreR.string.photos_tab_albums, CoreR.string.photos_tab_favorites) + listOfNotNull(CoreR.string.photos_tab_people.takeIf { kind == IMMICH })).forEachIndexed { i, label ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Pill(
                             stringResource(label), selected = tab == i, modifier = Modifier.testTag("photos-tab-$i"),
@@ -142,20 +150,31 @@ fun PhotosTab(api: Api, parentId: String, title: String, top: Dp, album: Boolean
         }
         // While a pill has the focus, the new tab's first tile does not take it.
         CompositionLocalProvider(LocalAutoFocus provides (LocalAutoFocus.current && !pillsFocused)) {
-            if (tab == 1) Albums(api, parentId) { nav.push(Route.PhotoAlbum(it.id, it.name, sid)) }
-            else Timeline(api, parentId, favorites = tab == 2, { scrolled = it; onScrolled(it) }, onBack = if (album) nav::pop else null)
+            if (tab == 1 && kind != null) ImmichCards(album = true) { id, name -> nav.push(Route.PhotoAlbum(id, name, sid, IMMICH_ALBUM)) }
+            else if (tab == 1) Albums(api, parentId) { nav.push(Route.PhotoAlbum(it.id, it.name, sid)) }
+            else if (tab == 3 && kind != null) ImmichCards(album = false) { id, name -> nav.push(Route.PhotoAlbum(id, name, sid, IMMICH_PERSON)) }
+            else Timeline(api, parentId, favorites = tab == 2, { scrolled = it; onScrolled(it) }, onBack = if (album) nav::pop else null, kind = kind)
         }
     }
 }
 
 @Composable
-private fun Timeline(api: Api, parentId: String, favorites: Boolean, onScrolled: (Boolean) -> Unit, onBack: (() -> Unit)?) {
+private fun Timeline(api: Api, parentId: String, favorites: Boolean, onScrolled: (Boolean) -> Unit, onBack: (() -> Unit)?, kind: String? = null) {
     val nav = LocalNav.current
-    val key = LocalCacheNs.current + "photos-$parentId-$favorites"
+    val filter = when (kind) {
+        null -> null
+        IMMICH_ALBUM -> ImmichTimeline.Filter(albumId = parentId)
+        IMMICH_PERSON -> ImmichTimeline.Filter(personId = parentId)
+        else -> ImmichTimeline.Filter(favorites = favorites)
+    }
+    val key = LocalCacheNs.current + if (filter == null) "photos-$parentId-$favorites" else "immich-${Immich.source?.id}-$filter"
     val t = remember(key) { Cache.map.getOrPut(key) { TimelineState() } as TimelineState }
     var nonce by remember { mutableIntStateOf(0) }
     // A load cut short (the tab left mid-paging) resumes here: only a complete timeline is reused (TimelineState).
-    LaunchedEffect(t, nonce) { t.load(PhotoSource(api.timelineQuery(parentId, favorites)), force = nonce > 0) }
+    LaunchedEffect(t, nonce) {
+        if (filter == null) t.load(PhotoSource(api.timelineQuery(parentId, favorites)), force = nonce > 0)
+        else t.load(nonce > 0) { onPage -> Immich.client().timeline(filter) { a, n -> onPage(a.map(::immichPhoto), n) }.assets.map(::immichPhoto) }
+    }
     val sid = Servers.extraOf(api.server.id)?.server?.id
     when {
         t.failed -> Centered { ErrorState { t.failed = false; nonce++ } }
@@ -346,10 +365,60 @@ private fun Albums(api: Api, parentId: String, onOpen: (Item) -> Unit) {
     }
 }
 
-// An album's own timeline (Route.PhotoAlbum).
+// An album's own timeline (Route.PhotoAlbum); kind: an Immich album or person.
 @Composable
-fun PhotoAlbumScreen(api: Api, id: String, name: String) {
-    Box(Modifier.fillMaxSize().background(C.bg)) { PhotosTab(api, id, name, top = 48.dp, album = true) }
+fun PhotoAlbumScreen(api: Api, id: String, name: String, kind: String? = null) {
+    Box(Modifier.fillMaxSize().background(C.bg)) { PhotosTab(api, id, name, top = 48.dp, album = true, kind = kind) }
+}
+
+private class ImmichCard(val id: String, val name: String, val cover: String?, val count: Int?, val shared: Boolean)
+
+// The Immich source's albums (album) or people, read-only. A 403 names the permission the key lacks.
+@Composable
+private fun ImmichCards(album: Boolean, onOpen: (id: String, name: String) -> Unit) {
+    val cards by rememberLoad("immich-${if (album) "albums" else "people"}-${Immich.source?.id}") {
+        val c = Immich.client()
+        if (album) c.albums().map { ImmichCard(it.id, it.name, it.coverId?.let { id -> c.thumb(id, "thumbnail") }, it.count, it.shared) }
+        else c.people().map { ImmichCard(it.id, it.name, c.face(it.id), null, false) }
+    }
+    val list = cards.value
+    val err = cards.error as? ImmichException
+    val memory = rememberFocusMemory()
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(if (album) 5 else 7),
+        modifier = Modifier.fillMaxSize().dpadEdges(),
+        contentPadding = PaddingValues(start = 48.dp, end = 48.dp, top = CONTENT_TOP + 12.dp, bottom = 56.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        when {
+            list == null && err != null && (err.status == 401 || err.status == 403) -> item("scope", span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    if (err.status == 401) stringResource(CoreR.string.photos_sources_key_refused) else stringResource(CoreR.string.photos_sources_scope_missing, if (album) "album.read" else "person.read"),
+                    style = Type.title3, color = C.label2, modifier = Modifier.testTag("immich-scope"),
+                )
+            }
+            list == null && cards.error != null -> item("error", span = { GridItemSpan(maxLineSpan) }) { ErrorState { Cache.changed() } }
+            list == null -> item("loading", span = { GridItemSpan(maxLineSpan) }) { Spinner() }
+            list.isEmpty() -> item("empty", span = { GridItemSpan(maxLineSpan) }) {
+                Text(stringResource(if (album) CoreR.string.photos_empty else CoreR.string.photos_people_empty), style = Type.title3, color = C.label2)
+            }
+            else -> items(list, key = { it.id }) { a ->
+                Column(horizontalAlignment = if (album) Alignment.Start else Alignment.CenterHorizontally) {
+                    val shape = if (album) RoundedCornerShape(Radius.md) else CircleShape
+                    AsyncImage(
+                        a.cover, a.name, contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f).remembered(memory, a.id).tvFocus(shape, onClick = { onOpen(a.id, a.name) }).background(C.fill2, shape),
+                    )
+                    Text(a.name, style = Type.headline, color = C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
+                    a.count?.let {
+                        val n = pluralStringResource(CoreR.plurals.photos_count, it, it)
+                        Text(if (a.shared) "$n · ${stringResource(CoreR.string.photos_album_shared)}" else n, style = Type.footnote, color = C.label3)
+                    }
+                }
+            }
+        }
+    }
 }
 
 // The UI locale (minSdk 23: no Configuration.locales).

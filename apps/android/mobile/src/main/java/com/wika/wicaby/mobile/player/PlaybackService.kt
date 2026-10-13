@@ -22,7 +22,16 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.session.CacheBitmapLoader
 import com.wika.wicaby.mobile.R
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
+import androidx.media3.session.SessionError
+import com.google.common.collect.ImmutableList
+import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.mobile.BuildConfig
+import com.wika.wicaby.mobile.music.AutoBrowseTree
+import com.wika.wicaby.mobile.music.autoTree
 import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
@@ -41,8 +50,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 // Keeps playback alive off screen: Media3 posts the media notification, lock-screen and
-// Bluetooth controls, and holds the foreground service while the player plays.
-class PlaybackService : MediaSessionService() {
+// Bluetooth controls, and holds the foreground service while the player plays. A MediaLibraryService so Android Auto
+// can browse the music (MU-12): gplay declares it to Auto (src/gplay/AndroidManifest.xml), and every browse call is
+// refused to anyone but Auto, and to everyone in foss (AutoBrowseTree.allowed).
+class PlaybackService : MediaLibraryService() {
     companion object {
         private const val ACTION_ZAP = "com.wika.wicaby.mobile.ZAP"
         private const val EXTRA_DELTA = "delta"
@@ -65,8 +76,8 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    private var session: MediaSession? = null
-    private var castSession: MediaSession? = null
+    private var session: MediaLibrarySession? = null
+    private var castSession: MediaLibrarySession? = null
     private val zapReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             LiveZap.press(this@PlaybackService, i.getIntExtra(EXTRA_DELTA, 0))
@@ -86,12 +97,14 @@ class PlaybackService : MediaSessionService() {
     }
 
     // A direct DLNA cast first (local playback stops it before starting, cast spec §1), else the local player.
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = Casting.direct?.let(::castSession) ?: localSession()
+    // Android Auto may connect before anything played: the engine is built for it then.
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
+        Casting.direct?.let(::castSession) ?: localSession(build = AutoBrowseTree.allowed(controllerInfo.packageName, BuildConfig.FLAVOR))
 
     // Built when a player exists, again after a cast if the service outlived the previous one.
-    private fun localSession(): MediaSession? {
+    private fun localSession(build: Boolean = false): MediaLibrarySession? {
         session?.let { return it }
-        val player = PlayerHolder.engine?.player ?: return null
+        val player = (if (build) PlayerHolder.ensureEngine(this) else PlayerHolder.engine)?.player ?: return null
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, PlayerActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -103,7 +116,8 @@ class PlaybackService : MediaSessionService() {
         )
         // Lock-screen and notification art through Core.http (the server's auth, the mesh transport).
         val art = CacheBitmapLoader(DataSourceBitmapLoader.Builder(this).setDataSourceFactory(DefaultDataSource.Factory(this, OkHttpDataSource.Factory(Core.http))).build())
-        val s = MediaSession.Builder(this, LivePlayer(player, this)).setSessionActivity(open).setBitmapLoader(art).build()
+        val auto = AutoLibrary(this)
+        val s = MediaLibrarySession.Builder(this, LivePlayer(player, this, auto::play), auto).setSessionActivity(open).setBitmapLoader(art).build()
         player.addListener(object : Player.Listener {
             override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
                 s.setSessionActivity(if (PlayerHolder.music != null) nowPlaying else open)
@@ -121,7 +135,7 @@ class PlaybackService : MediaSessionService() {
     // A direct DLNA cast (CA-08) gets its own session on a player that mirrors the renderer: Media3 then posts the
     // media notification (play/pause, Stop) and holds the foreground service while it plays, with or without an
     // activity, so the cast keeps reporting to the server. It goes once the cast ends (the player turns IDLE).
-    private fun castSession(c: CastController): MediaSession? {
+    private fun castSession(c: CastController): MediaLibrarySession? {
         castSession?.let { s -> if ((s.player as RendererPlayer).controller === c) return s }
         if (c.state.value == null) return null
         castSession?.let { it.player.release(); it.release() }
@@ -131,7 +145,7 @@ class PlaybackService : MediaSessionService() {
         val open = packageManager.getLaunchIntentForPackage(packageName)?.let {
             PendingIntent.getActivity(this, 1, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
-        val s = MediaSession.Builder(this, player).setId("cast").setMediaButtonPreferences(listOf(stop))
+        val s = MediaLibrarySession.Builder(this, player, object : MediaLibrarySession.Callback {}).setId("cast").setMediaButtonPreferences(listOf(stop))
             .apply { open?.let(::setSessionActivity) }.build()
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -173,7 +187,7 @@ class PlaybackService : MediaSessionService() {
  * While a channel plays, next / previous (notification, lock screen, Bluetooth) are CH+ / CH− (§8.3);
  * otherwise the player as is. Listeners hear the widened commands, so the notification shows the buttons.
  */
-private class LivePlayer(player: Player, private val context: Context) : ForwardingPlayer(player) {
+private class LivePlayer(player: Player, private val context: Context, private val autoPlay: (List<MediaItem>, Int) -> Boolean) : ForwardingPlayer(player) {
     private val zaps = intArrayOf(COMMAND_SEEK_TO_NEXT, COMMAND_SEEK_TO_PREVIOUS, COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
     private val wrapped = HashMap<Player.Listener, Player.Listener>()
 
@@ -211,6 +225,19 @@ private class LivePlayer(player: Player, private val context: Context) : Forward
         val m = PlayerHolder.music ?: return false
         if (delta > 0) m.next() else m.previous()
         return true
+    }
+
+    // Android Auto plays a track of its tree (ids "<node>|<id>"): the music queue starts there instead (MU-12).
+    override fun setMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long) {
+        if (!autoPlay(mediaItems, startIndex)) super.setMediaItems(mediaItems, startIndex, startPositionMs)
+    }
+
+    override fun setMediaItems(mediaItems: MutableList<MediaItem>, resetPosition: Boolean) {
+        if (!autoPlay(mediaItems, 0)) super.setMediaItems(mediaItems, resetPosition)
+    }
+
+    override fun setMediaItems(mediaItems: MutableList<MediaItem>) {
+        if (!autoPlay(mediaItems, 0)) super.setMediaItems(mediaItems)
     }
 
     override fun seekToNext() { if (!zap(1) && !music(1)) super.seekToNext() }
@@ -269,5 +296,70 @@ private class RendererPlayer(val controller: CastController, private val where: 
     override fun handleRelease(): ListenableFuture<*> {
         scope.cancel()
         return Futures.immediateVoidFuture()
+    }
+}
+
+/**
+ * Android Auto's library (music spec MU-12): the tree of AutoBrowseTree on the signed-in server, for Auto only (gplay).
+ * Picking a track starts the music queue on its album, playlist or list (through [play], from LivePlayer).
+ */
+@OptIn(UnstableApi::class)
+private class AutoLibrary(private val context: Context) : MediaLibrarySession.Callback {
+    private val scope = MainScope()
+    private val labels = mapOf(
+        AutoBrowseTree.ROOT to R.string.music_now_playing, AutoBrowseTree.RECENT to R.string.music_auto_recent,
+        AutoBrowseTree.PLAYLISTS to R.string.music_auto_playlists, AutoBrowseTree.ALBUMS to R.string.music_auto_albums,
+        AutoBrowseTree.ARTISTS to R.string.music_auto_artists,
+    )
+
+    // The signed-in server, also when Auto starts the app's process cold (no screen set Core.api yet).
+    private suspend fun api(): Api? = Core.api ?: Core.prefs.current().let { snap -> snap.session?.let { Api.of(it.server, snap.deviceId, it.token, it.userId) } }
+
+    private suspend fun tree(): Pair<Api, AutoBrowseTree>? = api()?.let { a -> a to autoTree(a) { context.getString(labels.getValue(it)) } }
+
+    private fun <T> future(fallback: T, block: suspend () -> T): ListenableFuture<T> {
+        val f = SettableFuture.create<T>()
+        scope.launch { f.set(runCatching { block() }.getOrDefault(fallback)) }
+        return f
+    }
+
+    private fun denied(browser: MediaSession.ControllerInfo) = !AutoBrowseTree.allowed(browser.packageName, BuildConfig.FLAVOR)
+
+    override fun onGetLibraryRoot(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: LibraryParams?): ListenableFuture<LibraryResult<MediaItem>> {
+        if (denied(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+        val signedOut = LibraryResult.ofError<MediaItem>(SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED)
+        return future(signedOut) { tree()?.let { LibraryResult.ofItem(it.second.root(), params) } ?: signedOut }
+    }
+
+    override fun onGetChildren(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        parentId: String,
+        page: Int,
+        pageSize: Int,
+        params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        if (denied(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+        val failed = LibraryResult.ofError<ImmutableList<MediaItem>>(SessionError.ERROR_IO)
+        return future(failed) {
+            val all = tree()?.second?.children(parentId) ?: return@future failed
+            LibraryResult.ofItemList(all.drop(page.coerceAtLeast(0) * pageSize).take(pageSize.coerceAtLeast(1)), params)
+        }
+    }
+
+    // Auto's picks carry only their media id: kept as they are, LivePlayer.setMediaItems turns them into a queue.
+    override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> =
+        if (denied(controller)) super.onAddMediaItems(mediaSession, controller, mediaItems) else Futures.immediateFuture(mediaItems)
+
+    /** True when [items] come from the tree: the queue then starts on the picked track's list. */
+    fun play(items: List<MediaItem>, index: Int): Boolean {
+        val id = items.getOrNull(index.coerceAtLeast(0))?.mediaId ?: return false
+        if (!id.contains('|')) return false
+        scope.launch {
+            val (api, tree) = tree() ?: return@launch
+            val (tracks, i) = runCatching { tree.queueFor(id) }.getOrNull() ?: return@launch
+            PlayerHolder.startMusic(context, api, tracks, i)
+        }
+        return true
     }
 }

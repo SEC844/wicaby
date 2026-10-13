@@ -8,13 +8,16 @@ import { net } from 'electron';
 import type { Query } from '../../shared/contract';
 import type { BaseItem, ItemsResult, SystemInfoPublic, UserDto } from '../../shared/models';
 import { imagePaths, parseImageRoute, transcodePath } from '../../shared/plex/images';
+import { parseLiveId } from '../../shared/plex/livetv-map';
 import { parseId, personId, seasonsFlattened, toExtras, toHubs, toItem, toView } from '../../shared/plex/map';
-import { answerMeta, itemKey, itemsUri, metadataRequest, PLEX_TYPE, PlexUnmapped, withGenreIds, type PmsReq } from '../../shared/plex/query';
+import { answerMeta, itemKey, itemsUri, metadataRequest, PLEX_TYPE, PlexUnmapped, withGenreIds, type PmsReq, type Query as PQuery } from '../../shared/plex/query';
 import { matchRoute, translate } from '../../shared/plex/routes';
 import type { PlexContainer, PlexMeta, PlexSection } from '../../shared/plex/types';
 import { logger } from '../core/log';
+import { t } from '../i18n';
 import { ApiClient, ApiError, buildQuery, routed, type ClientIdentity } from './api-client';
 import { plexHeaders } from './plex-account';
+import { PlexLiveTv } from './plex-livetv';
 import { PlexPlayback } from './plex-playback';
 
 const log = logger.scope('plex');
@@ -87,6 +90,12 @@ export class PlexClient extends ApiClient {
   private play?: PlexPlayback;
   get playback(): PlexPlayback {
     return (this.play ??= new PlexPlayback((r) => this.pms(r), this.ident.deviceId, Boolean(this.plex.remote)));
+  }
+
+  // Live TV and DVR (PX-11): the /LiveTv routes, a channel's tune and its reports (plex-livetv.ts).
+  private liveTv?: PlexLiveTv;
+  get live(): PlexLiveTv {
+    return (this.liveTv ??= new PlexLiveTv({ send: (r) => this.pms(r), clientId: this.ident.deviceId, plexPass: () => this.playback.plexPass(), items: (m) => this.items(m) }));
   }
 
   // mpv's direct play URL (/Videos/{id}/stream…) is the part itself, known from the PlaybackInfo just answered.
@@ -268,7 +277,10 @@ export class PlexClient extends ApiClient {
       case 'views': {
         const secs = await this.sections();
         for (const s of secs) if (s.thumb) this.remember(`section-${s.key}/Primary`, s.thumb);
-        return { Items: secs.map(toView), TotalRecordCount: secs.length, StartIndex: 0 };
+        // The Live TV view the apps open Live TV from, only with Plex Pass and a tuner (PX-11).
+        const views: BaseItem[] = secs.map(toView);
+        if (await this.live.enabled()) views.push({ Id: 'livetv', Name: t('plex.liveTv.view'), Type: 'CollectionFolder', CollectionType: 'livetv' });
+        return { Items: views, TotalRecordCount: views.length, StartIndex: 0 };
       }
       case 'hubs': {
         const c = await this.pms(req!);
@@ -288,6 +300,7 @@ export class PlexClient extends ApiClient {
         if (seasonsFlattened(await this.metaOf(params.id))) return empty();
         return this.list(req!, query);
       case 'items':
+        return req ? this.list(req, query) : this.live.search(query as PQuery);
       case 'resume':
       case 'nextUp':
       case 'similar':
@@ -306,9 +319,11 @@ export class PlexClient extends ApiClient {
       case 'segments':
         return this.playback.segments(params.id);
       case 'playbackInfo':
-        return this.playback.playbackInfo(params.id, query, body);
-      case 'timeline':
-        return this.playback.timeline(/\/Stopped$/i.test(path) ? 'Stopped' : /\/Progress$/i.test(path) ? 'Progress' : '', body);
+        return parseLiveId(params.id) ? this.live.tune(params.id, query as PQuery, body) : this.playback.playbackInfo(params.id, query, body);
+      case 'timeline': {
+        const event = /\/Stopped$/i.test(path) ? 'Stopped' : /\/Progress$/i.test(path) ? 'Progress' : '';
+        return parseLiveId(String(body?.ItemId ?? '')) ? this.live.report(event, body) : this.playback.timeline(event, body);
+      }
       case 'empty':
         return empty();
       case 'noop':
@@ -325,6 +340,7 @@ export class PlexClient extends ApiClient {
       case 'playlistMove':
         return this.movePlaylistEntry(params.id, params.entry, Number(params.index));
       default:
+        if (!req && op.startsWith('live')) return this.live.answer(op, params, query as PQuery, body);
         // Writes the table translated (played, refresh, playlist and collection edits, reports): done, nothing to map.
         if (req && method !== 'GET') {
           await this.pms(req);

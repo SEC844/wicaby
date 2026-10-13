@@ -7,6 +7,7 @@
   import Icon, { type IconName } from './Icon.svelte';
   import { t } from '../lib/i18n.svelte';
   import Logo from './Logo.svelte';
+  import { immich, watchImmichSources } from '../lib/photos/immich.svelte';
   import ConnectionStatus from './ConnectionStatus.svelte';
 
   const collapsed = $derived(settings.value?.ui.sidebarCollapsed ?? false);
@@ -29,6 +30,8 @@
   // File sources: one entry each under "Files" (file-sources-spec §9.1); hidden when there is none.
   const sources = $derived(fileSessions());
   const sourceIcon = (p?: string): IconName => (p === 'webdav' ? 'globe' : p === 'smb' ? 'server' : 'folder');
+  // Immich photo sources (photos spec PH-12): each its own library under "Immich", hidden when there is none.
+  watchImmichSources();
 
   const NAV: { path: string; name: string; labelKey: string; icon: IconName; online: boolean }[] = [
     { path: '/home', name: 'home', labelKey: 'shell.nav.home', icon: 'home', online: true },
@@ -138,6 +141,20 @@
                   {#if s.status === 'offline'}<span class="dot-badge off show" aria-hidden="true"></span>{/if}
                 </span>
                 <span class="label fades" class:dim={s.status === 'offline'}>{s.server.name}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if immich.sources.length > 0 && !offline}
+        <div class="section fades">Immich</div>
+        <ul class="group" data-immich>
+          {#each immich.sources as s, i (s.id)}
+            <li style:--i={Math.min(i, 12)}>
+              <button class="link" class:active={route.name === 'immich' && route.params.id === s.id} onclick={() => navigate(`/immich/${s.id}`)} title={collapsed ? s.name : undefined}>
+                <span class="glyph"><Icon name="images" size={18} /></span>
+                <span class="label fades">{s.name}</span>
               </button>
             </li>
           {/each}

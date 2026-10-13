@@ -4,6 +4,7 @@
 // PX-09). Anything else is PLEX_UNSUPPORTED (with the UI fallback that hides it) or, at run time, a 404
 // 'PLEX-UNMAPPED <method> <path>', never a wrong answer. tools/checks/plex-routes-check.mjs fails on an Emby
 // path in the source that is in neither list. Pure.
+import { deleteRequest, parseLiveId } from './livetv-map';
 import { parseId } from './map';
 import { itemKey, itemsRequest, latestRequest, metadataRequest, nextUpRequest, playedRequest, resumeRequest, PlexUnmapped, timelineRequest, transcodeRequest, userDataRequest, itemsUri, LIBRARY_ID, type PmsReq, type Query } from './query';
 
@@ -31,7 +32,8 @@ const ids = (q: Query, key = 'Ids'): string[] => String(q[key] ?? '').split(',')
 export const ROUTES: readonly Route[] = [
   // Browse (PX-06).
   { method: 'GET', path: '/Users/{user}/Views', op: 'views', build: () => get('/library/sections') },
-  { method: 'GET', path: '/Users/{user}/Items', op: 'items', build: (_p, q) => itemsRequest(q) },
+  // The global search's Live TV half (channels and programmes) is the adapter's (PlexLiveTv.search).
+  { method: 'GET', path: '/Users/{user}/Items', op: 'items', build: (_p, q) => (q.IncludeItemTypes === 'TvChannel,LiveTvProgram' ? null : itemsRequest(q)) },
   { method: 'GET', path: '/Users/{user}/Items/Resume', op: 'resume', build: (_p, q) => resumeRequest(q) },
   { method: 'GET', path: '/Users/{user}/Items/Latest', op: 'latest', build: (_p, q) => latestRequest(q) },
   // An id may be a section ('section-1': its view) or a person ('person-7': their page); the adapter answers those.
@@ -142,13 +144,40 @@ export const ROUTES: readonly Route[] = [
   // Playback (PX-08, PX-09): the decision, markers and reports.
   { method: 'POST', path: '/Items/{id}/PlaybackInfo', op: 'playbackInfo' },
   { method: 'GET', path: '/MediaSegments/{id}', op: 'segments', build: (p) => metadataRequest(p.id) },
-  { method: 'POST', path: '/Sessions/Playing', op: 'timeline', build: (_p, _q, b) => timelineRequest('', b) },
-  { method: 'POST', path: '/Sessions/Playing/Progress', op: 'timeline', build: (_p, _q, b) => timelineRequest('Progress', b) },
-  { method: 'POST', path: '/Sessions/Playing/Stopped', op: 'timeline', build: (_p, _q, b) => timelineRequest('Stopped', b) },
+  { method: 'POST', path: '/Sessions/Playing', op: 'timeline', build: (_p, _q, b) => (liveItem(b) ? null : timelineRequest('', b)) },
+  { method: 'POST', path: '/Sessions/Playing/Progress', op: 'timeline', build: (_p, _q, b) => (liveItem(b) ? null : timelineRequest('Progress', b)) },
+  { method: 'POST', path: '/Sessions/Playing/Stopped', op: 'timeline', build: (_p, _q, b) => (liveItem(b) ? null : timelineRequest('Stopped', b)) },
   { method: 'POST', path: '/Sessions/Playing/Ping', op: 'ping', build: (_p, q) => transcodeRequest('ping', String(q.PlaySessionId ?? '')) },
   { method: 'DELETE', path: '/Videos/ActiveEncodings', op: 'stopTranscode', build: (_p, q) => transcodeRequest('stop', String(q.PlaySessionId ?? '')) },
   // Wicaby is not a controllable Plex player (caps.castReceiver false): nothing to register, and nothing is wrong.
   { method: 'POST', path: '/Sessions/Capabilities/Full', op: 'noop' },
+
+  // Live TV and DVR (PX-11, livetv-map.ts; PlexLiveTv answers the 'live*' ops). Channels, programmes, timers and rules
+  // come from the DVR, its EPG grid and the subscriptions; a channel's PlaybackInfo above tunes it.
+  { method: 'GET', path: '/LiveTv/Info', op: 'liveInfo' },
+  { method: 'GET', path: '/LiveTv/GuideInfo', op: 'liveGuideInfo' },
+  { method: 'GET', path: '/LiveTv/Channels', op: 'liveChannels' },
+  { method: 'GET', path: '/LiveTv/Programs', op: 'livePrograms' },
+  { method: 'GET', path: '/LiveTv/Programs/Recommended', op: 'livePrograms' },
+  { method: 'GET', path: '/LiveTv/Programs/{id}', op: 'liveProgram' },
+  { method: 'GET', path: '/LiveTv/Timers', op: 'liveTimers' },
+  { method: 'GET', path: '/LiveTv/Timers/Defaults', op: 'liveTimerDefaults' },
+  { method: 'GET', path: '/LiveTv/Timers/{id}', op: 'liveTimer' },
+  { method: 'POST', path: '/LiveTv/Timers', op: 'liveCreateTimer' },
+  { method: 'POST', path: '/LiveTv/Timers/{id}', op: 'liveUpdateTimer' },
+  { method: 'DELETE', path: '/LiveTv/Timers/{id}', op: 'liveCancelTimer' },
+  { method: 'GET', path: '/LiveTv/SeriesTimers', op: 'liveSeriesTimers' },
+  { method: 'GET', path: '/LiveTv/SeriesTimers/{id}', op: 'liveSeriesTimer' },
+  { method: 'POST', path: '/LiveTv/SeriesTimers', op: 'liveCreateSeriesTimer' },
+  { method: 'POST', path: '/LiveTv/SeriesTimers/{id}', op: 'liveUpdateSeriesTimer' },
+  { method: 'DELETE', path: '/LiveTv/SeriesTimers/{id}', op: 'liveDeleteSeriesTimer', build: (p) => deleteRequest(subscriptionKey(p.id)) },
+  { method: 'GET', path: '/LiveTv/Recordings', op: 'liveRecordings' },
+  // Plex picks the recording folder itself: no folders to offer.
+  { method: 'GET', path: '/LiveTv/Recordings/Folders', op: 'empty' },
+  // Only the item's recorded versions, never the item (livetv-map.ts deleteRecordingRequests).
+  { method: 'DELETE', path: '/LiveTv/Recordings/{id}', op: 'liveDeleteRecording' },
+  // A tune's stream is a transcode session: closing it stops the transcode, which frees the tuner.
+  { method: 'POST', path: '/LiveStreams/Close', op: 'liveClose', build: (_p, q) => transcodeRequest('stop', String(q.PlaySessionId ?? '')) },
 
   // Media through wicaby-media://api (PlexClient.url): paths resolved from the item the adapter has seen.
   { method: 'GET', path: '/Items/{id}/Images/{type}', op: 'image', media: true },
@@ -162,6 +191,15 @@ export const ROUTES: readonly Route[] = [
   // Downloads take the original part, only where the server allows it (allowSync, plex-spec §1.3).
   { method: 'GET', path: '/Items/{id}/Download', op: 'download', media: true },
 ];
+
+// A live channel's reports: the adapter answers them (PlexLiveTv.report), no library timeline.
+const liveItem = (b: Record<string, unknown> | undefined): boolean => parseLiveId(String(b?.ItemId ?? '')) !== null;
+
+// A series rule's id is its subscription key (livetv-map.ts).
+function subscriptionKey(id: string): string {
+  if (!/^\d{1,12}$/.test(id)) throw new PlexUnmapped(`subscription ${id}`);
+  return id;
+}
 
 // A music section's directory (/Artists?ParentId=section-3): Plex lists by section.
 function sectionDirectory(q: Query, what: 'all' | 'genre' | 'year', extra: Record<string, string> = {}): PmsReq {
@@ -180,8 +218,10 @@ export const PLEX_UNSUPPORTED: readonly { path: string; fallback: string }[] = [
   { path: '/Items/{id}/File', fallback: 'caps.comics is false: no comics on Plex' },
   { path: '/Videos/{id}/Trickplay/{width}/tiles.m3u8', fallback: 'Plex trickplay is BIF (/Videos/{id}/index.bif)' },
   { path: '/Videos/{id}/Trickplay/{width}/{n}.jpg', fallback: 'Plex trickplay is BIF (/Videos/{id}/index.bif)' },
-  { path: '/LiveTv/*', fallback: 'the /LiveTv/Info probe answers 404, so Live TV stays hidden (PX-11)' },
-  { path: '/DisplayPreferences/*', fallback: 'Live TV preferences stay local (PX-11)' },
+  { path: '/LiveTv/*', fallback: 'Emby-only Live TV calls (channel tags, recording options) answer 404: their UI stays hidden' },
+  { path: '/LiveStreams/Open', fallback: 'a Plex tune never asks for opening (RequiresOpening false)' },
+  { path: '/DisplayPreferences/*', fallback: 'Live TV preferences have no Plex store: guide favourites and groups are not editable there (a toast says so)' },
+  { path: '/UserFavoriteItems/{id}', fallback: 'Plex has no channel favourites (PX-11): the toggle reverts with its error toast' },
   { path: '/Sessions', fallback: 'caps.sessionsRemote is false: no Plex rows in the Cast picker' },
   { path: '/Sessions/{id}/*', fallback: 'caps.sessionsRemote is false: no remote control of Plex sessions' },
   { path: '/Sessions/Logout', fallback: 'cast ephemeral tokens are Emby/Jellyfin only; Plex casts through the relay' },

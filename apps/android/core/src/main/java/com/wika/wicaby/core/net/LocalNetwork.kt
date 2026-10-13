@@ -79,4 +79,14 @@ object LocalNetwork {
 
     // What the setup and start screens check before a connection: false on Android 16 and older.
     suspend fun blocks(ctx: Context, address: String): Boolean = !granted(ctx) && isLanServer(address)
+
+    // A Headscale or NetBird management URL on the LAN (a server at home, split DNS): the mesh
+    // node dials it itself, so without the permission that dial only times out. Resolves: not on main.
+    fun blocksMesh(ctx: Context, managementUrl: String?): Boolean =
+        managementUrl != null && !granted(ctx) && isLanUrl(managementUrl) { name -> InetAddress.getAllByName(name).mapNotNull { it.hostAddress } }
+
+    internal fun isLanUrl(url: String, resolve: (String) -> List<String>): Boolean {
+        val host = (if ("://" in url) url else "https://${url.trim()}").toHttpUrlOrNull()?.host ?: return false
+        return isLanHost(host, resolve)
+    }
 }

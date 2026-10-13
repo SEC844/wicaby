@@ -1,0 +1,1962 @@
+{
+  "about": "Plex Live TV and DVR (plex-spec §7, PX-11): apps/desktop/src/shared/plex/livetv-map.ts and C/plex/LiveTvMap.kt. Every PMS shape in these inputs is PLEX-LIVETV-UNVERIFIED (from the public docs, not a real PMS with a tuner). Times: epoch seconds in PMS shapes, ms in Emby queries.",
+  "cases": [
+    {
+      "name": "translate: /LiveTv/Info is the adapter's",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Info"
+      ],
+      "out": {
+        "op": "liveInfo",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: a programme detail",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Programs/livetv-31-1700000000",
+        {
+          "UserId": "u"
+        }
+      ],
+      "out": {
+        "op": "liveProgram",
+        "params": {
+          "id": "livetv-31-1700000000"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: on now is the programmes route",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Programs/Recommended",
+        {
+          "IsAiring": "true"
+        }
+      ],
+      "out": {
+        "op": "livePrograms",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: timer defaults beat a timer id",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Timers/Defaults",
+        {
+          "ProgramId": "p"
+        }
+      ],
+      "out": {
+        "op": "liveTimerDefaults",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: delete a series rule",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/LiveTv/SeriesTimers/72"
+      ],
+      "out": {
+        "op": "liveDeleteSeriesTimer",
+        "params": {
+          "id": "72"
+        },
+        "req": {
+          "method": "DELETE",
+          "path": "/media/subscriptions/72",
+          "query": {}
+        }
+      }
+    },
+    {
+      "name": "translate: a series rule id is a subscription key",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/LiveTv/SeriesTimers/abc"
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED subscription abc",
+        "status": 404
+      }
+    },
+    {
+      "name": "translate: delete a recording is the adapter's (only its recorded versions)",
+      "fn": "translate",
+      "args": [
+        "DELETE",
+        "/LiveTv/Recordings/1005"
+      ],
+      "out": {
+        "op": "liveDeleteRecording",
+        "params": {
+          "id": "1005"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: one timer (the record-options sheet reads it)",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Timers/rec-72"
+      ],
+      "out": {
+        "op": "liveTimer",
+        "params": {
+          "id": "rec-72"
+        },
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: recording folders are none",
+      "fn": "translate",
+      "args": [
+        "GET",
+        "/LiveTv/Recordings/Folders",
+        {
+          "userId": "u"
+        }
+      ],
+      "out": {
+        "op": "empty",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: closing a live stream stops its transcode",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/LiveStreams/Close",
+        {
+          "LiveStreamId": "s1",
+          "PlaySessionId": "s1"
+        }
+      ],
+      "out": {
+        "op": "liveClose",
+        "params": {},
+        "req": {
+          "method": "GET",
+          "path": "/video/:/transcode/universal/stop",
+          "query": {
+            "session": "s1"
+          }
+        }
+      }
+    },
+    {
+      "name": "translate: a live channel's report is the adapter's",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/Sessions/Playing/Stopped",
+        {},
+        {
+          "ItemId": "livetv-31",
+          "PlaySessionId": "s1"
+        }
+      ],
+      "out": {
+        "op": "timeline",
+        "params": {},
+        "adapter": true
+      }
+    },
+    {
+      "name": "translate: channel favourites are unmapped",
+      "fn": "translate",
+      "args": [
+        "POST",
+        "/UserFavoriteItems/livetv-31",
+        {
+          "userId": "u"
+        }
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED POST /UserFavoriteItems/livetv-31",
+        "status": 404
+      }
+    },
+    {
+      "name": "liveChannelId: a dotted identifier is hex-encoded",
+      "fn": "liveChannelId",
+      "args": [
+        "5.1"
+      ],
+      "out": "livetv-352e31"
+    },
+    {
+      "name": "liveChannelId: plain digits",
+      "fn": "liveChannelId",
+      "args": [
+        "002"
+      ],
+      "out": "livetv-303032"
+    },
+    {
+      "name": "liveChannelId: empty",
+      "fn": "liveChannelId",
+      "args": [
+        ""
+      ],
+      "out": null
+    },
+    {
+      "name": "liveChannelId: a space is refused",
+      "fn": "liveChannelId",
+      "args": [
+        "a b"
+      ],
+      "out": null
+    },
+    {
+      "name": "liveChannelId: longer than 20",
+      "fn": "liveChannelId",
+      "args": [
+        "123456789012345678901"
+      ],
+      "out": null
+    },
+    {
+      "name": "parseLiveId: a channel",
+      "fn": "parseLiveId",
+      "args": [
+        "livetv-352e31"
+      ],
+      "out": {
+        "ident": "5.1"
+      }
+    },
+    {
+      "name": "parseLiveId: a programme",
+      "fn": "parseLiveId",
+      "args": [
+        "livetv-352e31-1700000000"
+      ],
+      "out": {
+        "ident": "5.1",
+        "beginsAt": 1700000000
+      }
+    },
+    {
+      "name": "parseLiveId: not hex",
+      "fn": "parseLiveId",
+      "args": [
+        "livetv-zz"
+      ],
+      "out": null
+    },
+    {
+      "name": "parseLiveId: a control character",
+      "fn": "parseLiveId",
+      "args": [
+        "livetv-0a"
+      ],
+      "out": null
+    },
+    {
+      "name": "parseLiveId: a ratingKey",
+      "fn": "parseLiveId",
+      "args": [
+        "1234"
+      ],
+      "out": null
+    },
+    {
+      "name": "liveDvrs: tuners, enabled mapping, incomplete DVRs dropped",
+      "fn": "liveDvrs",
+      "args": [
+        {
+          "Dvr": [
+            {
+              "key": "1",
+              "lineup": "lineup://tv.plex.providers.epg.cloud/x",
+              "epgIdentifier": "tv.plex.providers.epg.cloud:2",
+              "Device": [
+                {
+                  "tuners": "2",
+                  "ChannelMapping": [
+                    {
+                      "lineupIdentifier": "1",
+                      "enabled": "1"
+                    },
+                    {
+                      "lineupIdentifier": "5.1",
+                      "enabled": 1
+                    },
+                    {
+                      "lineupIdentifier": "9",
+                      "enabled": "0"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "key": "2",
+              "lineup": "l2",
+              "epgIdentifier": "e2",
+              "Device": [
+                {},
+                {
+                  "tuners": 4
+                }
+              ]
+            },
+            {
+              "key": "3",
+              "lineup": "l3"
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "key": "1",
+          "lineup": "lineup://tv.plex.providers.epg.cloud/x",
+          "epg": "tv.plex.providers.epg.cloud:2",
+          "tuners": 2,
+          "enabled": [
+            "1",
+            "5.1"
+          ]
+        },
+        {
+          "key": "2",
+          "lineup": "l2",
+          "epg": "e2",
+          "tuners": 5,
+          "enabled": null
+        }
+      ]
+    },
+    {
+      "name": "liveDvrs: no container",
+      "fn": "liveDvrs",
+      "args": [
+        null
+      ],
+      "out": []
+    },
+    {
+      "name": "toLiveInfo: Plex Pass and two tuners",
+      "fn": "toLiveInfo",
+      "args": [
+        [
+          {
+            "key": "1",
+            "lineup": "l",
+            "epg": "e",
+            "tuners": 2,
+            "enabled": null
+          }
+        ],
+        true
+      ],
+      "out": {
+        "IsEnabled": true,
+        "EnabledUsers": [],
+        "Services": [
+          {
+            "Name": "Plex DVR",
+            "Status": "Ok",
+            "Tuners": [
+              "1-0",
+              "1-1"
+            ]
+          }
+        ],
+        "PlexPass": true
+      }
+    },
+    {
+      "name": "toLiveInfo: a tuner, no Plex Pass",
+      "fn": "toLiveInfo",
+      "args": [
+        [
+          {
+            "key": "1",
+            "lineup": "l",
+            "epg": "e",
+            "tuners": 2,
+            "enabled": null
+          }
+        ],
+        false
+      ],
+      "out": {
+        "IsEnabled": false,
+        "EnabledUsers": [],
+        "Services": [],
+        "PlexPass": false
+      }
+    },
+    {
+      "name": "toLiveInfo: Plex Pass, no DVR",
+      "fn": "toLiveInfo",
+      "args": [
+        [],
+        true
+      ],
+      "out": {
+        "IsEnabled": false,
+        "EnabledUsers": [],
+        "Services": [],
+        "PlexPass": true
+      }
+    },
+    {
+      "name": "toLiveInfo: Plex Pass unknown",
+      "fn": "toLiveInfo",
+      "args": [
+        [
+          {
+            "key": "1",
+            "lineup": "l",
+            "epg": "e",
+            "tuners": 1,
+            "enabled": null
+          }
+        ],
+        null
+      ],
+      "out": {
+        "IsEnabled": false,
+        "EnabledUsers": [],
+        "Services": []
+      }
+    },
+    {
+      "name": "liveGate: ok",
+      "fn": "liveGate",
+      "args": [
+        [
+          {
+            "key": "1",
+            "lineup": "l",
+            "epg": "e",
+            "tuners": 1,
+            "enabled": null
+          }
+        ],
+        true
+      ],
+      "out": "ok"
+    },
+    {
+      "name": "liveGate: no pass",
+      "fn": "liveGate",
+      "args": [
+        [
+          {
+            "key": "1",
+            "lineup": "l",
+            "epg": "e",
+            "tuners": 1,
+            "enabled": null
+          }
+        ],
+        null
+      ],
+      "out": "noPass"
+    },
+    {
+      "name": "liveGate: no tuner",
+      "fn": "liveGate",
+      "args": [
+        [],
+        true
+      ],
+      "out": "noTuner"
+    },
+    {
+      "name": "channelsRequest",
+      "fn": "channelsRequest",
+      "args": [
+        {
+          "key": "1",
+          "lineup": "lineup://tv.plex.providers.epg.cloud/x",
+          "epg": "e",
+          "tuners": 2,
+          "enabled": null
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/livetv/epg/channels",
+        "query": {
+          "lineup": "lineup://tv.plex.providers.epg.cloud/x"
+        }
+      }
+    },
+    {
+      "name": "toChannels: the enabled ones only",
+      "fn": "toChannels",
+      "args": [
+        {
+          "Channel": [
+            {
+              "identifier": "1",
+              "title": "Info",
+              "channelVcn": "1"
+            },
+            {
+              "identifier": "5.1",
+              "callSign": "FR5"
+            },
+            {
+              "identifier": "9",
+              "title": "Off"
+            },
+            {
+              "title": "no identifier"
+            },
+            {
+              "identifier": "7"
+            }
+          ]
+        },
+        {
+          "key": "1",
+          "lineup": "l",
+          "epg": "e",
+          "tuners": 2,
+          "enabled": [
+            "1",
+            "5.1",
+            "7"
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "livetv-31",
+          "Name": "Info",
+          "ChannelNumber": "1",
+          "Type": "TvChannel",
+          "ChannelType": "TV"
+        },
+        {
+          "Id": "livetv-352e31",
+          "Name": "FR5",
+          "ChannelNumber": "5.1",
+          "Type": "TvChannel",
+          "ChannelType": "TV"
+        },
+        {
+          "Id": "livetv-37",
+          "Name": "7",
+          "ChannelNumber": "7",
+          "Type": "TvChannel",
+          "ChannelType": "TV"
+        }
+      ]
+    },
+    {
+      "name": "toChannels: no mapping, every channel",
+      "fn": "toChannels",
+      "args": [
+        {
+          "Channel": [
+            {
+              "identifier": "1",
+              "title": "Info",
+              "channelVcn": 1
+            },
+            {
+              "identifier": "9",
+              "title": "Off"
+            },
+            {
+              "identifier": "a b",
+              "title": "bad"
+            }
+          ]
+        },
+        {
+          "key": "1",
+          "lineup": "l",
+          "epg": "e",
+          "tuners": 2,
+          "enabled": null
+        }
+      ],
+      "out": [
+        {
+          "Id": "livetv-31",
+          "Name": "Info",
+          "ChannelNumber": "1",
+          "Type": "TvChannel",
+          "ChannelType": "TV"
+        },
+        {
+          "Id": "livetv-39",
+          "Name": "Off",
+          "ChannelNumber": "9",
+          "Type": "TvChannel",
+          "ChannelType": "TV"
+        }
+      ]
+    },
+    {
+      "name": "gridRequest: the window in seconds",
+      "fn": "gridRequest",
+      "args": [
+        {
+          "key": "1",
+          "lineup": "l",
+          "epg": "tv.plex.providers.epg.cloud:2",
+          "tuners": 2,
+          "enabled": null
+        },
+        1700000000500,
+        1700010800000
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/tv.plex.providers.epg.cloud:2/grid",
+        "query": {
+          "type": "1,4",
+          "sort": "beginsAt",
+          "endsAt>>": "1700000000",
+          "beginsAt<<": "1700010801"
+        }
+      }
+    },
+    {
+      "name": "gridRequest: an odd EPG identifier",
+      "fn": "gridRequest",
+      "args": [
+        {
+          "key": "1",
+          "lineup": "l",
+          "epg": "../library",
+          "tuners": 2,
+          "enabled": null
+        },
+        0,
+        1
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED EPG provider ../library",
+        "status": 404
+      }
+    },
+    {
+      "name": "toPrograms: films and episodes, one programme per airing, sorted",
+      "fn": "toPrograms",
+      "args": [
+        {
+          "Metadata": [
+            {
+              "type": "episode",
+              "title": "Pilot",
+              "grandparentTitle": "Show",
+              "parentIndex": 2,
+              "index": "5",
+              "summary": "S",
+              "year": 2020,
+              "guid": "plex://episode/e1",
+              "Genre": [
+                {
+                  "tag": "Drama"
+                },
+                {}
+              ],
+              "Media": [
+                {
+                  "channelIdentifier": "3",
+                  "beginsAt": 1700003600,
+                  "endsAt": 1700007200,
+                  "premiere": 1
+                }
+              ]
+            },
+            {
+              "type": "movie",
+              "title": "Film",
+              "guid": "plex://movie/m1",
+              "Media": [
+                {
+                  "channelIdentifier": "5.1",
+                  "beginsAt": 1700000000,
+                  "endsAt": 1700005400
+                },
+                {
+                  "channelIdentifier": "2",
+                  "beginsAt": "1700010000",
+                  "endsAt": "1700015400"
+                },
+                {
+                  "channelIdentifier": "2",
+                  "beginsAt": 1700020000,
+                  "endsAt": 1700020000
+                },
+                {
+                  "beginsAt": 1,
+                  "endsAt": 2
+                }
+              ]
+            },
+            {
+              "type": "episode",
+              "title": "",
+              "Media": [
+                {
+                  "channelIdentifier": "4",
+                  "beginsAt": 1700000000,
+                  "endsAt": 1700001800
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "livetv-34-1700000000",
+          "ChannelId": "livetv-34",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T22:43:20.000Z",
+          "Name": "",
+          "Type": "Program",
+          "IsMovie": false,
+          "IsSeries": true
+        },
+        {
+          "Id": "livetv-352e31-1700000000",
+          "ChannelId": "livetv-352e31",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T23:43:20.000Z",
+          "Name": "Film",
+          "Type": "Program",
+          "IsMovie": true,
+          "IsSeries": false,
+          "PlexGuid": "plex://movie/m1"
+        },
+        {
+          "Id": "livetv-33-1700003600",
+          "ChannelId": "livetv-33",
+          "StartDate": "2023-11-14T23:13:20.000Z",
+          "EndDate": "2023-11-15T00:13:20.000Z",
+          "Name": "Show",
+          "Type": "Program",
+          "EpisodeTitle": "Pilot",
+          "ParentIndexNumber": 2,
+          "IndexNumber": 5,
+          "Overview": "S",
+          "ProductionYear": 2020,
+          "Genres": [
+            "Drama"
+          ],
+          "IsMovie": false,
+          "IsSeries": true,
+          "IsPremiere": true,
+          "PlexGuid": "plex://episode/e1"
+        },
+        {
+          "Id": "livetv-32-1700010000",
+          "ChannelId": "livetv-32",
+          "StartDate": "2023-11-15T01:00:00.000Z",
+          "EndDate": "2023-11-15T02:30:00.000Z",
+          "Name": "Film",
+          "Type": "Program",
+          "IsMovie": true,
+          "IsSeries": false,
+          "PlexGuid": "plex://movie/m1"
+        }
+      ]
+    },
+    {
+      "name": "programWindow: IsAiring",
+      "fn": "programWindow",
+      "args": [
+        {
+          "IsAiring": "true",
+          "Limit": "24"
+        },
+        1700000000000
+      ],
+      "out": {
+        "from": 1700000000000,
+        "to": 1700000000000
+      }
+    },
+    {
+      "name": "programWindow: a tile",
+      "fn": "programWindow",
+      "args": [
+        {
+          "MinEndDate": "2023-11-14T22:13:20.000Z",
+          "MaxStartDate": "2023-11-15T01:13:20.000Z"
+        },
+        1
+      ],
+      "out": {
+        "from": 1700000000000,
+        "to": 1700010800000
+      }
+    },
+    {
+      "name": "programWindow: later",
+      "fn": "programWindow",
+      "args": [
+        {
+          "MinStartDate": "2023-11-14T22:13:20.000Z",
+          "MaxStartDate": "2023-11-16T22:13:20.000Z"
+        },
+        1
+      ],
+      "out": {
+        "from": 1700000000000,
+        "to": 1700172800000
+      }
+    },
+    {
+      "name": "programWindow: no end",
+      "fn": "programWindow",
+      "args": [
+        {
+          "MinEndDate": "2023-11-14T22:13:20.000Z"
+        },
+        1
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED LiveTv/Programs without MaxStartDate",
+        "status": 404
+      }
+    },
+    {
+      "name": "selectPrograms: a tile's channels and window",
+      "fn": "selectPrograms",
+      "args": [
+        [
+          {
+            "Id": "livetv-34-1700000000",
+            "ChannelId": "livetv-34",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T22:43:20.000Z",
+            "Name": "Late show",
+            "IsMovie": false,
+            "IsSeries": true
+          },
+          {
+            "Id": "livetv-352e31-1700000000",
+            "ChannelId": "livetv-352e31",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Film",
+            "IsMovie": true,
+            "IsSeries": false
+          },
+          {
+            "Id": "livetv-33-1700003600",
+            "ChannelId": "livetv-33",
+            "StartDate": "2023-11-14T23:13:20.000Z",
+            "EndDate": "2023-11-15T00:13:20.000Z",
+            "Name": "Show",
+            "EpisodeTitle": "Pilot",
+            "IsMovie": false,
+            "IsSeries": true
+          }
+        ],
+        {
+          "UserId": "u",
+          "ChannelIds": "livetv-352e31,livetv-33",
+          "MinEndDate": "2023-11-14T22:43:20.000Z",
+          "MaxStartDate": "2023-11-14T23:13:20.000Z",
+          "SortBy": "StartDate",
+          "EnableImages": "false"
+        },
+        1
+      ],
+      "out": [
+        {
+          "Id": "livetv-352e31-1700000000",
+          "ChannelId": "livetv-352e31",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T23:43:20.000Z",
+          "Name": "Film",
+          "IsMovie": true,
+          "IsSeries": false
+        },
+        {
+          "Id": "livetv-33-1700003600",
+          "ChannelId": "livetv-33",
+          "StartDate": "2023-11-14T23:13:20.000Z",
+          "EndDate": "2023-11-15T00:13:20.000Z",
+          "Name": "Show",
+          "EpisodeTitle": "Pilot",
+          "IsMovie": false,
+          "IsSeries": true
+        }
+      ]
+    },
+    {
+      "name": "selectPrograms: on now, films only, limited",
+      "fn": "selectPrograms",
+      "args": [
+        [
+          {
+            "Id": "a",
+            "ChannelId": "c1",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Film A",
+            "IsMovie": true
+          },
+          {
+            "Id": "b",
+            "ChannelId": "c2",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Film B",
+            "IsMovie": true
+          },
+          {
+            "Id": "c",
+            "ChannelId": "c3",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Show",
+            "IsSeries": true
+          },
+          {
+            "Id": "d",
+            "ChannelId": "c1",
+            "StartDate": "2023-11-14T23:43:20.000Z",
+            "EndDate": "2023-11-15T00:43:20.000Z",
+            "Name": "Film C",
+            "IsMovie": true
+          }
+        ],
+        {
+          "IsAiring": true,
+          "IsMovie": "true",
+          "Limit": 1
+        },
+        1700001000000
+      ],
+      "out": [
+        {
+          "Id": "a",
+          "ChannelId": "c1",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T23:43:20.000Z",
+          "Name": "Film A",
+          "IsMovie": true
+        }
+      ]
+    },
+    {
+      "name": "selectPrograms: search by title or episode title",
+      "fn": "selectPrograms",
+      "args": [
+        [
+          {
+            "Id": "a",
+            "ChannelId": "c1",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Studio Diaries",
+            "EpisodeTitle": "Pitch"
+          },
+          {
+            "Id": "b",
+            "ChannelId": "c2",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "Other",
+            "EpisodeTitle": "The studio"
+          },
+          {
+            "Id": "c",
+            "ChannelId": "c3",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "News"
+          }
+        ],
+        {
+          "SearchTerm": " STUDIO ",
+          "MinEndDate": "2023-11-14T21:13:20.000Z",
+          "MaxStartDate": "2023-11-16T22:13:20.000Z",
+          "Limit": "30"
+        },
+        1
+      ],
+      "out": [
+        {
+          "Id": "a",
+          "ChannelId": "c1",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T23:43:20.000Z",
+          "Name": "Studio Diaries",
+          "EpisodeTitle": "Pitch"
+        },
+        {
+          "Id": "b",
+          "ChannelId": "c2",
+          "StartDate": "2023-11-14T22:13:20.000Z",
+          "EndDate": "2023-11-14T23:43:20.000Z",
+          "Name": "Other",
+          "EpisodeTitle": "The studio"
+        }
+      ]
+    },
+    {
+      "name": "selectPrograms: later, from a start",
+      "fn": "selectPrograms",
+      "args": [
+        [
+          {
+            "Id": "a",
+            "ChannelId": "c1",
+            "StartDate": "2023-11-14T22:13:20.000Z",
+            "EndDate": "2023-11-14T23:43:20.000Z",
+            "Name": "A",
+            "IsSeries": true
+          },
+          {
+            "Id": "b",
+            "ChannelId": "c1",
+            "StartDate": "2023-11-14T23:43:20.000Z",
+            "EndDate": "2023-11-15T00:43:20.000Z",
+            "Name": "B",
+            "IsSeries": true
+          }
+        ],
+        {
+          "MinStartDate": "2023-11-14T23:00:00.000Z",
+          "MaxStartDate": "2023-11-16T22:13:20.000Z",
+          "IsSeries": "true"
+        },
+        1
+      ],
+      "out": [
+        {
+          "Id": "b",
+          "ChannelId": "c1",
+          "StartDate": "2023-11-14T23:43:20.000Z",
+          "EndDate": "2023-11-15T00:43:20.000Z",
+          "Name": "B",
+          "IsSeries": true
+        }
+      ]
+    },
+    {
+      "name": "selectPrograms: an unmapped category",
+      "fn": "selectPrograms",
+      "args": [
+        [],
+        {
+          "IsAiring": "true",
+          "IsSports": "true"
+        },
+        1
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED LiveTv/Programs IsSports",
+        "status": 404
+      }
+    },
+    {
+      "name": "selectPrograms: by series rule",
+      "fn": "selectPrograms",
+      "args": [
+        [],
+        {
+          "SeriesTimerId": "71",
+          "MaxStartDate": "2023-11-16T22:13:20.000Z"
+        },
+        1
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED LiveTv/Programs SeriesTimerId",
+        "status": 404
+      }
+    },
+    {
+      "name": "timerDefaults",
+      "fn": "timerDefaults",
+      "args": [
+        {
+          "Id": "livetv-33-1700003600",
+          "ChannelId": "livetv-33",
+          "StartDate": "2023-11-14T23:13:20.000Z",
+          "EndDate": "2023-11-15T00:13:20.000Z",
+          "Name": "Show",
+          "PlexGuid": "plex://episode/e1"
+        }
+      ],
+      "out": {
+        "ProgramId": "livetv-33-1700003600",
+        "ChannelId": "livetv-33",
+        "StartDate": "2023-11-14T23:13:20.000Z",
+        "EndDate": "2023-11-15T00:13:20.000Z",
+        "Name": "Show",
+        "PrePaddingSeconds": 0,
+        "PostPaddingSeconds": 0,
+        "RecordAnyChannel": false,
+        "RecordAnyTime": true,
+        "RecordNewOnly": false,
+        "KeepUpTo": 0
+      }
+    },
+    {
+      "name": "parseTimerId: one airing",
+      "fn": "parseTimerId",
+      "args": [
+        "rec-71"
+      ],
+      "out": {
+        "sub": "71"
+      }
+    },
+    {
+      "name": "parseTimerId: an airing of a rule",
+      "fn": "parseTimerId",
+      "args": [
+        "rec-72-1700003600"
+      ],
+      "out": {
+        "sub": "72",
+        "airing": "1700003600"
+      }
+    },
+    {
+      "name": "parseTimerId: other",
+      "fn": "parseTimerId",
+      "args": [
+        "pending-x"
+      ],
+      "out": null
+    },
+    {
+      "name": "toTimers: a one-airing subscription and a rule's airings",
+      "fn": "toTimers",
+      "args": [
+        {
+          "MediaGrabOperation": [
+            {
+              "mediaSubscriptionID": 71,
+              "status": "scheduled",
+              "Metadata": {
+                "type": "movie",
+                "title": "Film",
+                "guid": "plex://movie/m1",
+                "Media": [
+                  {
+                    "channelIdentifier": "2",
+                    "beginsAt": 1700010000,
+                    "endsAt": 1700015400
+                  }
+                ]
+              }
+            },
+            {
+              "mediaSubscriptionID": "72",
+              "status": "inprogress",
+              "Metadata": {
+                "type": "episode",
+                "title": "Pilot",
+                "grandparentTitle": "Show",
+                "Media": [
+                  {
+                    "channelIdentifier": "3",
+                    "beginsAt": 1700003600,
+                    "endsAt": 1700007200
+                  },
+                  {
+                    "channelIdentifier": "4",
+                    "beginsAt": 1,
+                    "endsAt": 2
+                  }
+                ]
+              }
+            },
+            {
+              "mediaSubscriptionID": "72",
+              "status": "blocked",
+              "Metadata": {
+                "type": "episode",
+                "title": "Two",
+                "grandparentTitle": "Show",
+                "Media": [
+                  {
+                    "channelIdentifier": "3",
+                    "beginsAt": 1700090000,
+                    "endsAt": 1700093600
+                  }
+                ]
+              }
+            },
+            {
+              "mediaSubscriptionID": "99",
+              "status": "scheduled",
+              "Metadata": {
+                "type": "movie",
+                "title": "Orphan",
+                "Media": [
+                  {
+                    "channelIdentifier": "2",
+                    "beginsAt": 1700020000,
+                    "endsAt": 1700025400
+                  }
+                ]
+              }
+            },
+            {
+              "mediaSubscriptionID": "71",
+              "status": "scheduled"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "key": "71",
+              "type": 1,
+              "title": "Film",
+              "Setting": [
+                {
+                  "id": "startOffsetMinutes",
+                  "value": "2"
+                },
+                {
+                  "id": "endOffsetMinutes",
+                  "value": 5
+                }
+              ],
+              "Video": {
+                "guid": "plex://movie/m1"
+              }
+            },
+            {
+              "key": "72",
+              "type": "2",
+              "title": "Show",
+              "Setting": [],
+              "Directory": {
+                "guid": "plex://show/s1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "rec-71",
+          "ProgramId": "livetv-32-1700010000",
+          "ChannelId": "livetv-32",
+          "StartDate": "2023-11-15T01:00:00.000Z",
+          "EndDate": "2023-11-15T02:30:00.000Z",
+          "Name": "Film",
+          "Status": "New",
+          "PrePaddingSeconds": 120,
+          "PostPaddingSeconds": 300
+        },
+        {
+          "Id": "rec-72-1700003600",
+          "ProgramId": "livetv-33-1700003600",
+          "ChannelId": "livetv-33",
+          "StartDate": "2023-11-14T23:13:20.000Z",
+          "EndDate": "2023-11-15T00:13:20.000Z",
+          "Name": "Show",
+          "Status": "InProgress",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "SeriesTimerId": "72"
+        },
+        {
+          "Id": "rec-72-1700090000",
+          "ProgramId": "livetv-33-1700090000",
+          "ChannelId": "livetv-33",
+          "StartDate": "2023-11-15T23:13:20.000Z",
+          "EndDate": "2023-11-16T00:13:20.000Z",
+          "Name": "Show",
+          "Status": "ConflictedNotOk",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "SeriesTimerId": "72"
+        }
+      ]
+    },
+    {
+      "name": "toSeriesTimer: a rule on one channel, new airings only",
+      "fn": "toSeriesTimer",
+      "args": [
+        {
+          "key": "72",
+          "type": 2,
+          "Setting": [
+            {
+              "id": "lineupChannel",
+              "value": "5.1"
+            },
+            {
+              "id": "onlyNewAirings",
+              "value": "1"
+            },
+            {
+              "id": "startOffsetMinutes",
+              "value": "1"
+            }
+          ],
+          "Directory": {
+            "guid": "plex://show/s1",
+            "title": "Show"
+          }
+        }
+      ],
+      "out": {
+        "Id": "72",
+        "Type": "SeriesTimer",
+        "Name": "Show",
+        "RecordAnyChannel": false,
+        "RecordAnyTime": true,
+        "RecordNewOnly": true,
+        "PrePaddingSeconds": 60,
+        "PostPaddingSeconds": 0,
+        "KeepUpTo": 0,
+        "Priority": 0,
+        "ChannelId": "livetv-352e31"
+      }
+    },
+    {
+      "name": "toSeriesTimer: one airing is no rule",
+      "fn": "toSeriesTimer",
+      "args": [
+        {
+          "key": "71",
+          "type": 1,
+          "title": "Film"
+        }
+      ],
+      "out": null
+    },
+    {
+      "name": "toSeriesTimers",
+      "fn": "toSeriesTimers",
+      "args": [
+        {
+          "MediaSubscription": [
+            {
+              "key": "71",
+              "type": 1,
+              "title": "Film"
+            },
+            {
+              "key": "72",
+              "type": 2,
+              "title": "Show",
+              "Setting": [
+                {
+                  "id": "lineupChannel",
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "key": "x",
+              "type": 2
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "Id": "72",
+          "Type": "SeriesTimer",
+          "Name": "Show",
+          "RecordAnyChannel": true,
+          "RecordAnyTime": true,
+          "RecordNewOnly": false,
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "KeepUpTo": 0,
+          "Priority": 0
+        }
+      ]
+    },
+    {
+      "name": "templateRequest",
+      "fn": "templateRequest",
+      "args": [
+        "plex://episode/e1"
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/media/subscriptions/template",
+        "query": {
+          "guid": "plex://episode/e1"
+        }
+      }
+    },
+    {
+      "name": "createRequest: one airing",
+      "fn": "createRequest",
+      "args": [
+        {
+          "SubscriptionTemplate": [
+            {
+              "MediaSubscription": [
+                {
+                  "type": 4,
+                  "targetLibrarySectionID": 2,
+                  "targetSectionLocationID": "3",
+                  "parameters": "hints[guid]=plex%3A%2F%2Fepisode%2Fe1&hints[title]=Pilot+One"
+                },
+                {
+                  "type": 2,
+                  "targetLibrarySectionID": 2,
+                  "parameters": "hints[guid]=plex://show/s1"
+                }
+              ]
+            }
+          ]
+        },
+        false,
+        {
+          "ProgramId": "livetv-33-1700003600",
+          "PrePaddingSeconds": 120,
+          "PostPaddingSeconds": 290
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/media/subscriptions",
+        "query": {
+          "hints[guid]": "plex://episode/e1",
+          "hints[title]": "Pilot One",
+          "type": "4",
+          "targetLibrarySectionID": "2",
+          "targetSectionLocationID": "3",
+          "prefs[startOffsetMinutes]": "2",
+          "prefs[endOffsetMinutes]": "5",
+          "prefs[oneShot]": "true"
+        }
+      }
+    },
+    {
+      "name": "createRequest: a series rule on one channel",
+      "fn": "createRequest",
+      "args": [
+        {
+          "SubscriptionTemplate": [
+            {
+              "MediaSubscription": [
+                {
+                  "type": 4,
+                  "targetLibrarySectionID": 2,
+                  "parameters": "hints[guid]=e1"
+                },
+                {
+                  "type": "2",
+                  "targetLibrarySectionID": 2,
+                  "parameters": "hints[guid]=plex://show/s1"
+                }
+              ]
+            }
+          ]
+        },
+        true,
+        {
+          "ChannelId": "livetv-352e31",
+          "RecordAnyChannel": false,
+          "RecordNewOnly": true
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/media/subscriptions",
+        "query": {
+          "hints[guid]": "plex://show/s1",
+          "type": "2",
+          "targetLibrarySectionID": "2",
+          "prefs[onlyNewAirings]": "1",
+          "prefs[lineupChannel]": "5.1"
+        }
+      }
+    },
+    {
+      "name": "createRequest: no series entry for a film",
+      "fn": "createRequest",
+      "args": [
+        {
+          "SubscriptionTemplate": [
+            {
+              "MediaSubscription": [
+                {
+                  "type": 1,
+                  "targetLibrarySectionID": 1,
+                  "parameters": ""
+                }
+              ]
+            }
+          ]
+        },
+        true,
+        {}
+      ],
+      "out": {
+        "throws": "PLEX-UNMAPPED no series subscription for this programme",
+        "status": 404
+      }
+    },
+    {
+      "name": "updateRequest: a rule",
+      "fn": "updateRequest",
+      "args": [
+        "72",
+        {
+          "RecordAnyChannel": true,
+          "RecordNewOnly": false,
+          "PrePaddingSeconds": 60
+        },
+        true
+      ],
+      "out": {
+        "method": "PUT",
+        "path": "/media/subscriptions/72",
+        "query": {
+          "prefs[startOffsetMinutes]": "1",
+          "prefs[onlyNewAirings]": "0",
+          "prefs[lineupChannel]": ""
+        }
+      }
+    },
+    {
+      "name": "updateRequest: a timer's padding",
+      "fn": "updateRequest",
+      "args": [
+        "71",
+        {
+          "PostPaddingSeconds": 600
+        },
+        false
+      ],
+      "out": {
+        "method": "PUT",
+        "path": "/media/subscriptions/71",
+        "query": {
+          "prefs[endOffsetMinutes]": "10",
+          "prefs[oneShot]": "true"
+        }
+      }
+    },
+    {
+      "name": "deleteRequest",
+      "fn": "deleteRequest",
+      "args": [
+        "72"
+      ],
+      "out": {
+        "method": "DELETE",
+        "path": "/media/subscriptions/72",
+        "query": {}
+      }
+    },
+    {
+      "name": "recordingRequests: one request per library and kind",
+      "fn": "recordingRequests",
+      "args": [
+        {
+          "MediaSubscription": [
+            {
+              "key": "71",
+              "type": 1,
+              "targetLibrarySectionID": 1
+            },
+            {
+              "key": "72",
+              "type": 2,
+              "targetLibrarySectionID": "2"
+            },
+            {
+              "key": "73",
+              "type": 4,
+              "targetLibrarySectionID": 2
+            },
+            {
+              "key": "74",
+              "type": 1
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "method": "GET",
+          "path": "/library/sections/1/all",
+          "query": {
+            "type": "1",
+            "sort": "addedAt:desc"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/library/sections/2/all",
+          "query": {
+            "type": "4",
+            "sort": "addedAt:desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "isRecording: a subscribed film",
+      "fn": "isRecording",
+      "args": [
+        {
+          "type": "movie",
+          "guid": "plex://movie/m1",
+          "Media": [
+            {
+              "id": 71001,
+              "container": "mpegts"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Video": {
+                "guid": "plex://movie/m1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": true
+    },
+    {
+      "name": "isRecording: an episode of a subscribed show",
+      "fn": "isRecording",
+      "args": [
+        {
+          "type": "episode",
+          "guid": "plex://episode/x",
+          "grandparentGuid": "plex://show/s1",
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            },
+            {
+              "id": 71001,
+              "container": "mpegts"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Directory": {
+                "guid": "plex://show/s1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": true
+    },
+    {
+      "name": "isRecording: not subscribed",
+      "fn": "isRecording",
+      "args": [
+        {
+          "type": "movie",
+          "guid": "plex://movie/m2",
+          "Media": [
+            {
+              "id": 71001,
+              "container": "mpegts"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Video": {
+                "guid": "plex://movie/m1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": false
+    },
+    {
+      "name": "isRecording: a subscribed show's episode the DVR never recorded (the user's own file)",
+      "fn": "isRecording",
+      "args": [
+        {
+          "type": "episode",
+          "guid": "plex://episode/y",
+          "grandparentGuid": "plex://show/s1",
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Directory": {
+                "guid": "plex://show/s1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": false
+    },
+    {
+      "name": "recordedMedia: the mpegts versions only",
+      "fn": "recordedMedia",
+      "args": [
+        {
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            },
+            {
+              "id": 71001,
+              "container": "mpegts"
+            },
+            {
+              "id": "bad",
+              "container": "mpegts"
+            }
+          ]
+        }
+      ],
+      "out": [
+        "71001"
+      ]
+    },
+    {
+      "name": "deleteRecordingRequests: the recorded version, never the item",
+      "fn": "deleteRecordingRequests",
+      "args": [
+        {
+          "ratingKey": "2103",
+          "type": "episode",
+          "grandparentGuid": "plex://show/s1",
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            },
+            {
+              "id": 71001,
+              "container": "mpegts"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Directory": {
+                "guid": "plex://show/s1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": [
+        {
+          "method": "DELETE",
+          "path": "/library/metadata/2103/media/71001",
+          "query": {}
+        }
+      ]
+    },
+    {
+      "name": "deleteRecordingRequests: nothing for an item never recorded",
+      "fn": "deleteRecordingRequests",
+      "args": [
+        {
+          "ratingKey": "2102",
+          "type": "episode",
+          "grandparentGuid": "plex://show/s1",
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": [
+            {
+              "Directory": {
+                "guid": "plex://show/s1"
+              }
+            }
+          ]
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "deleteRecordingRequests: nothing without a subscription",
+      "fn": "deleteRecordingRequests",
+      "args": [
+        {
+          "ratingKey": "2103",
+          "type": "episode",
+          "grandparentGuid": "plex://show/s1",
+          "Media": [
+            {
+              "id": 21030,
+              "container": "mkv"
+            },
+            {
+              "id": 71001,
+              "container": "mpegts"
+            }
+          ]
+        },
+        {
+          "MediaSubscription": []
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "tuneRequest",
+      "fn": "tuneRequest",
+      "args": [
+        {
+          "key": "1",
+          "lineup": "l",
+          "epg": "e",
+          "tuners": 2,
+          "enabled": null
+        },
+        "5.1"
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/livetv/dvrs/1/channels/5.1/tune",
+        "query": {}
+      }
+    },
+    {
+      "name": "toLivePlayback: HLS through the transcoder",
+      "fn": "toLivePlayback",
+      "args": [
+        {
+          "Metadata": [
+            {
+              "key": "/livetv/sessions/abc/1"
+            }
+          ]
+        },
+        "livetv-31",
+        {
+          "MaxStreamingBitrate": 8000000,
+          "AllowVideoStreamCopy": true
+        },
+        "s1",
+        "c1"
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "livetv-31",
+            "Protocol": "Http",
+            "Container": "ts",
+            "SupportsDirectPlay": false,
+            "SupportsDirectStream": false,
+            "SupportsTranscoding": true,
+            "RequiresOpening": false,
+            "LiveStreamId": "s1",
+            "TranscodingUrl": "/video/:/transcode/universal/start.m3u8?path=%2Flivetv%2Fsessions%2Fabc%2F1&protocol=hls&directPlay=0&directStream=1&directStreamAudio=1&session=s1&X-Plex-Client-Identifier=c1&maxVideoBitrate=8000",
+            "TranscodingSubProtocol": "hls"
+          }
+        ],
+        "PlaySessionId": "s1"
+      }
+    },
+    {
+      "name": "toLivePlayback: full transcode, original quality",
+      "fn": "toLivePlayback",
+      "args": [
+        {
+          "Metadata": [
+            {
+              "key": "/livetv/sessions/abc/1"
+            }
+          ]
+        },
+        "livetv-31",
+        {
+          "MaxStreamingBitrate": "200000000",
+          "AllowVideoStreamCopy": false
+        },
+        "s2",
+        "c1"
+      ],
+      "out": {
+        "MediaSources": [
+          {
+            "Id": "livetv-31",
+            "Protocol": "Http",
+            "Container": "ts",
+            "SupportsDirectPlay": false,
+            "SupportsDirectStream": false,
+            "SupportsTranscoding": true,
+            "RequiresOpening": false,
+            "LiveStreamId": "s2",
+            "TranscodingUrl": "/video/:/transcode/universal/start.m3u8?path=%2Flivetv%2Fsessions%2Fabc%2F1&protocol=hls&directPlay=0&directStream=0&directStreamAudio=1&session=s2&X-Plex-Client-Identifier=c1",
+            "TranscodingSubProtocol": "hls"
+          }
+        ],
+        "PlaySessionId": "s2"
+      }
+    },
+    {
+      "name": "toLivePlayback: no session",
+      "fn": "toLivePlayback",
+      "args": [
+        {
+          "Metadata": []
+        },
+        "livetv-31",
+        {},
+        "s3",
+        "c1"
+      ],
+      "out": {
+        "MediaSources": [],
+        "PlaySessionId": "s3"
+      }
+    }
+  ]
+}

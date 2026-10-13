@@ -1,21 +1,27 @@
 <script lang="ts">
   // Albums tab (photos spec F3, PH-04): the library's PhotoAlbum folders, read-only. Opening one shows its timeline.
+  // An Immich source (immich: its id) lists its albums, those shared with the user marked as such (F3b).
   // shortcut: an album without its own Primary image shows a placeholder, not its first photo; add that query if
   // real servers leave many albums without one.
   import type { BaseItem } from '../../../shared/models';
   import Icon from '../../components/Icon.svelte';
   import { apiFor } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
-  import { imageUrl } from '../../lib/images';
+  import { imageUrl, immichUrl } from '../../lib/images';
+  import { immichAlbums, immichError } from '../../lib/photos/immich.svelte';
   import { reveal } from '../../lib/motion';
   import { errorMessage } from '../../lib/stores.svelte';
 
-  let { lib, server, onopen }: { lib: BaseItem; server?: string; onopen: (album: BaseItem) => void } = $props();
+  let { lib, server, immich, onopen }: { lib: BaseItem; server?: string; immich?: string; onopen: (album: BaseItem) => void } = $props();
 
-  let albums = $state<BaseItem[] | null>(null);
+  let albums = $state<(BaseItem & { IsShared?: boolean })[] | null>(null);
   let error = $state('');
 
   $effect(() => {
+    if (immich)
+      return void immichAlbums(immich)
+        .then((r) => (albums = r))
+        .catch((err) => (error = immichError(err, 'album.read')));
     apiFor(server)
       .items({ ParentId: lib.Id, IncludeItemTypes: 'PhotoAlbum', Recursive: false, SortBy: 'SortName', SortOrder: 'Ascending' })
       .then((r) => (albums = r.Items))
@@ -30,13 +36,13 @@
 {:else if albums}
   <div class="albums">
     {#each albums as a (a.Id)}
-      {@const src = a.ImageTags?.Primary ? imageUrl(a.Id, 'Primary', { tag: a.ImageTags.Primary, maxHeight: 240, server: a.ServerId }) : ''}
+      {@const src = !a.ImageTags?.Primary ? '' : immich ? immichUrl(immich, `assets/${a.ImageTags.Primary}/thumbnail`, 'preview') : imageUrl(a.Id, 'Primary', { tag: a.ImageTags.Primary, maxHeight: 240, server: a.ServerId })}
       <button class="album" onclick={() => onopen(a)}>
         <span class="cover">
           {#if src}<img class="reveal" use:reveal {src} alt="" loading="lazy" decoding="async" draggable="false" />{:else}<Icon name="images" size={32} />{/if}
         </span>
         <span class="name headline">{a.Name}</span>
-        {#if a.ChildCount !== undefined}<span class="footnote">{t('photos.albums.count', { count: a.ChildCount })}</span>{/if}
+        {#if a.ChildCount !== undefined}<span class="footnote">{t('photos.albums.count', { count: a.ChildCount })}{#if a.IsShared} · {t('photos.albums.shared')}{/if}</span>{/if}
       </button>
     {/each}
   </div>

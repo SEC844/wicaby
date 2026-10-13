@@ -144,123 +144,130 @@ fun DetailScreen(id: String) {
         val extras = if (book) emptyList() else rememberLoad("extras-$id") { api.specialFeatures(id) }.value.value.orEmpty()
         val external = remember(api) { ExternalPlayer.available(context, api) }
 
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.height(if (item.isSeries) 110.dp else 150.dp))
-            Column(Modifier.padding(start = 56.dp)) {
-                if (item.isEpisode) {
-                    Text(episodeLine(item).orEmpty(), style = Type.title3, color = C.label, modifier = Modifier.padding(bottom = 6.dp))
-                }
-                Box(Modifier.width(600.dp)) { HeroText(api, item, overviewLines = 4) }
-                val tags = badges(context, item, source)
-                if (tags.isNotEmpty()) {
-                    Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        tags.forEach {
-                            Text(
-                                it, style = Type.caption, color = C.label2,
-                                modifier = Modifier.border(1.dp, C.label3, RoundedCornerShape(Radius.xs)).padding(horizontal = 7.dp, vertical = 3.dp),
-                            )
-                        }
+        val pageScroll = rememberScrollState()
+        val heroMargin = with(LocalDensity.current) { 56.dp.toPx() }
+        CompositionLocalProvider(LocalBringIntoViewSpec provides remember(pageScroll, heroMargin) { HeroSpec(pageScroll, heroMargin) }) {
+            Column(Modifier.fillMaxSize().verticalScroll(pageScroll)) {
+                Spacer(Modifier.height(if (item.isSeries) 110.dp else 150.dp))
+                Column(Modifier.padding(start = 56.dp)) {
+                    if (item.isEpisode) {
+                        Text(episodeLine(item).orEmpty(), style = Type.title3, color = C.label, modifier = Modifier.padding(bottom = 6.dp))
                     }
-                }
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val label = when {
-                        book -> if (bookPage != null) stringResource(R.string.reader_resume_page, bookPage + 1) else stringResource(R.string.reader_read)
-                        target == null -> stringResource(R.string.play)
-                        resumeMs > 0 -> {
-                            val left = runtimeText(((target.runTimeTicks ?: 0) - target.resumeMs * 10_000).coerceAtLeast(0))
-                            if (left != null) stringResource(R.string.resume_time_left, left) else stringResource(R.string.resume)
-                        }
-                        item.isSeries && target.indexNumber != null ->
-                            stringResource(R.string.play_episode, stringResource(R.string.episode_code, target.parentIndexNumber ?: 1, target.indexNumber ?: 0))
-                        else -> stringResource(R.string.play)
-                    }
-                    Pill(label, onClick = { if (book) ReaderActivity.start(context, item.id, server = Servers.extraOf(api.server.id)?.server?.id) else target?.let { play(context, it, ask = false) } }, icon = Ic.Play, primary = true, modifier = Modifier.remembered(memory, "play", default = true))
-                    if ((if (book) bookPage != null else resumeMs > 0) && target != null) {
-                        Pill(stringResource(R.string.from_start), onClick = { if (book) ReaderActivity.start(context, item.id, fromStart = true, server = Servers.extraOf(api.server.id)?.server?.id) else play(context, target, fromStart = true) }, icon = Ic.Restart, modifier = Modifier.remembered(memory, "start"))
-                    }
-                    // TP-04, desktop's Item page: every episode in random order, as a play queue.
-                    if (item.isSeries || item.type == "Season") {
-                        Pill(
-                            stringResource(com.wika.wicaby.core.R.string.shuffle), icon = Ic.Shuffle, modifier = Modifier.remembered(memory, "shuffle"),
-                            onClick = { scope.launch { com.wika.wicaby.tv.shuffle(context, api, item.id) } },
-                        )
-                    }
-                    if (Trailers.has(item)) TrailerPill(api, item, Modifier.remembered(memory, "trailer"))
-                    if (external && !book && target != null) ExternalPill(api, target, Modifier.remembered(memory, "external"))
-                    // No heart for a source without favorites (a file source, caps §2.2).
-                    if (api.server.caps.favorites) Pill(
-                        null, icon = if (favorite) Ic.Heart else Ic.HeartOutline, modifier = Modifier.remembered(memory, "fav"),
-                        onClick = { scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite; Cache.changed() } } },
-                    )
-                    Pill(
-                        null, icon = Ic.Check, selected = watched, modifier = Modifier.remembered(memory, "played"),
-                        onClick = {
-                            scope.launch {
-                                runCatching { api.setPlayed(item.id, !watched) }.onSuccess {
-                                    watched = !watched
-                                    Cache.changed()
-                                    com.wika.wicaby.core.trakt.TraktService.shared.history(api, item, watched) // TP-09
-                                }
+                    Box(Modifier.width(600.dp)) { HeroText(api, item, overviewLines = 4) }
+                    val tags = badges(context, item, source)
+                    if (tags.isNotEmpty()) {
+                        Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            tags.forEach {
+                                Text(
+                                    it, style = Type.caption, color = C.label2,
+                                    modifier = Modifier.border(1.dp, C.label3, RoundedCornerShape(Radius.xs)).padding(horizontal = 7.dp, vertical = 3.dp),
+                                )
                             }
-                        },
-                    )
-                    MorePill(api, item, Modifier.remembered(memory, "more"))
-                }
-                // TP-06: "Disponible sur 2 serveurs" and its server picker (several servers only).
-                CopiesPill(api, item, Modifier.padding(top = 14.dp).remembered(memory, "copies"))
-                if (!item.isSeries && !book && source != null) {
-                    TrackSelectors(item, source, onVersion = { sourceId = it; Versions.select(item.id, it) }, memory = memory)
-                }
-            }
-
-            if (item.isSeries && seasons.isNotEmpty()) {
-                Spacer(Modifier.height(30.dp))
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 56.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.dpadEdges().focusRestorer(),
-                ) {
-                    items(seasons.size, key = { seasons[it].id }) { i ->
-                        val s = seasons[i]
-                        Pill(
-                            s.name.ifBlank { stringResource(R.string.season_n, s.indexNumber ?: (i + 1)) },
-                            onClick = { seasonIndex = i }, primary = i == seasonIndex,
-                            onFocus = { if (it) seasonIndex = i },
-                            modifier = Modifier.remembered(memory, "season-${s.id}"),
-                        )
-                    }
-                }
-                val margin = with(LocalDensity.current) { 56.dp.toPx() }
-                CompositionLocalProvider(LocalBringIntoViewSpec provides remember(margin) { EdgeSpec(margin) }) {
-                    LazyRow(
-                        contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 18.dp, bottom = 40.dp),
-                        horizontalArrangement = Arrangement.spacedBy(22.dp),
-                        modifier = Modifier.fillMaxWidth().dpadEdges().focusRestorer(),
-                    ) {
-                        items(episodes, key = { it.id }) { ep ->
-                            ThumbCard(
-                                ep, api, onClick = { play(context, ep) }, inSeries = true,
-                                focusModifier = Modifier.remembered(memory, "ep-${ep.id}"),
-                            )
                         }
                     }
+                    Spacer(Modifier.height(24.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val label = when {
+                            book -> if (bookPage != null) stringResource(R.string.reader_resume_page, bookPage + 1) else stringResource(R.string.reader_read)
+                            target == null -> stringResource(R.string.play)
+                            resumeMs > 0 -> {
+                                val left = runtimeText(((target.runTimeTicks ?: 0) - target.resumeMs * 10_000).coerceAtLeast(0))
+                                if (left != null) stringResource(R.string.resume_time_left, left) else stringResource(R.string.resume)
+                            }
+                            item.isSeries && target.indexNumber != null ->
+                                stringResource(R.string.play_episode, stringResource(R.string.episode_code, target.parentIndexNumber ?: 1, target.indexNumber ?: 0))
+                            else -> stringResource(R.string.play)
+                        }
+                        Pill(label, onClick = { if (book) ReaderActivity.start(context, item.id, server = Servers.extraOf(api.server.id)?.server?.id) else target?.let { play(context, it, ask = false) } }, icon = Ic.Play, primary = true, modifier = Modifier.remembered(memory, "play", default = true))
+                        if ((if (book) bookPage != null else resumeMs > 0) && target != null) {
+                            Pill(stringResource(R.string.from_start), onClick = { if (book) ReaderActivity.start(context, item.id, fromStart = true, server = Servers.extraOf(api.server.id)?.server?.id) else play(context, target, fromStart = true) }, icon = Ic.Restart, modifier = Modifier.remembered(memory, "start"))
+                        }
+                        // TP-04, desktop's Item page: every episode in random order, as a play queue.
+                        if (item.isSeries || item.type == "Season") {
+                            Pill(
+                                stringResource(com.wika.wicaby.core.R.string.shuffle), icon = Ic.Shuffle, modifier = Modifier.remembered(memory, "shuffle"),
+                                onClick = { scope.launch { com.wika.wicaby.tv.shuffle(context, api, item.id) } },
+                            )
+                        }
+                        if (Trailers.has(item)) TrailerPill(api, item, Modifier.remembered(memory, "trailer"))
+                        if (external && !book && target != null) ExternalPill(api, target, Modifier.remembered(memory, "external"))
+                        // No heart for a source without favorites (a file source, caps §2.2).
+                        if (api.server.caps.favorites) Pill(
+                            null, icon = if (favorite) Ic.Heart else Ic.HeartOutline, modifier = Modifier.remembered(memory, "fav"),
+                            onClick = { scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite; Cache.changed() } } },
+                        )
+                        Pill(
+                            null, icon = Ic.Check, selected = watched, modifier = Modifier.remembered(memory, "played"),
+                            onClick = {
+                                scope.launch {
+                                    runCatching { api.setPlayed(item.id, !watched) }.onSuccess {
+                                        watched = !watched
+                                        Cache.changed()
+                                        com.wika.wicaby.core.trakt.TraktService.shared.history(api, item, watched) // TP-09
+                                    }
+                                }
+                            },
+                        )
+                        MorePill(api, item, Modifier.remembered(memory, "more"))
+                    }
+                    // TP-06: "Disponible sur 2 serveurs" and its server picker (several servers only).
+                    CopiesPill(api, item, Modifier.padding(top = 14.dp).remembered(memory, "copies"))
+                    if (!item.isSeries && !book && source != null) {
+                        TrackSelectors(item, source, onVersion = { sourceId = it; Versions.select(item.id, it) }, memory = memory)
+                    }
                 }
-            } else {
-                Spacer(Modifier.height(48.dp))
-            }
-            if (extras.isNotEmpty()) {
-                Text(stringResource(com.wika.wicaby.core.R.string.bonus), style = Type.title3, color = C.label, modifier = Modifier.padding(start = 56.dp))
-                val margin = with(LocalDensity.current) { 56.dp.toPx() }
-                CompositionLocalProvider(LocalBringIntoViewSpec provides remember(margin) { EdgeSpec(margin) }) {
-                    LazyRow(
-                        contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 14.dp, bottom = 40.dp),
-                        horizontalArrangement = Arrangement.spacedBy(22.dp),
-                        modifier = Modifier.fillMaxWidth().dpadEdges().focusRestorer(),
-                    ) {
-                        // Played like a trailer: from the start, nothing reported, no Watch Next entry.
-                        items(extras, key = { it.id }) { ex ->
-                            ThumbCard(ex, api, onClick = { playTrailer(context, ex.id, Servers.extraOf(api.server.id)?.server?.id) }, inSeries = true, focusModifier = Modifier.remembered(memory, "extra-${ex.id}"))
+
+                if (item.isSeries && seasons.isNotEmpty()) {
+                    Spacer(Modifier.height(30.dp))
+                    // Own spec: the page's HeroSpec measures the vertical scroll and would strand a horizontal row.
+                    val margin = with(LocalDensity.current) { 56.dp.toPx() }
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides remember(margin) { EdgeSpec(margin) }) {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 56.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.dpadEdges().focusRestorer(),
+                        ) {
+                            items(seasons.size, key = { seasons[it].id }) { i ->
+                                val s = seasons[i]
+                                Pill(
+                                    s.name.ifBlank { stringResource(R.string.season_n, s.indexNumber ?: (i + 1)) },
+                                    onClick = { seasonIndex = i }, primary = i == seasonIndex,
+                                    onFocus = { if (it) seasonIndex = i },
+                                    modifier = Modifier.remembered(memory, "season-${s.id}"),
+                                )
+                            }
+                        }
+                    }
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides remember(margin) { EdgeSpec(margin) }) {
+                        LazyRow(
+                            contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 18.dp, bottom = 40.dp),
+                            horizontalArrangement = Arrangement.spacedBy(22.dp),
+                            modifier = Modifier.fillMaxWidth().dpadEdges().focusRestorer(),
+                        ) {
+                            items(episodes, key = { it.id }) { ep ->
+                                ThumbCard(
+                                    ep, api, onClick = { play(context, ep) }, inSeries = true,
+                                    focusModifier = Modifier.remembered(memory, "ep-${ep.id}"),
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(Modifier.height(48.dp))
+                }
+                if (extras.isNotEmpty()) {
+                    Text(stringResource(com.wika.wicaby.core.R.string.bonus), style = Type.title3, color = C.label, modifier = Modifier.padding(start = 56.dp))
+                    val margin = with(LocalDensity.current) { 56.dp.toPx() }
+                    CompositionLocalProvider(LocalBringIntoViewSpec provides remember(margin) { EdgeSpec(margin) }) {
+                        LazyRow(
+                            contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 14.dp, bottom = 40.dp),
+                            horizontalArrangement = Arrangement.spacedBy(22.dp),
+                            modifier = Modifier.fillMaxWidth().dpadEdges().focusRestorer(),
+                        ) {
+                            // Played like a trailer: from the start, nothing reported, no Watch Next entry.
+                            items(extras, key = { it.id }) { ex ->
+                                ThumbCard(ex, api, onClick = { playTrailer(context, ex.id, Servers.extraOf(api.server.id)?.server?.id) }, inSeries = true, focusModifier = Modifier.remembered(memory, "extra-${ex.id}"))
+                            }
                         }
                     }
                 }

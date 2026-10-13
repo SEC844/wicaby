@@ -427,11 +427,34 @@
         <item quantity="one">%d year ago</item>
         <item quantity="other">%d years ago</item>
     </plurals>
+    <!-- Immich photo source (photos spec PH-13), mobile and TV. -->
+    <string name="photos_tab_people">People</string>
+    <string name="photos_people_empty">No named people on this server.</string>
+    <string name="photos_album_shared">Shared</string>
+    <string name="photos_sources_title">Photo sources</string>
+    <string name="photos_sources_url">Immich server</string>
+    <string name="photos_sources_key">API key</string>
+    <string name="photos_sources_key_hint">Create a key in Immich (Account Settings, API Keys) with at least asset.read and asset.view. album.read, person.read and memory.read add albums, people and memories.</string>
+    <string name="photos_sources_test">Test</string>
+    <string name="photos_sources_add">Connect</string>
+    <string name="photos_sources_remove">Remove</string>
+    <string name="photos_sources_ok">Immich %1$s: connected.</string>
+    <string name="photos_sources_version_too_old">Immich %1$s is too old: Wicaby needs version 2.0 or later.</string>
+    <string name="photos_sources_scopes_missing">Permissions the key lacks: %1$s. Those features are hidden.</string>
+    <string name="photos_sources_scope_missing">The API key lacks the %1$s permission; add it in Immich to see this part.</string>
+    <string name="photos_sources_key_refused">The Immich server refuses the API key. Connect it again in Settings.</string>
+    <string name="photos_sources_error_url">Invalid address.</string>
+    <string name="photos_sources_error_network">Server unreachable.</string>
+    <string name="photos_sources_error_server">This server does not answer like an Immich server.</string>
+    <string name="photos_sources_error_auth">API key refused.</string>
+    <string name="photos_sources_error_scope">The key lacks the asset.read permission the timeline needs.</string>
+    <string name="photos_sources_foot">The key stays encrypted on this device and is only sent to that server. Immich photos form their own library, next to those from Emby or Jellyfin.</string>
     <!-- Plex (plex spec §9): what the Plex adapter explains (gates are explained, never worked around). -->
     <string name="plex_error_remote_needs_pass">Playing from this server away from its network needs a Plex Pass (yours or the owner’s) or a Remote Watch Pass. On the server’s network it still works.</string>
     <string name="plex_error_lower_quality">The server refuses this quality remotely. Pick a lower quality in the Quality menu.</string>
     <string name="plex_error_file_unavailable">This item’s file cannot be found on the Plex server.</string>
     <string name="plex_error_terminated">The server stopped playback.</string>
+    <string name="plex_livetv_view">Live TV</string>
     <string name="plex_error_secure_required">This Plex server requires a secure connection, and no https address answers.</string>
     <string name="plex_error_relink">The Plex account is no longer linked: link it again with a code.</string>
     <string name="plex_error_wrong_pin">Wrong PIN.</string>

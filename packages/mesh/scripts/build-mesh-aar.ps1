@@ -124,7 +124,8 @@ try {
   # cannot touch GOMODCACHE, so the bind runs on a scratch copy of this module
   # whose go.mod replaces NetBird with a patched copy (the AGPL check below
   # covers what gets linked). Fail loudly if a NetBird upgrade moves the patched call.
-  $work = Join-Path $env:TEMP "wicaby-mesh-aar-$PID"
+  # Built outside the user profile: Go records replaced module paths in the binary, so no user name may appear in them.
+  $work = Join-Path ([IO.Path]::GetPathRoot((Get-Location).Path)) "wicaby-mesh-aar-$PID"
   if (Test-Path $work) { Remove-Item -Recurse -Force $work }
   $nbSrc = (& $go list -m -f '{{.Dir}}' github.com/netbirdio/netbird).Trim()
   $nbDst = Join-Path $work 'netbird'
@@ -149,7 +150,7 @@ try {
   Copy-Item -Recurse (Join-Path $src 'mesh'), (Join-Path $src 'mobile') $mod
   Push-Location $mod
   try {
-    & $go mod edit -replace "github.com/netbirdio/netbird=$nbDst"
+    & $go mod edit -replace "github.com/netbirdio/netbird=../netbird"
     Write-Host "Building $aar ($targets, NDK $(Split-Path -Leaf $env:ANDROID_NDK_HOME))"
     # -checklinkname=0: github.com/wlynxg/anet (NetBird's Android interface lister)
     # links to net internals; NetBird's own Android build sets the same flag.

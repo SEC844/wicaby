@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.wika.wicaby.core.BuildConfig
+import com.wika.wicaby.core.net.LocalNetwork
 import com.wika.wicaby.core.net.ServerTransport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -126,7 +127,7 @@ internal fun redactMeshLog(line: String): String =
  * (http://127.0.0.1:<port>/<token>), one per origin. As the [ServerTransport],
  * Core.http rewrites their URLs, so the API, artwork, ExoPlayer and downloads
  * follow. Nothing else can leave through it: the Go side only forwards to current
- * mesh peers.
+ * mesh peers and hosts in their NetBird routed networks (those direct first, [DirectFirst]).
  *
  * State (node key, NetBird config) lives under filesDir/mesh/<provider>, app-private.
  * Auth keys / setup keys are passed once and never stored: Tailscale and NetBird
@@ -167,6 +168,7 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
     private val routes = ConcurrentHashMap<String, String>()
     private val refused = ConcurrentHashMap<String, Int>()
     @Volatile private var peersKey = 0
+    private val directFirst = DirectFirst()
 
     @Volatile private var prefs: MeshPrefs = readPrefs()
 
@@ -181,6 +183,9 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
         routes[origin]?.let { return it }
         val key = peersKey
         if (refused[origin] == key) return null
+        val st = _status.value
+        // A host in a NetBird routed network (the LAN behind a routing peer) that answers directly: no mesh.
+        if (directFirst.goDirect(origin, st.routes, st.peers)) return null
         return try {
             com.wika.wicaby.mesh.mobile.Mobile.forward(meshOrigin(origin, _status.value.peers)).also { routes[origin] = it }
         } catch (e: Exception) {
@@ -189,6 +194,8 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
             null
         }
     }
+
+    override fun failed(origin: String) = directFirst.failed(origin)
 
     // ---- Control (all asynchronous; watch [status]) ----
 
@@ -238,10 +245,15 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
     private fun launch(authKey: String?) {
         if (running != null) return
         val provider = provider
+        if (LocalNetwork.blocksMesh(app, prefs.managementUrl)) {
+            publish(MeshStatus(state = MeshState.Error, provider = provider, error = LOCAL_NETWORK_REFUSED))
+            return
+        }
         val dir = File(root, provider.id).apply { mkdirs() }
         val myRun = ++run
         routes.clear()
         refused.clear()
+        directFirst.clear()
         publish(MeshStatus(state = MeshState.Connecting, provider = provider))
         try {
             // TMPDIR and friends for the Go runtime (gomobile reads them from the context).
@@ -266,6 +278,7 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
         running = null
         routes.clear()
         refused.clear()
+        directFirst.clear()
         runCatching { com.wika.wicaby.mesh.mobile.Mobile.stop() }
     }
 
@@ -298,7 +311,10 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
         }.onFailure { Log.w(TAG, "saving mesh prefs: ${it.javaClass.simpleName}") }
     }
 
-    private companion object {
-        const val TAG = "WicabyMesh"
+    companion object {
+        private const val TAG = "WicabyMesh"
+
+        // The node is not started then: Android 17 would drop its dial and Go would only report a timeout.
+        const val LOCAL_NETWORK_REFUSED = "local network access refused: the management server is on the local network, which Android 17 blocks until Wicaby may use it"
     }
 }

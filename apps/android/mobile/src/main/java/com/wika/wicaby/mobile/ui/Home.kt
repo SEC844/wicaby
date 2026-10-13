@@ -138,7 +138,8 @@ fun HomeScreen(api: Api, nav: NavController, openTab: (Tab) -> Unit) {
     // "Ce jour-là" (photos PH-08): with a photo library, the primary server's photos of this day in earlier years, asked
     // once a day (core homeMemories). shortcut: the primary server only, as on TV.
     val today = String.format(java.util.Locale.ROOT, "%tF", java.util.Calendar.getInstance())
-    val memories = if (views.value.orEmpty().any { it.collectionType in com.wika.wicaby.mobile.ui.photos.PHOTO_COLLECTIONS }) rememberLoad("memories-$today") { api.homeMemories(today) } else null
+    // An Immich source brings its own memories (photos spec PH-13).
+    val memories = if (com.wika.wicaby.core.photos.Immich.source != null || views.value.orEmpty().any { it.collectionType in com.wika.wicaby.mobile.ui.photos.PHOTO_COLLECTIONS }) rememberLoad("memories-$today") { api.homeMemories(today) } else null
 
     val busy = views.loading || hero.loading || cont.loading
     LaunchedEffect(busy) { if (!busy) pulled = false }

@@ -35,6 +35,7 @@ const bridge: WicabyBridge = {
     toggleFullscreen: () => invoke(Channels.windowToggleFullscreen),
     getState: () => invoke(Channels.windowGetState),
     onState: (cb) => on(Channels.windowState, cb),
+    mini: (action) => invoke(Channels.windowMini, action),
   },
   settings: {
     get: () => invoke(Channels.settingsGet),
@@ -95,6 +96,9 @@ const bridge: WicabyBridge = {
     getState: () => invoke(Channels.playbackGetState),
     onState: (cb) => on(Channels.playbackState, cb),
   },
+  music: {
+    lrclib: (track) => invoke(Channels.musicLrclib, track),
+  },
   htmlPlayer: {
     onLoad: (cb) => on(Channels.htmlPlayerLoad, cb),
     onCommand: (cb) => on(Channels.htmlPlayerCommand, cb),
@@ -111,6 +115,15 @@ const bridge: WicabyBridge = {
   },
   photos: {
     keepAwake: (on) => invoke(Channels.photosKeepAwake, on),
+    immich: {
+      sources: () => invoke(Channels.immichSources),
+      onSources: (cb) => on(Channels.immichChanged, cb),
+      test: (url, key) => invoke(Channels.immichTest, url, key),
+      add: (url, key) => invoke(Channels.immichAdd, url, key),
+      remove: (id) => invoke(Channels.immichRemove, id),
+      request: (id, method, path, query, body) => invoke(Channels.immichRequest, id, method, path, query, body),
+      saveOriginal: (id, assetId) => invoke(Channels.immichSaveOriginal, id, assetId),
+    },
   },
   comics: {
     open: (itemId, serverId) => invoke(Channels.comicsOpen, itemId, serverId),

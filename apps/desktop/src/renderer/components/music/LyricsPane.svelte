@@ -26,9 +26,11 @@
   import type { NowPlayingItem } from '../../../shared/contract';
   import type { Lyrics } from '../../../shared/music';
   import { apiFor } from '../../lib/api';
+  import { w } from '../../lib/bridge';
   import { fmt, t } from '../../lib/i18n.svelte';
   import { lyrics as fetchLyrics } from '../../lib/music';
   import { command } from '../../lib/music-ui.svelte';
+  import { settings } from '../../lib/stores.svelte';
   import Icon from '../Icon.svelte';
 
   // Server lyrics of the playing track (music-spec MU-05). Synced: the current line (the last one starting at or
@@ -37,6 +39,8 @@
   let { item, positionMs }: { item: NowPlayingItem; positionMs: number } = $props();
 
   let lyrics = $state<Lyrics | null>(null);
+  // MU-13: 'lrclib' when the server had none and Settings > Audio allows lrclib.net (asked by main, cached there).
+  let source = $state<'server' | 'lrclib'>('server');
   let loading = $state(true);
   let offset = $state(0);
 
@@ -48,15 +52,23 @@
     const sid = trackServer;
     loading = true;
     lyrics = null;
+    source = 'server';
     offset = readOffsets()[id] ?? 0;
     let live = true;
     apiFor(sid)
       .item(id)
-      .then((full) => fetchLyrics(full, sid))
-      .catch(() => null)
-      .then((l) => {
+      .then(async (full) => {
+        const own = await fetchLyrics(full, sid);
+        if (own || settings.value?.music.lyricsProvider !== 'server+lrclib' || !full.Name) return { l: own, from: 'server' as const };
+        const artist = full.ArtistItems?.[0]?.Name ?? full.Artists?.[0] ?? full.AlbumArtist ?? '';
+        const l = await w.music.lrclib({ id: full.Id, artist, title: full.Name, album: full.Album ?? '', durationMs: (full.RunTimeTicks ?? 0) / 10_000 });
+        return { l, from: 'lrclib' as const };
+      })
+      .catch(() => ({ l: null, from: 'server' as const }))
+      .then(({ l, from }) => {
         if (!live) return;
         lyrics = l;
+        source = from;
         loading = false;
       });
     return () => (live = false);
@@ -115,6 +127,7 @@
       {/each}
     </div>
   {/if}
+  {#if lyrics && source === 'lrclib'}<p class="caption source" data-source="lrclib">{t('music.lyrics.source.lrclib')}</p>{/if}
 </div>
 
 <style>
@@ -186,6 +199,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    color: var(--label-3);
+  }
+  .source {
+    flex: none;
+    padding-top: 6px;
     color: var(--label-3);
   }
   .none {

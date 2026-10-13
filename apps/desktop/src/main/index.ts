@@ -30,9 +30,11 @@ import { DesktopIntegration } from './features/tray';
 import { createSettingsExtras } from './core/settings-extras';
 import { initI18n, t } from './i18n';
 import { isSafeManagementUrl, registerIpc } from './ipc';
+import { lrclibBase, lrclibLyrics, type LrclibCache } from './music/lrclib';
 import { mpvCandidates, mpvVersion } from './playback/mpv-controller';
 import { PlaybackService, validId } from './playback/playback-service';
 import { commandName } from './playback/remote-commands';
+import { ImmichService } from './photos/immich';
 import { tileService } from './photos/tiles';
 import { handleProtocols, registerSchemes } from './protocols';
 import { TorrentService } from './torrents/torrent-service';
@@ -254,7 +256,16 @@ async function bootstrap(): Promise<void> {
   settings.on('change', (s: { photos: { map: { enabled: boolean } } }) => {
     if (!s.photos.map.enabled) fs.rmSync(tilesDir, { recursive: true, force: true });
   });
-  handleProtocols({ rendererDir: path.join(__dirname, '..', 'renderer'), connection, downloads, comics, tiles });
+  // Online lyrics (MU-13): nothing leaves the app unless Settings > Audio turned it on.
+  const lrclibOptions = {
+    base: lrclibBase(process.env.LRCLIB_BASE, app.isPackaged),
+    userAgent: `Wicaby/${app.getVersion()} (+https://github.com/WicaebethTheo/wicaby-releases)`,
+    enabled: () => settings.value.music.lyricsProvider === 'server+lrclib',
+    cache: new JsonStore<LrclibCache>(path.join(userData, 'lrclib-cache.json'), {}),
+  };
+  // Immich photo sources (photos spec PH-12): the key in the vault, pictures through wicaby-media://immich.
+  const immich = new ImmichService({ file: path.join(userData, 'immich.json'), vault, downloads: () => settings.value.downloads.folder });
+  handleProtocols({ rendererDir: path.join(__dirname, '..', 'renderer'), connection, downloads, comics, tiles, immich });
 
   // Nothing in the UI needs camera, mic, geolocation or notifications from the web layer.
   const allowed = new Set(['fullscreen', 'clipboard-sanitized-write']);
@@ -294,6 +305,8 @@ async function bootstrap(): Promise<void> {
     cast,
     appInfo,
     files,
+    immich,
+    lrclib: (track) => lrclibLyrics(track, lrclibOptions),
     extras: createSettingsExtras({ mpvExe: () => mpvPath, runningMpv: () => playback.mpv, comicsDir, logDir, currentLog: () => logger.filePath }),
     openPath: (kind) => {
       const target = kind === 'logs' ? logDir : kind === 'mpv-config' ? mpvConfigDir : kind === 'data' ? userData : settings.value.downloads.folder;
@@ -307,6 +320,7 @@ async function bootstrap(): Promise<void> {
   settings.on('change', (s) => connection.setAllowControl(s.remote.allowControl));
   playback.on('state', (s) => windows.broadcast(Channels.playbackState, s));
   downloads.on('change', (d) => windows.broadcast(Channels.downloadsChanged, d));
+  immich.on('change', (list) => windows.send(windows.main, Channels.immichChanged, list));
   torrents.on('state', (s) => windows.send(windows.main, Channels.torrentsChanged, s));
   trakt.on('state', (s) => windows.send(windows.main, Channels.traktChanged, s));
   playback.on('report', (action, serverId, item, positionMs, durationMs) => trakt.scrobble(action, serverId, item, positionMs, durationMs));

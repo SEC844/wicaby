@@ -56,7 +56,11 @@ assert.deepEqual(agplOrImmich({ packages: { 'node_modules/x': { license: 'AGPL-3
 assert.deepEqual(agplOrImmich({}, 'implementation("app.immich:sdk:1.0")'), ['gradle: immich'], 'self-test: a Gradle immich artifact caught');
 const gradle = execFileSync('git', ['ls-files', '*.gradle.kts', '*.versions.toml'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean).map(read).join('\n');
 assert.deepEqual(agplOrImmich(JSON.parse(read('package-lock.json')), gradle), [], 'Immich or AGPL dependency');
-ok('no Immich package and no AGPL dependency (npm lockfile, Gradle)');
+// No Immich OpenAPI spec file in the tree either (the requests are written by hand, spec §0).
+const tracked = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).split('\n');
+assert.deepEqual(tracked.filter((f) => /immich-openapi-specs/i.test(f)), [], 'an Immich OpenAPI spec file');
+assert.match(read('THIRD_PARTY_NOTICES.md'), /Wicaby can connect to an Immich server through its public REST API\. No Immich code is included/, 'THIRD_PARTY_NOTICES.md: the Immich line');
+ok('no Immich package, spec file or AGPL dependency (npm lockfile, Gradle); the notices say so');
 
 // 6. File sources §5.3 / FS-11: the SMB gateway links go-smb2 (BSD-2) and its geoffgarside/ber (BSD-3). The notices
 //    name both, and the two generated licence files carry their texts (vendor/ is not tracked: checked when built).

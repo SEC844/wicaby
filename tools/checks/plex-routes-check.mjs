@@ -146,7 +146,8 @@ assert.equal(normalize('/Videos/{}/stream.{}'), '/Videos/{}/stream.{}');
 assert.equal(normalize('/Users/{}{}'), '/Users/{}{}');
 assert.equal(classify('/Items/{}/ThemeSongs'), null, 'self-test: an unknown route is caught');
 assert.equal(classify('/UserViews'), 'route', 'self-test: a Jellyfin form maps to its Emby form');
-assert.match(classify('/LiveTv/Programs'), /^unsupported/);
+assert.equal(classify('/LiveTv/Programs'), 'route', 'self-test: Live TV is routed (PX-11)');
+assert.match(classify('/LiveTv/ChannelTags'), /^unsupported/);
 if (process.argv.includes('--self-test')) {
   console.log('plex-routes-check: self-test ok');
   process.exit(0);

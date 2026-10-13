@@ -3,7 +3,7 @@
   import { atParam, dayKey, dayStart, leftForDay, leftForDaypart, MINUTE, PAGE_MS, parseAt, parseDayKey } from '../../shared/livetv/anchor';
   import type { DayChip, DaypartId } from '../../shared/livetv/anchor';
   import { lensFromParam, lensToParam, stepLens } from '../../shared/livetv/lens';
-  import { CATEGORIES } from '../../shared/livetv/model';
+  import { categoriesOf } from '../../shared/livetv/model';
   import type { Category, ChannelRow, LensRef, ProgramLite } from '../../shared/livetv/model';
   import type { PendingJump } from '../../shared/livetv/nav';
   import Guide from '../components/Guide.svelte';
@@ -69,7 +69,7 @@
     return day === null ? null : parseAt(day, q.get('at'));
   }
 
-  const catParam = (v: string | null): Category | null => (CATEGORIES.find((c) => c === v) ?? null);
+  const catParam = (v: string | null, s: LiveTvStore): Category | null => (categoriesOf(s.kind).find((c) => c === v) ?? null);
 
   // Applies a URL that this page did not write (first open, back / forward, a link).
   $effect(() => {
@@ -88,7 +88,7 @@
         const apply = (): void => {
           const { lens, category } = lensFromParam(lp);
           s.setLens(lens);
-          void s.setCategory(catParam(cp) ?? category ?? null);
+          void s.setCategory(catParam(cp, s) ?? category ?? null);
         };
         apply();
         // The synced lens loads after this: on first open the URL wins over it, unless a pick replaced the URL meanwhile.

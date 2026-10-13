@@ -82,6 +82,14 @@ fun LibrariesScreen(api: Api, nav: NavController) {
                 item("title", span = { GridItemSpan(maxLineSpan) }) { LargeTitle(stringResource(R.string.tab_libraries)) }
                 if (list.isEmpty()) item("empty", span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.no_libraries), style = Type.body, color = G.label2) }
                 items(list, key = { Servers.libraryRef(it) }) { v -> LibraryCard(Servers.forItem(v, api), v, viewLabel(v, list)) { nav.navigate(GridRoute(v.name, parentId = v.id, collectionType = v.collectionType, serverId = Servers.extraOf(v.serverId)?.server?.id)) } }
+                // Immich photo source (photos spec PH-13): its own library, next to the server's.
+                com.wika.wicaby.core.photos.Immich.source?.let { s ->
+                    item("immich") {
+                        LibraryCard(api, Item(id = s.id, name = s.name), "Immich · ${s.name}") {
+                            nav.navigate(GridRoute(s.name, parentId = s.id, collectionType = com.wika.wicaby.mobile.ui.photos.IMMICH))
+                        }
+                    }
+                }
                 // File sources (FS-10): folders, WebDAV and SMB shares, browsed without a server.
                 item("files", span = { GridItemSpan(maxLineSpan) }) { FilesSection(nav) }
             }

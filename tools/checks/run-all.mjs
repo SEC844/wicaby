@@ -38,6 +38,7 @@ const checks = [
   ['download-path-check.mjs'],
   ['bif-check.mjs'],
   ['mesh-selfcheck.mjs'],
+  ['lan-mesh-check.mjs'],
   ['vpn-selfcheck.mjs'],
   ['torrents-selfcheck.mjs'],
   ['media-url-check.mjs'],
@@ -56,8 +57,12 @@ const checks = [
   ['access-schedule-mock-check.mjs'],
   ['music-mock-check.mjs'],
   ['music-check.mjs'],
+  ['music-wave5-check.mjs'],
   ['photos-mock-check.mjs'],
   ['photos-check.mjs'],
+  // Immich photo source (photos spec PH-11, PH-12).
+  ['immich-mock-check.mjs'],
+  ['immich-check.mjs'],
   ['tiles-check.mjs'],
   ['release-check.mjs'],
   ['licence-check.mjs'],
@@ -84,6 +89,11 @@ const checks = [
   // Plex playback on the desktop (PX-08 to PX-10).
   ['plex-playback-check.mjs'],
   ['plex-cast-check.mjs'],
+  // Plex Live TV and DVR on the desktop (PX-11).
+  ['plex-livetv-check.mjs'],
+  // README images carry no metadata (tEXt, iTXt, eXIf, caBX, WebP EXIF/XMP).
+  ['../screenshots/strip-metadata.mjs', '--self-test'],
+  ['../screenshots/strip-metadata.mjs', '--check'],
 ];
 
 const failed = [];

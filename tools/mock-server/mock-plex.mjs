@@ -18,14 +18,17 @@
 //   MOCK_REMOTE_PASS=0          a remote decision answers 403 (remote playback needs a pass).
 //   MOCK_PLEX_FLAKY=1           the first PMS request of each minute answers 500.
 //   MOCK_PLEX_PASS=0            no Plex Pass on the owner: /livetv/dvrs answers 403.
-//   MOCK_PLEX_LIVETV=1          /livetv/dvrs lists one DVR (its channels and grid are PX-11, after real captures).
+//   MOCK_PLEX_LIVETV=1          Live TV and DVR (PX-11): one DVR with 2 tuners, 9 lineup channels (8 enabled), a 48 h
+//                               grid, tune → a live session, subscriptions CRUD and their scheduled airings. The
+//                               shapes are guesses from the public docs (PLEX-LIVETV-UNVERIFIED), not captures.
 //   MOCK_PLEX_VIDEO=<file>      the file every Part.key serves (with Range); without it a part answers 404.
 // Tags (a run's log reads as a bug list): UNMAPPED, TOKEN-IN-URL, NO-CLIENT-ID, NO-TOKEN, ACCOUNT-TOKEN-ON-PMS,
-// HTTP-REFUSED, DUP-STOPPED, AFTER-STOPPED, DUP-SCROBBLE, SEEK-AFTER-OFFSET, FLAKY.
+// HTTP-REFUSED, DUP-STOPPED, AFTER-STOPPED, DUP-SCROBBLE, SEEK-AFTER-OFFSET, FLAKY, GRID-NO-WINDOW, BAD-SUBSCRIPTION.
 // Mock routes (no auth, on the PMS and plex.tv ports): GET /Mock/State, POST /Mock/Reset, POST /Mock/Pin/Link?code=,
 // POST /Mock/Home/SetPin?user=&pin=, POST /Mock/Terminate?session=&reason= (a 'playing' stopped notification now, the
 // reason on the session's next timeline), POST /Mock/Broadcast (JSON body: one notification pushed to every
-// notifications socket).
+// notifications socket), POST /Mock/LiveTv/Record?ratingKey= (the DVR finished recording that item: one more Media,
+// container mpegts; PMS's DELETE /library/metadata/{key}/media/{id} removes it, and every DELETE lands in state.deletes).
 // Usage: node tools/mock-server/mock-plex.mjs   or   import { startMockPlex } from './mock-plex.mjs'
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -161,7 +164,7 @@ function show(rk, title, extra, seasons) {
     for (const e of eps) {
       leaves++;
       if (e.viewCount) viewed++;
-      add({ ...meta(e.rk, 'episode', e.title, { librarySectionID: SECTION_SHOWS }), index: e.index, parentIndex: index, parentRatingKey: String(srk), parentTitle: index === 0 ? 'Specials' : `Season ${index}`, grandparentRatingKey: String(rk), grandparentTitle: title, grandparentThumb: s.thumb, grandparentArt: s.art, ...e.extra });
+      add({ ...meta(e.rk, 'episode', e.title, { librarySectionID: SECTION_SHOWS }), index: e.index, parentIndex: index, parentRatingKey: String(srk), parentTitle: index === 0 ? 'Specials' : `Season ${index}`, grandparentRatingKey: String(rk), grandparentTitle: title, grandparentGuid: s.guid, grandparentThumb: s.thumb, grandparentArt: s.art, ...e.extra });
     }
   });
   Object.assign(s, { childCount: seasons.length, leafCount: leaves, viewedLeafCount: viewed });
@@ -228,6 +231,45 @@ const SECTIONS = [
 const TYPE_NUM = { 1: 'movie', 2: 'show', 3: 'season', 4: 'episode', 8: 'artist', 9: 'album', 10: 'track', 18: 'collection' };
 const TOP = { movie: 'movie', show: 'show', artist: 'artist' };
 
+// ---- Live TV (MOCK_PLEX_LIVETV=1): one DVR with two tuners, 9 lineup channels (8 enabled, '9' not), and a guide of
+// hourly airings from 12 h before to 36 h after the current hour (the news channel '1' every 30 min). Channel '2' shows
+// the library's films (so a recorded film is a library item), channel '3' episodes of "Studio Diaries" (a new one every
+// fourth slot), the others invented shows. ----
+const LIVE_EPG = 'tv.plex.providers.epg.mock:1';
+const LIVE_CHANNELS = ['1', '2', '3', '4', '5.1', '6', '7', '8', '9'].map((identifier, i) => ({ identifier, key: `ch-${i + 1}`, title: ['Info 24', 'Ciné Club', 'Studio TV', 'Sport Direct', 'Jeunesse', 'Docs', 'Musique Live', 'Météo', 'Hors bouquet'][i], callSign: `MOCK${i + 1}`, channelVcn: identifier }));
+const LIVE_DVR = {
+  key: '1',
+  uuid: 'mock-dvr',
+  lineup: 'lineup://tv.plex.providers.epg.mock/mock-lineup',
+  epgIdentifier: LIVE_EPG,
+  language: 'fr',
+  Device: [{ key: '1', make: 'Mock', model: 'Tuner', tuners: '2', ChannelMapping: LIVE_CHANNELS.map((c) => ({ channelKey: c.key, deviceIdentifier: c.identifier, lineupIdentifier: c.identifier, enabled: c.identifier === '9' ? '0' : '1' })) }],
+};
+const STUDIO = { rk: 2100, title: 'Studio Diaries', guid: 'plex://show/mock2100' };
+
+// Every airing of the guide window around `now` (epoch s): [{ meta, media }], meta in the grid's shape.
+function liveAirings(now) {
+  const base = Math.floor(now / 3600) * 3600 - 12 * 3600;
+  const out = [];
+  LIVE_CHANNELS.forEach((c, ci) => {
+    const step = c.identifier === '1' ? 1800 : 3600;
+    for (let slot = 0, t = base; t < base + 48 * 3600; slot++, t += step) {
+      const id = `${ci + 1}${String(slot).padStart(3, '0')}`;
+      const media = { id: Number(id), channelIdentifier: c.identifier, channelCallSign: c.callSign, beginsAt: t, endsAt: t + step, ...(slot % 4 === 0 ? { premiere: 1 } : {}) };
+      let meta;
+      if (c.identifier === '2') {
+        const film = MOVIES[slot % MOVIES.length];
+        meta = { ratingKey: `9${id}`, type: 'movie', title: film.name, year: film.year, guid: `plex://movie/mock${1000 + (slot % MOVIES.length)}`, summary: film.overview, Genre: [{ tag: 'Film' }] };
+      } else {
+        const show = c.identifier === '3' ? STUDIO : { title: c.identifier === '1' ? 'Le Journal' : `${c.title} Magazine`, guid: `plex://show/mockLive${c.key}` };
+        meta = { ratingKey: `9${id}`, type: 'episode', title: `Épisode ${slot + 1}`, grandparentTitle: show.title, grandparentGuid: show.guid, parentIndex: 1, index: slot + 1, guid: `plex://episode/mockLive${id}`, summary: `${show.title}, épisode ${slot + 1}.`, Genre: [{ tag: c.identifier === '1' ? 'News' : 'Magazine' }] };
+      }
+      out.push({ meta, media });
+    }
+  });
+  return out;
+}
+
 // ---- Server ----
 
 export async function startMockPlex(opts = {}) {
@@ -239,7 +281,7 @@ export async function startMockPlex(opts = {}) {
   const httpsRequired = on('MOCK_PLEX_HTTPS_REQUIRED');
   const directHost = env.MOCK_PLEX_DIRECT_HOST ?? `127-0-0-1.${MACHINE_ID.slice(0, 32)}.plex.direct`;
 
-  const fresh = () => ({ calls: [], tags: [], timelines: [], scrobbles: [], partPuts: [], refreshes: [], hidden: [], pins: [], switches: [], decisions: [], segments: [], tokens: { pms: [], plextv: [] }, terminations: [], watchlist: {} });
+  const fresh = () => ({ calls: [], tags: [], timelines: [], scrobbles: [], partPuts: [], refreshes: [], hidden: [], pins: [], switches: [], decisions: [], segments: [], tokens: { pms: [], plextv: [] }, terminations: [], watchlist: {}, liveSubs: [], liveSubSeq: 70, tunes: [], stops: [], deletes: [] });
   const state = fresh();
   const tag = (t, detail = '') => {
     state.tags.push(t);
@@ -307,6 +349,13 @@ export async function startMockPlex(opts = {}) {
       const tl = state.timelines.findLast((x) => x.session === session);
       if (tl) broadcast({ NotificationContainer: { type: 'playing', size: 1, PlaySessionStateNotification: [{ sessionKey: String(state.timelines.indexOf(tl) + 1), clientIdentifier: tl.client, ratingKey: tl.key, key: `/library/metadata/${tl.key}`, viewOffset: tl.time, state: 'stopped' }] } });
       return json(res, 200, {});
+    }
+    if (p === '/Mock/LiveTv/Record' && req.method === 'POST') {
+      const it = items.get(q.get('ratingKey') ?? '');
+      if (!it || !['movie', 'episode'].includes(it.type)) return json(res, 404, {});
+      const rec = media(Number(it.ratingKey) * 10 + 9, { container: 'mpegts', duration: it.duration ?? 600_000 });
+      it.Media = [...(it.Media ?? []), rec];
+      return json(res, 200, { media: rec.id });
     }
     if (p === '/Mock/Broadcast' && req.method === 'POST') {
       broadcast(JSON.parse((await readBody(req)) || '{}'));
@@ -439,6 +488,77 @@ export async function startMockPlex(opts = {}) {
     }
     return out;
   };
+  // ---- Live TV routes (PLEX-LIVETV-UNVERIFIED: the client's guesses, see livetv-map.ts) → { status, body } ----
+  function live(req, p, q) {
+    const now = Math.floor(Date.now() / 1000);
+    const subs = state.liveSubs;
+    const airings = liveAirings(now);
+    const enabled = new Set(LIVE_DVR.Device[0].ChannelMapping.filter((m) => m.enabled === '1').map((m) => m.lineupIdentifier));
+    const pref = (s, id) => s.Setting.find((x) => x.id === id)?.value;
+    const guidOf = (s) => (s.Directory ?? s.Video).guid;
+    const scheduled = () =>
+      subs.flatMap((s) => {
+        const mine = airings.filter(({ meta, media }) => media.endsAt > now && enabled.has(media.channelIdentifier) && (s.type === 2 ? meta.grandparentGuid === guidOf(s) && (!pref(s, 'lineupChannel') || pref(s, 'lineupChannel') === media.channelIdentifier) && (pref(s, 'onlyNewAirings') !== '1' || media.premiere) : meta.guid === guidOf(s)));
+        return (s.type === 2 ? mine : mine.slice(0, 1)).map(({ meta, media }) => ({ mediaSubscriptionID: Number(s.key), status: media.beginsAt <= now ? 'inprogress' : 'scheduled', Metadata: { ...meta, Media: [media] } }));
+      });
+    const prefsFrom = () => [...q.entries()].flatMap(([k, v]) => (/^prefs\[(\w+)\]$/.exec(k) ? [{ id: /^prefs\[(\w+)\]$/.exec(k)[1], value: v }] : []));
+    let m;
+    if (p === '/livetv/epg/channels') return q.get('lineup') === LIVE_DVR.lineup ? { status: 200, body: { size: LIVE_CHANNELS.length, Channel: LIVE_CHANNELS } } : { status: 404 };
+    if (p === `/${LIVE_EPG}/grid`) {
+      const after = Number(q.get('endsAt>>'));
+      const before = Number(q.get('beginsAt<<'));
+      if (!Number.isFinite(after) || !Number.isFinite(before) || !q.has('endsAt>>') || !q.has('beginsAt<<')) {
+        tag('GRID-NO-WINDOW', q.toString());
+        return { status: 400 };
+      }
+      const types = (q.get('type') ?? '1,4').split(',').map((x) => TYPE_NUM[x]);
+      const list = airings.filter(({ meta, media }) => media.endsAt > after && media.beginsAt < before && types.includes(meta.type));
+      // One Metadata per airing (PMS may group airings of one programme; the client reads every Media either way).
+      return { status: 200, body: { size: list.length, Metadata: list.map(({ meta, media }) => ({ ...meta, Media: [media] })) } };
+    }
+    if ((m = /^\/livetv\/dvrs\/1\/channels\/([^/]+)\/tune$/.exec(p)) && req.method === 'POST') {
+      const ident = decodeURIComponent(m[1]);
+      if (!enabled.has(ident)) return { status: 404 };
+      state.tunes.push(ident);
+      return { status: 200, body: { size: 1, Metadata: [{ key: `/livetv/sessions/${crypto.randomUUID()}/${encodeURIComponent(ident)}`, type: 'clip', title: LIVE_CHANNELS.find((c) => c.identifier === ident).title, live: 1 }] } };
+    }
+    if (p === '/media/subscriptions/template') {
+      const hit = airings.find(({ meta }) => meta.guid === q.get('guid'));
+      if (!hit) return { status: 404 };
+      const { meta } = hit;
+      const entry = (type, guid, title, section) => ({ type, targetLibrarySectionID: section, targetSectionLocationID: section, title, parameters: new URLSearchParams({ 'hints[guid]': guid, 'hints[title]': title }).toString() });
+      const entries = meta.type === 'movie' ? [entry(1, meta.guid, meta.title, SECTION_FILMS)] : [entry(4, meta.guid, meta.title, SECTION_SHOWS), entry(2, meta.grandparentGuid, meta.grandparentTitle, SECTION_SHOWS)];
+      return { status: 200, body: { size: 1, SubscriptionTemplate: [{ MediaSubscription: entries }] } };
+    }
+    if (p === '/media/subscriptions/scheduled') {
+      const ops = scheduled();
+      return { status: 200, body: { size: ops.length, MediaGrabOperation: ops } };
+    }
+    if (p === '/media/subscriptions' && req.method === 'GET') return { status: 200, body: { size: subs.length, MediaSubscription: subs } };
+    if (p === '/media/subscriptions' && req.method === 'POST') {
+      const type = Number(q.get('type'));
+      const guid = q.get('hints[guid]');
+      if (![1, 2, 4].includes(type) || !guid || !q.get('targetLibrarySectionID')) {
+        tag('BAD-SUBSCRIPTION', q.toString());
+        return { status: 400 };
+      }
+      if (subs.some((s) => s.type === type && guidOf(s) === guid)) return { status: 400, body: { errors: [{ code: 400, message: 'Already subscribed', status: 400 }] } };
+      const title = q.get('hints[title]') ?? '';
+      const sub = { key: String(++state.liveSubSeq), type, title, targetLibrarySectionID: Number(q.get('targetLibrarySectionID')), targetSectionLocationID: Number(q.get('targetSectionLocationID')), Setting: prefsFrom(), [type === 2 ? 'Directory' : 'Video']: { guid, title } };
+      subs.push(sub);
+      return { status: 200, body: { size: 1, MediaSubscription: [sub] } };
+    }
+    if ((m = /^\/media\/subscriptions\/(\d+)$/.exec(p))) {
+      const i = subs.findIndex((s) => s.key === m[1]);
+      if (i < 0) return { status: 404 };
+      if (req.method === 'DELETE') return (subs.splice(i, 1), { status: 200, body: {} });
+      if (req.method === 'PUT') for (const x of prefsFrom()) subs[i].Setting = [...subs[i].Setting.filter((y) => y.id !== x.id), x];
+      return { status: 200, body: { size: 1, MediaSubscription: [subs[i]] } };
+    }
+    tag('UNMAPPED', `${req.method} ${p}`);
+    return { status: 404 };
+  }
+
   const imageFile = (rk, kind) => art.get(String(rk))?.[kind];
   function sendImage(res, rk, kind) {
     const file = imageFile(rk, kind);
@@ -543,6 +663,15 @@ export async function startMockPlex(opts = {}) {
     if ((m = /^\/library\/metadata\/(\d+)\/refresh$/.exec(p)) && req.method === 'PUT') {
       if (!user.admin) return end(403, container());
       state.refreshes.push(m[1]);
+      return C({});
+    }
+    // A recording's delete removes one version and the item stays (PX-11); a whole-item delete is only recorded.
+    if ((m = /^\/library\/metadata\/(\d+)(?:\/media\/(\d+))?$/.exec(p)) && req.method === 'DELETE') {
+      const it = items.get(m[1]);
+      const i = m[2] ? (it?.Media ?? []).findIndex((x) => String(x.id) === m[2]) : -1;
+      if (!it || (m[2] && i < 0)) return end(404, container());
+      state.deletes.push(p);
+      if (m[2]) it.Media.splice(i, 1);
       return C({});
     }
     if ((m = /^\/library\/metadata\/([\d,]+)$/.exec(p))) {
@@ -775,6 +904,7 @@ export async function startMockPlex(opts = {}) {
       if (Number(m[2]) < Math.floor(Number(q.get('offset') ?? 0) / 6)) tag('SEEK-AFTER-OFFSET', `${m[1]} segment ${m[2]}`);
       return end(404, container());
     }
+    if (p === '/video/:/transcode/universal/stop') state.stops.push(q.get('session') ?? '');
     if (p === '/video/:/transcode/universal/ping' || p === '/video/:/transcode/universal/stop') return C({});
 
     // Playlists.
@@ -806,10 +936,16 @@ export async function startMockPlex(opts = {}) {
       return C({ size: list.length });
     }
 
-    // Live TV (plex-spec §7): only the DVR list; channels and grid wait for real captures (PX-11).
+    // Live TV and DVR (plex-spec §7, PX-11). PLEX-LIVETV-UNVERIFIED: these shapes are the client's guesses from the
+    // public docs (shared/plex/livetv-map.ts), not captures of a real PMS with a tuner.
     if (p === '/livetv/dvrs') {
       if (env.MOCK_PLEX_PASS === '0') return end(403, { errors: [{ code: 1999, message: 'Live TV requires Plex Pass', status: 403 }] });
-      return C(on('MOCK_PLEX_LIVETV') ? { size: 1, Dvr: [{ key: '1', uuid: 'mock-dvr', lineup: 'mock-lineup', language: 'fr', Device: [{ key: '1', make: 'Mock', model: 'Tuner' }] }] } : { size: 0 });
+      return C(on('MOCK_PLEX_LIVETV') ? { size: 1, Dvr: [LIVE_DVR] } : { size: 0 });
+    }
+    if (p.startsWith('/livetv/') || p.startsWith('/media/subscriptions') || p === `/${LIVE_EPG}/grid`) {
+      if (!on('MOCK_PLEX_LIVETV') || env.MOCK_PLEX_PASS === '0') return end(404, container());
+      const r = live(req, p, q);
+      return r.status === 200 ? C(r.body) : end(r.status, r.body ?? container());
     }
 
     tag('UNMAPPED', `${req.method} ${p}`);

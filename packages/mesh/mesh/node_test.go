@@ -57,3 +57,53 @@ func TestCloseWithoutStart(t *testing.T) {
 		t.Fatal("Start after Close ran the provider")
 	}
 }
+
+// meshDialer records the addresses the mesh was asked to dial.
+type meshDialer struct {
+	slowStop
+	dialled []string
+}
+
+func (p *meshDialer) dial(_ context.Context, _, addr string) (net.Conn, error) {
+	p.dialled = append(p.dialled, addr)
+	c, _ := net.Pipe()
+	return c, nil
+}
+
+// SMB to a host in a NetBird routed network: direct when it answers (at home), else through the routing peer.
+// A peer is always dialled through the mesh; any other host gets no mesh dialer at all.
+func TestFilesDialerDirectFirstForRoutes(t *testing.T) {
+	p := &meshDialer{}
+	n := testNode(p)
+	st := testStatus()
+	st.Routes = []string{"127.0.0.0/8"}
+	n.hub.set(st)
+
+	open, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer open.Close()
+	closedLn, _ := net.Listen("tcp", "127.0.0.1:0")
+	closed := closedLn.Addr().String()
+	closedLn.Close()
+
+	d := n.FilesDialer("127.0.0.1")
+	c, err := d(context.Background(), "tcp", open.Addr().String())
+	if err != nil || len(p.dialled) != 0 {
+		t.Fatalf("answering directly: err %v, mesh dials %v", err, p.dialled)
+	}
+	c.Close()
+	if c, err = d(context.Background(), "tcp", closed); err != nil || len(p.dialled) != 1 || p.dialled[0] != closed {
+		t.Fatalf("not answering: err %v, mesh dials %v", err, p.dialled)
+	}
+	c.Close()
+
+	if c, err = n.FilesDialer("100.64.0.7")(context.Background(), "tcp", "100.64.0.7:445"); err != nil || p.dialled[1] != "100.64.0.7:445" {
+		t.Fatalf("peer: err %v, mesh dials %v", err, p.dialled)
+	}
+	c.Close()
+	if n.FilesDialer("192.0.2.15") != nil {
+		t.Fatal("a host outside the mesh got a mesh dialer")
+	}
+}

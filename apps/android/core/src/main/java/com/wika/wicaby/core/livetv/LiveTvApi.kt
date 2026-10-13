@@ -35,6 +35,13 @@ class LiveApiException(val fail: Fail, val status: Int, message: String, cause: 
     val retryable: Boolean get() = fail == Fail.NETWORK || (fail == Fail.HTTP && status >= 500)
 }
 
+/** The Live TV dialect of a server: Plex answers the non-Emby forms through its adapter. */
+val Api.liveKind: ServerKind get() = when (server.kind) {
+    "emby" -> ServerKind.EMBY
+    "plex" -> ServerKind.PLEX
+    else -> ServerKind.JELLYFIN
+}
+
 /** One tile answer: the programmes, and whether any raw programme carried an IsHD key (V16 probe). */
 class TileAnswer(val programs: List<ProgramLite>, val sawHdKey: Boolean)
 
@@ -111,7 +118,7 @@ internal fun decodePrograms(input: InputStream, kind: ServerKind, genresOn: Bool
 }
 
 class LiveTvApi(val api: Api, private val clock: () -> Long = System::currentTimeMillis) {
-    val kind: ServerKind = if (api.server.isEmby) ServerKind.EMBY else ServerKind.JELLYFIN
+    val kind: ServerKind = api.liveKind
     val userId: String = api.userId.orEmpty()
     val serverId: String = api.server.id
 

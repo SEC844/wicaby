@@ -117,6 +117,8 @@
       case 'music.favorite':
         if (track) void toggleFavorite(track);
         return;
+      case 'music.mini':
+        return void w.window.mini('toggle');
       case 'music.close':
         return back();
     }
@@ -156,6 +158,7 @@
       </button>
       <input class="volume" type="range" min="0" max="100" step="1" value={s.volume} style:--pct="{s.muted ? 0 : s.volume}%" aria-label={t('music.bar.volume')} oninput={(e) => command({ type: 'volume', value: Number(e.currentTarget.value) })} />
       <BrowseMenu label={t('music.bar.output')} icon="speaker" compact up align="end" options={outputs} onselect={(v) => v !== device && void setSettings({ playback: { audioDevice: v } })} />
+      <button class="icon-btn" data-open-mini title={t('music.mini.open')} aria-label={t('music.mini.open')} onclick={() => w.window.mini('open')}><Icon name="pip" size={16} /></button>
       <button class="icon-btn" title={t('music.bar.fullScreen')} aria-label={t('music.bar.fullScreen')} onclick={fullScreen}><Icon name="fullscreen" size={16} /></button>
     </div>
   </div>

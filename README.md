@@ -7,10 +7,10 @@
 
 # Wicaby
 
-**All your media in one place.** Your Emby and Jellyfin servers, beautifully played on Windows, Linux, Android TV and Android.
+**All your media in one place.** Your Emby, Jellyfin and Plex servers, beautifully played on Windows, Linux, Android TV and Android.
 
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20TV%20%7C%20Android-informational.svg)](#download)
-[![Servers](https://img.shields.io/badge/servers-Emby%20%7C%20Jellyfin-52b54b.svg)](#why-wicaby)
+[![Servers](https://img.shields.io/badge/servers-Emby%20%7C%20Jellyfin%20%7C%20Plex-52b54b.svg)](#why-wicaby)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 [Download](#download) · [Features](#features) · [Getting started](#getting-started) · [Docs](docs/features.md) · [Français](README.fr.md)
@@ -54,6 +54,35 @@
     <td align="center">
       <img src="docs/screenshots/desktop-settings.png" alt="Settings with the keyboard shortcuts section" width="280"><br>
       <b>Settings</b><br><sub>Searchable, with rebindable shortcuts</sub>
+    </td>
+  </tr>
+</table>
+
+### Photos, music and Plex
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-photos.png" alt="Photo timeline of a family photo library, grouped by month" width="280"><br>
+      <b>Photos</b><br><sub>A timeline, albums, slideshows and "On This Day"</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-music.png" alt="Album page for Neon Avenue with its track list and the Play, Shuffle and Mix buttons" width="280"><br>
+      <b>Music</b><br><sub>Albums, a queue you can edit, mixes and lyrics</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/desktop-plex.png" alt="Films section of a Plex server, with the server shown as Plex in the sidebar" width="280"><br>
+      <b>Plex</b><br><sub>Your Plex servers, linked with a code</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="docs/screenshots/tv-photos.png" alt="Android TV photo timeline" width="420"><br>
+      <b>Photos on Android TV</b><br><sub>Your pictures on the big screen</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/mobile-music.png" alt="Phone music section" width="130"><br>
+      <b>Music on your phone</b><br><sub>With lock-screen controls</sub>
     </td>
   </tr>
 </table>

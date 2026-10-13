@@ -51,7 +51,7 @@ object PlayerHolder {
         playback = null
         music?.release()
         Casting.stopDirect()
-        val eng = engine ?: buildEngine(app, api.authHeaders(), "Wicaby/${BuildConfig.VERSION_NAME} (Android)").also { engine = it }
+        val eng = ensureEngine(app)
         val start = if (shuffle && items.isNotEmpty()) items.indices.random() else index
         val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(id) }, onReleased = { if (music === it) music = null })
         s.start()
@@ -69,7 +69,7 @@ object PlayerHolder {
         playback?.stop()
         // A direct DLNA cast reports as this device's session: it ends before local playback starts (cast spec §1).
         Casting.stopDirect()
-        val eng = engine ?: buildEngine(context.applicationContext, api.authHeaders(), "Wicaby/${BuildConfig.VERSION_NAME} (Android)").also { engine = it }
+        val eng = ensureEngine(context)
         val sc = scope ?: MainScope().also { scope = it }
         val pb = Playback(
             context.applicationContext, api, eng.player, id, fromStart,
@@ -89,6 +89,11 @@ object PlayerHolder {
     private fun autoNext(pb: Playback) {
         if (!visible && pb.next != null && !pb.upNextDismissed && !SleepTimer.endOfVideo && pb.autoCount < STILL_WATCHING_AFTER) pb.advance(auto = true)
     }
+
+    // The engine is kept across users and servers (Core.http adds the server's auth per request); Android Auto (MU-12)
+    // builds it too, to browse before anything plays.
+    fun ensureEngine(context: Context): Engine =
+        engine ?: buildEngine(context.applicationContext, emptyMap(), "Wicaby/${BuildConfig.VERSION_NAME} (Android)").also { engine = it }
 
     fun onRelease(l: () -> Unit) {
         releaseListeners += l

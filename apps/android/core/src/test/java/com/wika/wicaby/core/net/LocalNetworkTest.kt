@@ -31,4 +31,15 @@ class LocalNetworkTest {
         // An unresolvable name is left to the connection (it fails the usual way).
         assertFalse(LocalNetwork.isLanHost("gone.example.org") { throw java.net.UnknownHostException(it) })
     }
+
+    @Test
+    fun managementUrls() {
+        val none: (String) -> List<String> = { error("no lookup expected for $it") }
+        assertTrue(LocalNetwork.isLanUrl("https://192.168.0.10:33073", none))
+        assertTrue(LocalNetwork.isLanUrl("http://netbird.local", none))
+        assertTrue(LocalNetwork.isLanUrl("https://netbird.example.org") { listOf("192.168.0.10") })
+        assertFalse(LocalNetwork.isLanUrl("https://netbird.example.org") { listOf("203.0.113.7") })
+        assertTrue(LocalNetwork.isLanUrl("10.0.0.5:443", none))
+        assertFalse(LocalNetwork.isLanUrl("https://", none))
+    }
 }

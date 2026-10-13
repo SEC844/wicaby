@@ -109,7 +109,8 @@
     "later": "Plus tard",
     "unsynced": "Paroles non synchronisées",
     "source": {
-      "server": "Paroles du serveur"
+      "server": "Paroles du serveur",
+      "lrclib": "Paroles de LRCLIB"
     }
   },
   "radio": {
@@ -124,5 +125,27 @@
   "folders": {
     "up": "Dossier parent",
     "root": "Racine"
+  },
+  "mini": {
+    "open": "Mini-lecteur",
+    "expand": "Agrandir",
+    "close": "Fermer le mini-lecteur"
+  },
+  "eq": {
+    "title": "Égaliseur",
+    "desc": "Avec le lecteur mpv. Plat : aucun filtre, le son reste intact.",
+    "preset": {
+      "label": "Préréglage",
+      "flat": "Plat",
+      "bass": "Graves",
+      "vocal": "Voix",
+      "treble": "Aigus",
+      "custom": "Personnalisé"
+    },
+    "preamp": "Préamplification",
+    "reset": "Réinitialiser",
+    "band": "Bande {freq}",
+    "value": "{db} dB",
+    "htmlNote": "Le lecteur intégré n’applique pas l’égaliseur."
   }
 }

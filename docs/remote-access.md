@@ -83,6 +83,22 @@ Wicaby sends this server's traffic through your network: browsing, artwork, play
 - **Sign Out of Network** signs the device out of your network and forgets its key. You will need to sign in again.
 - If the connection fails, the panel shows the reason with **Retry**, **Turn Off** and **Sign Out of Network**.
 
+## qBittorrent and file sources on your home network
+
+qBittorrent (Settings > Torrents) and WebDAV/SMB file sources typed with a home-network address, such as `http://192.0.2.15:8080`, work at home and away:
+
+- Wicaby first connects directly. At home, that is all it does.
+- When the address doesn't answer within 1.5 s and Wicaby's own Tailscale/NetBird connection can reach it, the requests go through that connection instead. It can reach the address when it is a device of your network (its `100.x.y.z` address or its name), or when it lies inside a **NetBird network route** (a routing peer at home that serves your home subnet, for example `192.0.2.0/24`).
+- **Test Connection** says which way worked ("Connected (direct)" or "Connected via NetBird/Tailscale"), or which step failed: the direct connection, Remote Access not connected, or an address in no route.
+- With the Tailscale or NetBird app installed and connected instead, the system routes these addresses itself.
+- Tailscale subnet routes are not supported by Wicaby's own connection: use the device's Tailscale address, or the Tailscale app.
+- On Windows, SMB sources open through Windows itself, so away from home they need the Tailscale or NetBird app.
+
+To reach them away from home, set up one of these:
+
+- **A NetBird network route:** in the NetBird dashboard, add a route for your home subnet (for example `192.0.2.0/24`) served by a peer that stays at home. Keep the home-network address in Wicaby.
+- **NetBird (or Tailscale) on that host:** install it on the computer or NAS that runs qBittorrent or the WebDAV server, then enter its `100.x.y.z` address or its name in Wicaby.
+
 ## Troubleshooting
 
 | Symptom | What to check |

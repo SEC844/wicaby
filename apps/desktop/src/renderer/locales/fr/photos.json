@@ -25,7 +25,8 @@
     "albums": "Albums",
     "favorites": "Favoris",
     "map": "Carte",
-    "label": "Vue"
+    "label": "Vue",
+    "people": "Personnes"
   },
   "empty": "Aucune photo ici pour l’instant.",
   "emptyFavorites": "Aucune photo favorite. Appuyez sur F sur une photo ou sur le cœur dans la visionneuse.",
@@ -69,7 +70,8 @@
     "title": "Albums",
     "empty": "Aucun album dans cette bibliothèque.",
     "count": "{count, plural, one {# élément} other {# éléments}}",
-    "back": "Tous les albums"
+    "back": "Tous les albums",
+    "shared": "Partagé"
   },
   "slideshow": {
     "start": "Diaporama",
@@ -106,5 +108,34 @@
     "noLocation": "Aucune photo géolocalisée ici.",
     "cluster": "{count, plural, one {# photo} other {# photos}}",
     "loading": "Lecture des positions…"
+  },
+  "people": {
+    "title": "Personnes",
+    "empty": "Aucune personne nommée sur ce serveur.",
+    "back": "Toutes les personnes"
+  },
+  "sources": {
+    "title": "Sources de photos",
+    "url": "Serveur Immich",
+    "key": "Clé d’API",
+    "keyHint": "Créez une clé dans Immich (Paramètres du compte, Clés d’API) avec au moins asset.read et asset.view. album.read, person.read, map.read et memory.read ajoutent les albums, les personnes, la carte et les souvenirs.",
+    "test": "Tester",
+    "add": "Connecter",
+    "added": "Serveur Immich connecté.",
+    "remove": "Retirer",
+    "ok": "Immich {version} : connexion réussie.",
+    "versionTooOld": "Immich {version} est trop ancien : Wicaby demande la version 2.0 ou plus récente.",
+    "scopesMissing": "Permissions absentes de la clé : {scopes}. Les fonctions concernées sont masquées.",
+    "scopeMissing": "La clé d’API n’a pas la permission {scope} ; ajoutez-la dans Immich pour voir cette partie.",
+    "keyRefused": "Le serveur Immich refuse la clé d’API. Reconnectez-le dans Réglages, Bibliothèque.",
+    "failed": "Le serveur Immich a répondu une erreur ({status}).",
+    "foot": "La clé reste chiffrée sur cet ordinateur et ne part que vers ce serveur. Les photos Immich forment leur propre bibliothèque, à côté de celles d’Emby ou de Jellyfin.",
+    "error": {
+      "url": "Adresse invalide.",
+      "network": "Serveur injoignable.",
+      "server": "Ce serveur ne répond pas comme un serveur Immich.",
+      "auth": "Clé d’API refusée.",
+      "scope": "La clé n’a pas la permission asset.read, nécessaire pour la chronologie."
+    }
   }
 }

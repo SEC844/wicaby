@@ -124,6 +124,7 @@ Emby and Jellyfin photo libraries, and home-video libraries, open in a Photos ti
   - a slideshow in date order or shuffled, and "Save original" to the Downloads folder;
   - **a photo map, off by default.** Turn it on in Settings > Privacy & Storage. Photos with a position are grouped on OpenStreetMap tiles, fetched and cached by the app with the attribution always shown; the tile address can be changed to another service or your own tile server. Places are never looked up by name.
 - **Android mobile:** pinch between three thumbnail sizes, a fast scroller with the month, swipe between photos, swipe down to close, and long-press to select photos for a slideshow or to add them to favourites.
+- **Immich:** add an Immich server (2.0 or later) with its address and an API key: in Settings > Library on desktop, in Settings on Android. Its photos form their own library with the timeline, albums, People, memories and, on desktop, the map. A permission the key lacks hides that part and names it. The key stays encrypted on the device and goes only to that server, in a header.
 - **Android TV:** a grid built for the remote (Page or Channel +/−, or hold Down, to jump a month), a ×2 zoom, and the slideshow on the Play/Pause key. The screensaver can show your photos, one album or "On This Day" (Settings > Screen Saver); film and show artwork stays the default.
 
 ## Music
@@ -133,7 +134,7 @@ Emby and Jellyfin music libraries open in a music player instead of a poster gri
 - **Library:** Albums (grid or list, sorts, favourite and genre filters), Artists (with an "album artists only" toggle), Songs, Genres and Playlists. Album pages show disc headers, the track count and length; artist pages add top songs and split the discography into albums and "appears on".
 - **Queue:** play next, add to queue, move, remove, clear upcoming, shuffle (turning it off restores the order), repeat all or one, and save the queue as a playlist. Every track has a menu with these actions, add to playlist, favourite, mix, and go to artist or album.
 - **Mix and radio:** the server's instant mix from a song, album, artist, genre or playlist. With radio on, the queue is topped up from the last track's mix when 3 or fewer tracks are left, never with one already played.
-- **Lyrics** come from the server only (Jellyfin's lyrics, or an Emby `lrc` subtitle stream). Synced lyrics follow the song; anything else reads as "no lyrics". Nothing is looked up online.
+- **Lyrics** come from the server (Jellyfin's lyrics, or an Emby `lrc` subtitle stream). Synced lyrics follow the song. When the server has none, Wicaby can look them up on LRCLIB (lrclib.net), **off by default**: turn on "Look up lyrics online (LRCLIB)" in Settings › Audio (desktop) or Settings (Android phone). It then sends the artist, title, album and length of the song to lrclib.net, shows "Lyrics from LRCLIB" under them, and keeps the answer for 30 days. Off, nothing is looked up online.
 - **Loudness:** ReplayGain in album mode by default. Untagged files use the server's gain when it sends one (Jellyfin), plus the preamp. There is no crossfade.
 - **Plays** are reported to your server like any other item; scrobbling to other services is left to server plugins.
 - **Desktop:**
@@ -142,8 +143,11 @@ Emby and Jellyfin music libraries open in a music player instead of a poster gri
   - music shortcuts, editable in Settings: `Space`, `Ctrl` + `←`/`→` for previous and next, `←`/`→` and `Shift` + `←`/`→` to seek, `↑`/`↓` volume, `M`, `S`, `R`, `L`, `Q`, `F`;
   - media keys, Windows media controls and a window title that follows the song;
   - the queue comes back, paused, at the next start;
-  - the built-in player is a simpler fallback: no gapless and no ReplayGain tags.
-- **Android mobile:** a music section with five tabs, a mini player above the navigation, a full-screen now playing with lyrics and the queue, and lock-screen and notification controls.
+  - a mini player (`Ctrl` + `Shift` + `M`, or the button in the now-playing bar): a small window that stays on top, with the art, the song and previous / play / next; it opens where you left it, and closing it brings the main window back (with "Close to Notification Area" on, the main window goes there while it is open);
+  - an equalizer in Settings › Audio: Flat, Bass, Vocal, Treble or your own 10 bands, and a preamp. Flat adds no filter at all, so bit-perfect output stays bit-perfect; boosts take headroom off the preamp when "Prevent clipping" is on;
+  - the built-in player is a simpler fallback: no gapless, no ReplayGain tags and no equalizer.
+- **Android mobile:** a music section with five tabs, a mini player above the navigation, a full-screen now playing with lyrics, the queue and the equalizer (the same presets and 10 bands; it works on decoded audio, so it is off, and says why, while the sound goes to an amplifier in passthrough), and lock-screen and notification controls.
+- **Android Auto** (the Google Play build only): Recent, Playlists, Albums and Artists to browse in the car; picking a song plays its album or list from there. Only Android Auto may browse the library.
 - **Android TV:** music rows (recent albums, recently played, playlists, artists, genres), a now-playing screen built for the remote with queue editing (`←`/`→` to move, hold OK to remove), and music that keeps playing after Home or Back. The screen is allowed to sleep: after 2 minutes without a key it turns to an ambient view, which the screensaver also shows while music plays.
 
 ## File sources
@@ -185,7 +189,8 @@ On desktop (Windows and Linux), Android TV and Android mobile. Wicaby is an unof
   - Skip intro and credits from Plex markers, and BIF trickplay thumbnails;
   - casting to a Chromecast, or to a DLNA TV for files it plays as they are, through the cast relay, so the token never leaves this computer.
 - **On Android TV and mobile:** the same linking (a QR code on TV, a link screen on mobile), Home profiles with their PIN, connections, browsing and playback as above. Tokens stay in the Android Keystore-backed storage. On mobile, downloads only when the server allows them. Casting a Plex item and "Play on" are not available on Android yet.
-- **Not supported:** the Admin panel, Live TV and DVR, "Play on" and remote control of Plex sessions (Wicaby is not a Plex player target), mix and radio, subtitle search, comics, cinema intros (prerolls), Wake-on-LAN and access schedules. A request Wicaby cannot translate fails with a clear error, never a wrong answer.
+- **Live TV and DVR:** the guide, tuning, recordings and series recordings, in the usual Live TV screens, when the server owner has a Plex Pass and a DVR with a tuner. It follows Plex's public documentation and has not yet been tried with a real Plex tuner.
+- **Not supported:** the Admin panel, "Play on" and remote control of Plex sessions (Wicaby is not a Plex player target), mix and radio, subtitle search, comics, cinema intros (prerolls), Wake-on-LAN and access schedules. A request Wicaby cannot translate fails with a clear error, never a wrong answer.
 - **Plex Pass.** Wicaby detects these gates and explains them; it never works around them.
   - Playing away from the server's network needs a Plex Pass (yours or the owner's) or a Remote Watch Pass. On the server's network it still works.
   - Live TV and DVR, intro and credits detection (so the Skip intro button) and hardware transcoding need a Plex Pass on the server owner's account.
@@ -256,6 +261,7 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
   - the services you choose to use: Emby Connect, your qBittorrent, Tailscale or NetBird, and the update URL you configure;
   - YouTube (youtube-nocookie.com), only when you play a YouTube trailer on desktop.
   - the map tile service (OpenStreetMap by default), only after you turn the photo map on (desktop). It sees which areas you look at, not your photos.
+  - LRCLIB (lrclib.net), only after you turn on online lyrics, and only for a song your server has no lyrics for. It sees the artist, title, album and length of that song.
 - **Tailscale log upload is disabled.** The embedded node sets `TS_NO_LOGS_NO_SUPPORT`, so no diagnostics go to Tailscale's log servers.
 - **Tokens stay protected.**
   - Windows: access tokens are encrypted with DPAPI and never reach the UI process. mpv gets them in an HTTP header, not in stream URLs.
@@ -267,8 +273,9 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
 
 ## Screenshots and the demo
 
-Every image in the README comes from the mock server in `tools/mock-server` with the demo dataset (Blender Foundation open movies, CC BY) and an IPTV-scale Live TV; no real server was used, and nothing plays during the captures. To regenerate them:
+Every image in the README comes from the mock servers in `tools/mock-server`: the demo dataset (Blender Foundation open movies, CC BY), an IPTV-scale Live TV, generated photos, invented music made of silence, and the Plex mock (a fake plex.tv and Plex Media Server). No real server was used, and nothing plays during the captures. Every shot shows the same moment, Friday 9 October at 20:30, so the clocks, the guide and the end times never tell when it was taken, and no image carries metadata (text chunks, EXIF, C2PA). To regenerate them:
 
-- `node tools/screenshots/desktop.mjs`: the desktop screenshots;
+- `node tools/screenshots/desktop.mjs`: the desktop screenshots (`SHOTS_CLOCK` sets another moment);
 - `node tools/screenshots/desktop.mjs --frames`: the animated demo (`docs/screenshots/demo.webp`), assembled by the bundled mpv;
-- `powershell -File tools/screenshots/android.ps1`: the Android TV and phone screenshots, on emulators.
+- `powershell -File tools/screenshots/android.ps1`: the Android TV and phone screenshots, on one emulator at a time, with its clock set to the same moment (`-Clock`);
+- `node tools/screenshots/strip-metadata.mjs`: strips metadata from the images in `docs/screenshots` (both scripts run it; `npm run checks` fails if an image still carries any).

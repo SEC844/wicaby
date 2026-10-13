@@ -2,6 +2,7 @@
 // Everything that crosses the IPC boundary is declared here, so both sides
 // fail to compile when they drift apart (Emby used an untyped string frame).
 import type { LensRef, ZapEntry } from './livetv/model';
+import type { Lyrics } from './music';
 import type { QualityRow } from './quality-presets';
 
 export type { LensRef, ZapEntry } from './livetv/model';
@@ -281,6 +282,8 @@ export interface Settings {
   window: {
     bounds?: { x: number; y: number; width: number; height: number };
     maximized?: boolean;
+    // Music mini player (music-spec MU-10): where it was last left.
+    mini?: { x: number; y: number };
   };
   // Windows integration (features/tray.ts, startup.ts, notify.ts).
   windows: {
@@ -330,7 +333,10 @@ export interface Settings {
     gapless: boolean;
     // D8: the queue comes back, paused, at start-up.
     resumeQueue: boolean;
+    // MU-13: 'server+lrclib' asks lrclib.net (main/music/lrclib.ts) when the server has no lyrics. Off by default.
     lyricsProvider: 'server' | 'server+lrclib';
+    // MU-11: the mpv player's equalizer (shared/equalizer.ts); flat = no filter.
+    eq: { bands: number[]; preampDb: number };
   };
 }
 
@@ -422,6 +428,15 @@ export interface MusicState {
   // Where the loudness gain comes from: the file's ReplayGain tags, the server (Jellyfin NormalizationGain) or the fallback.
   gain?: { source: 'tags' | 'server' | 'none'; db: number };
   lyrics?: { kind: 'synced' | 'plain'; source: 'server' | 'lrclib' };
+}
+
+// What lrclib.net is asked for (MU-13): the track id keys the cache, the rest is the query.
+export interface LrclibTrack {
+  id: string;
+  artist: string;
+  title: string;
+  album: string;
+  durationMs: number;
 }
 
 export type SkipMode = 'ask' | 'auto' | 'off';
@@ -855,9 +870,14 @@ export interface TorrentConfig {
   password?: string;
 }
 
+// How a LAN service (qBittorrent, WebDAV) was reached: directly, or through the built-in mesh node's forwarder.
+// 'outside' = the host is no mesh peer and in no NetBird routed network, 'off' = the built-in node is not connected,
+// 'failed' = the node could not open a forwarder; all three mean the request went (or failed) directly.
+export type MeshPath = 'direct' | 'mesh' | 'outside' | 'off' | 'failed';
+
 export type TorrentTestResult =
-  | { ok: true; version: string; apiVersion: string }
-  | { ok: false; error: string; certificate?: TorrentCertificate };
+  | { ok: true; version: string; apiVersion: string; via?: 'direct' | 'mesh' }
+  | { ok: false; error: string; certificate?: TorrentCertificate; path?: MeshPath };
 
 // ---- Trakt (client-side scrobbling, OAuth device code) ----
 
@@ -1059,6 +1079,8 @@ export interface WicabyBridge {
     toggleFullscreen(): Promise<void>;
     getState(): Promise<WindowState>;
     onState(cb: (state: WindowState) => void): Unsubscribe;
+    // Music mini player (MU-10): open it, close it (the main window comes back) or expand (close + focus main).
+    mini(action: 'open' | 'close' | 'toggle'): Promise<void>;
   };
   settings: {
     get(): Promise<Settings>;
@@ -1116,6 +1138,10 @@ export interface WicabyBridge {
     getState(): Promise<PlaybackState>;
     onState(cb: (state: PlaybackState) => void): Unsubscribe;
   };
+  music: {
+    // MU-13: lyrics from lrclib.net for a track the server has none for; null when off, not found or failed.
+    lrclib(track: LrclibTrack): Promise<Lyrics | null>;
+  };
   htmlPlayer: {
     onLoad(cb: (load: HtmlPlayerLoad) => void): Unsubscribe;
     onCommand(cb: (command: HtmlPlayerCommand) => void): Unsubscribe;
@@ -1153,6 +1179,19 @@ export interface WicabyBridge {
   photos: {
     // The slideshow keeps the display awake (powerSaveBlocker 'prevent-display-sleep') while on.
     keepAwake(on: boolean): Promise<void>;
+    // Immich sources (photos spec PH-12): the API key goes in once and never comes back out.
+    immich: {
+      sources(): Promise<ImmichSource[]>;
+      onSources(cb: (sources: ImmichSource[]) => void): Unsubscribe;
+      // Nothing is stored: version, key and permissions.
+      test(url: string, key: string): Promise<ImmichTestResult>;
+      add(url: string, key: string): Promise<ImmichTestResult & { source?: ImmichSource }>;
+      remove(id: string): Promise<void>;
+      // An allow-listed JSON call, path relative to /api. Fails with "immich:<status>" (403: a missing permission).
+      request<T = unknown>(id: string, method: 'GET' | 'POST' | 'PUT', path: string, query?: Query, body?: unknown): Promise<T>;
+      // Into the downloads folder; resolves with the file's path.
+      saveOriginal(id: string, assetId: string): Promise<string>;
+    };
   };
   comics: {
     open(itemId: string, serverId?: string): Promise<ComicInfo>;
@@ -1233,6 +1272,22 @@ export interface WicabyBridge {
   };
 }
 
+// An Immich photo source (photos spec §3.2). Its key stays in main's vault.
+export interface ImmichSource {
+  id: string;
+  name: string;
+  url: string;
+}
+
+// error: url (malformed), network, server (not an Immich answer), version (older than 2.0), auth (key refused),
+// scope (the key lacks asset.read). missing: the optional permissions the key lacks.
+export interface ImmichTestResult {
+  ok: boolean;
+  version?: string;
+  error?: 'url' | 'network' | 'server' | 'version' | 'auth' | 'scope';
+  missing: string[];
+}
+
 // Channel names. Invoke channels return a promise; send channels are fire and forget.
 export const Channels = {
   appInfo: 'app:info',
@@ -1248,6 +1303,8 @@ export const Channels = {
   windowToggleFullscreen: 'window:toggle-fullscreen',
   windowGetState: 'window:get-state',
   windowState: 'window:state',
+  windowMini: 'window:mini',
+  musicLrclib: 'music:lrclib',
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update',
   settingsPickFolder: 'settings:pick-folder',
@@ -1338,6 +1395,13 @@ export const Channels = {
   navigate: 'events:navigate',
   toast: 'events:toast',
   photosKeepAwake: 'photos:keep-awake',
+  immichSources: 'immich:sources',
+  immichChanged: 'immich:changed',
+  immichTest: 'immich:test',
+  immichAdd: 'immich:add',
+  immichRemove: 'immich:remove',
+  immichRequest: 'immich:request',
+  immichSaveOriginal: 'immich:save-original',
   filesList: 'files:list',
   filesTest: 'files:test',
   filesAdd: 'files:add',

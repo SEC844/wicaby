@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
 import { net } from 'electron';
-import type { Query, ServerKind } from '../../shared/contract';
+import type { MeshPath, Query, ServerKind } from '../../shared/contract';
 import type { SystemInfoPublic } from '../../shared/models';
 import { t } from '../i18n';
 
@@ -43,7 +43,7 @@ export function buildQuery(query?: Query): string {
 // tailnet is reached through a loopback forwarder: requests go to the rewritten
 // URL while the original address stays the server's identity.
 export interface AddressRoute {
-  ensure(address: string): Promise<void>;
+  ensure(address: string): Promise<MeshPath>;
   rewrite(url: string): string;
 }
 let route: AddressRoute | null = null;
@@ -51,6 +51,10 @@ export function setAddressRoute(next: AddressRoute | null): void {
   route = next;
 }
 export const routed = (url: string): string => (route ? route.rewrite(url) : url);
+// Opens the mesh forwarder for an address when it needs one (mesh peer, or a routed-network host that does not
+// answer directly within 1.5 s); `routed` then sends its requests through it. Media servers and LAN services
+// (qBittorrent, WebDAV) share this path.
+export const ensureRoute = (address: string): Promise<MeshPath> => (route ? route.ensure(address).catch(() => 'failed' as const) : Promise.resolve('off'));
 
 function quote(value: string): string {
   return `"${encodeURIComponent(value)}"`;
@@ -318,7 +322,7 @@ async function probeOne(address: string, timeoutMs: number): Promise<ProbeResult
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await route?.ensure(address).catch(() => undefined);
+    await ensureRoute(address);
     // Emby answers under /emby (and usually at the root too); Jellyfin only at the root.
     for (const prefix of ['/emby', '']) {
       let info: SystemInfoPublic;
@@ -363,7 +367,7 @@ export async function probePlexIdentity(address: string, timeoutMs: number): Pro
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await route?.ensure(address).catch(() => undefined);
+    await ensureRoute(address);
     const hit = await identityOf(address, controller.signal);
     if (!hit) throw new Error(t('errors.connection.notAServer'));
     return hit;

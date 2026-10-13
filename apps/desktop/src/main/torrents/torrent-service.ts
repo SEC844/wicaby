@@ -384,10 +384,10 @@ export class TorrentService extends EventEmitter {
     const client = new QbitClient(c.url, c.username, password, this.fetcher);
     try {
       await client.connect();
-      return { ok: true, version: client.version, apiVersion: client.apiVersion };
+      return { ok: true, version: client.version, apiVersion: client.apiVersion, via: client.path === 'mesh' ? 'mesh' : 'direct' };
     } catch (err) {
       const e = err instanceof QbitError ? err : new QbitError(String(err), 'offline');
-      return { ok: false, error: e.message, certificate: e.kind === 'certificate' ? this.untrusted.get(client.host) : undefined };
+      return { ok: false, error: e.message, certificate: e.kind === 'certificate' ? this.untrusted.get(client.host) : undefined, path: e.kind === 'offline' ? client.path : undefined };
     }
   }
 

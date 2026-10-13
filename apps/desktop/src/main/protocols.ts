@@ -12,6 +12,7 @@ import type { ComicService } from './comics/comic-service';
 import { logger } from './core/log';
 import { FilesClient } from './files/files-client';
 import type { DownloadManager } from './downloads/download-manager';
+import type { ImmichService } from './photos/immich';
 
 const log = logger.scope('protocol');
 
@@ -202,7 +203,14 @@ function serveFile(file: string, req: Request): Response {
   });
 }
 
-export function handleProtocols(opts: { rendererDir: string; connection: ConnectionManager; downloads: DownloadManager; comics: ComicService; tiles?: (pathname: string) => Promise<Response> }): void {
+export function handleProtocols(opts: {
+  rendererDir: string;
+  connection: ConnectionManager;
+  downloads: DownloadManager;
+  comics: ComicService;
+  tiles?: (pathname: string) => Promise<Response>;
+  immich?: Pick<ImmichService, 'media'>;
+}): void {
   const root = path.resolve(opts.rendererDir);
 
   // YouTube refuses an embed whose page sends no Referer (error 153), and app:// pages send none.
@@ -235,6 +243,8 @@ export function handleProtocols(opts: { rendererDir: string; connection: Connect
   // wicaby-media://comic/<serverId>/<itemId>/<page> page image of an opened CBZ
   // wicaby-media://comic-cover/<serverId>/<itemId>?v=<version>[&full] first page of a CBZ without a server cover
   // wicaby-media://tile/<z>/<x>/<y> photo map tile, from the configured tile host only (photos/tiles.ts)
+  // wicaby-media://immich/<source>/assets/<uuid>/thumbnail|original|video/playback, people/<uuid>/thumbnail: an
+  //                             Immich source's pictures, the x-api-key added in main (photos/immich.ts)
   // The renderer's api URLs carry no token (mediaApiUrl strips api_key/ApiKey and refuses
   // dot segments); the auth headers are added here, only for the server's own origin and
   // never carried across a redirect to another one (fetchServer).
@@ -257,6 +267,7 @@ export function handleProtocols(opts: { rendererDir: string; connection: Connect
       }
       if (url.host === 'remote-image') return await remoteImage(req);
       if (url.host === 'tile' && opts.tiles) return await opts.tiles(url.pathname);
+      if (url.host === 'immich' && opts.immich) return await opts.immich.media(url.pathname, url.searchParams, (h) => req.headers.get(h), req.signal);
       if (url.host === 'local' || url.host === 'poster') {
         const rec = opts.downloads.get(decodeURIComponent(url.pathname.slice(1)));
         const file = url.host === 'local' ? rec?.filePath : rec?.posterPath;

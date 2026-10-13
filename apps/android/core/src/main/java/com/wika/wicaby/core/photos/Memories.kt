@@ -69,11 +69,16 @@ suspend fun Api.memoryPhotos(parentId: String?, today: String, limit: Int = 60):
 
 private val homeCache = mutableMapOf<String, List<Pair<Int, List<Photo>>>>()
 
+// Immich's "on this day" (/api/memories), as the home rows' groups; none without a source or without memory.read.
+suspend fun immichMemories(today: String): List<Pair<Int, List<Photo>>> =
+    if (Immich.source == null) emptyList() else runCatching { Immich.client().memories(today).map { (y, a) -> y to a.map(::immichPhoto) } }.getOrDefault(emptyList())
+
 // The home rows' "Ce jour-là" (PH-08 AC3): every photo library of the server, asked once per server, user and day.
 suspend fun Api.homeMemories(today: String): List<Pair<Int, List<Photo>>> {
     val key = "${server.id}/$userId/$today"
     synchronized(homeCache) { homeCache[key] }?.let { return it }
-    val groups = memoryGroups(null, today, limit = 90)
+    // An Immich source's own memories join theirs, year by year (photos spec PH-13).
+    val groups = (memoryGroups(null, today, limit = 90) + immichMemories(today)).groupBy { it.first }.map { (y, l) -> y to l.flatMap { it.second } }.sortedBy { it.first }
     synchronized(homeCache) {
         homeCache.keys.removeAll { !it.endsWith("/$today") }
         homeCache[key] = groups

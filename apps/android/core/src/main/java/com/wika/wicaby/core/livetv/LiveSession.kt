@@ -86,7 +86,7 @@ interface LiveApi {
 
 /** LiveApi over the app's Api (auth headers come from Core.http's interceptor). */
 class ServerLiveApi(private val api: Api) : LiveApi {
-    override val kind = if (api.server.isEmby) ServerKind.EMBY else ServerKind.JELLYFIN
+    override val kind = api.liveKind
     override val userId get() = api.userId
     override val deviceId get() = api.deviceId
 

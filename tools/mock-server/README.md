@@ -49,8 +49,17 @@ a bug list. `node tools/checks/cast-mock-check.mjs` exercises both (it is part o
   `MOCK_PLEX_PASS=0`); `/:/prefs` gives the owner's `WanPerStreamMaxUploadRate` (`MOCK_REMOTE_CAP_KBPS`).
   The decision honours `partIndex` (a multi-part film). `tools/checks/plex-playback-check.mjs` drives it with mpv,
   `tools/checks/plex-cast-check.mjs` with the DLNA and Cast senders, `tools/checks/plex-play-cdp.mjs` with the built app.
-- Live TV is only `/livetv/dvrs` (empty, 403 without Plex Pass, one DVR with `MOCK_PLEX_LIVETV=1`): channels and the
-  grid wait for captures from a real tuner (PX-11).
+- Live TV and DVR (PX-11) with `MOCK_PLEX_LIVETV=1`: `/livetv/dvrs` lists one DVR with 2 tuners and a ChannelMapping
+  (8 of 9 lineup channels enabled; 403 without Plex Pass, empty without the switch), `/livetv/epg/channels?lineup=`,
+  the grid `/tv.plex.providers.epg.mock:1/grid` (48 h of airings around now; `endsAt>>` and `beginsAt<<` required, else
+  `GRID-NO-WINDOW`), `POST /livetv/dvrs/1/channels/{id}/tune` (a `/livetv/sessions/…` key, logged in `state.tunes`),
+  `/media/subscriptions` CRUD with `/template?guid=` and `/scheduled` (`BAD-SUBSCRIPTION` for a malformed create),
+  `POST /Mock/LiveTv/Record?ratingKey=` (a finished recording: one more `mpegts` Media on that item; `DELETE
+  /library/metadata/{key}/media/{id}` removes it, every library DELETE lands in `state.deletes`), and every transcode
+  stop in `state.stops`. These shapes are the client's guesses from the public docs, tagged
+  `PLEX-LIVETV-UNVERIFIED` in `apps/desktop/src/shared/plex/livetv-map.ts`: replace them with captures from a real PMS
+  with a tuner when one is available. `tools/checks/plex-livetv-check.mjs` drives it on the desktop, `PlexMockTest` on
+  Android.
 
 ## Music library (`music-fixture.mjs`)
 
@@ -135,6 +144,33 @@ is a PNG drawn on request (a horizon, a sun, and a 1-px magenta marker on the pi
 | `MOCK_PHOTO_ROTATE=server` | Images come back upright (server-rotated) on both mocks. |
 | `MOCK_NO_DOWNLOAD=1` | `/Items/{id}/Download` answers 403. |
 | `MOCK_DEMO_LANG=en` | English library and album names. |
+
+## mock-immich (photos spec PH-11)
+
+`node tools/mock-server/mock-immich.mjs [port]` (default `127.0.0.1:2283`) is a fake Immich server written by hand from
+the published API reference: no file or code from the Immich repository. It serves the same generated photos as the
+Emby mock (above), with place names derived from the landmark each position clusters around, six albums (the first one
+shared with the user), four invented people (Alex, Camille, Sam, Noa) with drawn face thumbnails, and about 3 %
+archived assets that never reach the timeline or the map.
+
+- **Auth:** the `x-api-key` header only; the key is `mock-immich-key` (a test value). No key or a wrong one is 401; a
+  permission the key lacks is 403 naming it.
+- **Routes:** `/api/server/version`, `timeline/buckets` and `timeline/bucket` (columnar), `assets/{id}`
+  (`thumbnail?size=thumbnail|preview|fullsize`, `original`, `video/playback`), `PUT assets` (favourites), `albums`
+  (`?shared=true`), `people` and `people/{id}/thumbnail`, `map/markers`, `memories?for=`, `search/metadata` (page and
+  `nextPage`), `search/smart` (fake keyword match; the filters must sit in the `filter` object, flat fields get 400),
+  `partners`. Mock routes: `GET /Mock/State`, `POST /Mock/Reset`.
+- **Tags:** `KEY-IN-URL`, `NO-KEY`, `BAD-KEY`, `SCOPE`, `FLAT-FIELDS`, `UNMAPPED`.
+- `tools/checks/immich-mock-check.mjs` checks the shapes against `tools/checks/fixtures/photos/immich-contract.json`
+  (field names and the Immich version they were written from); `immich-check.mjs` drives the desktop client.
+
+| Variable | Effect |
+|---|---|
+| `MOCK_IMMICH_KEY` | The valid key (default `mock-immich-key`). |
+| `MOCK_IMMICH_SCOPES` | Comma list of the key's permissions (default all: `asset.read,asset.view,asset.download,asset.update,album.read,person.read,map.read,memory.read,partner.read`). |
+| `MOCK_IMMICH_VERSION` | The reported version (default `3.3.0`; `1.x` tests the refusal; below 3, albums say `shared`). |
+| `MOCK_IMMICH_TIMELINE=broken` | `timeline/bucket` answers rows instead of columns (the clients fall back to `search/metadata`). |
+| `MOCK_IMMICH_VIDEO=<file>` | The bytes every `video/playback` serves, with Range; without it, 404. |
 
 ## Environment variables
 

@@ -1,7 +1,8 @@
 // Thin qBittorrent Web API v2 client (4.x and 5.x). The SID cookie is kept in
 // memory and sent by hand, so it never lands in a cookie jar on disk.
-import type { TorrentAction } from '../../shared/contract';
+import type { MeshPath, TorrentAction } from '../../shared/contract';
 import type { Params } from '../../shared/i18n-core';
+import { ensureRoute, routed } from '../connection/api-client';
 import { t } from '../i18n';
 import { versionAtLeast, type MaindataResponse } from './maindata';
 
@@ -34,6 +35,8 @@ export class QbitClient {
   private loggedIn = false;
   version = '';
   apiVersion = '';
+  // How the last connect() reached qBittorrent (see ensureRoute).
+  path: MeshPath = 'outside';
 
   constructor(
     readonly base: string,
@@ -54,14 +57,21 @@ export class QbitClient {
 
   private async raw(path: string, method: 'GET' | 'POST', body?: Form): Promise<Response> {
     const origin = new URL(this.base).origin;
-    // qBittorrent's CSRF check wants Referer/Origin to match its own host.
+    // qBittorrent's CSRF check wants Referer/Origin to match its own host. Through the mesh forwarder they still
+    // name the real address: the forwarder sends qBittorrent that Host (httputil SetURL), never 127.0.0.1.
     const headers: Record<string, string> = { Referer: `${origin}/`, Origin: origin };
     if (this.cookie) headers.Cookie = this.cookie;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      return await this.fetcher(`${this.base}/api/v2/${path}`, { method, headers, body, signal: controller.signal, credentials: 'omit', redirect: 'error' });
+      const url = `${this.base}/api/v2/${path}`;
+      const wire = routed(url);
+      const res = await this.fetcher(wire, { method, headers, body, signal: controller.signal, credentials: 'omit', redirect: 'error' });
+      // The forwarder answers 502 "mesh: …" when the routing peer cannot reach qBittorrent (qBittorrent never sends 502).
+      if (wire !== url && res.status === 502) throw new QbitError({ key: 'errors.torrents.unreachable' }, 'offline', 502);
+      return res;
     } catch (err) {
+      if (err instanceof QbitError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       if (controller.signal.aborted) throw new QbitError({ key: 'errors.torrents.noResponse' }, 'offline');
       if (/ERR_CERT|ERR_SSL|certificate/i.test(msg)) throw new QbitError({ key: 'errors.torrents.certificate' }, 'certificate');
@@ -84,6 +94,8 @@ export class QbitClient {
 
   // Login + versions; also what "Tester la connexion" shows.
   async connect(): Promise<void> {
+    // Direct, or through the mesh when the host is a peer or a routed-network host that does not answer directly.
+    this.path = await ensureRoute(this.base);
     await this.login();
     this.version = (await this.text('app/version')).trim();
     this.apiVersion = (await this.text('app/webapiVersion')).trim();

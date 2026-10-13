@@ -36,6 +36,7 @@
     subtitles: L.Captions,
     audio: L.AudioLines,
     fullscreen: L.Maximize,
+    pip: L.PictureInPicture2,
     exitFullscreen: L.Minimize,
     aspect: L.Ratio,
     close: L.X,

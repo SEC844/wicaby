@@ -6,7 +6,14 @@ import com.wika.wicaby.core.data.PlaybackInfo
 import com.wika.wicaby.core.data.Server
 import com.wika.wicaby.core.files.FilesTestKit
 import kotlinx.coroutines.runBlocking
+import com.wika.wicaby.core.livetv.Category
+import com.wika.wicaby.core.livetv.Dialect
+import com.wika.wicaby.core.livetv.LiveApiException
+import com.wika.wicaby.core.livetv.LiveTvApi
+import com.wika.wicaby.core.livetv.Req
+import com.wika.wicaby.core.livetv.ServerKind
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -375,6 +382,88 @@ class PlexMockTest {
         sealed.putAccount(PlexAccount("abcdef0123", "Wika"), "secret-token")
         assertFalse(File(dir, "x/plex.json").readText().contains("\"secret-token\""))
         assertEquals("secret-token", sealed.accountToken("abcdef0123"))
+    }
+
+    // PX-11 (PLEX-LIVETV-UNVERIFIED shapes): the gate, the guide, recording a film and a series, the tune and its stop,
+    // through the core LiveTvApi and Dialect with the plex kind, as the TV and mobile Live TV screens call them.
+    @Test
+    fun liveTvGateGuideRecordAndTune() = runBlocking {
+        for (env in listOf(mapOf("MOCK_PLEX_LIVETV" to "1", "MOCK_PLEX_PASS" to "0"), mapOf("MOCK_PLEX_LIVETV" to "0"))) {
+            start(env + ("MOCK_PLEX_SECOND" to "0")).use { m ->
+                val a = accounts(m)
+                val linked = link(m, a)
+                val api = api(a.signIn(linked.account, linked.account).first { it.server.name == "Maison" }, a)
+                assertTrue("$env: no Live TV view", api.views().none { it.collectionType == "livetv" })
+                assertEquals(false, (LiveTvApi(api).info()?.get("IsEnabled") as JsonPrimitive).content.toBoolean())
+            }
+        }
+        start(mapOf("MOCK_PLEX_LIVETV" to "1", "MOCK_PLEX_SECOND" to "0")).use { m ->
+            val a = accounts(m)
+            val linked = link(m, a)
+            val api = api(a.signIn(linked.account, linked.account).first { it.server.name == "Maison" }, a)
+            val live = LiveTvApi(api)
+            assertEquals(ServerKind.PLEX, live.kind)
+            assertEquals("livetv", api.views().last().collectionType)
+            assertEquals(2, (live.info()!!["Services"] as JsonArray)[0].jsonObject["Tuners"]!!.jsonArray.size)
+
+            // The guide: 8 enabled channels of 9, a tile, on now.
+            val (rows, total) = live.channelsPage(0, 500)
+            assertEquals(8, total)
+            assertTrue(rows.any { it.number == "5.1" })
+            val now = System.currentTimeMillis()
+            val from = now / 3_600_000 * 3_600_000
+            val tile = live.programsTile(rows.take(3).map { it.id }, from, from + 3 * 3_600_000, genres = true).programs
+            assertTrue(tile.isNotEmpty() && tile.all { it.channelId in rows.take(3).map { r -> r.id } })
+            val onNow = live.json(Dialect.onNow(live.kind, live.userId, now)!!)!!.jsonObject["Items"]!!.jsonArray
+            assertEquals(8, onNow.size)
+            assertEquals(404, (runCatching { live.json(Dialect.onNow(live.kind, live.userId, now, Category.SPORTS)!!) }.exceptionOrNull() as LiveApiException).status)
+            val found = live.json(Dialect.searchPrograms(live.kind, live.userId, "studio", now, now + 86_400_000))!!.jsonObject["Items"]!!.jsonArray
+            assertTrue(found.isNotEmpty())
+
+            // Record a film and a series rule, then cancel both.
+            val film = tile.first { it.channelId == rows[1].id && it.start > now }
+            val defaults = live.json(Dialect.timerDefaults(live.kind, film.id))!!.jsonObject
+            live.json(Dialect.createTimer(live.kind, JsonObject(defaults + ("PostPaddingSeconds" to JsonPrimitive(300)))))
+            val episode = tile.first { it.channelId == rows[2].id && it.start > now }
+            live.json(Dialect.createSeriesTimer(live.kind, live.json(Dialect.timerDefaults(live.kind, episode.id))!!))
+            val timers = live.timers()
+            assertEquals(300, timers.first { it.programId == film.id }.postPaddingS)
+            assertTrue(timers.count { it.seriesTimerId != null } > 3)
+            val rule = live.json(Dialect.seriesTimers(live.kind))!!.jsonObject["Items"]!!.jsonArray.single().jsonObject
+            assertEquals("Studio Diaries", rule["Name"].str())
+            // The record-options sheet reads the timer before editing its padding.
+            val filmTimer = timers.first { it.programId == film.id }
+            assertEquals(300, live.json(Req("GET", "/LiveTv/Timers/${filmTimer.id}", emptyMap()))!!.jsonObject["PostPaddingSeconds"].toString().toDouble().toInt())
+            // Subscribing records nothing yet: the show's own library episodes are not recordings, nor deletable as one.
+            suspend fun recordings() = live.json(Dialect.recordings(live.kind, live.userId))!!.jsonObject["Items"]!!.jsonArray
+            assertTrue("own library episodes are not recordings", recordings().isEmpty())
+            assertEquals(404, (runCatching { live.json(Dialect.deleteRecording(live.kind, "2102")) }.exceptionOrNull() as LiveApiException).status)
+            assertTrue("no DELETE sent for a non-recording", state(m.pms)["deletes"]!!.jsonArray.isEmpty())
+            post("${m.pms}/Mock/LiveTv/Record?ratingKey=2103")
+            assertEquals(listOf("2103"), recordings().map { it.jsonObject["Id"].str() })
+            live.json(Dialect.deleteRecording(live.kind, "2103"))
+            assertEquals("the recorded version only", listOf("/library/metadata/2103/media/21039"), state(m.pms)["deletes"]!!.jsonArray.map { it.str() })
+            assertTrue(recordings().isEmpty())
+            assertEquals(404, (runCatching { live.json(Dialect.cancelTimer(live.kind, timers.first { it.seriesTimerId != null }.id)) }.exceptionOrNull() as LiveApiException).status)
+            live.json(Dialect.cancelTimer(live.kind, timers.first { it.programId == film.id }.id))
+            live.json(Dialect.deleteSeriesTimer(live.kind, rule["Id"].str()!!))
+            assertTrue(live.timers().isEmpty())
+
+            // Tune: HLS through start.m3u8 on the live session; the Stopped report stops the transcode.
+            val ch = rows[3]
+            val pb = live.json(Dialect.tune(live.kind, live.userId, ch.id, 20_000_000, 0))!!.jsonObject
+            val src = pb["MediaSources"]!!.jsonArray[0].jsonObject
+            val session = pb["PlaySessionId"].str()!!
+            assertEquals(session, src["LiveStreamId"].str())
+            assertTrue(src["TranscodingUrl"].str()!!.startsWith("/video/:/transcode/universal/start.m3u8?path=%2Flivetv%2Fsessions%2F"))
+            assertTrue(api.resolve(src["TranscodingUrl"].str()!!).startsWith(m.pms))
+            live.json(Dialect.reportStopped(live.kind, ch.id, src["Id"].str()!!, session, session, Dialect.PlayMethod.Transcode))
+            val st = state(m.pms)
+            assertTrue(st["stops"]!!.jsonArray.any { it.str() == session })
+            assertEquals(listOf("4"), st["tunes"]!!.jsonArray.map { it.str() })
+            assertTrue("no library timeline for a live play", st["timelines"]!!.jsonArray.isEmpty())
+            assertTrue(st["tags"]!!.jsonArray.none { it.str() in setOf("UNMAPPED", "GRID-NO-WINDOW", "BAD-SUBSCRIPTION", "TOKEN-IN-URL", "NO-CLIENT-ID") })
+        }
     }
 }
 

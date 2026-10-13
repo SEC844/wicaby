@@ -7,6 +7,7 @@ import App from './App.svelte';
 const params = new URLSearchParams(location.search);
 if (params.get('mica') === '1') document.documentElement.classList.add('mica');
 if (params.get('osd') === '1') document.documentElement.classList.add('osd');
+if (params.get('mini') === '1') document.documentElement.classList.add('mini');
 if (params.get('linux') === '1') document.documentElement.classList.add('linux');
 
 window.addEventListener('error', (e) => window.wicaby?.app.log('error', `${e.message} @ ${e.filename}:${e.lineno}`));

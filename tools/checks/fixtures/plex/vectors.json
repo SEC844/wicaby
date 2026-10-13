@@ -5185,14 +5185,14 @@
       }
     },
     {
-      "name": "translate: Live TV is unmapped (PX-11)",
+      "name": "translate: Emby channel tags stay unmapped (PX-11)",
       "fn": "translate",
       "args": [
         "GET",
-        "/LiveTv/Info"
+        "/LiveTv/ChannelTags"
       ],
       "out": {
-        "throws": "PLEX-UNMAPPED GET /LiveTv/Info",
+        "throws": "PLEX-UNMAPPED GET /LiveTv/ChannelTags",
         "status": 404
       }
     },

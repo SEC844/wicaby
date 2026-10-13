@@ -5,8 +5,8 @@
 import { parseChannelNumber } from './channel-order';
 import { genreFlags } from './lens';
 
-// 'files' never has Live TV (server-caps.ts) but flows through the same API types; 'plex' Live TV is PX-11
-// (plex-spec §7): until then its /LiveTv probe answers PLEX-UNMAPPED and the section stays hidden.
+// 'files' never has Live TV (server-caps.ts) but flows through the same API types; 'plex' sends the non-Emby forms,
+// which the Plex adapter answers (shared/plex/livetv-map.ts, PX-11; on only with Plex Pass and a tuner).
 export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex';
 
 export const PF = { Live: 1, New: 2, Premiere: 4, Repeat: 8, HD: 16, Movie: 32, Sports: 64, News: 128, Kids: 256, Series: 512 } as const;
@@ -48,6 +48,9 @@ export interface ProgramLite {
 export type LensRef = { kind: 'all' } | { kind: 'favorites' } | { kind: 'recents' } | { kind: 'radio' } | { kind: 'tag'; tag: string } | { kind: 'group'; id: string };
 export type Category = 'movies' | 'sports' | 'news' | 'kids' | 'series' | 'new';
 export const CATEGORIES: readonly Category[] = ['movies', 'sports', 'news', 'kids', 'series', 'new'];
+// The categories a server's programmes can carry. Plex's carry IsMovie, IsSeries and IsPremiere only (plex/livetv-map.ts
+// toPrograms): a sports, news or kids chip would dim every programme there.
+export const categoriesOf = (kind: ServerKind): readonly Category[] => (kind === 'plex' ? ['movies', 'series', 'new'] : CATEGORIES);
 
 export type TimerStatus = 'scheduled' | 'recording' | 'conflict-ok' | 'conflict-wont' | 'error';
 export interface TimerLite {

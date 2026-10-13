@@ -6,6 +6,7 @@ import {
   type CastCommand,
   type DeepPartial,
   type HtmlPlayerEvent,
+  type LrclibTrack,
   type PlaybackCommand,
   type PlayRequest,
   type Query,
@@ -13,6 +14,7 @@ import {
   type VpnConnectOptions,
   type VpnKind,
 } from '../shared/contract';
+import type { Lyrics } from '../shared/music';
 import { uploadItemImage } from './admin/item-images';
 import type { CastManager } from './cast/cast-manager';
 import type { ComicService } from './comics/comic-service';
@@ -22,6 +24,7 @@ import { discoverServers } from './connection/discovery';
 import { logger } from './core/log';
 import { discover as discoverFiles } from './files/mdns';
 import type { FileSources } from './files/sources';
+import type { ImmichService } from './photos/immich';
 import { isSafeMpvPath, type SettingsService } from './core/settings';
 import type { SettingsExtras } from './core/settings-extras';
 import type { DownloadManager } from './downloads/download-manager';
@@ -53,6 +56,9 @@ export interface IpcDeps {
   openPath: (kind: 'logs' | 'downloads' | 'mpv-config' | 'data') => void;
   extras: SettingsExtras;
   files: FileSources;
+  immich: ImmichService;
+  // MU-13: lrclib.net lyrics (main/music/lrclib.ts), behind the music.lyricsProvider setting.
+  lrclib: (track: LrclibTrack) => Promise<Lyrics | null>;
 }
 
 const isString = (v: unknown, max = 2048): v is string => typeof v === 'string' && v.length <= max;
@@ -176,6 +182,18 @@ export function registerIpc(deps: IpcDeps): void {
     const win = senderWindow(e);
     if (win && win === windows.playback?.osd) return playback.command({ type: 'toggle-fullscreen' });
     win?.setFullScreen(!win.isFullScreen());
+  });
+  handle(Channels.windowMini, (_e, action: unknown) => {
+    if (action === 'open') windows.openMini();
+    else if (action === 'close') windows.closeMini();
+    else if (action === 'toggle') windows.toggleMini();
+    else throw new Error(t('errors.ipc.invalidQuery'));
+  });
+  handle(Channels.musicLrclib, (_e, track: unknown) => {
+    const o = (track ?? {}) as Record<string, unknown>;
+    const ok = isString(o.id, 128) && isString(o.artist, 512) && isString(o.title, 512) && isString(o.album, 512) && typeof o.durationMs === 'number' && Number.isFinite(o.durationMs) && o.durationMs >= 0;
+    if (!ok || !o.artist || !o.title) return null;
+    return deps.lrclib(o as unknown as LrclibTrack);
   });
   handle(Channels.windowGetState, (e) => {
     const win = senderWindow(e);
@@ -457,6 +475,21 @@ export function registerIpc(deps: IpcDeps): void {
     if (awake !== null) log.info('photos: slideshow wake lock off');
     awake = null;
   };
+  // Immich sources (photos spec PH-12): main validates the method and path (ImmichService.request) and adds the key.
+  const immichId = (v: unknown) => {
+    if (!isString(v, 64) || !/^[0-9a-f]{12}$/.test(v)) throw new Error(t('errors.ipc.invalidServer'));
+    return v;
+  };
+  handle(Channels.immichSources, () => deps.immich.list());
+  handle(Channels.immichTest, (_e, url: unknown, key: unknown) => deps.immich.test(isString(url, 512) ? url : '', isString(key, 512) ? key : ''));
+  handle(Channels.immichAdd, (_e, url: unknown, key: unknown) => deps.immich.add(isString(url, 512) ? url : '', isString(key, 512) ? key : ''));
+  handle(Channels.immichRemove, (_e, id: unknown) => deps.immich.remove(immichId(id)));
+  handle(Channels.immichRequest, (_e, id: unknown, method: unknown, path: unknown, query: unknown, body: unknown) => {
+    if (!isString(method, 8) || !isSafeApiPath(path)) throw new Error(t('errors.ipc.invalidQuery'));
+    return deps.immich.request(immichId(id), method, path, plainQuery(query), body === undefined || body === null ? undefined : JSON.parse(JSON.stringify(body)));
+  });
+  handle(Channels.immichSaveOriginal, (_e, id: unknown, assetId: unknown) => deps.immich.saveOriginal(immichId(id), isString(assetId, 64) ? assetId : ''));
+
   handle(Channels.photosKeepAwake, (e, on: unknown) => {
     if (on !== true) return sleepAgain();
     if (awake !== null) return;

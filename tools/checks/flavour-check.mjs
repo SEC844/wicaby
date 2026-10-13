@@ -103,7 +103,8 @@ try {
   const both = manifestFor([
     ['mobile', `Wicaby-Mobile-${version}-arm64.apk`], ['mobile', `Wicaby-Mobile-${version}-armv7.apk`],
     ['mobile-gplay', `Wicaby-Mobile-Cast-${version}-arm64.apk`], ['mobile-gplay', `Wicaby-Mobile-Cast-${version}-armv7.apk`],
-    ['tv', `Wicaby-TV-${version}-universal.apk`],
+    // TV and mobile are versioned apart (a mobile-only fix bumps mobile alone).
+    ['tv', `Wicaby-TV-${/versionName\s*=\s*"([^"]+)"/.exec(read('apps/android/tv/build.gradle.kts'))[1]}-universal.apk`],
   ]);
   assert.deepEqual(Object.keys(both).sort(), ['mobile', 'mobile-gplay', 'tv']);
   assert.equal(both.mobile.apks['arm64-v8a'].url, `https://example.org/r/Wicaby-Mobile-${version}-arm64.apk`);

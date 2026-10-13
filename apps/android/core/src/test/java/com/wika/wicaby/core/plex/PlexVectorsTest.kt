@@ -106,7 +106,38 @@ class PlexVectorsTest {
                 JsonObject(listOfNotNull("index" to JsonPrimitive(w.index), "startMs" to JsonPrimitive(w.startMs), w.endMs?.let { "endMs" to JsonPrimitive(it) }).toMap())
             } ?: JsonNull
         },
+        // livetv.json (PX-11).
+        "liveChannelId" to { a -> j(PlexLiveMap.liveChannelId(str(a[0])!!)) },
+        "parseLiveId" to { a -> PlexLiveMap.parseLiveId(str(a[0])!!)?.toJson() ?: JsonNull },
+        "liveDvrs" to { a -> JsonArray(PlexLiveMap.liveDvrs(a[0]).map { it.toJson() }) },
+        "toLiveInfo" to { a -> PlexLiveMap.toLiveInfo(dvrs(a[0]), a.getOrNull(1)?.let { bool(it) }) },
+        "liveGate" to { a -> JsonPrimitive(PlexLiveMap.liveGate(dvrs(a[0]), a.getOrNull(1)?.let { bool(it) })) },
+        "channelsRequest" to { a -> PlexLiveMap.channelsRequest(PlexLiveMap.LiveDvr.fromJson(a[0])).toJson() },
+        "toChannels" to { a -> JsonArray(PlexLiveMap.toChannels(a[0], PlexLiveMap.LiveDvr.fromJson(a[1]))) },
+        "gridRequest" to { a -> PlexLiveMap.gridRequest(PlexLiveMap.LiveDvr.fromJson(a[0]), long(a[1]), long(a[2])).toJson() },
+        "toPrograms" to { a -> JsonArray(PlexLiveMap.toPrograms(a[0])) },
+        "programWindow" to { a -> PlexLiveMap.programWindow(obj(a[0]).toQuery(), long(a[1])).let { (f, t) -> JsonObject(mapOf("from" to JsonPrimitive(f), "to" to JsonPrimitive(t))) } },
+        "selectPrograms" to { a -> JsonArray(PlexLiveMap.selectPrograms(a[0]!!.jsonArray.map { it.jsonObject }, obj(a[1]).toQuery(), long(a[2]))) },
+        "timerDefaults" to { a -> PlexLiveMap.timerDefaults(a[0]) },
+        "parseTimerId" to { a -> PlexLiveMap.parseTimerId(str(a[0])!!)?.toJson() ?: JsonNull },
+        "toTimers" to { a -> JsonArray(PlexLiveMap.toTimers(a[0], a.getOrNull(1))) },
+        "toSeriesTimer" to { a -> PlexLiveMap.toSeriesTimer(a[0]) ?: JsonNull },
+        "toSeriesTimers" to { a -> JsonArray(PlexLiveMap.toSeriesTimers(a[0])) },
+        "templateRequest" to { a -> PlexLiveMap.templateRequest(str(a[0])!!).toJson() },
+        "createRequest" to { a -> PlexLiveMap.createRequest(a[0], bool(a[1]), a.getOrNull(2)).toJson() },
+        "updateRequest" to { a -> PlexLiveMap.updateRequest(str(a[0])!!, a.getOrNull(1), bool(a[2])).toJson() },
+        "deleteRequest" to { a -> PlexLiveMap.deleteRequest(str(a[0])!!).toJson() },
+        "recordingRequests" to { a -> JsonArray(PlexLiveMap.recordingRequests(a[0]).map { it.toJson() }) },
+        "isRecording" to { a -> JsonPrimitive(PlexLiveMap.isRecording(a[0], a.getOrNull(1))) },
+        "recordedMedia" to { a -> JsonArray(PlexLiveMap.recordedMedia(a[0]).map(::JsonPrimitive)) },
+        "deleteRecordingRequests" to { a -> JsonArray(PlexLiveMap.deleteRecordingRequests(a[0], a.getOrNull(1)).map { it.toJson() }) },
+        "tuneRequest" to { a -> PlexLiveMap.tuneRequest(PlexLiveMap.LiveDvr.fromJson(a[0]), str(a[1])!!).toJson() },
+        "toLivePlayback" to { a -> PlexLiveMap.toLivePlayback(a[0], str(a[1])!!, a.getOrNull(2), str(a[3])!!, str(a[4])!!) },
     )
+
+    private fun dvrs(e: JsonElement?) = e!!.jsonArray.map(PlexLiveMap.LiveDvr::fromJson)
+
+    private fun long(e: JsonElement?) = BigDecimal(str(e)!!).toLong()
 
     private fun runCase(c: JsonObject): JsonElement {
         val fn = run[str(c["fn"])] ?: error("unknown fn ${str(c["fn"])}")
@@ -119,7 +150,7 @@ class PlexVectorsTest {
 
     @Test
     fun mapAndDecisionVectors() {
-        val all = cases("vectors.json") + cases("decision.json")
+        val all = cases("vectors.json") + cases("decision.json") + cases("livetv.json")
         val problems = ArrayList<String>()
         for (c in all) {
             val got = try {

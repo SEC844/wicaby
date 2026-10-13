@@ -38,7 +38,7 @@ export const MUSIC = [
 export const GAIN = new Map();
 export const LYRICS = new Map();
 export const ALBUM_ARTISTS = new Set();
-export const LOG = { streams: [], instantMix: [], reports: [] };
+export const LOG = { streams: [], instantMix: [], reports: [], lrclib: [] };
 const logPush = (list, row) => list.push(row) > 200 && list.shift();
 // Playing / Progress / Stopped of a track, in arrival order (gapless checks read the order and the positions).
 export function logReport(items, kind, b) {
@@ -311,4 +311,18 @@ export function musicFilters(arr, q, ud) {
   const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   if (sort.startsWith('Random')) arr.sort((a, b) => hash(a.Id) - hash(b.Id));
   return arr;
+}
+
+// A stand-in for lrclib.net's GET /api/get (music-spec MU-13), served at /mock/lrclib/api/get: the app's LRCLIB_BASE
+// points here, so no check ever reaches the real service. A track of the library (title and artist match) answers
+// invented synced lyrics; anything else 404 TrackNotFound, as LRCLIB does. Each request lands in LOG.lrclib.
+export function lrclibRoute({ req, res, q, items, send }) {
+  const row = { artist: q.get('artist_name'), title: q.get('track_name'), album: q.get('album_name'), duration: q.get('duration'), ua: req.headers['user-agent'] ?? '' };
+  logPush(LOG.lrclib, row);
+  const low = (s) => (s ?? '').toLowerCase();
+  const track = [...items.values()].find((x) => isMusic(x) && low(x.Name) === low(row.title) && (x.Artists ?? []).some((a) => low(a) === low(row.artist)));
+  if (!track) return send(res, 404, { code: 404, name: 'TrackNotFound', message: 'Failed to find specified track' });
+  const seconds = Math.round((track.RunTimeTicks ?? 0) / TICKS_S);
+  const synced = Array.from({ length: Math.max(2, seconds - 1) }, (_, i) => `[00:${String(i).padStart(2, '0')}.00]En ligne ${i + 1}`).join('\n');
+  return send(res, 200, { id: 1, trackName: track.Name, artistName: row.artist, albumName: track.Album, duration: seconds, instrumental: false, plainLyrics: synced.replace(/^\[[^\]]*\]/gm, ''), syncedLyrics: synced });
 }

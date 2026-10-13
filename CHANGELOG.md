@@ -18,6 +18,61 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-13
+
+LAN services through the VPN, TV fixes. Windows and Linux desktop **0.10.1**, Android TV app **0.10.1** (`versionCode`
+22), Android mobile app **0.10.1** (`versionCode` 19).
+
+### Added
+
+- qBittorrent and WebDAV away from home, on desktop: Wicaby connects directly first and, when the home-network address
+  doesn't answer within 1.5 s, goes through its own Tailscale/NetBird connection, provided the host is a device of your
+  network or sits inside a NetBird network route. **Test Connection** says which way worked ("Connected (direct)" or
+  "Connected via NetBird/Tailscale") or which step failed. See [Remote access](docs/remote-access.md).
+- Android TV and mobile: NetBird network routes. Hosts inside a route (the home network behind a routing peer) are
+  tried directly first, then through Wicaby's own NetBird connection; qBittorrent works that way too.
+
+### Fixed
+
+- Android TV: on a series page, the seasons row keeps its own scroll rule, so moving through the seasons with the D-pad
+  never shifts the row by the page's scroll or strands the focus. 0.10.0 already shipped this; a test now guards every
+  row of the page.
+- Android TV and mobile: qBittorrent through the mesh no longer fails its CSRF check (the headers named the local
+  forwarder instead of the configured address).
+
+## [0.10.0] - 2026-10-13
+
+Plex Live TV, Immich and music extras. Windows and Linux desktop **0.10.0**, Android TV app **0.10.0** (`versionCode`
+21), Android mobile app **0.10.0** (`versionCode` 18).
+
+### Added
+
+- Plex Live TV and DVR, on desktop, Android TV and mobile: the guide, tuning a channel, recordings, and recording or
+  cancelling a series, in the same Live TV screens as Emby and Jellyfin. The section shows only when the server owner
+  has a Plex Pass and a DVR with a tuner. It follows Plex's public documentation and has not yet been tried with a real
+  Plex tuner.
+- Immich as a photo source, on desktop, Android TV and mobile: connect a server with its address and an API key
+  (Immich 2.0 or later). Its photos form their own library next to those from Emby or Jellyfin, with the timeline,
+  albums (shared ones marked), People, memories and, on desktop, the map. A permission the key lacks hides that part
+  and says which one. The key stays encrypted on the device (the vault on desktop, the Android Keystore on Android)
+  and is only sent to that server, in a header.
+- Music:
+  - Desktop: a mini player (`Ctrl` + `Shift` + `M`), a small always-on-top window that reopens where you left it.
+  - Desktop and Android mobile: an equalizer with Flat, Bass, Vocal and Treble presets, 10 bands and a preamp. Flat adds
+    no filter, so bit-perfect output stays bit-perfect; on Android it is off, and says why, during passthrough.
+  - Android Auto (the Google Play build): Recent, Playlists, Albums and Artists to browse in the car.
+  - Lyrics from LRCLIB (lrclib.net) when the server has none, **off by default** (Settings, Audio on desktop;
+    Settings on the phone). When on, it sends the song's artist, title, album and length, and keeps the answer for 30
+    days.
+- README: screenshots of Photos, Music and Plex. Every screenshot shows the same frozen moment and carries no metadata;
+  `npm run checks` fails on an image that does.
+
+### Fixed
+
+- Comic covers on Emby: covers taken from the book itself show again (Emby's longer Range answers were refused).
+- Android mobile: NetBird browser sign-in works; a failed connection to the management server names the step that
+  failed, and on Android 17 a management server on the local network asks for the local network permission.
+
 ## [0.9.0] - 2026-10-13
 
 Plex on Android TV and mobile. Windows and Linux desktop **0.9.0**, Android TV app **0.9.0** (`versionCode` 20),

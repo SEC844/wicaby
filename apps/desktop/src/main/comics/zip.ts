@@ -285,9 +285,15 @@ export type RangeFetch = (range: string) => Promise<Response>;
 async function rangeBody(res: Response, max: number): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
   let n = 0;
+  // Some servers (Emby) ignore the end of "bytes=a-b" and stream to the end of the file:
+  // keep what was asked for and stop reading (leaving the loop cancels the stream).
   for await (const c of res.body ?? []) {
+    if (n + c.length >= max) {
+      chunks.push(c.subarray(0, max - n));
+      n = max;
+      break;
+    }
     n += c.length;
-    if (n > max) throw new Error('Réponse Range trop longue'); // i18n-ignore: covers fail silently; leaving the loop cancels the stream
     chunks.push(c);
   }
   return Buffer.concat(chunks);
