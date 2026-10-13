@@ -66,6 +66,7 @@ import com.wika.wicaby.core.player.ScopedPrefs
 import com.wika.wicaby.core.data.DeviceCaps
 import com.wika.wicaby.core.data.HomeRows
 import com.wika.wicaby.core.data.User
+import com.wika.wicaby.core.data.caps
 import com.wika.wicaby.core.data.json
 import com.wika.wicaby.tv.BuildConfig
 import com.wika.wicaby.tv.LocalNav
@@ -280,7 +281,7 @@ private fun PlaybackSection(api: Api) {
     val snap = LocalSnapshot.current
     val prefs = Wicaby.app.prefs
     val server = remember(api) { ServerConfig(api) }
-    LaunchedEffect(server) { server.load() }
+    LaunchedEffect(server) { if (api.server.kind != "plex") server.load() }
     val mbpsLabels = MBPS.map { if (it == 0) stringResource(R.string.settings_bitrate_auto) else stringResource(R.string.mbps, it) }
     fun mbpsIndex(v: Int) = MBPS.indexOf(v).coerceAtLeast(0)
 
@@ -329,12 +330,17 @@ private fun PlaybackSection(api: Api) {
     }
     val langLabels = LANGS.map { stringResource(it.second) }
     val loading = stringResource(R.string.loading)
+    // The Emby/Jellyfin user configuration (languages, subtitle mode); Plex keeps them in the account (plex-spec §6.4).
+    val userConfig = api.server.kind != "plex"
     Group(stringResource(R.string.group_audio), stringResource(R.string.passthrough_hint)) {
-        if (server.config == null) SettingRow(stringResource(R.string.audio_language), loading)
-        else ChoiceRow(
-            stringResource(R.string.audio_language), langLabels, LANGS.indexOfFirst { it.first == server.str("AudioLanguagePreference").orEmpty() }.coerceAtLeast(0),
-            { i -> scope.launch { server.set("AudioLanguagePreference", LANGS[i].first) } },
-        )
+        when {
+            !userConfig -> Unit
+            server.config == null -> SettingRow(stringResource(R.string.audio_language), loading)
+            else -> ChoiceRow(
+                stringResource(R.string.audio_language), langLabels, LANGS.indexOfFirst { it.first == server.str("AudioLanguagePreference").orEmpty() }.coerceAtLeast(0),
+                { i -> scope.launch { server.set("AudioLanguagePreference", LANGS[i].first) } },
+            )
+        }
         val passOptions = listOf(stringResource(R.string.pass_auto), stringResource(R.string.pass_on), stringResource(R.string.pass_off))
         TvSettings.PASS_CODECS.forEach { codec ->
             val s = TvSettings.passthrough.getValue(codec)
@@ -346,7 +352,8 @@ private fun PlaybackSection(api: Api) {
         TvSettings.audioFx.forEach { (label, s) -> ToggleRow(stringResource(label), s.value) { s.value = it } }
     }
     Group(stringResource(R.string.group_subtitles), if (server.failed) stringResource(R.string.server_pref_failed) else stringResource(R.string.subtitle_hint)) {
-        if (server.config == null) {
+        if (!userConfig) Unit
+        else if (server.config == null) {
             SettingRow(stringResource(R.string.subtitle_language), loading)
         } else {
             ChoiceRow(
@@ -396,7 +403,8 @@ private fun PlaybackSection(api: Api) {
             Toast.makeText(context, CoreR.string.remember_cleared, Toast.LENGTH_SHORT).show()
         })
     }
-    Group(null, stringResource(CoreR.string.settings_remote_control_summary)) {
+    // "Play on Wicaby" comes through the server: none on a plex server (caps.castReceiver, plex-spec §8).
+    if (api.server.caps.castReceiver) Group(null, stringResource(CoreR.string.settings_remote_control_summary)) {
         ToggleRow(stringResource(CoreR.string.settings_remote_control), TvSettings.remoteControl.value) { TvSettings.remoteControl.value = it }
     }
 }
@@ -605,7 +613,8 @@ private fun AccountsSection(api: Api, user: User?) {
         SettingRow(stringResource(R.string.switch_server), chevron = true, onClick = { leave(Route.Servers, false) })
         SettingRow(stringResource(R.string.sign_out), onClick = { leave(Route.Login(session.server), true) })
     }
-    AddressesGroup(session.server)
+    // Plex: its addresses come from plex.tv (PlexAccounts.connect), not from this list.
+    if (session.server.kind == "plex") PlexAccountGroup(session.server) { leave(Route.Servers, false) } else AddressesGroup(session.server)
     ProfileGroup(session)
     OtherServers()
 }
@@ -737,7 +746,7 @@ private fun AboutSection() {
         SettingRow(stringResource(R.string.app_name), stringResource(R.string.version_full, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
         UpdateRows()
     }
-    Group(stringResource(R.string.group_licences)) {
+    Group(stringResource(R.string.group_licences), stringResource(R.string.plex_tv_not_affiliated)) {
         LICENCES.forEach { (name, lic) -> SettingRow(stringResource(name), lic) }
     }
     val dump by produceState<List<Pair<String, String>>?>(null) {

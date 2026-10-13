@@ -1001,7 +1001,7 @@ class Playback(
             val pos = player.currentPosition
             val dur = player.duration
             val watched = !switching && isWatched(pos, dur, segments.credits)
-            val byCredits = watched && !isWatched(pos, dur, null)
+            val byCredits = !switching && markPlayedByCredits(api.server.kind, pos, dur, segments.credits)
             val id = itemId
             val it = item
             val pending = PendingProgress(api.server.id, api.userId.orEmpty(), id, resumeFrom(pos, dur) * TICKS_PER_MS, watched, System.currentTimeMillis())

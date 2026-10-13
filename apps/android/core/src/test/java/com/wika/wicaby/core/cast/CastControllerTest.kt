@@ -358,6 +358,14 @@ class CastControllerTest {
     }
 
     @Test
+    fun plexSendsNothing() = runBlocking {
+        val (c, t) = controller(api("plex"))
+        assertTrue(runCatching { c.play(t, listOf("m1")) }.exceptionOrNull() is java.io.IOException)
+        assertTrue(soap.isEmpty())
+        assertTrue(infos.isEmpty())
+    }
+
+    @Test
     fun lanBaseRules() = runBlocking {
         fun api(address: String) = Api(Server("s", "S", address, "jellyfin"), "phone", "t", "u")
         assertEquals("http://192.168.1.5:8096/", CastController.lanBase(api("http://192.168.1.5:8096/jellyfin")).toString())

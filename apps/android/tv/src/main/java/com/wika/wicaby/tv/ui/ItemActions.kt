@@ -57,17 +57,19 @@ fun MorePill(api: Api, item: Item, modifier: Modifier = Modifier) {
     // Playlists and collections live on a server: none for a source whose user data is local (a file source).
     val kinds = if (api.server.caps.localUserData) emptyList() else ListKind.entries.filter { Playlists.accepts(it, item) }
     val previous = item.isEpisode && item.seriesId != null
-    if (kinds.isEmpty() && !previous) return
+    // Plex D-2: the one admin action, "Refresh metadata", for the server owner (no admin panel on a plex server).
+    val refresh = (api as? com.wika.wicaby.core.plex.PlexApi)?.options?.owner == true
+    if (kinds.isEmpty() && !previous && !refresh) return
     val label = stringResource(R.string.item_more)
     Pill(null, icon = Ic.More, modifier = modifier.semantics { contentDescription = label }, onClick = {
-        overlay.show { ItemActionsSheet(api, item, kinds, previous, overlay::close) }
+        overlay.show { ItemActionsSheet(api, item, kinds, previous, overlay::close, refresh) }
     })
 }
 
 // One sheet, three steps: the actions, then the lists of that kind (with "Nouvelle…" first), then
 // the name of the new one on the TV keyboard. Back closes it from any step.
 @Composable
-private fun ItemActionsSheet(api: Api, item: Item, kinds: List<ListKind>, previous: Boolean, onDismiss: () -> Unit) {
+private fun ItemActionsSheet(api: Api, item: Item, kinds: List<ListKind>, previous: Boolean, onDismiss: () -> Unit, refresh: Boolean = false) {
     val context = LocalContext.current
     val res = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -125,6 +127,20 @@ private fun ItemActionsSheet(api: Api, item: Item, kinds: List<ListKind>, previo
                         onClick = {
                             onDismiss()
                             markPrevious(api, item, context.applicationContext, res)
+                        },
+                    )
+                }
+                if (refresh) {
+                    SheetButton(
+                        stringResource(R.string.plex_tv_refresh), icon = Ic.Refresh,
+                        modifier = if (kinds.isEmpty() && !previous) Modifier.focusRequester(first) else Modifier,
+                        onClick = {
+                            onDismiss()
+                            val app = context.applicationContext
+                            Core.scope.launch(Dispatchers.Main) {
+                                val ok = runCatching { api.raw("POST", "/Items/${item.id}/Refresh") }.isSuccess
+                                Toast.makeText(app, res.getString(if (ok) R.string.plex_tv_refreshed else R.string.server_pref_failed), Toast.LENGTH_SHORT).show()
+                            }
                         },
                     )
                 }

@@ -368,7 +368,7 @@ data class SessionInfo(
 @Serializable
 private data class Login(val username: String, val pw: String)
 
-class ApiException(message: String, val status: Int) : IOException(message)
+open class ApiException(message: String, val status: Int) : IOException(message)
 
 // B29: the episode after [ep] in the server's order ([list], as /Shows/{id}/Episodes lists it from [ep] on).
 // A special (season 0) follows only where the server placed it by air date (DisplaySpecialsWithinSeasons: it
@@ -679,12 +679,13 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
 
     companion object {
         // The one way to build a client for a stored session: a file source's id gives its FilesApi (core/files).
-        // Plex adds its own branch here (PX-14).
+        // A plex server's is its PlexApi (core/plex), with what its account says (owner, remote, watchlist).
         @Volatile
         var forKind: (Server, String, String?, String?) -> Api? = { _, _, _, _ -> null }
 
         fun of(server: Server, deviceId: String, token: String? = null, userId: String? = null): Api =
-            forKind(server, deviceId, token, userId) ?: Api(server, deviceId, token, userId)
+            forKind(server, deviceId, token, userId)
+                ?: if (server.kind == "plex") com.wika.wicaby.core.plex.Plex.api(server, deviceId, token, userId) else Api(server, deviceId, token, userId)
 
         fun candidates(input: String): List<String> {
             var raw = input.trim().trimEnd('/')
@@ -802,7 +803,7 @@ internal fun isServerUrl(url: HttpUrl, serverOrigin: String, transport: ServerTr
     return prefix.isEmpty() || url.encodedPath == prefix || url.encodedPath.startsWith("$prefix/")
 }
 
-private val AUTH_HEADERS = listOf("Authorization", "X-Emby-Authorization", "X-Emby-Token", "X-MediaBrowser-Token")
+private val AUTH_HEADERS = listOf("Authorization", "X-Emby-Authorization", "X-Emby-Token", "X-MediaBrowser-Token", "X-Plex-Token")
 
 // A redirect that only moves a plain-HTTP call to HTTPS on the same host, as Emby's "require
 // HTTPS" does (http://h:8096 -> https://h:8920). Whoever could read the token on [from] could

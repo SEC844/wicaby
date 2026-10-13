@@ -26,8 +26,9 @@ object ExternalPlayer {
             .map { it.activityInfo.packageName }
             .filterNot { it.contains("frameworkpackagestubs") || it.endsWith(".stubs") || it == context.packageName }
 
-    // Any video player for this server's scheme (http or https).
-    fun available(context: Context, api: Api): Boolean = players(context, view(api.base)).isNotEmpty()
+    // Any video player for this server's scheme (http or https). Never for Plex: its token never goes in a URL, and
+    // another app cannot send our headers.
+    fun available(context: Context, api: Api): Boolean = api.server.kind != "plex" && players(context, view(api.base)).isNotEmpty()
 
     // The original file. The token rides in the query (Emby reads api_key, Jellyfin 10.11+ only
     // ApiKey) because another app cannot send our auth headers; the URL only goes to the app the
@@ -36,7 +37,7 @@ object ExternalPlayer {
         "/Videos/$itemId/stream", "static" to true, "MediaSourceId" to mediaSourceId, key(api),
     )
 
-    private fun key(api: Api) = (if (api.server.isEmby) "api_key" else "ApiKey") to api.token
+    private fun key(api: Api) = (if (api.server.isEmby) "api_key" else "ApiKey") to api.token.takeUnless { api.server.kind == "plex" }
 
     internal class Sub(val url: String, val name: String, val default: Boolean)
 

@@ -100,6 +100,8 @@ class CastController(
     override suspend fun play(target: CastTarget, ids: List<String>, startIndex: Int, positionTicks: Long?, msid: String?, audio: Int?, sub: Int?, command: String) {
         // One item: no queue on a direct renderer (§1).
         val id = ids.getOrNull(startIndex) ?: ids.first()
+        // A renderer's URLs carry the token, and the Plex token never goes in a URL: casting Plex is the Cast workflow's.
+        if (api.server.kind == "plex") throw IOException("casting a Plex server is not supported yet")
         try {
             start(api.item(id), positionTicks ?: 0, msid, audio, sub)
         } catch (e: Exception) {

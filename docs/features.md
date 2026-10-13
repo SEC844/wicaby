@@ -166,7 +166,7 @@ Videos straight from a folder, a WebDAV server or an SMB share, next to your Emb
 
 ## Plex
 
-Desktop only for now (Windows and Linux); the Android apps come later. Wicaby is an unofficial client, not affiliated with or endorsed by Plex. It talks to Plex Media Server through its documented HTTP API.
+On desktop (Windows and Linux), Android TV and Android mobile. Wicaby is an unofficial client, not affiliated with or endorsed by Plex. It talks to Plex Media Server through its documented HTTP API.
 
 - **Linking:** Servers › Plex account › Link with a code. Enter the code at plex.tv/link or scan the QR code; there is no password form. Your servers and the ones shared with you are added; shared servers show by default with their owner, and each one can be hidden (it stays stored). The list is cached, so startup never waits on plex.tv.
 - **Profiles:** Plex Home users appear in the profile picker. A protected profile always asks for its PIN.
@@ -184,6 +184,7 @@ Desktop only for now (Windows and Linux); the Android apps come later. Wicaby is
   - progress goes to Plex with exactly one stop report, so history has no duplicates; a server that ends the stream shows its reason;
   - Skip intro and credits from Plex markers, and BIF trickplay thumbnails;
   - casting to a Chromecast, or to a DLNA TV for files it plays as they are, through the cast relay, so the token never leaves this computer.
+- **On Android TV and mobile:** the same linking (a QR code on TV, a link screen on mobile), Home profiles with their PIN, connections, browsing and playback as above. Tokens stay in the Android Keystore-backed storage. On mobile, downloads only when the server allows them. Casting a Plex item and "Play on" are not available on Android yet.
 - **Not supported:** the Admin panel, Live TV and DVR, "Play on" and remote control of Plex sessions (Wicaby is not a Plex player target), mix and radio, subtitle search, comics, cinema intros (prerolls), Wake-on-LAN and access schedules. A request Wicaby cannot translate fails with a clear error, never a wrong answer.
 - **Plex Pass.** Wicaby detects these gates and explains them; it never works around them.
   - Playing away from the server's network needs a Plex Pass (yours or the owner's) or a Remote Watch Pass. On the server's network it still works.

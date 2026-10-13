@@ -64,7 +64,7 @@ suspend fun allViews(api: Api): List<Item> {
 suspend fun savedApis(): List<Api> {
     val s = Core.prefs.current()
     return (listOfNotNull(s.session) + s.extras).distinctBy { it.server.id }
-        .map { a -> Servers.of(a.server.id)?.takeIf { it.userId == a.userId } ?: Api(a.server, s.deviceId, a.token, a.userId) }
+        .map { a -> Servers.of(a.server.id)?.takeIf { it.userId == a.userId } ?: Api.of(a.server, s.deviceId, a.token, a.userId) }
 }
 
 suspend fun savedApi(serverId: String): Api? = savedApis().firstOrNull { it.server.id == serverId }
@@ -147,7 +147,7 @@ fun AddServerFlow(snap: Snapshot) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Column(Modifier.widthIn(max = 520.dp)) {
                 Text(stringResource(R.string.other_servers_hint), style = Type.body, color = G.label2, modifier = Modifier.padding(top = 8.dp))
-                ServerPanel(snap, add = true) { picked = it }
+                ServerPanel(snap, add = true, onPlexLinked = ::done) { picked = it }
             }
         }
     }

@@ -134,7 +134,8 @@ fun DetailScreen(id: String) {
         val target = if (item.isSeries) nextUp ?: episodes.firstOrNull() else item
         val resumeMs = target?.resumeMs ?: 0
         // Books open the comic reader; the saved page replaces the resume time.
-        val book = Comics.isBook(item)
+        // Plex has no books (caps.comics, plex-spec §8): never the comic reader there.
+        val book = api.server.kind != "plex" && Comics.isBook(item)
         val bookPage = if (book) Comics.resumePage(item) else null
         // Versions: the remembered one; audio/subtitles follow the selected version.
         var sourceId by remember(item) { mutableStateOf(Versions.selected(item)?.id) }

@@ -115,6 +115,8 @@ object Core {
         val a = api ?: return
         // Unit tests set api without an Application: no socket there.
         if (a.token == null || !::app.isInitialized) return
+        // Plex has no Emby socket (its token never rides in a URL); a server-ended play comes back on the timeline.
+        if (a.server.kind == "plex") return
         val key = sessionKey(a)
         val control = remoteControl
         socket = ServerSocket(http, a.socketUrl(), capabilities = { a.capabilities(control) }, deliver = { m ->

@@ -97,17 +97,22 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                         )
                         GroupDivider()
                     }
-                    PairTvRow(api, session.userName)
-                    GroupDivider()
+                    // Plex: the TV links its own account (its servers need the account's connections, not this token).
+                    if (session.server.kind != "plex") {
+                        PairTvRow(api, session.userName)
+                        GroupDivider()
+                    }
                     GroupRow(stringResource(R.string.switch_user), { leave(pickServer = false, revoke = false) }, icon = Ic.Users)
                     GroupDivider()
                     GroupRow(stringResource(R.string.switch_server), { leave(pickServer = true, revoke = false) }, icon = Ic.Server)
                     GroupDivider()
                     GroupRow(stringResource(R.string.sign_out), { leave(pickServer = false, revoke = true) }, icon = Ic.LogOut, titleColor = G.red, chevron = false)
                 }
-                AddressSettings(session.server)
+                // Plex: the connections plex.tv lists, chosen in the Plex section below.
+                if (session.server.kind != "plex") AddressSettings(session.server)
                 OtherServers(snap)
             }
+            PlexSettings(snap)
             // File sources (FS-10).
             FilesSettings()
 

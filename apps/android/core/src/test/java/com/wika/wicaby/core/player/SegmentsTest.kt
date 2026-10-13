@@ -11,6 +11,16 @@ import org.junit.Test
 class SegmentsTest {
     private fun ch(sec: Long, type: String) = Chapter(startPositionTicks = sec * 10_000_000, markerType = type)
 
+    // Stopped in the credits, before 90 %: marked played by the client, except on Plex (one scrobble, from PMS).
+    @Test
+    fun playedByCreditsNotOnPlex() {
+        assertTrue(markPlayedByCredits("emby", 2_500_000, 3_000_000, 2_400_000))
+        assertTrue(markPlayedByCredits("jellyfin", 2_500_000, 3_000_000, 2_400_000))
+        assertFalse(markPlayedByCredits("plex", 2_500_000, 3_000_000, 2_400_000))
+        assertFalse("past 90 %: the server's own threshold", markPlayedByCredits("emby", 2_900_000, 3_000_000, 2_400_000))
+        assertFalse(markPlayedByCredits("emby", 2_000_000, 3_000_000, 2_400_000))
+    }
+
     @Test
     fun embyMarkers() {
         val s = embySegments(listOf(ch(0, "Chapter"), ch(60, "IntroStart"), ch(150, "IntroEnd"), ch(300, "Chapter"), ch(2400, "CreditsStart")))

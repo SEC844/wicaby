@@ -427,4 +427,15 @@
         <item quantity="one">%d year ago</item>
         <item quantity="other">%d years ago</item>
     </plurals>
+    <!-- Plex (plex spec §9): what the Plex adapter explains (gates are explained, never worked around). -->
+    <string name="plex_error_remote_needs_pass">Playing from this server away from its network needs a Plex Pass (yours or the owner’s) or a Remote Watch Pass. On the server’s network it still works.</string>
+    <string name="plex_error_lower_quality">The server refuses this quality remotely. Pick a lower quality in the Quality menu.</string>
+    <string name="plex_error_file_unavailable">This item’s file cannot be found on the Plex server.</string>
+    <string name="plex_error_terminated">The server stopped playback.</string>
+    <string name="plex_error_secure_required">This Plex server requires a secure connection, and no https address answers.</string>
+    <string name="plex_error_relink">The Plex account is no longer linked: link it again with a code.</string>
+    <string name="plex_error_wrong_pin">Wrong PIN.</string>
+    <string name="plex_error_no_access">This profile has no access to this Plex server.</string>
+    <string name="plex_error_confirm_http">This Plex server address is unencrypted (HTTP): confirm it before the access token is sent there.</string>
+    <string name="plex_link_no_servers">This Plex account has access to no server.</string>
 </resources>

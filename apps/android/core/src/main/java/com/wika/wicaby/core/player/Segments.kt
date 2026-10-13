@@ -81,6 +81,11 @@ fun resumeFrom(positionMs: Long, durationMs: Long): Long {
 fun isWatched(positionMs: Long, durationMs: Long, creditsMs: Long?): Boolean =
     durationMs > 0 && (positionMs >= durationMs * MAX_RESUME || (creditsMs != null && creditsMs > 0 && positionMs >= creditsMs))
 
+// Stopped in the credits before 90 %: the client marks the item played itself. Not on Plex: PMS applies its own
+// threshold, and a scrobble right after the stopped timeline counts the play twice (plex spec §6.5, DUP-SCROBBLE).
+fun markPlayedByCredits(kind: String, positionMs: Long, durationMs: Long, creditsMs: Long?): Boolean =
+    kind != "plex" && isWatched(positionMs, durationMs, creditsMs) && !isWatched(positionMs, durationMs, null)
+
 // When the "next episode" card appears: at the credits, or for the last 30 s.
 fun upNextAt(durationMs: Long, creditsMs: Long?): Long? {
     if (durationMs <= 0) return null

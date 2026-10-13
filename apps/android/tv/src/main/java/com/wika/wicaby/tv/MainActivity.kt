@@ -114,6 +114,9 @@ class MainActivity : ComponentActivity() {
         AppLanguage.applyToCore(this)
         // TP-09, debug builds: am start … --es trakt_url http://10.0.2.2:8260 (tools/mock-server/mock-trakt.mjs).
         if (BuildConfig.DEBUG) intent.getStringExtra("trakt_url")?.let { com.wika.wicaby.core.trakt.TraktService.shared.base = it }
+        // Plex, debug builds: am start … --es plex_tv_url http://127.0.0.1:32401 (tools/mock-server/mock-plex.mjs through adb
+        // reverse); PlexTv.base takes loopback only. Never plex.tv in a smoke test.
+        if (BuildConfig.DEBUG) intent.getStringExtra("plex_tv_url")?.let { com.wika.wicaby.core.plex.PlexTv.devBase = it }
         goFullscreen()
         window.callback = IdleKeys(window.callback)
         setContent { TvCanvas { App() } }
@@ -252,6 +255,8 @@ sealed interface Route {
     data class MusicLibrary(val id: String, val name: String, val mode: Int, val serverId: String? = null) : Route
     // Onboarding (OB-T1): the first-run wizard; rerun: Réglages > Interface > Relancer la configuration.
     data class Welcome(val rerun: Boolean = false) : Route
+    // Plex (plex-spec §5.1): link with a code, then the server choice; add: an extra server (the primary one stays).
+    data class PlexLink(val add: Boolean = false) : Route
 }
 
 // Where the app opens, and where Skip Setup lands (the wizard writes onboarded first). Main also needs
@@ -260,7 +265,7 @@ fun startRoute(snap: Snapshot): Route {
     val session = snap.session
     return when {
         // TP-10: "Who is watching?" first, unless this TV has one account without a PIN (and the setting skips it).
-        session != null -> if (Profiles.skipPicker(snap)) Route.Main else Route.Login(session.server)
+        session != null -> if (Profiles.skipPicker(snap) && !com.wika.wicaby.tv.ui.plexProtected(session)) Route.Main else Route.Login(session.server)
         snap.server != null -> Route.Login(snap.server!!)
         snap.onboarded -> Route.Servers
         else -> Route.Welcome()
@@ -403,11 +408,11 @@ private fun App() {
     // TP-10: the stored session only once the picker opened it; until then no Core.api, so no socket either.
     val active = SessionGate.active(snap.session)
     val api = remember(active, snap.deviceId) {
-        active?.let { Api(it.server, snap.deviceId, it.token, it.userId) }.also { app.api = it }
+        active?.let { Api.of(it.server, snap.deviceId, it.token, it.userId) }.also { app.api = it }
     }
     // TP-06: the other signed-in servers, set before the screens below load their rows (none while locked).
     remember(snap.extras, snap.deviceId, api == null) {
-        (if (api == null) emptyList() else snap.extras.map { Api(it.server, snap.deviceId, it.token, it.userId) }).also { Servers.extra = it }
+        (if (api == null) emptyList() else snap.extras.map { Api.of(it.server, snap.deviceId, it.token, it.userId) }).also { Servers.extra = it }
     }
     // An account added or removed: every row on show reloads with the new set of servers.
     var extrasSeen by remember { mutableStateOf(snap.extras) }
@@ -547,6 +552,7 @@ private fun App() {
                                     LocalApi.current?.let { com.wika.wicaby.tv.ui.photos.PhotoAlbumScreen(it, route.id, route.name) }
                                 }
                                 is Route.Welcome -> com.wika.wicaby.tv.ui.WelcomeScreen(route.rerun)
+                                is Route.PlexLink -> com.wika.wicaby.tv.ui.PlexLinkScreen(route.add)
                                 is Route.Files -> if (api != null) com.wika.wicaby.tv.ui.FilesFolderScreen(route.sourceId, route.id, route.name)
                                 is Route.MusicAlbum -> if (api != null) ServerScope(route.serverId) {
                                     LocalApi.current?.let { com.wika.wicaby.tv.music.AlbumScreen(it, route.id, route.name) }

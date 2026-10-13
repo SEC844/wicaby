@@ -29,6 +29,7 @@ import com.wika.wicaby.core.cast.CastTarget
 import com.wika.wicaby.core.cast.DlnaRenderers
 import com.wika.wicaby.core.cast.RemoteTargets
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.data.caps
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.net.LocalNetwork
 import com.wika.wicaby.mobile.BuildConfig
@@ -109,7 +110,8 @@ fun CastPicker(api: Api, item: Item, casting: Boolean, onPick: (CastTarget) -> U
                 none && (targets == null || searching) -> Text(stringResource(R.string.cast_searching), style = Type.body, color = G.label2)
                 none -> Text(stringResource(R.string.cast_empty), style = Type.body, color = G.label2)
                 else -> {
-                    Section(R.string.cast_section_apps, list.filter { it.kind == CastTarget.Kind.Session }, onPick)
+                    // caps.sessionsRemote: no "apps" rows for a plex server (plex spec §8).
+                    if (api.server.caps.sessionsRemote) Section(R.string.cast_section_apps, list.filter { it.kind == CastTarget.Kind.Session }, onPick)
                     Section(R.string.cast_section_dlna, list.filter { it.kind == CastTarget.Kind.Dlna } + found, onPick, lan)
                     Section(R.string.cast_section_chromecast, chromecasts, onPick, lan)
                 }

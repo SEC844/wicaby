@@ -18,6 +18,29 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-13
+
+Plex on Android TV and mobile. Windows and Linux desktop **0.9.0**, Android TV app **0.9.0** (`versionCode` 20),
+Android mobile app **0.9.0** (`versionCode` 16).
+
+### Added
+
+- Android TV and mobile: Plex servers, as on desktop. Wicaby is an unofficial client, not affiliated with Plex.
+  - Link a Plex account with a code (plex.tv/link or a QR code), no password form. Your servers and the ones shared
+    with you are added; shared servers show by default and each one can be hidden. Plex Home profiles appear in
+    "Who is watching?", and a protected profile always asks for its PIN.
+  - Connections: local addresses first, then remote, then Plex's relay (with a badge). Servers that require secure
+    connections are never reached over http; an unencrypted local address gets your Plex access only after you
+    confirm it. Tokens are kept in the Android Keystore-backed storage, never in an address.
+  - Browse, play and resume through the server's decision (direct play or HLS from the resume point), multi-part
+    films as one queue, track choices saved to Plex, progress reported once, Skip intro from Plex markers and BIF
+    trickplay. The plex.tv watchlist shows as Favorites.
+  - Mobile: downloads only when the server allows them, otherwise Wicaby says why.
+  - For the server owner, "Refresh metadata". Admin, Live TV, casting and "Play on" are not available on Plex
+    servers on Android.
+  - Plex Pass gates are detected and explained, never worked around.
+- The Android Plex mapping passes the same test vectors as desktop.
+
 ## [0.8.0] - 2026-10-13
 
 Plex on desktop. Windows and Linux desktop **0.8.0**, Android TV app **0.8.0** (`versionCode` 19), Android mobile app

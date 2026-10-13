@@ -225,7 +225,7 @@ fun ServerScreen(snap: Snapshot) {
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.welcome_sub), style = Type.body, color = G.label2)
             val scope = rememberCoroutineScope()
-            ServerPanel(snap) { server ->
+            ServerPanel(snap, onPlexLinked = { SetupRequest.pickServer = false }) { server ->
                 scope.launch {
                     Core.prefs.setServer(server)
                     SetupRequest.pickServer = false
@@ -271,6 +271,8 @@ fun ServerPanel(
     section: ServerSection = ServerSection.All,
     add: Boolean = false,
     find: suspend (android.content.Context) -> List<Found> = { discover(it) },
+    // Plex (PXA-mobile): the account was linked and its sessions saved (no LoginScreen after it).
+    onPlexLinked: () -> Unit = {},
     onReady: (Server) -> Unit,
 ) {
     val context = LocalContext.current
@@ -313,12 +315,15 @@ fun ServerPanel(
     }
 
     Column {
+        // Plex servers come from the account, not from an address: link it with a code.
+        Eyebrow(stringResource(R.string.plex_title))
+        PlexLinkRow(add || snap.session != null, onPlexLinked)
         if (section != ServerSection.Public) {
             val saved = snap.server.takeIf { section == ServerSection.All && !add }
             val list = found.orEmpty()
             if (saved != null && list.none { it.id == saved.id }) {
                 Eyebrow(stringResource(R.string.saved_server))
-                Group { GroupRow(saved.name, { connect(saved.address) }, subtitle = saved.address, icon = Ic.Server, trailing = saved.kind.replaceFirstChar { it.uppercase() }) }
+                Group { GroupRow(saved.name, { if (saved.kind == "plex") onReady(saved) else connect(saved.address) }, subtitle = saved.address, icon = Ic.Server, trailing = saved.kind.replaceFirstChar { it.uppercase() }) }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Eyebrow(stringResource(R.string.on_network))
@@ -394,6 +399,8 @@ private fun Avatar(user: User?, api: Api, label: String, selected: Boolean, onCl
 // [add]: TP-06, an extra account beside the primary one. [onSignedIn]: the wizard moves on instead of the
 // root switching to the main shell; [title] then replaces "Qui regarde ?" and Change Server is left out.
 fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: String? = null, onSignedIn: (() -> Unit)? = null) {
+    // Plex: no user list or password on the server, the account's Home profiles instead (plex spec §5.5).
+    if (server.kind == "plex") return PlexLoginScreen(server, add, title, onSignedIn)
     val scope = rememberCoroutineScope()
     val api = remember(server) { Api.of(server, deviceId) }
     var reload by remember { mutableIntStateOf(0) }

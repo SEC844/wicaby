@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -24,6 +25,7 @@ import com.wika.wicaby.core.data.Versions
 import com.wika.wicaby.core.data.json
 import com.wika.wicaby.core.data.poster
 import com.wika.wicaby.core.player.LocalMedia
+import com.wika.wicaby.core.plex.PlexApi
 import com.wika.wicaby.mobile.Lang
 import com.wika.wicaby.mobile.R
 import kotlinx.coroutines.CancellationException
@@ -123,6 +125,11 @@ object Downloads {
             // The version picked on the detail page (Versions remembers it per item). The stored item
             // keeps only that source, so the offline copy plays with its streams.
             val source = Versions.selected(full)
+            // Plex: only what the server allows (allowSync, plex spec §1.3); otherwise say why, never work around it.
+            if (api is PlexApi && runCatching { api.downloadPath(full.id, source?.id) }.getOrNull() == null) {
+                withContext(Dispatchers.Main) { Toast.makeText(app, R.string.plex_download_not_allowed, Toast.LENGTH_LONG).show() }
+                return@launch
+            }
             val ext = SafeNames.extension(source?.container)
             val file = File(dir, "${full.id}.$ext")
             if (!owned(file.path)) return@launch
@@ -192,7 +199,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         // WorkManager may start this before any screen has built the API client.
         // TP-06: the item's server may be an extra account.
         val api = Servers.all.firstOrNull { it.server.id == e.serverId && it.userId == e.userId }
-            ?: Core.prefs.current().let { s -> (listOfNotNull(s.session) + s.extras).firstOrNull { it.server.id == e.serverId && it.userId == e.userId }?.let { Api(it.server, s.deviceId, it.token, it.userId) } }
+            ?: Core.prefs.current().let { s -> (listOfNotNull(s.session) + s.extras).firstOrNull { it.server.id == e.serverId && it.userId == e.userId }?.let { Api.of(it.server, s.deviceId, it.token, it.userId) } }
             ?: return Result.failure().also { Downloads.update(id) { it.copy(state = DlState.Failed) } }
         // Without the notification permission this still runs, just without a visible notification.
         runCatching { setForeground(foreground(e.item.name, e.fraction)) }
@@ -220,7 +227,9 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
     private suspend fun transfer(api: Api, e: DownloadEntry) = withContext(Dispatchers.IO) {
         val part = File(e.file + ".part")
         val have = part.length()
-        val req = Request.Builder().url(api.downloadUrl(e.id, e.sourceId)).apply {
+        // Plex: the original part, read from the item (allowSync) by a fresh client; null when the server stopped allowing it.
+        val url = if (api is PlexApi) api.downloadPath(e.id, e.sourceId) ?: throw IOException("download not allowed") else api.downloadUrl(e.id, e.sourceId)
+        val req = Request.Builder().url(url).apply {
             api.authHeaders().forEach { (k, v) -> header(k, v) }
             // Resume a partial file after a dropped connection or a reboot; If-Range makes a
             // compliant server answer 200 (the whole new file) when the source changed.

@@ -238,10 +238,12 @@ fun ServerScreen(add: Boolean = false, section: String? = null, onReady: ((Serve
                 if (public) return@Column
                 // Next to the address: a server only on Tailscale / NetBird needs the mesh joined first (the wizard has a card for it).
                 if (!wizard) RemoteAccessRow(Modifier.padding(top = 6.dp).remembered(memory, "remote"))
+                // Plex (plex-spec §5.1): its servers come from the account, linked with a code.
+                if (!wizard) PlexLinkRow(add, Modifier.remembered(memory, "plex"))
                 Spacer(Modifier.height(10.dp))
                 if (saved != null && list.none { it.id == saved.id }) {
                     Text(stringResource(R.string.saved_server).uppercase(), style = Type.eyebrow, color = C.label3, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-                    ListRow(saved.name, saved.address, onClick = { connect(saved.address) }, icon = Ic.Server, trailing = saved.kind.replaceFirstChar { it.uppercase() },
+                    ListRow(saved.name, saved.address, onClick = { if (saved.kind == "plex") nav.reset(Route.Login(saved)) else connect(saved.address) }, icon = Ic.Server, trailing = saved.kind.replaceFirstChar { it.uppercase() },
                         modifier = Modifier.remembered(memory, "saved", default = true))
                 }
                 Row(Modifier.padding(start = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -297,7 +299,9 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
     val scope = rememberCoroutineScope()
     val api = remember(server) { Api.of(server, snap.deviceId) }
     var reload by remember { mutableIntStateOf(0) }
-    val users by rememberLoad("public-${server.id}-$reload") { api.publicUsers() }
+    // Plex: the account's Home users (plex-spec §5.5), each with their Plex PIN when protected.
+    val plex = server.kind == "plex"
+    val users by rememberLoad("public-${server.id}-$reload") { if (plex) plexUsers(server) else api.publicUsers() }
     var picked by remember { mutableStateOf<User?>(null) }
     var manual by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -319,6 +323,8 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
         password = ""
         error = null
     }
+
+    val plexSignIn = rememberPlexSignIn(server, add, onDone = { onSignedIn?.invoke() ?: nav.reset(Route.Main) }, onError = { error = it })
 
     fun login(user: String, pw: String) {
         if (busy) return
@@ -382,7 +388,11 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
                     val refused = AccessSchedules.explain(context, server.id, s.session.userId, e)
                     // Signed out elsewhere since: the password once more (the next sign-in keeps the PIN).
                     if (refused != null) error = refused
-                    else if (e.status == 401 || e.status == 403) {
+                    else if (plex && (e.status == 401 || e.status == 403)) {
+                        // A PIN added or removed on plex.tv makes the stored token stale: switch again (#553).
+                        error = expired
+                        plexSignIn(user)
+                    } else if (e.status == 401 || e.status == 403) {
                         picked = user
                         password = ""
                         error = expired
@@ -432,13 +442,16 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
                                 error = null
                                 val s = e.saved
                                 when {
+                                    // A protected Plex Home user gives their Plex PIN every time, saved or not (plex-spec §5.5).
+                                    plex && (s == null || u.hasPassword) -> plexSignIn(u)
                                     s != null -> open(u, s)
                                     !u.hasPassword -> login(u.name, "")
                                     else -> { picked = u; password = "" }
                                 }
                             }, modifier = Modifier.remembered(memory, "u-${u.id}", default = i == start))
                         }
-                        Avatar(null, api, stringResource(R.string.other_user), onClick = {
+                        // No name and password on Plex: its users come from the account (link with a code).
+                        if (!plex) Avatar(null, api, stringResource(R.string.other_user), onClick = {
                             picked = null; manual = true; error = null
                         }, modifier = Modifier.remembered(memory, "other", default = entries.isEmpty()))
                     }

@@ -27,7 +27,7 @@ import com.wika.wicaby.tv.ui.WicabyTheme
 // TP-10: the backdrops of the session the app opened ("Who is watching?" resolved), or of the TV's lone account without
 // a PIN; else none (black): the screensaver must not show a locked account's library.
 fun dreamApi(s: Snapshot): Api? =
-    (SessionGate.active(s.session) ?: s.session?.takeIf { Profiles.skipPicker(s) })?.let { Api(it.server, s.deviceId, it.token, it.userId) }
+    (SessionGate.active(s.session) ?: s.session?.takeIf { Profiles.skipPicker(s) && !com.wika.wicaby.tv.ui.plexProtected(it) })?.let { Api.of(it.server, s.deviceId, it.token, it.userId) }
 
 // The system screen saver (Settings > Device preferences > Screen saver > Wicaby): the in-app
 // backdrop slideshow, for the signed-in user. Signed out, it stays black.

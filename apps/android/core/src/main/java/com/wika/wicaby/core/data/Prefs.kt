@@ -194,6 +194,17 @@ class Prefs(private val context: Context) {
         it[extrasKey] = json.encodeToString(accounts, stored(it).filter { a -> a.server.id != s.server.id } + StoredAccount(s.server, s.userId, s.userName, Vault.encrypt(s.token)))
     }
 
+    // Plex (plex spec §5.3): the same signed-in server at another of the connections plex.tv listed for it, the token
+    // kept. One edit, so the shell never sees the session gone between the address and the token (setServer drops it).
+    suspend fun moveSession(serverId: String, address: String) = context.store.edit {
+        val main = it[serverKey]?.let { s -> runCatching { json.decodeFromString(Server.serializer(), s) }.getOrNull() }
+        if (main?.id == serverId) it[serverKey] = json.encodeToString(Server.serializer(), main.copy(address = address))
+        val extra = stored(it)
+        if (extra.any { a -> a.server.id == serverId }) {
+            it[extrasKey] = json.encodeToString(accounts, extra.map { a -> if (a.server.id == serverId) a.copy(server = a.server.copy(address = address)) else a })
+        }
+    }
+
     suspend fun removeAccount(serverId: String) {
         context.store.edit {
             it[extrasKey] = json.encodeToString(accounts, stored(it).filter { a -> a.server.id != serverId })

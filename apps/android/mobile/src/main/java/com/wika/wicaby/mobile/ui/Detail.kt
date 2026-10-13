@@ -149,6 +149,8 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
     val density = LocalDensity.current
     val downloads by Downloads.entries.collectAsState()
     val download = rememberDownloader(api)
+    // Plex: the Download button only where the server allows it (allowSync, plex spec §1.3).
+    val canDownload = rememberCanDownload(api, item?.takeIf { !it.isSeries }?.id)
 
     BoxWithConstraints(Modifier.fillMaxSize().background(G.bg)) {
         val wide = maxWidth >= 600.dp
@@ -168,6 +170,9 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
             if (seasonIndex < 0 && seasons.isNotEmpty()) seasonIndex = seasons.indexOfFirst { it.id == nextUp?.seasonId }.coerceAtLeast(0)
             val season = seasons.getOrNull(seasonIndex)
             val episodes = season?.let { s -> rememberLoad("episodes-$id-${s.id}", nonce) { api.episodes(id, s.id) }.value }.orEmpty()
+            // shortcut: allowSync read on the season's first episode (it follows the user's sharing settings); a refused one
+            // still gets the explanation from Downloads.enqueue. Read every episode if a server ever mixes them.
+            val episodesDownload = rememberCanDownload(api, episodes.firstOrNull()?.id)
             val similar = rememberLoad("similar-$id") { api.similar(id) }.value.orEmpty()
             var favorite by remember(item) { mutableStateOf(item.userData?.isFavorite == true) }
             var watched by remember(item) { mutableStateOf(item.userData?.played == true) }
@@ -290,7 +295,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                                     true
                                 }) { casting, onClick -> ActionIcon(Ic.Cast, stringResource(com.wika.wicaby.core.R.string.cast_button), onClick, active = casting) }
                             }
-                            if (!item.isSeries && caps.castSend) DownloadAction(downloads.firstOrNull { it.id == item.id }) { download(item) }
+                            if (!item.isSeries && caps.castSend && canDownload) DownloadAction(downloads.firstOrNull { it.id == item.id }) { download(item) }
                             if (caps.favorites) ActionIcon(if (favorite) Ic.HeartFilled else Ic.Heart, stringResource(R.string.favorite), active = favorite, onClick = {
                                 scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite } }
                             })
@@ -341,7 +346,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                     }
                     items(episodes, key = { it.id }, contentType = { "episode" }) { ep ->
                         EpisodeRow(
-                            ep, api, downloads.firstOrNull { it.id == ep.id }, onPlay = { play(context, ep) }, onDownload = { download(ep) },
+                            ep, api, downloads.firstOrNull { it.id == ep.id }, onPlay = { play(context, ep) }, onDownload = { download(ep) }.takeIf { episodesDownload },
                             onMark = { on -> mark(on) { listOf(ep) } },
                             // The whole series, so earlier seasons count too.
                             onMarkPrevious = { mark(true) { previousEpisodes(api.episodes(id), ep) } },
@@ -404,7 +409,7 @@ private fun DownloadAction(entry: DownloadEntry?, onDownload: () -> Unit) {
 }
 
 @Composable
-private fun EpisodeRow(ep: Item, api: Api, dl: DownloadEntry?, onPlay: () -> Unit, onDownload: () -> Unit, onMark: (Boolean) -> Unit, onMarkPrevious: () -> Unit) {
+private fun EpisodeRow(ep: Item, api: Api, dl: DownloadEntry?, onPlay: () -> Unit, onDownload: (() -> Unit)?, onMark: (Boolean) -> Unit, onMarkPrevious: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val px = dpPx(150.dp)
     val url = remember(ep.id) { api.thumb(ep, px) }
@@ -432,7 +437,7 @@ private fun EpisodeRow(ep: Item, api: Api, dl: DownloadEntry?, onPlay: () -> Uni
                     runtimeText(ep.runTimeTicks)?.let { Text(it, style = Type.footnote, color = G.label2, modifier = Modifier.padding(top = 2.dp)) }
                 }
                 val icon = if (dl?.state == DlState.Done) Ic.CircleCheck else Ic.Download
-                Box(Modifier.size(44.dp).clip(CircleShape).clickable(enabled = dl == null || dl.state == DlState.Failed, onClick = onDownload), contentAlignment = Alignment.Center) {
+                if (onDownload != null || dl != null) Box(Modifier.size(44.dp).clip(CircleShape).clickable(enabled = onDownload != null && (dl == null || dl.state == DlState.Failed), onClick = { onDownload?.invoke() }), contentAlignment = Alignment.Center) {
                     if (dl != null && dl.state != DlState.Done && dl.state != DlState.Failed) {
                         androidx.compose.material3.CircularProgressIndicator(
                             progress = { dl.fraction }, modifier = Modifier.size(28.dp), color = LocalAccent.current, trackColor = G.fill3, strokeWidth = 2.dp,

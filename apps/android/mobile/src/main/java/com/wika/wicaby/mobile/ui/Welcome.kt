@@ -131,6 +131,13 @@ fun WelcomeFlow(
         }
     }
 
+    // Plex: the sessions are saved already; on to "Vos serveurs".
+    fun plexLinked() {
+        scope.launch { store.setOnboarded(true) }
+        add = false
+        step = 4
+    }
+
     fun back() {
         when {
             step == 4 && pending != null -> { pending = null; step = 3 }
@@ -153,7 +160,7 @@ fun WelcomeFlow(
             when (s) {
                 1 -> Page { Intro() }
                 2 -> Page { Look(snap, store) }
-                3 -> Page { WhereStep(snap, signedIn, add, find, mesh, onReady = ::ready, onAddAnother = { add = true }) }
+                3 -> Page { WhereStep(snap, signedIn, add, find, mesh, onReady = ::ready, onAddAnother = { add = true }, onPlex = ::plexLinked) }
                 4 -> {
                     val p = pending
                     val server = snap.server
@@ -282,6 +289,7 @@ private fun WhereStep(
     mesh: StateFlow<MeshStatus>,
     onReady: (Server) -> Unit,
     onAddAnother: () -> Unit,
+    onPlex: () -> Unit = {},
 ) {
     Title(stringResource(CoreR.string.onboarding_where_title))
     if (signedIn) return YourServers(snap, onAddAnother)
@@ -303,8 +311,8 @@ private fun WhereStep(
         }
     }
     when (where) {
-        Where.Lan -> ServerPanel(snap, ServerSection.Lan, add, find, onReady)
-        Where.Public -> ServerPanel(snap, ServerSection.Public, add, find, onReady)
+        Where.Lan -> ServerPanel(snap, ServerSection.Lan, add, find, onPlex, onReady)
+        Where.Public -> ServerPanel(snap, ServerSection.Public, add, find, onPlex, onReady)
         Where.Vpn -> {
             RemoteAccessSection()
             ChooseDevice(mesh, onReady, onByAddress = { where = Where.Public })

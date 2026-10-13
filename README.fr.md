@@ -122,7 +122,7 @@
 - **Le fichier d'origine, dès que possible.** Wicaby lit vos fichiers directement et ne demande une conversion au serveur que si l'appareil ne peut vraiment pas.
 - **HDR et Dolby Vision bien gérés**, avec bascule automatique du HDR de Windows et son surround transmis à votre ampli.
 - **La musique bien faite** : lecture sans blanc, ReplayGain et sortie bit-perfect sur ordinateur, une file d'attente modifiable, des mix, les paroles, et la musique qui continue sur la TV.
-- **Plex aussi, sur ordinateur** : liez votre compte Plex avec un code, et vos serveurs Plex, comme ceux partagés avec vous, rejoignent Emby et Jellyfin. Un client non officiel, sans lien avec Plex.
+- **Plex aussi** : liez votre compte Plex avec un code, et vos serveurs Plex, comme ceux partagés avec vous, rejoignent Emby et Jellyfin. Un client non officiel, sans lien avec Plex.
 - **Vos fichiers aussi** : dossiers, partages WebDAV et SMB, parcourus et lus tels quels, à côté de vos serveurs.
 - **Une vraie TV en direct** : guide complet, zapping rapide, mini-guide et enregistrements, sur tous les écrans.
 - **Votre serveur de partout**, avec Tailscale et NetBird intégrés. Aucune application VPN à installer.
@@ -142,6 +142,7 @@
 - Photos : une chronologie de vos bibliothèques de photos et de vidéos personnelles, albums, favoris, visionneuse avec les détails de prise de vue, diaporamas et « Ce jour-là ».
 - Musique : albums, artistes, titres, genres et playlists, une file d'attente modifiable, mix et radio, les paroles synchronisées de votre serveur, et le ReplayGain.
 - Sources de fichiers : lisez les vidéos d'un dossier, d'un serveur WebDAV ou d'un partage SMB, avec les titres des fichiers NFO, les affiches, les sous-titres posés à côté et la progression gardée sur l'appareil.
+- Serveurs Plex : liaison avec un code, profils Plex Home avec leur code PIN, navigation, lecture et reprise, et les rangées d’accueil de Plex ([ce qui marche](docs/features.md#plex)).
 - Chaque app Wicaby se pilote avec « Lire sur » depuis une autre app Wicaby, Emby ou Jellyfin.
 - Un court assistant d'accueil au premier lancement (langue, apparence, votre serveur, accès à distance), et une page Accès à distance avec des diagnostics à partager.
 - Français et anglais.
@@ -150,7 +151,6 @@
 - Lecture fluide : décodage matériel, fréquence d'affichage adaptée et sortie HDR.
 - Son surround transmis à votre ampli (Dolby, DTS, TrueHD).
 - Administration du serveur sans le tableau de bord web.
-- Serveurs Plex : liaison avec un code, profils Plex Home avec leur code PIN, navigation, lecture et reprise, et les rangées d’accueil de Plex ([ce qui marche](docs/features.md#plex)).
 - Une carte des photos facultative (OpenStreetMap), désactivée tant que vous ne l’activez pas.
 - Téléchargements hors ligne et pilotage de qBittorrent.
 - Touches multimédias, boutons dans la barre des tâches, thèmes Mica et OLED, manette.

@@ -23,7 +23,8 @@ interface ScrubPreview {
 
     companion object {
         suspend fun load(api: Api, item: Item, mediaSourceId: String?): ScrubPreview? =
-            if (api.server.isEmby) Bif.load(api, item.id)?.let(::BifPreview)
+            // Plex serves a BIF too (/library/parts/{part}/indexes/sd, through PlexApi.url).
+            if (api.server.isEmby || api.server.kind == "plex") Bif.load(api, item.id)?.let(::BifPreview)
             else {
                 val source = mediaSourceId ?: item.id
                 JellyfinTiles.pick(item.trickplay, source)?.let { TilesPreview(api, item.id, source, JellyfinTiles(it)) }
@@ -161,7 +162,7 @@ class Bif private constructor(private val data: ByteArray, private val times: Lo
 
         // Null when the library has no thumbnails (404) or the server is Jellyfin.
         suspend fun load(api: Api, itemId: String, width: Int = 320): Bif? = withContext(Dispatchers.IO) {
-            if (!api.server.isEmby) return@withContext null
+            if (!api.server.isEmby && api.server.kind != "plex") return@withContext null
             runCatching {
                 val req = Request.Builder().url(api.bifUrl(itemId, width)).apply { api.authHeaders().forEach { (k, v) -> header(k, v) } }.build()
                 Core.http.newCall(req).execute().use { r ->

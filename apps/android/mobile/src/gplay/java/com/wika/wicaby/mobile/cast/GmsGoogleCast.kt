@@ -91,7 +91,9 @@ class GmsGoogleCast(context: Context, private val cast: CastContext) : GoogleCas
 
     override fun remote(api: Api, target: CastTarget, beforePlaying: suspend () -> Unit): CastRemote {
         val route = seen[target.key] ?: throw IOException("route gone")
-        return if (api.server.isEmby) {
+        // Only a Jellyfin server goes to Jellyfin's receiver: it is handed the server token. Plex goes to CastController,
+        // which refuses it (the Plex token never leaves for a receiver or a URL; casting Plex is the Cast workflow's).
+        return if (api.server.kind != "jellyfin") {
             // The receiver loads the page, then the stream: give it longer than a DLNA TV.
             CastController(api, GmsDevice(route, target), startWaitMs = 30_000, beforePlaying = beforePlaying)
         } else JellyfinReceiver(api, route)

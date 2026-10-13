@@ -118,12 +118,13 @@ fun WicabyRoot() {
     remember { showsWizard(start).also { if (it) SetupRequest.wizard = true } }
     // Before Core.api: the first socket already posts the right SupportsMediaControl (no-op when unchanged).
     Core.remoteControl = snap.remoteControl
-    val api = remember(snap.session) { snap.session?.let { Api(it.server, snap.deviceId, it.token, it.userId) }.also { Core.api = it } }
+    val api = remember(snap.session) { snap.session?.let { Api.of(it.server, snap.deviceId, it.token, it.userId) }.also { Core.api = it } }
     LaunchedEffect(snap.maxMbps) { Core.maxMbps = snap.maxMbps }
     LaunchedEffect(api) { if (api != null) WicabyApp.syncPending() }
     // TP-06: the other signed-in servers, set before the screens below load their rows (none while signed out).
-    remember(snap.extras, snap.deviceId, api == null) {
-        (if (api == null) emptyList() else snap.extras.map { Api(it.server, snap.deviceId, it.token, it.userId) }).also { Servers.extra = it }
+    // D-10: a hidden plex server stays signed in, out of the merged views (PlexUi.hidden: toggled in Réglages).
+    remember(snap.extras, snap.deviceId, api == null, PlexUi.hidden) {
+        (if (api == null) emptyList() else snap.extras.filterNot { plexHidden(it.server) }.map { Api.of(it.server, snap.deviceId, it.token, it.userId) }).also { Servers.extra = it }
     }
     // An account added or removed: the rows load again with the new set of servers.
     var extrasSeen by remember { mutableStateOf(snap.extras) }

@@ -143,6 +143,13 @@ class AddressSwitch(val inner: ServerTransport, private val servers: () -> List<
         return Core.scope.launch {
             val stored = server.address.toHttpUrlOrNull() ?: return@launch
             val origin = server.origin ?: return@launch
+            // Plex: the connections plex.tv lists, ranked and raced (plex spec §5.3), not /System/Info/Public.
+            if (server.kind == "plex") {
+                val address = com.wika.wicaby.core.plex.Plex.pick(server) ?: return@launch
+                val u = address.toHttpUrlOrNull()
+                use(server.id, origin, u?.takeUnless { address.equals(server.address.trimEnd('/'), true) }?.let { altBase(stored, it) }, address)
+                return@launch
+            }
             val list = candidates(server.address, known(server.id))
             val (address, info) = firstAnswering(list, server.id) { probe(server, it) } ?: return@launch
             val u = address.toHttpUrlOrNull()

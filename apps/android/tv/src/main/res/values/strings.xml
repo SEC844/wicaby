@@ -424,4 +424,35 @@
     <string name="photos_back">Retour</string>
     <string name="screensaver_album">Album</string>
     <string name="screensaver_album_all">Toutes les photos</string>
+    <!-- Plex on TV (plex-spec §5, §8): link with a code, the server choice (D-3, D-10), Plex Pass explained. -->
+    <string name="plex_tv_account">Compte Plex</string>
+    <string name="plex_tv_link_start">Lier avec un code</string>
+    <string name="plex_tv_link_title">Lier un compte Plex</string>
+    <string name="plex_tv_link_lead">Sur un téléphone ou un ordinateur, ouvrez plex.tv/link et saisissez ce code, ou scannez le QR code : vos serveurs Plex, et ceux partagés avec vous, rejoignent Wicaby.</string>
+    <string name="plex_tv_link_waiting">En attente de la validation sur plex.tv…</string>
+    <string name="plex_tv_link_expired">Ce code a expiré.</string>
+    <string name="plex_tv_link_new_code">Nouveau code</string>
+    <string name="plex_tv_servers_title">Choisissez un serveur</string>
+    <string name="plex_tv_servers_hint">Les serveurs affichés rejoignent Wicaby ; un serveur masqué reste enregistré.</string>
+    <string name="plex_tv_owned">Le vôtre</string>
+    <string name="plex_tv_shared_by">Partagé par %1$s</string>
+    <string name="plex_tv_shared">Partagé avec vous</string>
+    <string name="plex_tv_local">Local</string>
+    <string name="plex_tv_remote">Distant</string>
+    <string name="plex_tv_relay">Relais</string>
+    <string name="plex_tv_hide">Masquer</string>
+    <string name="plex_tv_show">Afficher</string>
+    <string name="plex_tv_hidden">Masqué</string>
+    <string name="plex_tv_show_server">Afficher %1$s</string>
+    <string name="plex_tv_confirm_title">Utiliser cette adresse locale ?</string>
+    <string name="plex_tv_confirm_body">Ce serveur ne répond qu’à %1$s, une adresse non chiffrée. Wicaby n’y enverra votre accès Plex qu’avec votre accord : acceptez seulement sur le réseau du serveur.</string>
+    <string name="plex_tv_confirm">Utiliser cette adresse</string>
+    <string name="plex_tv_linked_as">Lié en tant que %1$s</string>
+    <string name="plex_tv_pass_on">Plex Pass actif sur ce compte.</string>
+    <string name="plex_tv_pass_off">Sans Plex Pass chez le propriétaire d’un serveur, celui-ci n’offre ni TV en direct, ni boutons « Passer l’intro », ni transcodage matériel ; la lecture hors de son réseau demande un Plex Pass ou un Remote Watch Pass.</string>
+    <string name="plex_tv_unlink">Délier le compte Plex</string>
+    <string name="plex_tv_unlink_body">Ses serveurs, ses profils et leurs accès quittent cette TV.</string>
+    <string name="plex_tv_refresh">Actualiser les métadonnées</string>
+    <string name="plex_tv_refreshed">Actualisation demandée au serveur.</string>
+    <string name="plex_tv_not_affiliated">Plex est une marque de Plex, Inc. Wicaby est un client non officiel, sans lien avec Plex ni approuvé par Plex.</string>
 </resources>

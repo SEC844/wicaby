@@ -36,6 +36,9 @@ class MainActivity : AppCompatActivity() {
         // Always dark: light status-bar icons over the graphite background and artwork.
         enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
+        // Debug builds: plex.tv at the loopback mock (tools/mock-server/mock-plex.mjs through adb reverse; PlexTv
+        // ignores anything but http://127.0.0.1 or localhost, and a release build ignores it).
+        if (BuildConfig.DEBUG) intent.getStringExtra("plextv_url")?.let { com.wika.wicaby.core.plex.PlexTv.devBase = it }
         setContent { WicabyRoot() }
         lifecycleScope.launch { Reminders.askPermission.collect { askNotify.launch(Manifest.permission.POST_NOTIFICATIONS) } }
         // "Play on Wicaby" from another app: in place, the player, or a notification in the background (CA-05).
