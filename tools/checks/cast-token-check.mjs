@@ -265,7 +265,8 @@ try {
     assert.equal(await status('jf', tok), 200, 'a cleanup leaves the live cast alone');
     await A.cast.stop();
     await until(async () => (await status('jf', tok)) === 401, 2000, 'the token is revoked on Stop');
-    assert.deepEqual(A.tokens.list(), [], 'and leaves the vault');
+    // The vault entry goes once the revoke call has returned, a moment after the server answers 401.
+    await until(() => A.tokens.list().length === 0, 2000, 'and leaves the vault');
     assert.equal(await status('jf', A.user), 200, 'the user token is untouched');
     console.log('ok AC1/AC3 DLNA relay off: disposable token in the URL, revoked on Stop');
 
@@ -296,7 +297,7 @@ try {
     assert.equal(A.tokens.list().length, 1, 'and still in the vault');
     const B = await desktop('jf', 'desk-tok-crash', false);
     await until(async () => (await status('jf', tok)) === 401, 3000, 'the next start revokes it');
-    assert.deepEqual(B.tokens.list(), []);
+    await until(() => B.tokens.list().length === 0, 2000, 'and drops it from the vault');
     B.quit();
     console.log('ok AC3 crash: the next start revokes the leftover sender token');
   }
@@ -331,7 +332,7 @@ try {
     assert.ok(tok2 && tok2 !== tok && tok2 !== B.user);
     await B.cast.stop();
     await until(async () => (await status('jf', tok2)) === 401, 2000, 'Stop revokes the receiver token');
-    assert.deepEqual(B.tokens.list(), []);
+    await until(() => B.tokens.list().length === 0, 2000, 'and drops it from the vault');
     B.quit();
     console.log('ok AC1/AC3 Jellyfin receiver: disposable accessToken, kept over a sender quit, revoked once its session is gone or on Stop');
   }
