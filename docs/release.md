@@ -13,6 +13,8 @@ The binaries live in a public repo so that the Android apps can download `update
 https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json
 ```
 
+The release workflow only publishes there once the `RELEASES_REPO` [variable](#variables) and the `RELEASES_TOKEN` [secret](#secrets) are both set. Until then it publishes to the Releases of the private code repo, where the assets need a GitHub login: fine for archiving and testing, but the apps' updater cannot read that `update.json`. See [Where a release goes](#where-a-release-goes).
+
 ## Before first publish
 
 Before the first public release:
@@ -25,7 +27,7 @@ Before the first public release:
 ## One-time setup
 
 1. Create `WicaebethTheo/wicaby-releases` as a **public** repository and give it at least one commit (a `README.md` is enough). Release tags are created on its default branch, so both the workflow and a manual `gh release create` fail on an empty repository.
-2. Set the secrets listed under [Secrets](#secrets) on the code repository, and the `APK_CERT_SHA256` [variable](#variables).
+2. Set the secrets listed under [Secrets](#secrets) on the code repository, and the `APK_CERT_SHA256` and `RELEASES_REPO` [variables](#variables).
 
 ## Cutting a release
 
@@ -46,9 +48,54 @@ Before the first public release:
 
 Any tag matching `v*` triggers `.github/workflows/release.yml`, but its first job refuses the release unless the tag has the form `vX.Y.Z` or `vX.Y.Z-<prerelease>` and points at a commit that is on `main` and whose CI run is green (see [`preflight`](#preflight-on-ubuntu-latest)). Keep the Android `versionName`s numeric (`0.5.0`, not `0.5.0-beta`): the manifest script only reads numeric names, so the `android` job fails on any other one. A tag containing `-` (for example `v0.2.0-beta.1`) becomes a **prerelease** on `wicaby-releases` and is never marked "latest", so `releases/latest/download/update.json` keeps serving the last stable release and installed apps do not see it.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main`, on every pull request and by hand (`workflow_dispatch`). The repo is private, so every minute counts against the account quota, each job is billed rounded up to the minute, and Windows minutes count double. The workflow is shaped by that:
+
+| Job | Runner | Runs when | Does |
+|---|---|---|---|
+| Changes + repo checks | `ubuntu-latest`, 5 min | always | `privacy-check.mjs` (generic patterns: the local `.dev/` file never exists on CI), `links-check.mjs`, `actionlint` (checksum-verified release binary, with `shellcheck`), and the path filters below |
+| Desktop / Linux | `ubuntu-latest`, 30 min | any code change (`apps/`, `packages/`, `tools/`, `brand/`, npm files, workflows, and the root READMEs, `CHANGELOG.md`, `CONTRIBUTING.md`, notices and licences that the self-checks read) | `npm ci`, `npm run check`, `npm run checks`, `npm run build`, the Linux mesh helper, AppImage + deb (3-day artifact) |
+| Desktop / Windows | `windows-latest`, 30 min | pushes to `main` that touch the desktop; pull requests only when a Windows-specific file changed (`*.ps1`, `*.bat`, `*.cmd`, `apps/desktop/electron-builder.yml`, `apps/desktop/build/`, `ci.yml`) | `npm ci`, `npm run checks`, `npm run build` (the type-check is the same as on Linux) |
+| Mesh helper (Go) | `ubuntu-latest`, 20 min | `packages/mesh/` changed | `go test ./...`, the AGPL guard on both build graphs |
+| Android | `ubuntu-latest`, 60 min | `apps/android/`, `packages/mesh/` or `flavour-check.mjs` changed | the mesh AAR (cached by its sources), unit tests of both flavours, debug builds, lint, `flavour-check.mjs --gradle` |
+
+A change to `ci.yml` runs every job. A change limited to `docs/`, `SECURITY.md` or the GitHub templates runs only the first job. A manual run runs every job. A new push to the same branch or pull request cancels the run in progress, on `main` too: before tagging an older commit whose run was cancelled, re-run it.
+
+Caches: npm (`actions/setup-node`), Go modules and build cache (`actions/setup-go`), Gradle (`gradle/actions/setup-gradle`, written on `main` only, read by pull requests) and the mesh AAR (`actions/cache`). The workflow token is `contents: read`; only the first job adds `pull-requests: read`, which the path filter needs to list a pull request's files.
+
+No CodeQL: code scanning on a private repository needs the paid GitHub Code Security add-on, and its Kotlin and JavaScript analysis would add a long job to every run. The self-checks, the AGPL guard and the pinned actions cover the risks that matter here.
+
+To check the workflows before a push: `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12` at the repo root (with `shellcheck` on `PATH` for the `run:` scripts).
+
+### Dependency updates
+
+`.github/dependabot.yml` opens at most one grouped minor + patch pull request per ecosystem (npm, Gradle, Go modules, GitHub Actions) each month, with a small cap on open pull requests. Majors that need a code migration are ignored and done by hand:
+
+- `typescript`: a new major changes the compiler behind `svelte-check` and `tsc`;
+- `@types/node`: must follow the Node major bundled with Electron, not the newest Node; move it when Electron moves;
+- `@electron/fuses`: a major changes the API `apps/desktop/build/afterPack.mjs` calls.
+
+Other majors still arrive one per pull request. Security updates do not wait for the schedule.
+
 ## What the release workflow does
 
-This section describes `.github/workflows/release.yml`. When you change one, update the other. It has four jobs: `preflight` runs first, `windows` and `android` then build in parallel, and `publish` runs when both succeed.
+This section describes `.github/workflows/release.yml`. When you change one, update the other. It has six jobs: `preflight` runs first; `windows`, `linux` and `android` then build in parallel; `assemble` gathers their files with read-only access; `publish`, the only job with write access, creates the release.
+
+### Dry run
+
+Actions → Release → **Run workflow** (`workflow_dispatch`) on any branch runs the same jobs without publishing: no tag, no release, no write. It skips the CI and branch checks, keeps the `package.json` version, skips `windows` unless its **windows** box is ticked (Windows minutes count double), keeps its build artifacts for one day, and stops after `assemble`. With the signing secrets set it builds and verifies signed APKs as a real release would. Without any of them it builds **unsigned** APKs named `*-UNSIGNED.apk` and writes no `update.json`; with only some of them it fails. A dry run costs about as many Linux minutes as a release.
+
+### Unsigned builds
+
+A tag push never builds unsigned or debug-signed APKs: if any of the four signing secrets is missing, `preflight` fails within seconds and names each missing secret (never a value). This is the safer of the two options: an unsigned APK cannot be installed over a signed one, and an APK signed with a throwaway key would lock its users out of every later update. Only a dry run may build unsigned APKs, and their names say so.
+
+### Where a release goes
+
+| `RELEASES_TOKEN` secret | `RELEASES_REPO` variable | The release is created on |
+|---|---|---|
+| set | set (`owner/repo`) | `RELEASES_REPO`, with `RELEASES_TOKEN` |
+| any other combination | | this repository, with the workflow's own token (`contents: write` on the `publish` job only); `preflight` warns when only one of the two is set |
 
 Every action in `release.yml` and `ci.yml` is pinned to a commit SHA, with the version in a comment (`actions/checkout@<sha> # v7.0.1`): `publish` hands a write token to `softprops/action-gh-release`, so a moved tag must not change what runs. To update an action, resolve the new tag with `git ls-remote --tags https://github.com/<owner>/<repo>.git` (take the `^{}` line of an annotated tag) and replace both the SHA and the comment.
 
@@ -59,8 +106,10 @@ A check of a few seconds, so that a misconfigured release fails before about two
 - the tag does not match `^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$`;
 - the tagged commit is not an ancestor of `origin/main` (`git merge-base --is-ancestor`, with a full-history checkout);
 - the newest `ci.yml` run of the tagged commit is not `completed` with `success` (read with `gh api …/actions/workflows/ci.yml/runs?head_sha=…`; the job has `actions: read`). A run still in progress counts as not green: wait for it, then re-run the release workflow;
-- `RELEASES_REPO` still contains a `<placeholder>` or is not `owner/repo`;
-- any of the five [secrets](#secrets) is empty, or the `APK_CERT_SHA256` [variable](#variables) is not a 64-hex SHA-256.
+- any of the four signing [secrets](#secrets) is empty (see [Unsigned builds](#unsigned-builds)), or the `APK_CERT_SHA256` [variable](#variables) is not a 64-hex SHA-256;
+- `RELEASES_TOKEN` and `RELEASES_REPO` are both set but `RELEASES_REPO` is not `owner/repo`.
+
+It also picks the target repository (see [Where a release goes](#where-a-release-goes)) and hands it, the tag, the version and the signing state to the other jobs. Secrets are only tested for emptiness, never printed.
 
 ### `windows` (on `windows-latest`)
 
@@ -77,7 +126,7 @@ This is the only job that needs Windows: mpv, the Windows helper and the NSIS in
 
 1. Sets up JDK 21 and Go (version from `packages/mesh/go.mod`), then installs `gomobile` and `gobind` at the `golang.org/x/mobile` version pinned in `go.mod`. It does not run `gomobile init`: `gomobile bind` only needs `gobind` on `PATH`, and `init` would replace the pinned `gobind` with `gobind@latest`, which `build-mesh-aar.sh` refuses.
 2. `bash packages/mesh/scripts/build-mesh-aar.sh` builds `vendor/android/wicaby-mesh.aar` for arm64-v8a and armeabi-v7a, with the NetBird Android patch and the AGPL guard. It is the bash port of `build-mesh-aar.ps1` (see [mesh.md](mesh.md#android-aar)). A release always rebuilds it; there is no cache.
-3. Writes the signing setup from the secrets. The step first refuses to continue if any of the four signing secrets is empty, so a release never ships unsigned APKs:
+3. Writes the signing setup from the secrets (`preflight` has already refused a tag push with a missing secret, so a release never ships unsigned APKs):
 
    ```sh
    cd apps/android
@@ -92,7 +141,7 @@ This is the only job that needs Windows: mpv, the Windows helper and the NSIS in
    ```
 
    The real step also escapes backslashes for `java.util.Properties` and runs `chmod 600` on both files. Both are gitignored, and an `if: always()` step deletes them after the Gradle build.
-4. From `apps/android`: `./gradlew :tv:assembleRelease :mobile:assembleFossRelease :mobile:assembleGplayRelease`. The release workflow runs no unit tests or lint; `ci.yml` runs them on every push to `main`, so tag a commit whose CI is green.
+4. From `apps/android`: `./gradlew :tv:assembleRelease :mobile:assembleFossRelease :mobile:assembleGplayRelease`. The release workflow runs no unit tests or lint; `ci.yml` runs them on every push to `main` that touches Android, so tag a commit whose CI is green.
 5. Fails if Gradle produced any `*-unsigned.apk`, checks each APK with `apksigner verify --print-certs` and fails unless every signer's certificate SHA-256 equals the `APK_CERT_SHA256` [variable](#variables), reads its `versionName` with `aapt2` (and fails if it is not numeric), and copies it under the name the manifest script expects:
 
    | Gradle output (`<module>/build/outputs/apk/[<flavour>/]release/`) | Release asset |
@@ -108,9 +157,15 @@ This is the only job that needs Windows: mpv, the Windows helper and the NSIS in
    The mobile app builds no universal APK. `foss` keeps the 0.2.0 asset names and the `mobile` key of `update.json`; `gplay` (Google Cast, no FFmpeg decoder) gets the `mobile-gplay` key, so neither flavour ever updates into the other.
 6. Uploads the seven APKs and `wicaby-mesh-THIRD_PARTY_LICENSES.txt` (the licence texts of every Go module in the AAR, written by `build-mesh-aar.sh`) as the `android` workflow artifact.
 
-### `publish` (on `ubuntu-latest`)
+### `linux` (on `ubuntu-latest`)
 
-1. Downloads both artifacts: the APKs into `release/tv/` and `release/mobile/`, the mesh licence file into `release/`, the installers into `release/windows/`.
+Stamps the version like `windows`, builds `vendor/vpn-helper/wicaby-mesh` (linux/amd64, AGPL guard), then `npm run dist:linux -w apps/desktop -- --publish never` writes the AppImage, the deb and the tar.gz, uploaded as the `linux` artifact. mpv is not bundled on Linux.
+
+### `assemble` and `publish` (on `ubuntu-latest`)
+
+`assemble` (read-only token) does steps 1 to 6 below and hands the `release/` folder to `publish` (step 7) as a one-day artifact. In a dry run, `assemble` stops after step 6.
+
+1. Downloads the artifacts: the APKs into `release/tv/`, `release/mobile/` and `release/mobile-gplay/`, the mesh licence file into `release/`, the installers into `release/windows/`, the Linux packages into `release/linux/`.
 2. Extracts the `## [X.Y.Z]` section of `CHANGELOG.md` that matches the tag into `release-notes.md` (link definitions and surrounding blank lines removed).
 3. Writes `update.json` (next section).
 4. Writes the source archive and licence texts that GPL-3.0 section 6 requires next to the binaries, since the code repo is private:
@@ -119,16 +174,16 @@ This is the only job that needs Windows: mpv, the Windows helper and the NSIS in
    - `mpv-winbuild-<tag>-source.tar.gz`, for the bundled mpv: the [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake) tree at `$MpvTag` and the mpv tree at `$MpvCommit`, both read from `fetch-mpv.ps1` and downloaded from GitHub.
 5. Builds the release body: the CHANGELOG section (or "Wicaby vX.Y.Z" when there is none), followed by a short guide to which APK and which `.exe` to pick, a pointer to the source archive, and the pinned shinchiro release and mpv commit.
 6. Writes `SHA256SUMS.txt` with the SHA-256 of every other asset.
-7. Creates the GitHub Release on **`WicaebethTheo/wicaby-releases`**, not on the code repo, with `softprops/action-gh-release` (v3.0.3, pinned by SHA), authenticated with `RELEASES_TOKEN`:
+7. `publish` creates the GitHub Release on the [target repository](#where-a-release-goes) with `softprops/action-gh-release` (pinned by SHA):
    - tag and name: the pushed tag (`Wicaby v0.2.0`);
    - prerelease when the tag contains `-`; only other tags are marked **latest**;
    - assets: `Wicaby-<version>-x64.exe`, `Wicaby-<version>-portable.exe`, the five APKs, `update.json`, `wicaby-<X.Y.Z>-source.tar.gz`, `mpv-winbuild-<tag>-source.tar.gz`, `LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, `wicaby-mesh-THIRD_PARTY_LICENSES.txt` and `SHA256SUMS.txt`. The job fails if any of these patterns matches nothing.
 
-Once the release is published, `https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json` serves the new manifest to every installed app. The apps check at most every 6 hours, or on "Check for Updates".
+Once the release is published on the public releases repo, `https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json` serves the new manifest to every installed app. The apps check at most every 6 hours, or on "Check for Updates".
 
 ### `update.json`
 
-The `publish` job first downloads the current manifest from `releases/latest/download/update.json` into `release/update.json`. On the very first release there is none, and the step carries on without it. Then it runs:
+The `assemble` job first downloads `update.json` from the latest release of the target repository (`gh release download`, with the token of that repository) into `release/update.json`. On the very first release there is none, and the step carries on without it. Then it runs:
 
 ```sh
 node tools/release/make-update-manifest.mjs \
@@ -153,7 +208,20 @@ Set these on the **code** repository (`WicaebethTheo/wicaby`), Settings → Secr
 | `KEYSTORE_PASSWORD` | Store password. |
 | `KEY_ALIAS` | Key alias (`wicaby` if created as in [android.md](android.md#signing)). |
 | `KEY_PASSWORD` | Key password. |
-| `RELEASES_TOKEN` | A fine-grained personal access token with access to **`WicaebethTheo/wicaby-releases` only**, permission *Contents: Read and write*, to create releases and upload assets there. |
+| `RELEASES_TOKEN` | Optional, with the `RELEASES_REPO` variable. A fine-grained personal access token with access to **`WicaebethTheo/wicaby-releases` only**, permission *Contents: Read and write*, to create releases and upload assets there. |
+
+The four signing secrets are required for a tag push. Set them from files, so no value reaches the screen, the shell history or a log:
+
+```sh
+base64 -w0 wicaby-release.jks > keystore.b64
+gh secret set KEYSTORE_BASE64   -R WicaebethTheo/wicaby < keystore.b64
+gh secret set KEYSTORE_PASSWORD -R WicaebethTheo/wicaby < keystore-password.txt
+gh secret set KEY_ALIAS         -R WicaebethTheo/wicaby < key-alias.txt
+gh secret set KEY_PASSWORD      -R WicaebethTheo/wicaby < key-password.txt
+gh secret set RELEASES_TOKEN    -R WicaebethTheo/wicaby < releases-token.txt   # optional
+```
+
+In PowerShell, write `keystore.b64` with `[Convert]::ToBase64String([IO.File]::ReadAllBytes('wicaby-release.jks')) | Set-Content -NoNewline keystore.b64`. Delete the files afterwards; `gh secret list -R WicaebethTheo/wicaby` shows the names, never the values.
 
 ## Variables
 
@@ -161,14 +229,8 @@ Set on the code repository, Settings → Secrets and variables → Actions → *
 
 | Variable | Content |
 |---|---|
+| `RELEASES_REPO` | Optional, with the `RELEASES_TOKEN` secret: the `owner/repo` that receives the releases, e.g. `WicaebethTheo/wicaby-releases`. Set it with `gh variable set RELEASES_REPO -R WicaebethTheo/wicaby --body WicaebethTheo/wicaby-releases`. |
 | `APK_CERT_SHA256` | The SHA-256 of the release signing certificate, 64 hex digits (colons and either case are accepted). Print it with `keytool -list -v -keystore apps/android/keystore/wicaby-release.jks -alias <alias>` (the `SHA256:` line), or with `apksigner verify --print-certs <a signed apk>`. Set it with `gh variable set APK_CERT_SHA256 -R WicaebethTheo/wicaby --body <hex>`. |
-
-With the GitHub CLI, secret values can be read from files so they never appear on screen or in the shell history:
-
-```sh
-base64 -w0 apps/android/keystore/wicaby-release.jks | gh secret set KEYSTORE_BASE64 -R WicaebethTheo/wicaby
-gh secret set KEYSTORE_PASSWORD -R WicaebethTheo/wicaby < keystore-password.txt
-```
 
 Rules:
 
@@ -210,7 +272,7 @@ gh release create v0.2.0 -R WicaebethTheo/wicaby-releases --title "Wicaby v0.2.0
 
 ## Checklist
 
-- [ ] One-time: the [before first publish](#before-first-publish) list is done; `WicaebethTheo/wicaby-releases` exists, is public and has at least one commit; the five secrets and `APK_CERT_SHA256` are set.
+- [ ] One-time: the [before first publish](#before-first-publish) list is done; `WicaebethTheo/wicaby-releases` exists, is public and has at least one commit; the four signing secrets and `APK_CERT_SHA256` are set, and `RELEASES_TOKEN` with `RELEASES_REPO` for the public repo.
 - [ ] TV and mobile `versionCode`/`versionName` bumped where they changed (the desktop version comes from the tag).
 - [ ] `CHANGELOG.md` has a `## [X.Y.Z]` section matching the tag.
 - [ ] CI is green on the tagged commit (`npm run check`, `npm run checks`, `go test ./...` and the AGPL guard in `packages/mesh`, `./gradlew testDebugUnitTest :mobile:testFossDebugUnitTest :mobile:testGplayDebugUnitTest lint :mobile:lintGplayDebug`).

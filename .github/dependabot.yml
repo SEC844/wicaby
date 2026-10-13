@@ -1,17 +1,29 @@
-# Weekly dependency updates. Minor and patch bumps are grouped into one PR per ecosystem;
-# majors arrive as separate PRs so each can be checked on its own.
+# Monthly dependency updates, sized for a private repo whose Actions minutes count: minor and patch
+# bumps are grouped into one PR per ecosystem, and few PRs may be open at once. Security updates
+# are not affected by the schedule.
+# Majors that need a code migration are ignored here and done by hand (see docs/release.md#dependency-updates):
+#   - typescript: a new major changes the compiler (svelte-check, tsc) and needs its own migration;
+#   - @types/node: must follow the Node major bundled with Electron, not the newest Node;
+#   - @electron/fuses: a major changes the API that apps/desktop/build/afterPack.mjs calls.
+# Other majors still arrive as single PRs.
 version: 2
 updates:
   # npm workspaces root; its only workspace is apps/desktop (Electron, Svelte, Vite, ...).
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 10
+      interval: monthly
+    open-pull-requests-limit: 3
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@electron/fuses'
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: deps(npm)
 
@@ -20,9 +32,8 @@ updates:
   - package-ecosystem: gradle
     directory: /apps/android
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 10
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       gradle-minor-patch:
         update-types: [minor, patch]
@@ -35,23 +46,22 @@ updates:
   - package-ecosystem: gomod
     directory: /packages/mesh
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 10
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       gomod-minor-patch:
         update-types: [minor, patch]
     commit-message:
       prefix: deps(go)
 
-  # Actions used in .github/workflows.
+  # Actions used in .github/workflows (pinned by SHA; Dependabot updates the SHA and the comment).
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
-      actions-minor-patch:
-        update-types: [minor, patch]
+      actions:
+        update-types: [major, minor, patch]
     commit-message:
       prefix: deps(actions)

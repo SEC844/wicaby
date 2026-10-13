@@ -521,6 +521,8 @@ try {
     // §1: local playback stops a sender-reported cast first.
     await J.local.play({ itemIds: ['movie-2'], serverId: J.serverId });
     assert.equal(J.cast.state, null, 'the cast ended');
+    // The local Playing report is sent asynchronously: wait for it before reading the order (flaked on CI).
+    await until(() => jf.log.some((l) => l.startsWith('REPORT start item=movie-2')), 2000, 'the local Playing report');
     const tail = jf.log.filter((l) => l.startsWith('REPORT ')).slice(-2);
     assert.ok(/^REPORT stopped .*method=Transcode/.test(tail[0]) && /^REPORT start item=movie-2/.test(tail[1]), `the cast's Stopped before the local Playing (${tail.join(' | ')})`);
     console.log('ok fallback: receiver LAUNCH_ERROR -> DMR with reports; local play stops it first');

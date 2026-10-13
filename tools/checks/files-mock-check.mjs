@@ -52,9 +52,10 @@ ok(self.status === 207 && (self.body.toString().match(/<D:response>/g) ?? []).le
 const many = await req(m.base, 'PROPFIND', '/media/Many/', { Depth: '1', Authorization: AUTH });
 ok((many.body.toString().match(/<D:response>/g) ?? []).length === 26, 'MOCK_DAV_ENTRIES: 25 entries plus the folder');
 const file = fs.readFileSync(path.join(root, ...fx.film.split('/')));
-const range = await req(m.base, 'GET', enc(fx.film), { Range: 'bytes=100-199', Authorization: AUTH });
-ok(range.status === 206 && range.body.equals(file.subarray(100, 200)) && range.headers['content-range'] === `bytes 100-199/${file.length}`, 'Range: 206 with the right bytes');
-ok(m.state.ranges.some((r) => r.status === 206 && r.start === 100), 'ranges[] records it');
+// 10-19 fits both the encoded clip and the 30-byte stub written when no mpv is around (CI, a clean clone).
+const range = await req(m.base, 'GET', enc(fx.film), { Range: 'bytes=10-19', Authorization: AUTH });
+ok(range.status === 206 && range.body.equals(file.subarray(10, 20)) && range.headers['content-range'] === `bytes 10-19/${file.length}`, 'Range: 206 with the right bytes');
+ok(m.state.ranges.some((r) => r.status === 206 && r.start === 10), 'ranges[] records it');
 const full = await req(m.base, 'GET', enc(fx.film), { Authorization: AUTH });
 ok(full.status === 200 && full.body.equals(file), 'GET: the whole file');
 ok((await req(m.base, 'HEAD', enc(fx.film), { Authorization: AUTH })).headers['content-length'] === String(file.length), 'HEAD: the size');

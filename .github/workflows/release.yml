@@ -1,43 +1,54 @@
 name: Release
 
-# Pushing a tag v* builds the Windows installer + portable exe, the Linux AppImage, deb and
-# tar.gz, and the signed Android APKs,
-# writes update.json, and publishes everything as a GitHub Release on the PUBLIC
-# WicaebethTheo/wicaby-releases repo (this code repo stays private). The manifest is served at
-# https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json.
-# REQUIREMENT, not done yet: the Android apps must default to that URL. At the time of writing
-# Prefs.kt has `updateUrl: String = ""` (updates off until the user types the URL), so this
-# update.json is only read by users who entered it by hand. Tracked as a separate code task.
+# Pushing a tag v* builds the Windows installer + portable exe, the Linux AppImage, deb and tar.gz,
+# and the signed Android APKs (TV foss arm64/armv7/universal, mobile foss + gplay arm64/armv7),
+# writes update.json, and publishes everything as a GitHub Release.
 #
-# Secrets (Settings > Secrets and variables > Actions):
+# Where it publishes:
+#   - by default, the Releases of THIS repository (private: the assets need a GitHub login, so the
+#     apps' updater cannot read update.json from there; fine for archiving and testing);
+#   - when BOTH the RELEASES_TOKEN secret and the RELEASES_REPO variable are set, the Releases of
+#     RELEASES_REPO (owner/repo, e.g. a public wicaby-releases repo), through that token.
+#
+# Dry run: Actions > Release > Run workflow (workflow_dispatch) builds the same files from the chosen
+# branch and assembles the release folder, but never publishes, creates no tag and needs no secret.
+# Windows is skipped unless the "windows" input is ticked (Windows minutes count double). Without the
+# signing secrets a dry run builds UNSIGNED APKs, named *-UNSIGNED.apk, and writes no update.json.
+#
+# A tag push never builds unsigned APKs: the preflight job fails in seconds, before the long build
+# jobs start, and names every missing secret (never its value) when the tag is not vX.Y.Z[-pre],
+# the tagged commit is not on main, the latest CI run of that commit is not green (still running
+# counts as not green: re-run this workflow once CI has passed), a signing secret is missing, or
+# APK_CERT_SHA256 is not set.
+#
+# Secrets (Settings > Secrets and variables > Actions), see docs/release.md#secrets:
 #   KEYSTORE_BASE64    base64 of the release keystore (base64 -w0 wicaby-release.jks)
 #   KEYSTORE_PASSWORD  store password
 #   KEY_ALIAS          key alias
 #   KEY_PASSWORD       key password
-#   RELEASES_TOKEN     fine-grained PAT with "Contents: read and write" on WicaebethTheo/wicaby-releases only
-# Variable (Settings > Secrets and variables > Actions > Variables):
+#   RELEASES_TOKEN     optional: fine-grained PAT with "Contents: read and write" on RELEASES_REPO only
+# Variables:
 #   APK_CERT_SHA256    SHA-256 of the release signing certificate (64 hex digits, colons allowed);
-#                      every APK must be signed by exactly that certificate. Print it with
-#                      keytool -list -v -keystore wicaby-release.jks -alias <alias>  (SHA256 line)
-# WicaebethTheo/wicaby-releases needs at least one commit (e.g. a README): release tags are
-# created on its default branch.
+#                      every APK must be signed by exactly that certificate
+#   RELEASES_REPO      optional: owner/repo that receives the release (with RELEASES_TOKEN)
 #
-# Versions: the desktop build takes its version from the tag (vX.Y.Z -> X.Y.Z). The Android
-# apps keep their own versionName/versionCode from apps/android/{tv,mobile}/build.gradle.kts,
-# and their APK names carry that versionName (what make-update-manifest.mjs expects, so it
-# must stay numeric: 0.5.0, not 0.5.0-beta).
-#
-# The preflight job fails in seconds, before the two long build jobs start, when the tag is not
-# vX.Y.Z[-pre], the tagged commit is not on main, the latest CI run of that commit is not green
-# (still running counts as not green: re-run this workflow once CI has passed), RELEASES_REPO is
-# still a placeholder, or a secret or APK_CERT_SHA256 is missing.
+# Versions: the desktop build takes its version from the tag (vX.Y.Z -> X.Y.Z; a dry run keeps the
+# version of package.json). The Android apps keep their own versionName/versionCode from
+# apps/android/{tv,mobile}/build.gradle.kts, and their APK names carry that versionName (what
+# make-update-manifest.mjs expects, so it must stay numeric: 0.5.0, not 0.5.0-beta).
 #
 # mpv: the Windows build is pinned (tag, commit, SHA-256) in apps/desktop/scripts/fetch-mpv.ps1;
-# the publish job reads the tag and commit there for the release notes and the mpv source archive.
+# the assemble job reads the tag and commit there for the release notes and the mpv source archive.
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      windows:
+        description: 'Dry run: also build the Windows installer and portable exe (Windows minutes count double)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,27 +57,34 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  RELEASES_REPO: WicaebethTheo/wicaby-releases
-
 jobs:
   preflight:
-    name: Preflight (tag, branch, CI, settings)
+    name: Preflight (tag, branch, CI, secrets, target)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
       actions: read # the CI runs of the tagged commit
+    outputs:
+      dry_run: ${{ steps.check.outputs.dry_run }}
+      tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
+      signed: ${{ steps.check.outputs.signed }}
+      target_repo: ${{ steps.check.outputs.target_repo }}
+      external: ${{ steps.check.outputs.external }}
     steps:
       # Full history: the ancestry check below needs origin/main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Check the tag, the branch, RELEASES_REPO and the secrets
+      # Secrets are only tested for emptiness; no value is ever printed.
+      - name: Check the tag, the branch, the CI, the secrets and the target
+        id: check
         env:
-          TAG: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
           RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          RELEASES_REPO: ${{ vars.RELEASES_REPO }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -76,35 +94,72 @@ jobs:
         run: |
           set -euo pipefail
           fail=0
-          # npm version (desktop) and the prerelease rule (a '-' in the tag) both expect this shape.
-          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-            echo "::error::tag '$TAG' is not vX.Y.Z or vX.Y.Z-<prerelease>"; fail=1
+          err() { echo "::error::$*"; fail=1; }
+
+          if [ "$EVENT" = push ]; then
+            dry=false
+            tag="$GITHUB_REF_NAME"
+            # npm version (desktop) and the prerelease rule (a '-' in the tag) both expect this shape.
+            [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || err "tag '$tag' is not vX.Y.Z or vX.Y.Z-<prerelease>"
+          else
+            dry=true
+            tag="v$(node -p 'require("./package.json").version')"
+            echo "::notice::Dry run of $tag from $GITHUB_REF_NAME ($GITHUB_SHA): builds only, nothing is published"
           fi
-          if [[ "$RELEASES_REPO" == *'<'* || ! "$RELEASES_REPO" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]]; then
-            echo "::error::RELEASES_REPO '$RELEASES_REPO' is not owner/repo (check RELEASES_REPO in release.yml)"; fail=1
-          fi
-          for v in RELEASES_TOKEN KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            if [ -z "${!v}" ]; then echo "::error::secret $v is not set"; fail=1; fi
+
+          # Signing: all four secrets or none. None is only accepted for a dry run.
+          missing=()
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [ -n "${!v}" ] || missing+=("$v")
           done
-          if ! [[ "${APK_CERT_SHA256//:/}" =~ ^[0-9A-Fa-f]{64}$ ]]; then
-            echo "::error::repository variable APK_CERT_SHA256 is not the 64-hex SHA-256 of the signing certificate"; fail=1
+          if [ "${#missing[@]}" -eq 0 ]; then
+            signed=true
+            [[ "${APK_CERT_SHA256//:/}" =~ ^[0-9A-Fa-f]{64}$ ]] \
+              || err "repository variable APK_CERT_SHA256 is not the 64-hex SHA-256 of the signing certificate (docs/release.md#variables)"
+          elif [ "${#missing[@]}" -eq 4 ] && [ "$dry" = true ]; then
+            signed=false
+            echo "::warning::No signing secrets: this dry run builds UNSIGNED Android APKs (*-UNSIGNED.apk) and no update.json"
+          else
+            signed=false
+            err "signing secret(s) not set: ${missing[*]}. A release never ships unsigned APKs; set them (docs/release.md#secrets) and re-run"
           fi
-          # The newest CI (ci.yml) run of this exact commit must have finished green.
-          ci="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=1" \
-            --jq '.workflow_runs[0] // {} | "\(.status) \(.conclusion) \(.html_url)"')"
-          if [[ "$ci" != "completed success "* ]]; then
-            echo "::error::CI of $GITHUB_SHA is not green ($ci); wait for it to pass, then re-run this workflow"; fail=1
+
+          # Target: another repo only when both the token and the variable are set.
+          if [ -n "$RELEASES_TOKEN" ] && [ -n "$RELEASES_REPO" ]; then
+            [[ "$RELEASES_REPO" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] || err "variable RELEASES_REPO '$RELEASES_REPO' is not owner/repo"
+            target="$RELEASES_REPO"; external=true
+          else
+            if [ -n "$RELEASES_TOKEN" ] || [ -n "$RELEASES_REPO" ]; then
+              echo "::warning::RELEASES_TOKEN and the RELEASES_REPO variable work together and only one is set: publishing to $GITHUB_REPOSITORY"
+            fi
+            target="$GITHUB_REPOSITORY"; external=false
           fi
-          # Only commits already on main are released (a tag on another branch is refused).
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::$TAG ($GITHUB_SHA) is not on main; tag a commit of main whose CI is green"; fail=1
+          echo "Target: $target"
+
+          if [ "$dry" = false ]; then
+            # The newest CI (ci.yml) run of this exact commit must have finished green.
+            ci="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=1" \
+              --jq '.workflow_runs[0] // {} | "\(.status) \(.conclusion) \(.html_url)"')"
+            [[ "$ci" == "completed success "* ]] || err "CI of $GITHUB_SHA is not green ($ci); wait for it to pass, then re-run this workflow"
+            # Only commits already on main are released (a tag on another branch is refused).
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+            git merge-base --is-ancestor "$GITHUB_SHA" origin/main || err "$tag ($GITHUB_SHA) is not on main; tag a commit of main whose CI is green"
           fi
+
+          {
+            echo "dry_run=$dry"
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            echo "signed=$signed"
+            echo "target_repo=$target"
+            echo "external=$external"
+          } >> "$GITHUB_OUTPUT"
           exit "$fail"
 
   windows:
     name: Windows (NSIS + portable)
     needs: preflight
+    if: needs.preflight.outputs.dry_run == 'false' || inputs.windows
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -125,14 +180,13 @@ jobs:
 
       - name: Stamp the desktop version from the tag
         shell: bash
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          npm version "$version" --no-git-tag-version --allow-same-version --workspace apps/desktop
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version --workspace apps/desktop
 
       # vendor/mpv from the shinchiro build pinned in fetch-mpv.ps1 (direct download, SHA-256
       # checked, no API call). System32 first so tar.exe is Windows' bsdtar (reads .7z), not
-      # Git's GNU tar. Windows 11's bsdtar extracts the pinned archive; the runner image's has
-      # not been tried yet.
+      # Git's GNU tar.
       - name: Fetch mpv
         shell: pwsh
         run: |
@@ -144,8 +198,8 @@ jobs:
         run: npm run build:mesh
 
       # apps/desktop `dist` = `npm run build && electron-builder --win` (NSIS and portable targets
-      # from apps/desktop/electron-builder.yml); npm appends `--publish never` to electron-builder,
-      # and && stops before packaging if the build fails. The publish job below uploads.
+      # from apps/desktop/electron-builder.yml); && stops before packaging if the build fails.
+      # The publish job uploads.
       - name: Build installer + portable
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -156,7 +210,7 @@ jobs:
           name: windows
           path: release/Wicaby-*.exe
           if-no-files-found: error
-          retention-days: 7
+          retention-days: ${{ needs.preflight.outputs.dry_run == 'true' && 1 || 7 }}
 
   # mpv is not bundled on Linux (system mpv; the deb depends on mpv >= 0.37), so no mpv source
   # archive is needed for these files.
@@ -182,9 +236,9 @@ jobs:
         run: npm ci
 
       - name: Stamp the desktop version from the tag
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          npm version "$version" --no-git-tag-version --allow-same-version --workspace apps/desktop
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version --workspace apps/desktop
 
       # vendor/vpn-helper/wicaby-mesh + THIRD_PARTY_LICENSES.txt (runs go test and the AGPL guard).
       - name: Build mesh helper
@@ -194,9 +248,11 @@ jobs:
         run: npm run build:mesh
 
       # apps/desktop `dist:linux` = `npm run build && electron-builder --linux` (AppImage, deb and
-      # tar.gz from electron-builder.yml). The deb's Homepage is the public releases repo.
+      # tar.gz from electron-builder.yml). The deb's Homepage is the repo that hosts the release.
       - name: Build AppImage + deb + tar.gz
-        run: npm run dist:linux -w apps/desktop -- --publish never "-c.extraMetadata.homepage=https://github.com/$RELEASES_REPO"
+        env:
+          TARGET_REPO: ${{ needs.preflight.outputs.target_repo }}
+        run: npm run dist:linux -w apps/desktop -- --publish never "-c.extraMetadata.homepage=https://github.com/$TARGET_REPO"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -206,10 +262,10 @@ jobs:
             release/*.deb
             release/*.tar.gz
           if-no-files-found: error
-          retention-days: 7
+          retention-days: ${{ needs.preflight.outputs.dry_run == 'true' && 1 || 7 }}
 
   android:
-    name: Android (signed APKs)
+    name: Android (${{ needs.preflight.outputs.signed == 'true' && 'signed' || 'UNSIGNED, dry run' }} APKs)
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -241,7 +297,9 @@ jobs:
       - name: Build mesh AAR
         run: bash packages/mesh/scripts/build-mesh-aar.sh
 
+      # Only when preflight saw all four secrets (always the case for a tag push).
       - name: Write signing config
+        if: needs.preflight.outputs.signed == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -250,9 +308,6 @@ jobs:
         working-directory: apps/android
         run: |
           set -euo pipefail
-          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            if [ -z "${!v}" ]; then echo "::error::secret $v is not set; refusing to build unsigned release APKs"; exit 1; fi
-          done
           mkdir -p keystore
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/wicaby-release.jks
           # java.util.Properties: backslashes must be escaped. storeFile is relative to apps/android.
@@ -285,29 +340,35 @@ jobs:
       # tv-armeabi-v7a-release.apk -> dist/tv/Wicaby-TV-<versionName>-armv7.apk; mobile-foss-arm64-v8a-release.apk
       # -> dist/mobile/Wicaby-Mobile-<versionName>-arm64.apk (foss keeps the 0.2.0 names and the "mobile" update
       # channel); mobile-gplay-arm64-v8a-release.apk -> dist/mobile-gplay/Wicaby-Mobile-Cast-<versionName>-arm64.apk.
+      # Unsigned (dry run without secrets): Gradle's *-release-unsigned.apk -> Wicaby-...-<abi>-UNSIGNED.apk.
       - name: Verify signatures and rename
         env:
+          SIGNED: ${{ needs.preflight.outputs.signed }}
           APK_CERT_SHA256: ${{ vars.APK_CERT_SHA256 }}
         run: |
           set -euo pipefail
           expected="$(printf '%s' "$APK_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
+          # shellcheck disable=SC2012 # build-tools versions are plain dotted numbers
           bt="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)"
           aapt2="${bt}aapt2"; apksigner="${bt}apksigner"
+          if [ "$SIGNED" = true ]; then in_sfx=''; out_sfx=''; else in_sfx='-unsigned'; out_sfx='-UNSIGNED'; fi
           collect() { # <module> <flavour or ""> <dist dir> <label> <abi-split:suffix>...
             local module="$1" flavour="$2" out="$3" label="$4"; shift 4
             local dir="apps/android/$module/build/outputs/apk/${flavour:+$flavour/}release"
-            if ls "$dir"/*-unsigned.apk >/dev/null 2>&1; then echo "::error::$module $flavour produced unsigned APKs"; exit 1; fi
+            if [ "$SIGNED" = true ] && ls "$dir"/*-unsigned.apk >/dev/null 2>&1; then echo "::error::$module $flavour produced unsigned APKs"; exit 1; fi
             mkdir -p "dist/$out"
             for pair in "$@"; do
               local split="${pair%%:*}" suffix="${pair##*:}"
-              local apk="$dir/$module-${flavour:+$flavour-}$split-release.apk"
+              local apk="$dir/$module-${flavour:+$flavour-}$split-release$in_sfx.apk"
               [ -f "$apk" ] || { echo "::error::missing $apk"; ls -la "$dir"; exit 1; }
-              "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/certs.txt"
-              # Every signer must be the release certificate (APK_CERT_SHA256, checked by preflight).
-              local certs
-              certs="$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$RUNNER_TEMP/certs.txt" | sort -u)"
-              if [ "$certs" != "$expected" ]; then
-                echo "::error::$apk is signed by '$certs', expected $expected"; exit 1
+              if [ "$SIGNED" = true ]; then
+                "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/certs.txt"
+                # Every signer must be the release certificate (APK_CERT_SHA256, checked by preflight).
+                local certs
+                certs="$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$RUNNER_TEMP/certs.txt" | sort -u)"
+                if [ "$certs" != "$expected" ]; then
+                  echo "::error::$apk is signed by '$certs', expected $expected"; exit 1
+                fi
               fi
               local ver
               ver="$("$aapt2" dump badging "$apk" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -n 1)"
@@ -315,7 +376,7 @@ jobs:
               # make-update-manifest.mjs only reads numeric versionNames; any other one would
               # silently leave this app out of update.json.
               [[ "$ver" =~ ^[0-9]+(\.[0-9]+)*$ ]] || { echo "::error::$module versionName '$ver' is not numeric (X.Y.Z)"; exit 1; }
-              cp "$apk" "dist/$out/Wicaby-$label-$ver-$suffix.apk"
+              cp "$apk" "dist/$out/Wicaby-$label-$ver-$suffix$out_sfx.apk"
             done
           }
           collect tv "" tv TV armeabi-v7a:armv7 arm64-v8a:arm64 universal:universal
@@ -334,13 +395,24 @@ jobs:
             dist/mobile-gplay/*.apk
             dist/wicaby-mesh-THIRD_PARTY_LICENSES.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: ${{ needs.preflight.outputs.dry_run == 'true' && 1 || 7 }}
 
-  publish:
-    name: Publish to wicaby-releases
-    needs: [windows, linux, android]
+  # Everything a release needs, assembled read-only; a dry run stops here.
+  assemble:
+    name: Assemble (update.json, notes, sources, checksums)
+    needs: [preflight, windows, linux, android]
+    # Windows is skipped in a dry run unless asked for; every other build must have succeeded.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' &&
+      needs.linux.result == 'success' && needs.android.result == 'success' &&
+      (needs.windows.result == 'success' || (needs.windows.result == 'skipped' && needs.preflight.outputs.dry_run == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TAG: ${{ needs.preflight.outputs.tag }}
+      TARGET_REPO: ${{ needs.preflight.outputs.target_repo }}
+      DRY_RUN: ${{ needs.preflight.outputs.dry_run }}
+      SIGNED: ${{ needs.preflight.outputs.signed }}
     steps:
       # For tools/release/make-update-manifest.mjs, CHANGELOG.md, the build.gradle.kts fallback
       # and the source archive.
@@ -357,6 +429,7 @@ jobs:
           name: android
           path: release
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.windows.result == 'success'
         with:
           name: windows
           path: release/windows
@@ -368,8 +441,6 @@ jobs:
       # The matching "## [X.Y.Z]" section of CHANGELOG.md (Keep a Changelog), if any. Used both
       # as the in-app changelog (update.json notes.en) and as the GitHub release body.
       - name: Changelog section
-        env:
-          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           version="${TAG#v}"
@@ -383,15 +454,18 @@ jobs:
           sed -i -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' release-notes.md
           if [ -s release-notes.md ]; then cat release-notes.md; else echo "::warning::no CHANGELOG.md section for $version; update.json notes stay empty"; fi
 
+      # Unsigned APKs (dry run without secrets) get no manifest: nothing could install them as an update.
       - name: Write update.json
+        if: env.SIGNED == 'true'
         env:
-          TAG: ${{ github.ref_name }}
+          # Reads the current manifest of the target repo (a private one needs a token).
+          GH_TOKEN: ${{ needs.preflight.outputs.external == 'true' && secrets.RELEASES_TOKEN || github.token }}
         run: |
           set -euo pipefail
           # Keeps the notes of the current release for an unchanged versionCode (the script
           # merges them); absent on the very first release.
-          curl -fsSL "https://github.com/$RELEASES_REPO/releases/latest/download/update.json" -o release/update.json \
-            || rm -f release/update.json
+          gh release download -R "$TARGET_REPO" --pattern update.json --dir release 2>/dev/null \
+            || echo "No update.json in the latest release of $TARGET_REPO (first release)"
           # --flat: the APKs sit next to update.json as release assets, not in tv/, mobile/ and mobile-gplay/.
           # --notes-en: the CHANGELOG section, for both apps (release/<app>/NOTES.en.txt would
           # override it per app). CHANGELOG.md is English only; a French UI falls back
@@ -399,14 +473,12 @@ jobs:
           # aapt2 (versionCode) comes from the runner's $ANDROID_HOME/build-tools.
           notes=()
           [ -s release-notes.md ] && notes=(--notes-en "$(cat release-notes.md)")
-          node tools/release/make-update-manifest.mjs "https://github.com/$RELEASES_REPO/releases/download/$TAG/" --flat "${notes[@]}"
+          node tools/release/make-update-manifest.mjs "https://github.com/$TARGET_REPO/releases/download/$TAG/" --flat "${notes[@]}"
           cat release/update.json
 
       # GPL-3.0 section 6: the complete corresponding source of the tagged commit, published next
       # to the binaries (the code repo is private), with the licence texts.
       - name: Source archive and licence texts
-        env:
-          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           version="${TAG#v}"
@@ -436,15 +508,14 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
 
       - name: Release notes and checksums
-        id: notes
         env:
-          TAG: ${{ github.ref_name }}
           MPV_TAG: ${{ steps.mpv.outputs.tag }}
           MPV_COMMIT: ${{ steps.mpv.outputs.commit }}
         run: |
           set -euo pipefail
-          cp release-notes.md notes.md
-          [ -s notes.md ] || echo "Wicaby $TAG" > notes.md
+          cp release-notes.md release/notes.md
+          [ -s release/notes.md ] || echo "Wicaby $TAG" > release/notes.md
+          # shellcheck disable=SC2016 # the backticks are Markdown, not command substitutions
           {
             echo
             echo '**Android TV:** most TVs need `armv7`; 64-bit boxes take `arm64`; `universal` runs on both but is larger.'
@@ -454,21 +525,54 @@ jobs:
             echo '**Linux (x64, X11 or XWayland):** the `.deb` for Debian and Ubuntu (installs mpv 0.37 or later as a dependency); the `.AppImage` and the `.tar.gz` run anywhere but need `mpv` 0.37 or later from your distribution.'
             echo "**Source code:** \`wicaby-${TAG#v}-source.tar.gz\` is the complete source of this release (GPL-3.0-or-later); see \`THIRD_PARTY_NOTICES.md\`."
             echo "**mpv (Windows):** [shinchiro/mpv-winbuild-cmake \`$MPV_TAG\`](https://github.com/shinchiro/mpv-winbuild-cmake/releases/tag/$MPV_TAG), mpv \`git-$MPV_COMMIT\`; its source is \`mpv-winbuild-$MPV_TAG-source.tar.gz\`."
-          } >> notes.md
+          } >> release/notes.md
+          # nullglob: a dry run may have no Windows files and no update.json.
+          shopt -s nullglob
           (cd release && sha256sum windows/*.exe linux/* tv/*.apk mobile/*.apk mobile-gplay/*.apk update.json wicaby-*-source.tar.gz mpv-winbuild-*-source.tar.gz LICENSE.txt LICENSE-EXCEPTION.md THIRD_PARTY_NOTICES.md wicaby-mesh-THIRD_PARTY_LICENSES.txt | sed 's#  [^ ]*/#  #' > SHA256SUMS.txt)
           cat release/SHA256SUMS.txt
-          if [[ "$TAG" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+          if [ "$DRY_RUN" = true ]; then
+            echo "::notice::Dry run complete for $TAG (would publish to $TARGET_REPO); nothing was published"
+          fi
+
+      # Handed to the publish job, the only one with write access.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: env.DRY_RUN == 'false'
+        with:
+          name: release
+          path: release/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish (GitHub Release)
+    needs: [preflight, assemble]
+    if: needs.preflight.outputs.dry_run == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # create the release when it goes to this repository
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: Prerelease?
+        id: kind
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+        run: if [[ "$TAG" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          repository: ${{ env.RELEASES_REPO }}
-          token: ${{ secrets.RELEASES_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: Wicaby ${{ github.ref_name }}
-          body_path: notes.md
-          prerelease: ${{ steps.notes.outputs.prerelease }}
+          repository: ${{ needs.preflight.outputs.target_repo }}
+          token: ${{ needs.preflight.outputs.external == 'true' && secrets.RELEASES_TOKEN || github.token }}
+          tag_name: ${{ needs.preflight.outputs.tag }}
+          name: Wicaby ${{ needs.preflight.outputs.tag }}
+          body_path: release/notes.md
+          prerelease: ${{ steps.kind.outputs.prerelease }}
           # releases/latest/download/update.json must only ever point at a stable release.
-          make_latest: ${{ steps.notes.outputs.prerelease == 'true' && 'false' || 'true' }}
+          make_latest: ${{ steps.kind.outputs.prerelease == 'true' && 'false' || 'true' }}
           fail_on_unmatched_files: true
           files: |
             release/windows/Wicaby-*.exe
