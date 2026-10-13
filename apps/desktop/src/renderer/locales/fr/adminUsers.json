@@ -1,0 +1,323 @@
+{
+  "list": {
+    "count": "{n, plural, =0 {Aucun utilisateur} one {# utilisateur} other {# utilisateurs}}",
+    "add": "Nouvel utilisateur",
+    "empty": "Aucun utilisateur sur ce serveur.",
+    "active": "Actif {when}",
+    "login": "connecté le {when}",
+    "never": "Jamais connecté"
+  },
+  "badge": {
+    "you": "Vous",
+    "admin": "Administrateur",
+    "disabled": "Désactivé",
+    "hidden": "Masqué",
+    "locked": "Verrouillé"
+  },
+  "create": {
+    "title": "Nouvel utilisateur",
+    "name": "Nom",
+    "taken": "Ce nom est déjà utilisé.",
+    "password": "Mot de passe",
+    "passwordHint": "Facultatif. Sans mot de passe, un simple clic suffit pour se connecter.",
+    "copy": "Copier les droits de",
+    "copyHint": "Reprend les autorisations et les préférences d’un compte existant.",
+    "copyNone": "Personne",
+    "submit": "Créer",
+    "done": "{name} a été créé.",
+    "failed": "Impossible de créer l’utilisateur : {error}"
+  },
+  "editor": {
+    "back": "Utilisateurs"
+  },
+  "groups": {
+    "profile": "Profil",
+    "role": "Rôle et visibilité",
+    "remote": "Accès à distance",
+    "playback": "Lecture",
+    "libraries": "Bibliothèques et chaînes",
+    "parental": "Contrôle parental",
+    "livetv": "TV en direct",
+    "deletion": "Suppression de contenu",
+    "devices": "Appareils autorisés",
+    "security": "Sessions et sécurité",
+    "other": "Autres autorisations",
+    "danger": "Compte"
+  },
+  "profile": {
+    "name": "Nom",
+    "rename": "Renommer",
+    "renamed": "Utilisateur renommé en {name}.",
+    "renameFailed": "Impossible de renommer : {error}",
+    "avatar": "Photo de profil",
+    "avatarHint": "Elle se choisit depuis l’interface web du serveur.",
+    "avatarRemove": "Retirer la photo",
+    "avatarRemoved": "Photo de profil retirée."
+  },
+  "password": {
+    "label": "Mot de passe",
+    "set": "Un mot de passe est défini.",
+    "none": "Aucun mot de passe : la connexion se fait d’un clic.",
+    "change": "Modifier",
+    "define": "Définir",
+    "clear": "Supprimer le mot de passe",
+    "title": "Mot de passe",
+    "lead": "Nouveau mot de passe pour {name}.",
+    "current": "Mot de passe actuel",
+    "new": "Nouveau mot de passe",
+    "confirm": "Confirmer",
+    "mismatch": "Les deux mots de passe ne correspondent pas.",
+    "saved": "Mot de passe enregistré.",
+    "cleared": "Mot de passe supprimé.",
+    "failed": "Impossible de changer le mot de passe : {error}",
+    "clearTitle": "Supprimer le mot de passe ?",
+    "clearLead": "{name} pourra se connecter sans mot de passe."
+  },
+  "connect": {
+    "label": "Emby Connect",
+    "hint": "Associez un compte Emby Connect pour se connecter depuis l’extérieur sans adresse.",
+    "linkedTo": "Associé à {name}",
+    "placeholder": "Nom ou e-mail Emby Connect",
+    "link": "Associer",
+    "unlink": "Dissocier",
+    "linked": "Compte Emby Connect {name} associé.",
+    "pending": "Invitation envoyée à {name}.",
+    "unlinked": "Compte Emby Connect dissocié.",
+    "failed": "Emby Connect : {error}"
+  },
+  "delete": {
+    "label": "Supprimer l’utilisateur",
+    "hint": "Le compte, ses préférences et son historique de lecture sont effacés du serveur.",
+    "self": "Vous ne pouvez pas supprimer votre propre compte.",
+    "lastAdmin": "C’est le dernier administrateur actif : il ne peut pas être supprimé.",
+    "title": "Supprimer cet utilisateur ?",
+    "lead": "Le compte {name}, ses préférences et son historique de lecture seront définitivement supprimés.",
+    "confirm": "Supprimer",
+    "done": "{name} a été supprimé.",
+    "failed": "Impossible de supprimer : {error}"
+  },
+  "policy": {
+    "unsaved": "Modifications non enregistrées",
+    "saved": "Autorisations enregistrées.",
+    "failed": "Impossible d’enregistrer : {error}",
+    "guarded": "Ce compte doit rester un administrateur actif.",
+    "selfLocked": "Vous ne pouvez pas retirer vos propres droits d’administration.",
+    "lastAdmin": "C’est le dernier administrateur actif du serveur.",
+    "lockedOut": "Compte verrouillé",
+    "lockedOutDesc": "Trop de tentatives de connexion ont échoué.",
+    "noLibraries": "Aucune bibliothèque sur ce serveur.",
+    "noChannels": "Aucune chaîne sur ce serveur.",
+    "noDevices": "Aucun appareil connu pour l’instant.",
+    "addTag": "Ajouter une étiquette",
+    "removeTag": "Retirer {tag}",
+    "IsAdministrator": {
+      "label": "Administrateur",
+      "desc": "Gère le serveur, les bibliothèques et les autres comptes."
+    },
+    "IsDisabled": {
+      "label": "Compte désactivé",
+      "desc": "L’utilisateur ne peut plus se connecter."
+    },
+    "IsHidden": {
+      "label": "Masqué sur l’écran de connexion",
+      "desc": "Il faut saisir le nom pour se connecter."
+    },
+    "IsHiddenRemotely": {
+      "label": "Masqué hors du réseau local",
+      "desc": "N’apparaît sur l’écran de connexion qu’à la maison."
+    },
+    "IsHiddenFromUnusedDevices": {
+      "label": "Masqué sur les nouveaux appareils",
+      "desc": "N’apparaît que sur les appareils où il s’est déjà connecté."
+    },
+    "EnableRemoteAccess": {
+      "label": "Accès depuis l’extérieur",
+      "desc": "Autorise la connexion hors du réseau local."
+    },
+    "RemoteClientBitrateLimit": {
+      "label": "Débit maximal à distance",
+      "desc": "Au-delà, la vidéo est convertie pour les connexions hors du réseau local.",
+      "none": "Illimité"
+    },
+    "EnableMediaPlayback": {
+      "label": "Lecture des médias"
+    },
+    "EnableAudioPlaybackTranscoding": {
+      "label": "Conversion audio",
+      "desc": "Autorise le serveur à convertir l’audio pendant la lecture."
+    },
+    "EnableVideoPlaybackTranscoding": {
+      "label": "Conversion vidéo",
+      "desc": "Autorise le serveur à convertir la vidéo pendant la lecture."
+    },
+    "EnablePlaybackRemuxing": {
+      "label": "Changement de conteneur",
+      "desc": "Réemballe la vidéo sans la convertir quand l’appareil l’exige."
+    },
+    "ForceRemoteSourceTranscoding": {
+      "label": "Toujours convertir les sources distantes",
+      "desc": "Pour les médias que le serveur lit lui-même depuis Internet."
+    },
+    "EnableContentDownloading": {
+      "label": "Téléchargements",
+      "desc": "Autorise le téléchargement des médias sur l’appareil."
+    },
+    "EnableSyncTranscoding": {
+      "label": "Conversion pour la synchronisation",
+      "desc": "Autorise les copies hors ligne converties par le serveur."
+    },
+    "EnableMediaConversion": {
+      "label": "Conversion de médias",
+      "desc": "Autorise la création de versions converties sur le serveur."
+    },
+    "SyncPlayAccess": {
+      "label": "Regarder ensemble",
+      "desc": "Accès à SyncPlay, la lecture synchronisée en groupe.",
+      "CreateAndJoinGroups": "Créer et rejoindre",
+      "JoinGroups": "Rejoindre seulement",
+      "None": "Aucun accès"
+    },
+    "EnableAllFolders": {
+      "label": "Toutes les bibliothèques",
+      "desc": "Désactivez pour choisir les bibliothèques visibles."
+    },
+    "EnableAllChannels": {
+      "label": "Toutes les chaînes",
+      "desc": "Désactivez pour choisir les chaînes visibles."
+    },
+    "EnableAllDevices": {
+      "label": "Tous les appareils",
+      "desc": "Désactivez pour limiter la connexion à certains appareils."
+    },
+    "MaxParentalRating": {
+      "label": "Classification maximale",
+      "desc": "Les contenus au-dessus sont masqués.",
+      "none": "Aucune limite"
+    },
+    "BlockedTags": {
+      "label": "Étiquettes bloquées",
+      "desc": "Les contenus portant ces étiquettes sont masqués."
+    },
+    "AllowedTags": {
+      "label": "Étiquettes autorisées",
+      "desc": "Si la liste n’est pas vide, seuls ces contenus sont visibles."
+    },
+    "EnableLiveTvAccess": {
+      "label": "Accès à la TV en direct"
+    },
+    "EnableLiveTvManagement": {
+      "label": "Gestion de la TV en direct",
+      "desc": "Programmer et supprimer des enregistrements."
+    },
+    "EnableContentDeletion": {
+      "label": "Supprimer dans toutes les bibliothèques",
+      "desc": "Désactivez pour choisir les bibliothèques où la suppression est permise."
+    },
+    "SimultaneousStreamLimit": {
+      "label": "Lectures simultanées",
+      "desc": "Nombre maximal de lectures en même temps. 0 : illimité."
+    },
+    "MaxActiveSessions": {
+      "label": "Sessions simultanées",
+      "desc": "Nombre maximal de sessions ouvertes en même temps. 0 : illimité."
+    },
+    "LoginAttemptsBeforeLockout": {
+      "label": "Tentatives avant verrouillage",
+      "desc": "Échecs de connexion avant que le compte soit désactivé. 0 : valeur par défaut (3), -1 : jamais."
+    },
+    "EnableRemoteControlOfOtherUsers": {
+      "label": "Contrôler les autres utilisateurs",
+      "desc": "Piloter la lecture sur les appareils des autres."
+    },
+    "EnableSharedDeviceControl": {
+      "label": "Contrôler les appareils partagés",
+      "desc": "Piloter les lecteurs DLNA et les appareils partagés."
+    },
+    "EnableUserPreferenceAccess": {
+      "label": "Modifier ses préférences",
+      "desc": "Accès à ses propres réglages de profil."
+    },
+    "EnableSubtitleDownloading": {
+      "label": "Télécharger des sous-titres",
+      "desc": "Rechercher des sous-titres en ligne."
+    },
+    "EnableSubtitleManagement": {
+      "label": "Gérer les sous-titres",
+      "desc": "Rechercher, ajouter et supprimer des sous-titres."
+    },
+    "EnableLyricManagement": {
+      "label": "Gérer les paroles"
+    },
+    "EnableCollectionManagement": {
+      "label": "Gérer les collections",
+      "desc": "Créer des collections et y ajouter des éléments."
+    },
+    "EnablePublicSharing": {
+      "label": "Partage public",
+      "desc": "Créer des liens de partage vers des médias."
+    },
+    "AllowSharingPersonalItems": {
+      "label": "Partager ses éléments personnels",
+      "desc": "Partager ses playlists et collections avec d’autres utilisateurs."
+    },
+    "AllowCameraUpload": {
+      "label": "Envoi depuis l’appareil photo",
+      "desc": "Envoyer les photos des appareils mobiles vers le serveur."
+    },
+    "unlock": "Déverrouiller",
+    "disableAdmin": "Jellyfin refuse de désactiver un administrateur : retirez d’abord ce rôle.",
+    "IncludeTags": {
+      "label": "Étiquettes autorisées",
+      "desc": "Si la liste n’est pas vide, seuls les contenus portant ces étiquettes sont visibles."
+    }
+  },
+  "devices": {
+    "count": "{n, plural, =0 {Aucun appareil} one {# appareil} other {# appareils}}",
+    "allUsers": "Tous les utilisateurs",
+    "filter": "Utilisateur",
+    "empty": "Aucun appareil.",
+    "unnamed": "Appareil sans nom",
+    "thisDevice": "Cet appareil",
+    "foot": "Supprimer un appareil le déconnecte : il devra se reconnecter avec un mot de passe.",
+    "reported": "Nom d’origine",
+    "app": "Application",
+    "user": "Dernier utilisateur",
+    "lastActivity": "Dernière activité",
+    "ip": "Adresse IP",
+    "remote": "Contrôle à distance",
+    "id": "Identifiant",
+    "customName": "Nom personnalisé",
+    "customNameHint": "Laissez vide pour reprendre le nom de l’appareil.",
+    "delete": "Supprimer l’appareil",
+    "deleteLead": "{name} sera déconnecté et devra se reconnecter.",
+    "deleteConfirm": "Supprimer",
+    "ownHint": "Wicaby utilise cet appareil pour se connecter au serveur.",
+    "renamed": "Appareil renommé.",
+    "deleted": "{name} a été supprimé.",
+    "failed": "Échec : {error}"
+  },
+  "schedule": {
+    "label": "Plages horaires",
+    "none": "Aucune plage : l’utilisateur peut se connecter à toute heure.",
+    "desc": "L’utilisateur ne peut se connecter que pendant ces plages.",
+    "add": "Ajouter une plage",
+    "day": "Jour",
+    "from": "Début",
+    "until": "Fin",
+    "to": "à",
+    "remove": "Supprimer la plage",
+    "endOfDay": "Minuit (fin de journée)",
+    "days": {
+      "Everyday": "Tous les jours",
+      "Weekday": "En semaine",
+      "Weekend": "Le week-end",
+      "Sunday": "Dimanche",
+      "Monday": "Lundi",
+      "Tuesday": "Mardi",
+      "Wednesday": "Mercredi",
+      "Thursday": "Jeudi",
+      "Friday": "Vendredi",
+      "Saturday": "Samedi"
+    }
+  }
+}

@@ -1,0 +1,279 @@
+{
+  "about": "Channel numbers (§4.4), nameKey (§6.5, §21.6) and the channel sorts. fn: parseChannelNumber(s) → [major, minor] | null; nameKey(s) → fold; sortNames(list) → list sorted by compareNames; compareNames(a, b) → sign; sortChannels(rows, mode, {mru, favFirst}) → ids; duplicateNumbers(rows) → id groups. Rows default: serverId \"s\", tags [], radio false, favorite false, serverIndex = position.",
+  "cases": [
+    {"name":"parse \"1\"","fn":"parseChannelNumber","args":["1"],"out":[1,-1]},
+    {"name":"parse \"105\"","fn":"parseChannelNumber","args":["105"],"out":[105,-1]},
+    {"name":"parse \"02\"","fn":"parseChannelNumber","args":["02"],"out":[2,-1]},
+    {"name":"parse \"5.1\"","fn":"parseChannelNumber","args":["5.1"],"out":[5,1]},
+    {"name":"parse \"5-2\"","fn":"parseChannelNumber","args":["5-2"],"out":[5,2]},
+    {"name":"parse \"5 3\"","fn":"parseChannelNumber","args":["5 3"],"out":[5,3]},
+    {"name":"parse \"\"","fn":"parseChannelNumber","args":[""],"out":null},
+    {"name":"parse \"HD1\"","fn":"parseChannelNumber","args":["HD1"],"out":null},
+    {"name":"parse \" 7 \"","fn":"parseChannelNumber","args":[" 7 "],"out":[7,-1]},
+    {"name":"parse \"13_4\"","fn":"parseChannelNumber","args":["13_4"],"out":[13,4]},
+    {"name":"parse \"202-1\"","fn":"parseChannelNumber","args":["202-1"],"out":[202,1]},
+    {"name":"parse \"5..1\"","fn":"parseChannelNumber","args":["5..1"],"out":null},
+    {"name":"parse \"1.2.3\"","fn":"parseChannelNumber","args":["1.2.3"],"out":null},
+    {"name":"parse \"5.\"","fn":"parseChannelNumber","args":["5."],"out":null},
+    {"name":"parse \"007\"","fn":"parseChannelNumber","args":["007"],"out":[7,-1]},
+    {"name":"parse \"12 . 04\"","fn":"parseChannelNumber","args":["12 . 04"],"out":[12,4]},
+    {"name":"nameKey \"Équipe 21\"","fn":"nameKey","args":["Équipe 21"],"out":"equipe 21"},
+    {"name":"nameKey \"TF 1\"","fn":"nameKey","args":["TF 1"],"out":"tf 1"},
+    {"name":"nameKey \"  Arte   HD \"","fn":"nameKey","args":["  Arte   HD "],"out":"arte hd"},
+    {"name":"nameKey \"Œuvre\"","fn":"nameKey","args":["Œuvre"],"out":"œuvre"},
+    {"name":"nameKey \"İstanbul\"","fn":"nameKey","args":["İstanbul"],"out":"istanbul"},
+    {"name":"nameKey \"Ciné+\"","fn":"nameKey","args":["Ciné+"],"out":"cine+"},
+    {"name":"nameKey \"ÇA VA\"","fn":"nameKey","args":["ÇA VA"],"out":"ca va"},
+    {"name":"nameKey \"Ñandú\"","fn":"nameKey","args":["Ñandú"],"out":"nandu"},
+    {"name":"nameKey \"Straße\"","fn":"nameKey","args":["Straße"],"out":"straße"},
+    {"name":"nameKey \"Ciné Club\"","fn":"nameKey","args":["Ciné Club"],"out":"cine club"},
+    {"name":"nameKey \"ΣΟΦΟΣ\"","fn":"nameKey","args":["ΣΟΦΟΣ"],"out":"σοφοσ"},
+    {"name":"nameKey \"\"","fn":"nameKey","args":[""],"out":""},
+    {
+      "name": "accent ties: Équipe 21 / Euro 3 / equipe 3",
+      "fn": "sortNames",
+      "args": [["Euro 3","Équipe 21","equipe 3"]],
+      "out": ["equipe 3","Équipe 21","Euro 3"]
+    },
+    {
+      "name": "TF1 / TF 1: a digit run sorts before a space",
+      "fn": "sortNames",
+      "args": [["TF 1","TF10","TF1","TF2"]],
+      "out": ["TF1","TF2","TF10","TF 1"]
+    },
+    {
+      "name": "leading zeros: same value, shorter first",
+      "fn": "sortNames",
+      "args": [["Canal 10","Canal 02","Canal 1","Canal 2"]],
+      "out": ["Canal 1","Canal 2","Canal 02","Canal 10"]
+    },
+    {
+      "name": "Œ is not expanded (U+0153 after z)",
+      "fn": "sortNames",
+      "args": [["Œuvre","Ozone","Oz"]],
+      "out": ["Oz","Ozone","Œuvre"]
+    },
+    {
+      "name": "dotted capital I under the root locale",
+      "fn": "sortNames",
+      "args": [["ızmir","İzmir TV","Izmir 2"]],
+      "out": ["Izmir 2","İzmir TV","ızmir"]
+    },
+    {"name":"case and accents compare equal","fn":"compareNames","args":["ÉCOLE","ecole"],"out":0},
+    {
+      "name": "sort number",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "number"
+      ],
+      "out": ["a","b","k","c","d","e","i","j","f","h","g"]
+    },
+    {
+      "name": "sort number, favourites first",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "number",
+        {"favFirst":true}
+      ],
+      "out": ["c","f","a","b","k","d","e","i","j","h","g"]
+    },
+    {
+      "name": "sort name",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "name"
+      ],
+      "out": ["f","k","d","e","c","b","i","j","h","g","a"]
+    },
+    {
+      "name": "sort name, favourites first",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "name",
+        {"favFirst":true}
+      ],
+      "out": ["f","c","k","d","e","b","i","j","h","g","a"]
+    },
+    {
+      "name": "sort server",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "server"
+      ],
+      "out": ["k","j","i","h","g","f","e","d","c","b","a"]
+    },
+    {
+      "name": "sort server, favourites first",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "server",
+        {"favFirst":true}
+      ],
+      "out": ["f","c","k","j","i","h","g","e","d","b","a"]
+    },
+    {
+      "name": "sort number (pinned)",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "number"
+      ],
+      "out": ["a","b","k","c","d","e","i","j","f","h","g"]
+    },
+    {
+      "name": "sort recent: MRU first, then by number",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "recent",
+        {"mru":["f","zz","b"]}
+      ],
+      "out": ["f","b","a","k","c","d","e","i","j","h","g"]
+    },
+    {
+      "name": "sort recent, favourites first",
+      "fn": "sortChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0}
+        ],
+        "recent",
+        {"mru":["f","b"],"favFirst":true}
+      ],
+      "out": ["f","c","b","a","k","d","e","i","j","h","g"]
+    },
+    {
+      "name": "duplicates (42 twice; 02 and 2 share a key)",
+      "fn": "duplicateNumbers",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Un","serverIndex":10},
+          {"id":"b","number":"02","name":"Deux","serverIndex":9},
+          {"id":"c","number":"5.1","name":"Cinq Un","favorite":true,"serverIndex":8},
+          {"id":"d","number":"5-2","name":"Cinq Deux","serverIndex":7},
+          {"id":"e","number":"5 3","name":"Cinq Trois","serverIndex":6},
+          {"id":"f","number":"105","name":"Cent Cinq","favorite":true,"serverIndex":5},
+          {"id":"g","number":"","name":"Sans Numéro","serverIndex":4},
+          {"id":"h","number":"HD1","name":"Haute Déf","serverIndex":3},
+          {"id":"i","number":"42","name":"Équipe 21","serverIndex":2},
+          {"id":"j","number":"42","name":"Euro 3","serverIndex":1},
+          {"id":"k","number":"5","name":"Cinq","serverIndex":0},
+          {"id":"l","number":"2","name":"Deux bis","serverIndex":0}
+        ]
+      ],
+      "out": [["b","l"],["i","j"]]
+    }
+  ]
+}

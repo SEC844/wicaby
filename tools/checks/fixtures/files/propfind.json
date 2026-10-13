@@ -1,0 +1,143 @@
+{
+  "base": "https://dav.example/media",
+  "cases": [
+    {
+      "rel": "",
+      "xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/media/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/Films/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/Clip%20One.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>1234</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/caf%C3%A9.mp4</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>5</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "Films",
+            "dir": true,
+            "size": 0,
+            "mtime": 1727776800000
+          },
+          {
+            "name": "Clip One.mkv",
+            "dir": false,
+            "size": 1234,
+            "mtime": 1727776800000
+          },
+          {
+            "name": "café.mp4",
+            "dir": false,
+            "size": 5,
+            "mtime": 1727776800000
+          }
+        ],
+        "dropped": 0,
+        "self": {
+          "name": "",
+          "dir": true,
+          "size": 0,
+          "mtime": 1727776800000
+        }
+      }
+    },
+    {
+      "rel": "Films",
+      "xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>https://dav.example/media/Films/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</d:getlastmodified></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response><d:response><d:href>https://dav.example/media/Films/Example%20Movie%20(2019)/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</d:getlastmodified></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response><d:response><d:href>Films/relative.mkv</d:href><d:propstat><d:prop><d:resourcetype></d:resourcetype><d:getcontentlength>7</d:getcontentlength><d:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</d:getlastmodified></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "Example Movie (2019)",
+            "dir": true,
+            "size": 0,
+            "mtime": 1727776800000
+          }
+        ],
+        "dropped": 1,
+        "self": {
+          "name": "Films",
+          "dir": true,
+          "size": 0,
+          "mtime": 1727776800000
+        }
+      }
+    },
+    {
+      "rel": "",
+      "xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/media/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>http://evil.example/media/Other.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/../etc/passwd</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/a%2Fb.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/elsewhere/Escape.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/Films/Deeper/Too.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/mediaother/x.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/CON</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>0</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/ok.mkv</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>3</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "ok.mkv",
+            "dir": false,
+            "size": 3,
+            "mtime": 1727776800000
+          }
+        ],
+        "dropped": 7,
+        "self": {
+          "name": "",
+          "dir": true,
+          "size": 0,
+          "mtime": 1727776800000
+        }
+      }
+    },
+    {
+      "rel": "",
+      "xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><lp1:multistatus xmlns:lp1=\"DAV:\"><lp1:response><lp1:href>/media/nodate.mkv</lp1:href><lp1:propstat><lp1:prop><lp1:resourcetype></lp1:resourcetype><lp1:getcontentlength>9</lp1:getcontentlength><lp1:getlastmodified>garbage</lp1:getlastmodified></lp1:prop><lp1:status>HTTP/1.1 200 OK</lp1:status></lp1:propstat></lp1:response><lp1:response><lp1:href>/media/forbidden.mkv</lp1:href><lp1:propstat><lp1:prop><lp1:resourcetype></lp1:resourcetype><lp1:getcontentlength>99</lp1:getcontentlength><lp1:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</lp1:getlastmodified></lp1:prop><lp1:status>HTTP/1.1 403 Forbidden</lp1:status></lp1:propstat></lp1:response></lp1:multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "nodate.mkv",
+            "dir": false,
+            "size": 9,
+            "mtime": 0
+          },
+          {
+            "name": "forbidden.mkv",
+            "dir": false,
+            "size": 0,
+            "mtime": 0
+          }
+        ],
+        "dropped": 0
+      }
+    },
+    {
+      "rel": "",
+      "xml": "<multistatus xmlns=\"DAV:\"><response><href>/media/plain.mkv</href><propstat><prop><resourcetype/><getcontentlength>42</getcontentlength></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "plain.mkv",
+            "dir": false,
+            "size": 42,
+            "mtime": 0
+          }
+        ],
+        "dropped": 0
+      }
+    },
+    {
+      "rel": "Shows/Example Show",
+      "xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/media/Shows/Example%20Show/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/Shows/Example%20Show/Season%201/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/media/Shows/Example%20Show/tvshow.nfo</D:href><D:propstat><D:prop><D:resourcetype></D:resourcetype><D:getcontentlength>50</D:getcontentlength><D:getlastmodified>Tue, 01 Oct 2024 10:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+      "expect": {
+        "entries": [
+          {
+            "name": "Season 1",
+            "dir": true,
+            "size": 0,
+            "mtime": 1727776800000
+          },
+          {
+            "name": "tvshow.nfo",
+            "dir": false,
+            "size": 50,
+            "mtime": 1727776800000
+          }
+        ],
+        "dropped": 0,
+        "self": {
+          "name": "Example Show",
+          "dir": true,
+          "size": 0,
+          "mtime": 1727776800000
+        }
+      }
+    }
+  ]
+}

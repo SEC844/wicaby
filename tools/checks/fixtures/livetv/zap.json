@@ -1,0 +1,1067 @@
+{
+  "about": "Zap list and merging (§8.3) and number entry (§8.4). fn: zapTarget(list, fromId, delta, fromNumber?, hidden?) → id|null; zapScenario(list, current, events, hidden?) → per event {effects, pending, current, last, tuning}; digitScenario(lineup, events, timeoutMs?) → per event {buf, preview, result}. Times are ms; the default digit timeout is 1,800 ms.",
+  "cases": [
+    {
+      "name": "next",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c2",
+        1
+      ],
+      "out": "c3"
+    },
+    {
+      "name": "next wraps",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c8",
+        1
+      ],
+      "out": "c1"
+    },
+    {
+      "name": "previous wraps",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c1",
+        -1
+      ],
+      "out": "c8"
+    },
+    {
+      "name": "outside the lens: next by number order",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c4",
+        1,
+        "4"
+      ],
+      "out": "c5"
+    },
+    {
+      "name": "outside the lens: previous by number order",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c4",
+        -1,
+        "4"
+      ],
+      "out": "c3"
+    },
+    {
+      "name": "outside the lens, above every number: next wraps",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c9",
+        1,
+        "9"
+      ],
+      "out": "c1"
+    },
+    {
+      "name": "outside the lens, no number: previous is the last",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "cx",
+        -1,
+        ""
+      ],
+      "out": "c8"
+    },
+    {
+      "name": "hidden skipped",
+      "fn": "zapTarget",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c2",
+        1,
+        null,
+        ["c3"]
+      ],
+      "out": "c5"
+    },
+    {
+      "name": "5 presses in 300 ms → one tune 400 ms after the last",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"k1","number":"1","name":"K 1"},
+          {"id":"k2","number":"2","name":"K 2"},
+          {"id":"k3","number":"3","name":"K 3"},
+          {"id":"k4","number":"4","name":"K 4"},
+          {"id":"k5","number":"5","name":"K 5"},
+          {"id":"k6","number":"6","name":"K 6"},
+          {"id":"k7","number":"7","name":"K 7"},
+          {"id":"k8","number":"8","name":"K 8"},
+          {"id":"k9","number":"9","name":"K 9"},
+          {"id":"k10","number":"10","name":"K 10"}
+        ],
+        "k1",
+        [
+          {"type":"press","delta":1,"at":0},
+          {"type":"press","delta":1,"at":75},
+          {"type":"press","delta":1,"at":150},
+          {"type":"press","delta":1,"at":225},
+          {"type":"press","delta":1,"at":300},
+          {"type":"tick","at":699},
+          {"type":"tick","at":700},
+          {"type":"adopted","id":"k6"}
+        ]
+      ],
+      "out": [
+        {"effects":[{"type":"banner","id":"k2"}],"pending":"k2","current":"k1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"k3"}],"pending":"k3","current":"k1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"k4"}],"pending":"k4","current":"k1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"k5"}],"pending":"k5","current":"k1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"k6"}],"pending":"k6","current":"k1","last":null,"tuning":null},
+        {"effects":[],"pending":"k6","current":"k1","last":null,"tuning":null},
+        {"effects":[{"type":"tune","id":"k6"}],"pending":null,"current":"k1","last":null,"tuning":"k6"},
+        {"effects":[],"pending":null,"current":"k6","last":"k1","tuning":null}
+      ]
+    },
+    {
+      "name": "mixed directions merge",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c2",
+        [
+          {"type":"press","delta":1,"at":0},
+          {"type":"press","delta":1,"at":100},
+          {"type":"press","delta":-1,"at":200},
+          {"type":"tick","at":600}
+        ]
+      ],
+      "out": [
+        {"effects":[{"type":"banner","id":"c3"}],"pending":"c3","current":"c2","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c5"}],"pending":"c5","current":"c2","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c3"}],"pending":"c3","current":"c2","last":null,"tuning":null},
+        {"effects":[{"type":"tune","id":"c3"}],"pending":null,"current":"c2","last":null,"tuning":"c3"}
+      ]
+    },
+    {
+      "name": "merge back to the current channel: no tune",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c2",
+        [{"type":"press","delta":1,"at":0},{"type":"press","delta":-1,"at":100},{"type":"tick","at":500}]
+      ],
+      "out": [
+        {"effects":[{"type":"banner","id":"c3"}],"pending":"c3","current":"c2","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c2"}],"pending":"c2","current":"c2","last":null,"tuning":null},
+        {"effects":[],"pending":null,"current":"c2","last":null,"tuning":null}
+      ]
+    },
+    {
+      "name": "last-channel swap",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c1",
+        [
+          {"type":"tune","id":"c5","at":0},
+          {"type":"adopted","id":"c5"},
+          {"type":"last-channel","at":1000},
+          {"type":"adopted","id":"c1"},
+          {"type":"last-channel","at":2000},
+          {"type":"adopted","id":"c5"}
+        ]
+      ],
+      "out": [
+        {
+          "effects": [{"type":"banner","id":"c5"},{"type":"tune","id":"c5"}],
+          "pending": null,
+          "current": "c1",
+          "last": null,
+          "tuning": "c5"
+        },
+        {"effects":[],"pending":null,"current":"c5","last":"c1","tuning":null},
+        {
+          "effects": [{"type":"banner","id":"c1"},{"type":"tune","id":"c1"}],
+          "pending": null,
+          "current": "c5",
+          "last": "c1",
+          "tuning": "c1"
+        },
+        {"effects":[],"pending":null,"current":"c1","last":"c5","tuning":null},
+        {
+          "effects": [{"type":"banner","id":"c5"},{"type":"tune","id":"c5"}],
+          "pending": null,
+          "current": "c1",
+          "last": "c5",
+          "tuning": "c5"
+        },
+        {"effects":[],"pending":null,"current":"c5","last":"c1","tuning":null}
+      ]
+    },
+    {
+      "name": "failed tune keeps current and last",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c1",
+        [{"type":"tune","id":"c5","at":0},{"type":"failed","id":"c5"},{"type":"last-channel","at":10}]
+      ],
+      "out": [
+        {
+          "effects": [{"type":"banner","id":"c5"},{"type":"tune","id":"c5"}],
+          "pending": null,
+          "current": "c1",
+          "last": null,
+          "tuning": "c5"
+        },
+        {"effects":[],"pending":null,"current":"c1","last":null,"tuning":null},
+        {"effects":[],"pending":null,"current":"c1","last":null,"tuning":null}
+      ]
+    },
+    {
+      "name": "TV held key: preview at most 8 ch/s, tune on key-up",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c1",
+        [
+          {"type":"press","delta":1,"at":0},
+          {"type":"press","delta":1,"at":500,"repeat":true},
+          {"type":"press","delta":1,"at":550,"repeat":true},
+          {"type":"press","delta":1,"at":625,"repeat":true},
+          {"type":"press","delta":1,"at":800,"repeat":true},
+          {"type":"tick","at":1300},
+          {"type":"key-up","at":1400},
+          {"type":"tick","at":2000}
+        ]
+      ],
+      "out": [
+        {"effects":[{"type":"banner","id":"c2"}],"pending":"c2","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c3"}],"pending":"c3","current":"c1","last":null,"tuning":null},
+        {"effects":[],"pending":"c3","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c5"}],"pending":"c5","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c8"}],"pending":"c8","current":"c1","last":null,"tuning":null},
+        {"effects":[],"pending":"c8","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"tune","id":"c8"}],"pending":null,"current":"c1","last":null,"tuning":"c8"},
+        {"effects":[],"pending":null,"current":"c1","last":null,"tuning":"c8"}
+      ]
+    },
+    {
+      "name": "hidden skipped while merging",
+      "fn": "zapScenario",
+      "args": [
+        [
+          {"id":"c1","number":"1","name":"Ch 1"},
+          {"id":"c2","number":"2","name":"Ch 2"},
+          {"id":"c3","number":"3","name":"Ch 3"},
+          {"id":"c5","number":"5","name":"Ch 5"},
+          {"id":"c8","number":"8","name":"Ch 8"}
+        ],
+        "c1",
+        [{"type":"press","delta":1,"at":0},{"type":"press","delta":1,"at":50},{"type":"tick","at":450}],
+        ["c2"]
+      ],
+      "out": [
+        {"effects":[{"type":"banner","id":"c3"}],"pending":"c3","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"banner","id":"c5"}],"pending":"c5","current":"c1","last":null,"tuning":null},
+        {"effects":[{"type":"tune","id":"c5"}],"pending":null,"current":"c1","last":null,"tuning":"c5"}
+      ]
+    },
+    {
+      "name": "7 waits (70–79 exist), commits at the 1,800 ms timeout",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"7","at":0},{"type":"tick","at":1799},{"type":"tick","at":1800}]
+      ],
+      "out": [
+        {"buf":"7","preview":{"kind":"exact","ids":["n7"],"pick":0},"result":null},
+        {"buf":"7","preview":{"kind":"exact","ids":["n7"],"pick":0},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n7"],"pick":0},
+          "result": {"type":"commit","id":"n7","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "45 commits at once (no 450–459)",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"4","at":0},{"type":"digit","d":"5","at":300}]
+      ],
+      "out": [
+        {"buf":"4","preview":{"kind":"prefix","id":"n45"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n45"],"pick":0},
+          "result": {"type":"commit","id":"n45","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "0 fails at once",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"0","at":0}]
+      ],
+      "out": [{"buf":null,"preview":{"kind":"none"},"result":{"type":"fail","number":"0"}}]
+    },
+    {
+      "name": "30 waits (300 exists); Enter commits",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"3","at":0},{"type":"digit","d":"0","at":200},{"type":"enter","at":400}]
+      ],
+      "out": [
+        {"buf":"3","preview":{"kind":"exact","ids":["n3"],"pick":0},"result":null},
+        {"buf":"30","preview":{"kind":"exact","ids":["n30"],"pick":0},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n30"],"pick":0},
+          "result": {"type":"commit","id":"n30","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "42 twice: waits, previews 2 channels, ↓ picks the second, OK tunes it",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [
+          {"type":"digit","d":"4","at":0},
+          {"type":"digit","d":"2","at":100},
+          {"type":"pick","delta":1,"at":300},
+          {"type":"enter","at":500}
+        ]
+      ],
+      "out": [
+        {"buf":"4","preview":{"kind":"prefix","id":"n45"},"result":null},
+        {"buf":"42","preview":{"kind":"exact","ids":["n42a","n42b"],"pick":0},"result":null},
+        {"buf":"42","preview":{"kind":"exact","ids":["n42a","n42b"],"pick":1},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n42a","n42b"],"pick":1},
+          "result": {"type":"commit","id":"n42b","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "42 twice: timeout tunes the first in lineup order",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"4","at":0},{"type":"digit","d":"2","at":100},{"type":"tick","at":1900}]
+      ],
+      "out": [
+        {"buf":"4","preview":{"kind":"prefix","id":"n45"},"result":null},
+        {"buf":"42","preview":{"kind":"exact","ids":["n42a","n42b"],"pick":0},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n42a","n42b"],"pick":0},
+          "result": {"type":"commit","id":"n42a","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "alias 51 → 5.1 (no channel 51), at the timeout",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"5","at":0},{"type":"digit","d":"1","at":100},{"type":"tick","at":1900}]
+      ],
+      "out": [
+        {"buf":"5","preview":{"kind":"prefix","id":"n5.1"},"result":null},
+        {"buf":"51","preview":{"kind":"alias","id":"n5.1"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"alias","id":"n5.1"},
+          "result": {"type":"commit","id":"n5.1","hidden":false,"via":"alias"}
+        }
+      ]
+    },
+    {
+      "name": "1 3 . 2 commits 13.2 at once",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [
+          {"type":"digit","d":"1","at":0},
+          {"type":"digit","d":"3","at":100},
+          {"type":"separator","at":200},
+          {"type":"digit","d":"2","at":300}
+        ]
+      ],
+      "out": [
+        {"buf":"1","preview":{"kind":"exact","ids":["n1"],"pick":0},"result":null},
+        {"buf":"13","preview":{"kind":"prefix","id":"n13.1"},"result":null},
+        {"buf":"13.","preview":{"kind":"prefix","id":"n13.1"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n13.2"],"pick":0},
+          "result": {"type":"commit","id":"n13.2","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "invalid 8 fails at once",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"8","at":0}]
+      ],
+      "out": [{"buf":null,"preview":{"kind":"none"},"result":{"type":"fail","number":"8"}}]
+    },
+    {
+      "name": "Backspace deletes; an emptied buffer cancels; Backspace on a closed buffer = last channel",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"4","at":0},{"type":"backspace","at":100},{"type":"backspace","at":200}]
+      ],
+      "out": [
+        {"buf":"4","preview":{"kind":"prefix","id":"n45"},"result":null},
+        {"buf":null,"preview":null,"result":{"type":"cancel"}},
+        {"buf":null,"preview":null,"result":{"type":"last-channel"}}
+      ]
+    },
+    {
+      "name": "Esc cancels",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"7","at":0},{"type":"escape","at":100}]
+      ],
+      "out": [
+        {"buf":"7","preview":{"kind":"exact","ids":["n7"],"pick":0},"result":null},
+        {"buf":null,"preview":null,"result":{"type":"cancel"}}
+      ]
+    },
+    {
+      "name": "hidden channel reached by number (toast)",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"9","at":0},{"type":"enter","at":100}]
+      ],
+      "out": [
+        {"buf":"9","preview":{"kind":"exact","ids":["n9"],"pick":0},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n9"],"pick":0},
+          "result": {"type":"commit","id":"n9","hidden":true,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "separator only once, never first",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [
+          {"type":"separator","at":0},
+          {"type":"digit","d":"1","at":10},
+          {"type":"digit","d":"3","at":20},
+          {"type":"separator","at":30},
+          {"type":"separator","at":40},
+          {"type":"digit","d":"1","at":50}
+        ]
+      ],
+      "out": [
+        {"buf":null,"preview":null,"result":null},
+        {"buf":"1","preview":{"kind":"exact","ids":["n1"],"pick":0},"result":null},
+        {"buf":"13","preview":{"kind":"prefix","id":"n13.1"},"result":null},
+        {"buf":"13.","preview":{"kind":"prefix","id":"n13.1"},"result":null},
+        {"buf":"13.","preview":{"kind":"prefix","id":"n13.1"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n13.1"],"pick":0},
+          "result": {"type":"commit","id":"n13.1","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "guide jump mode: 1,200 ms timeout",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [{"type":"digit","d":"7","at":0},{"type":"tick","at":1199},{"type":"tick","at":1200}],
+        1200
+      ],
+      "out": [
+        {"buf":"7","preview":{"kind":"exact","ids":["n7"],"pick":0},"result":null},
+        {"buf":"7","preview":{"kind":"exact","ids":["n7"],"pick":0},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["n7"],"pick":0},
+          "result": {"type":"commit","id":"n7","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "at most 6 characters (1234567 exists: the 7th digit is ignored)",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"n1","number":"1"},
+          {"id":"n2","number":"2"},
+          {"id":"n3","number":"3"},
+          {"id":"n7","number":"7"},
+          {"id":"n70","number":"70"},
+          {"id":"n71","number":"71"},
+          {"id":"n72","number":"72"},
+          {"id":"n73","number":"73"},
+          {"id":"n74","number":"74"},
+          {"id":"n75","number":"75"},
+          {"id":"n76","number":"76"},
+          {"id":"n77","number":"77"},
+          {"id":"n78","number":"78"},
+          {"id":"n79","number":"79"},
+          {"id":"n13.1","number":"13.1"},
+          {"id":"n13.2","number":"13.2"},
+          {"id":"n30","number":"30"},
+          {"id":"n300","number":"300"},
+          {"id":"n45","number":"45"},
+          {"id":"n5.1","number":"5.1"},
+          {"id":"n99","number":"99"},
+          {"id":"n42a","number":"42"},
+          {"id":"n42b","number":"42"},
+          {"id":"n9","number":"9","hidden":true},
+          {"id":"nbig","number":"1234567"}
+        ],
+        [
+          {"type":"digit","d":"1","at":0},
+          {"type":"digit","d":"2","at":1},
+          {"type":"digit","d":"3","at":2},
+          {"type":"digit","d":"4","at":3},
+          {"type":"digit","d":"5","at":4},
+          {"type":"digit","d":"6","at":5},
+          {"type":"digit","d":"7","at":6},
+          {"type":"enter","at":7}
+        ]
+      ],
+      "out": [
+        {"buf":"1","preview":{"kind":"exact","ids":["n1"],"pick":0},"result":null},
+        {"buf":"12","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":"123","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":"1234","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":"12345","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":"123456","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":"123456","preview":{"kind":"prefix","id":"nbig"},"result":null},
+        {"buf":null,"preview":{"kind":"prefix","id":"nbig"},"result":{"type":"fail","number":"123456"}}
+      ]
+    },
+    {
+      "name": "leading zero: 0 waits when 05 exists; 02 reaches channel 2 at once",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"z2","number":"2"},
+          {"id":"z05","number":"05"},
+          {"id":"z5","number":"5"},
+          {"id":"z20","number":"20"}
+        ],
+        [{"type":"digit","d":"0","at":0},{"type":"digit","d":"2","at":100}]
+      ],
+      "out": [
+        {"buf":"0","preview":{"kind":"prefix","id":"z05"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["z2"],"pick":0},
+          "result": {"type":"commit","id":"z2","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "leading zero: 05 reaches the channel numbered 05 (raw match first)",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"z2","number":"2"},
+          {"id":"z05","number":"05"},
+          {"id":"z5","number":"5"},
+          {"id":"z20","number":"20"}
+        ],
+        [{"type":"digit","d":"0","at":0},{"type":"digit","d":"5","at":100}]
+      ],
+      "out": [
+        {"buf":"0","preview":{"kind":"prefix","id":"z05"},"result":null},
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["z05"],"pick":0},
+          "result": {"type":"commit","id":"z05","hidden":false,"via":"exact"}
+        }
+      ]
+    },
+    {
+      "name": "no leading zero: 5 is its own channel (05 is a duplicate key)",
+      "fn": "digitScenario",
+      "args": [
+        [
+          {"id":"z2","number":"2"},
+          {"id":"z05","number":"05"},
+          {"id":"z5","number":"5"},
+          {"id":"z20","number":"20"}
+        ],
+        [{"type":"digit","d":"5","at":0},{"type":"enter","at":100}]
+      ],
+      "out": [
+        {
+          "buf": null,
+          "preview": {"kind":"exact","ids":["z5"],"pick":0},
+          "result": {"type":"commit","id":"z5","hidden":false,"via":"exact"}
+        },
+        {"buf":null,"preview":null,"result":null}
+      ]
+    }
+  ]
+}

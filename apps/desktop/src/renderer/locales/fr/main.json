@@ -1,0 +1,90 @@
+{
+  "playback": {
+    "mpvMissing": "mpv introuvable, lecture avec le lecteur intégré",
+    "mpvHung": "mpv ne répond plus : reprise avec le lecteur intégré",
+    "delayMpvOnly": "Le décalage n’est réglable qu’avec mpv",
+    "trackFallback": "Piste {index}"
+  },
+  "tray": {
+    "open": "Ouvrir Wicaby",
+    "nowPlaying": "Lecture en cours",
+    "play": "Lecture",
+    "pause": "Pause",
+    "next": "Suivant",
+    "stop": "Arrêter",
+    "quit": "Quitter",
+    "paused": "En pause",
+    "continue": "Reprendre"
+  },
+  "thumbar": {
+    "previous": "Précédent",
+    "play": "Lecture",
+    "pause": "Pause",
+    "next": "Suivant"
+  },
+  "jumpList": {
+    "home": "Accueil",
+    "homeDesc": "Ouvrir l’accueil",
+    "search": "Rechercher",
+    "searchDesc": "Rechercher dans la bibliothèque",
+    "downloads": "Téléchargements",
+    "downloadsDesc": "Contenus disponibles hors ligne",
+    "settings": "Paramètres",
+    "settingsDesc": "Réglages de Wicaby",
+    "continue": "Reprendre",
+    "continueDesc": "Reprendre la lecture"
+  },
+  "notify": {
+    "trayHintTitle": "Wicaby reste ouvert",
+    "trayHintBody": "La fenêtre est réduite dans la zone de notification et la lecture continue. Pour quitter, faites un clic droit sur l’icône Wicaby.",
+    "trayHintBodyLinux": "La fenêtre est réduite dans la zone de notification et la lecture continue. Pour quitter, faites un clic droit sur l’icône Wicaby.",
+    "downloadDone": "Téléchargement terminé",
+    "downloadsDone": "{count, plural, one {# téléchargement terminé} other {# téléchargements terminés}}",
+    "availableOffline": "Disponibles hors ligne.",
+    "newEpisode": "Nouvel épisode disponible",
+    "newEpisodes": "{count, plural, one {# nouvel épisode disponible} other {# nouveaux épisodes disponibles}}",
+    "newEpisodesAny": "Nouveaux épisodes disponibles",
+    "episodeLabel": "Saison {season}, épisode {episode} · {name}",
+    "play": "Lire",
+    "markWatched": "Marquer comme vu",
+    "admin": {
+      "taskFailed": "Tâche planifiée en échec",
+      "restartTitle": "Redémarrage du serveur requis",
+      "restartBody": "{server} doit redémarrer pour appliquer des changements.",
+      "updateTitle": "Mise à jour du serveur disponible",
+      "updateBody": "Une nouvelle version est disponible pour {server}."
+    },
+    "reminderTitle": "{title} commence",
+    "reminderBody": "Sur {channel} à {time}",
+    "channelNotFound": "Chaîne introuvable : {channel}",
+    "reminderAction": "Regarder"
+  },
+  "dialog": {
+    "quitPlayback": {
+      "message": "Une lecture est en cours",
+      "detail": "Quitter Wicaby arrête la lecture."
+    },
+    "settingsExportName": "wicaby-reglages.json"
+  },
+  "torrents": {
+    "completedTitle": "Torrent terminé",
+    "completedAddedTo": "{name}\nAjouté à {library}"
+  },
+  "downloads": {
+    "folders": {
+      "movies": "Films",
+      "series": "Séries",
+      "season": "Saison {number}",
+      "music": "Musique",
+      "books": "Livres",
+      "untitled": "Sans titre",
+      "artist": "Artiste",
+      "album": "Album",
+      "show": "Série",
+      "photos": "Photos"
+    }
+  },
+  "vault": {
+    "memoryOnly": "Aucun trousseau système trouvé : vos connexions ne sont gardées que jusqu’à la fermeture de Wicaby. Voir Paramètres > Confidentialité et stockage."
+  }
+}

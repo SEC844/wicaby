@@ -1,0 +1,91 @@
+{
+  "splash": {
+    "connecting": "Connexion à {server}…",
+    "connectingDefault": "Connexion à votre serveur…"
+  },
+  "nav": {
+    "aria": "Navigation principale",
+    "home": "Accueil",
+    "search": "Rechercher",
+    "favorites": "Favoris",
+    "downloads": "Téléchargements",
+    "liveTv": "TV en direct",
+    "settings": "Paramètres"
+  },
+  "sidebar": {
+    "show": "Afficher la barre latérale",
+    "hide": "Masquer la barre latérale",
+    "libraries": "Bibliothèques",
+    "servers": "{count, plural, one {# serveur} other {# serveurs}}",
+    "someOffline": "{count} hors ligne",
+    "allConnected": "connectés",
+    "serverState": "{kind} · {state, select, offline {hors ligne} other {connecté}}"
+  },
+  "search": {
+    "placeholder": "Films, séries, musique",
+    "placeholderOffline": "Recherche indisponible hors ligne",
+    "clear": "Effacer"
+  },
+  "titlebar": {
+    "offlineHint": "Serveur injoignable : seuls les téléchargements sont disponibles"
+  },
+  "account": {
+    "aria": "Compte : {name}",
+    "guest": "Invité",
+    "server": "Serveur",
+    "servers": "{count, plural, one {# serveur} other {# serveurs}}",
+    "menu": {
+      "history": "Historique",
+      "servers": "Serveurs",
+      "switchUser": "Changer d’utilisateur",
+      "switchServer": "Changer de serveur",
+      "quit": "Quitter Wicaby"
+    }
+  },
+  "fps": {
+    "meter": "{fps} i/s · {worst} ms"
+  },
+  "status": {
+    "title": "État des connexions",
+    "level": {
+      "ok": "Tout est connecté",
+      "warn": "Connexion dégradée",
+      "bad": "Serveur hors ligne"
+    },
+    "servers": "Serveurs multimédias",
+    "server": {
+      "connected": "Connecté",
+      "reconnecting": "Reconnexion…",
+      "offline": "Hors ligne"
+    },
+    "route": {
+      "local": "Local",
+      "remote": "Distant",
+      "mesh": "Via le VPN"
+    },
+    "socket": {
+      "open": "Temps réel actif",
+      "connecting": "Temps réel en connexion…",
+      "down": "Temps réel coupé, reconnexion…"
+    },
+    "vpnTitle": "Accès à distance (VPN)",
+    "vpn": {
+      "embedded": "Wicaby",
+      "app": "application",
+      "connected": "Connecté",
+      "needsLogin": "Connexion requise",
+      "connecting": "Connexion…",
+      "off": "Désactivé",
+      "error": "Erreur",
+      "routes": "Réseaux : {routes}"
+    },
+    "torrents": {
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "connecting": "Connexion…",
+      "auth": "Identifiants refusés",
+      "certificate": "Certificat non approuvé"
+    },
+    "remoteLink": "Réglages de l’accès à distance"
+  }
+}

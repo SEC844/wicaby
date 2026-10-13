@@ -1,0 +1,103 @@
+{
+  "menu": {
+    "playNext": "Lire ensuite",
+    "addToQueue": "Ajouter à la file d’attente",
+    "addToPlaylist": "Ajouter à une playlist…",
+    "addToCollection": "Ajouter à une collection…",
+    "more": "Plus d’actions",
+    "removeFromContinue": "Retirer de « Continuer à regarder »"
+  },
+  "errors": {
+    "nothingToPlay": "Rien à lire",
+    "queueOtherServer": "Une lecture est en cours sur un autre serveur"
+  },
+  "toast": {
+    "markedWatched": "Marqué comme vu",
+    "markedUnwatched": "Marqué comme non vu",
+    "marking": "Mise à jour {done} sur {total}…",
+    "markedWatchedCount": "{count, plural, one {# épisode marqué comme vu} other {# épisodes marqués comme vus}}",
+    "markedUnwatchedCount": "{count, plural, one {# épisode marqué comme non vu} other {# épisodes marqués comme non vus}}",
+    "downloadAdded": "Ajouté aux téléchargements",
+    "downloadAddedNamed": "« {name} » ajouté aux téléchargements",
+    "playingNext": "« {name} » sera lu ensuite",
+    "addedToQueue": "« {name} » ajouté à la file d’attente",
+    "removedFromContinue": "Retiré de « Continuer à regarder »"
+  },
+  "streams": {
+    "track": "Piste {index}",
+    "version": "Version",
+    "subtitlesOff": "Sans sous-titres",
+    "subtitlesNone": "Aucun",
+    "forced": "{label} (forcés)"
+  },
+  "people": {
+    "director": "Réalisation"
+  },
+  "play": {
+    "resumeReading": "Reprendre la lecture (p. {page})",
+    "read": "Lire",
+    "resume": "Reprendre",
+    "episode": "Lecture {code}",
+    "play": "Lecture"
+  },
+  "facts": {
+    "genres": "Genres",
+    "released": "Sortie",
+    "runtime": "Durée",
+    "ageRating": "Classification",
+    "studio": "Studio",
+    "directors": "Réalisation",
+    "audio": "Audio",
+    "subtitles": "Sous-titres",
+    "tracks": "{count, plural, one {# piste} other {# pistes}}",
+    "dynamicRange": "Plage dynamique",
+    "dvProfile": "{format}, profil {profile}"
+  },
+  "notFound": "Introuvable",
+  "meta": {
+    "criticRating": "{value} %"
+  },
+  "actions": {
+    "fromStart": "Depuis le début",
+    "trailer": "Bande-annonce",
+    "addFavorite": "Ajouter aux favoris",
+    "removeFavorite": "Retirer des favoris",
+    "markPlayed": "{kind, select, book {Marquer comme lu} other {Marquer comme vu}}",
+    "markUnplayed": "{kind, select, book {Marquer comme non lu} other {Marquer comme non vu}}",
+    "availableOffline": "Disponible hors ligne",
+    "downloading": "Téléchargement en cours",
+    "markPreviousPlayed": "Marquer les épisodes précédents comme vus",
+    "markSeasonPlayed": "Marquer la saison comme vue",
+    "markSeasonUnplayed": "Marquer la saison comme non vue"
+  },
+  "overview": {
+    "more": "Plus",
+    "less": "Moins"
+  },
+  "copies": {
+    "availableOn": "{count, plural, one {Disponible sur # serveur} other {Disponible sur # serveurs}}"
+  },
+  "goToShow": "Voir la série",
+  "episodes": {
+    "seasons": "Saisons",
+    "title": "Épisodes",
+    "play": "Lire {name}",
+    "nextUp": "À suivre",
+    "number": "Épisode {number}",
+    "episode": "Épisode"
+  },
+  "sections": {
+    "contents": "Contenu",
+    "discography": "Discographie",
+    "filmography": "Filmographie",
+    "moreEpisodes": "Autres épisodes",
+    "castCrew": "Distribution et équipe",
+    "similar": "Vous aimerez aussi",
+    "bonus": "Bonus",
+    "about": "Informations"
+  },
+  "trailer": {
+    "title": "Bande-annonce : {name}",
+    "openBrowser": "Ouvrir dans le navigateur"
+  }
+}

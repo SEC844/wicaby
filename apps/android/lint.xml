@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared by every module (lintConfig in each build.gradle.kts). -->
+<lint>
+    <issue id="PropertyEscape">
+        <!-- Written by Android Studio / the SDK setup (sdk.dir=C:\...), gitignored and machine-specific. -->
+        <ignore path="local.properties" />
+        <ignore path="**/local.properties" />
+    </issue>
+</lint>

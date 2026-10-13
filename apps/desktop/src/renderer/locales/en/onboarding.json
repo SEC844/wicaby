@@ -1,0 +1,82 @@
+{
+  "fields": {
+    "username": "Username",
+    "password": "Password"
+  },
+  "servers": {
+    "welcome": {
+      "title": "Welcome to Wicaby",
+      "body": "Sign in to your Emby or Jellyfin server to get to your movies, TV shows, and music."
+    },
+    "yours": {
+      "title": "Your Servers",
+      "body": "Add more Emby or Jellyfin servers. Their libraries show up together."
+    },
+    "unreachable": {
+      "title": "{name} isn’t responding",
+      "body": "It may be asleep or outside your network.",
+      "wake": "Wake"
+    },
+    "row": {
+      "signOut": "Sign Out",
+      "signOutAria": "Sign Out of {name}",
+      "removeAria": "Remove {name}"
+    },
+    "status": {
+      "connected": "Connected",
+      "connectedAs": "Connected · {user}",
+      "connecting": "Connecting…"
+    },
+    "since": {
+      "never": "never connected",
+      "justNow": "just now",
+      "minutes": "{count}m ago",
+      "hours": "{count}h ago",
+      "days": "{count}d ago"
+    },
+    "nearby": {
+      "title": "On This Network",
+      "searchingShort": "Searching…",
+      "searching": "Looking for servers on your local network…",
+      "allSaved": "All the servers found are already in your list.",
+      "none": "No servers found. Enter the address below."
+    },
+    "remote": {
+      "title": "Remote Access"
+    },
+    "method": {
+      "aria": "Connection Method",
+      "address": "Server Address"
+    },
+    "address": {
+      "placeholder": "192.168.1.10 or emby.example.com",
+      "aria": "Emby or Jellyfin server address",
+      "hint": "Without a protocol, Wicaby tries {https}, then {http}. A path ({path}) or a custom port is kept."
+    },
+    "connect": {
+      "userPlaceholder": "Email or Emby username",
+      "submit": "Sign In with Emby Connect",
+      "hint": "Finds the Emby servers linked to your emby.media account, even remote ones, and signs you in to them directly.",
+      "none": "No Emby servers are linked to this account",
+      "added": "{count, plural, one {# Emby server added.} other {# Emby servers added. Choose one.}}"
+    },
+    "toast": {
+      "removed": "{name} removed",
+      "signedOut": "Signed out of {name}",
+      "wakeNoAddress": "No Wake-on-LAN address is known for this server",
+      "wakeSent": "Wake signal sent. Retrying in {seconds} s…"
+    },
+    "footer": "Emby and Jellyfin · HDR playback with mpv · Offline downloads"
+  },
+  "login": {
+    "server": "Server",
+    "title": "Who’s Watching?",
+    "passwordProtected": "Password protected",
+    "otherUser": "Other User",
+    "manualLead": "Enter your username and password for this server.",
+    "passwordLead": "Enter your password.",
+    "otherLead": "Sign in with your username.",
+    "backToServers": "Back to Servers",
+    "switchServer": "Switch Server"
+  }
+}

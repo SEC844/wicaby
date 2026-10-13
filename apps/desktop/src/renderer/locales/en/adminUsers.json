@@ -1,0 +1,323 @@
+{
+  "list": {
+    "count": "{n, plural, =0 {No users} one {# user} other {# users}}",
+    "add": "New User",
+    "empty": "No users on this server.",
+    "active": "Active {when}",
+    "login": "signed in {when}",
+    "never": "Never signed in"
+  },
+  "badge": {
+    "you": "You",
+    "admin": "Administrator",
+    "disabled": "Disabled",
+    "hidden": "Hidden",
+    "locked": "Locked"
+  },
+  "create": {
+    "title": "New User",
+    "name": "Name",
+    "taken": "This name is already in use.",
+    "password": "Password",
+    "passwordHint": "Optional. Without a password, signing in takes one click.",
+    "copy": "Copy Permissions From",
+    "copyHint": "Reuses the permissions and preferences of an existing account.",
+    "copyNone": "Nobody",
+    "submit": "Create",
+    "done": "{name} was created.",
+    "failed": "Couldn’t create the user: {error}"
+  },
+  "editor": {
+    "back": "Users"
+  },
+  "groups": {
+    "profile": "Profile",
+    "role": "Role and Visibility",
+    "remote": "Remote Access",
+    "playback": "Playback",
+    "libraries": "Libraries and Channels",
+    "parental": "Parental Controls",
+    "livetv": "Live TV",
+    "deletion": "Content Deletion",
+    "devices": "Allowed Devices",
+    "security": "Sessions and Security",
+    "other": "Other Permissions",
+    "danger": "Account"
+  },
+  "profile": {
+    "name": "Name",
+    "rename": "Rename",
+    "renamed": "User renamed to {name}.",
+    "renameFailed": "Couldn’t rename: {error}",
+    "avatar": "Profile Picture",
+    "avatarHint": "Choose it in the server’s web interface.",
+    "avatarRemove": "Remove Picture",
+    "avatarRemoved": "Profile picture removed."
+  },
+  "password": {
+    "label": "Password",
+    "set": "A password is set.",
+    "none": "No password: signing in takes one click.",
+    "change": "Change",
+    "define": "Set",
+    "clear": "Remove Password",
+    "title": "Password",
+    "lead": "New password for {name}.",
+    "current": "Current Password",
+    "new": "New Password",
+    "confirm": "Confirm",
+    "mismatch": "The passwords don’t match.",
+    "saved": "Password saved.",
+    "cleared": "Password removed.",
+    "failed": "Couldn’t change the password: {error}",
+    "clearTitle": "Remove the password?",
+    "clearLead": "{name} will be able to sign in without a password."
+  },
+  "connect": {
+    "label": "Emby Connect",
+    "hint": "Link an Emby Connect account to sign in from outside without an address.",
+    "linkedTo": "Linked to {name}",
+    "placeholder": "Emby Connect name or email",
+    "link": "Link",
+    "unlink": "Unlink",
+    "linked": "Emby Connect account {name} linked.",
+    "pending": "Invitation sent to {name}.",
+    "unlinked": "Emby Connect account unlinked.",
+    "failed": "Emby Connect: {error}"
+  },
+  "delete": {
+    "label": "Delete User",
+    "hint": "The account, its preferences and its watch history are erased from the server.",
+    "self": "You can’t delete your own account.",
+    "lastAdmin": "This is the last active administrator: it can’t be deleted.",
+    "title": "Delete this user?",
+    "lead": "The account {name}, its preferences and its watch history will be permanently deleted.",
+    "confirm": "Delete",
+    "done": "{name} was deleted.",
+    "failed": "Couldn’t delete: {error}"
+  },
+  "policy": {
+    "unsaved": "Unsaved changes",
+    "saved": "Permissions saved.",
+    "failed": "Couldn’t save: {error}",
+    "guarded": "This account must stay an active administrator.",
+    "selfLocked": "You can’t remove your own administrator rights.",
+    "lastAdmin": "This is the server’s last active administrator.",
+    "lockedOut": "Account Locked",
+    "lockedOutDesc": "Too many sign-in attempts failed.",
+    "noLibraries": "No libraries on this server.",
+    "noChannels": "No channels on this server.",
+    "noDevices": "No known devices yet.",
+    "addTag": "Add a tag",
+    "removeTag": "Remove {tag}",
+    "IsAdministrator": {
+      "label": "Administrator",
+      "desc": "Manages the server, the libraries and the other accounts."
+    },
+    "IsDisabled": {
+      "label": "Account Disabled",
+      "desc": "The user can no longer sign in."
+    },
+    "IsHidden": {
+      "label": "Hidden on Sign-In Screen",
+      "desc": "The name must be typed to sign in."
+    },
+    "IsHiddenRemotely": {
+      "label": "Hidden Outside the Local Network",
+      "desc": "Shows on the sign-in screen only at home."
+    },
+    "IsHiddenFromUnusedDevices": {
+      "label": "Hidden on New Devices",
+      "desc": "Shows only on devices where the user has already signed in."
+    },
+    "EnableRemoteAccess": {
+      "label": "Access from Outside",
+      "desc": "Allows signing in from outside the local network."
+    },
+    "RemoteClientBitrateLimit": {
+      "label": "Maximum Remote Bitrate",
+      "desc": "Above it, video is converted for connections outside the local network.",
+      "none": "Unlimited"
+    },
+    "EnableMediaPlayback": {
+      "label": "Media Playback"
+    },
+    "EnableAudioPlaybackTranscoding": {
+      "label": "Audio Transcoding",
+      "desc": "Lets the server transcode audio during playback."
+    },
+    "EnableVideoPlaybackTranscoding": {
+      "label": "Video Transcoding",
+      "desc": "Lets the server transcode video during playback."
+    },
+    "EnablePlaybackRemuxing": {
+      "label": "Remuxing",
+      "desc": "Repackages the video without transcoding it when the device needs it."
+    },
+    "ForceRemoteSourceTranscoding": {
+      "label": "Always Transcode Remote Sources",
+      "desc": "For media the server itself plays from the internet."
+    },
+    "EnableContentDownloading": {
+      "label": "Downloads",
+      "desc": "Allows downloading media to the device."
+    },
+    "EnableSyncTranscoding": {
+      "label": "Transcoding for Sync",
+      "desc": "Allows offline copies converted by the server."
+    },
+    "EnableMediaConversion": {
+      "label": "Media Conversion",
+      "desc": "Allows creating converted versions on the server."
+    },
+    "SyncPlayAccess": {
+      "label": "Watch Together",
+      "desc": "Access to SyncPlay, synchronised group playback.",
+      "CreateAndJoinGroups": "Create and Join",
+      "JoinGroups": "Join Only",
+      "None": "No Access"
+    },
+    "EnableAllFolders": {
+      "label": "All Libraries",
+      "desc": "Turn off to choose the visible libraries."
+    },
+    "EnableAllChannels": {
+      "label": "All Channels",
+      "desc": "Turn off to choose the visible channels."
+    },
+    "EnableAllDevices": {
+      "label": "All Devices",
+      "desc": "Turn off to allow sign-in from some devices only."
+    },
+    "MaxParentalRating": {
+      "label": "Maximum Rating",
+      "desc": "Content rated above it is hidden.",
+      "none": "No Limit"
+    },
+    "BlockedTags": {
+      "label": "Blocked Tags",
+      "desc": "Content with these tags is hidden."
+    },
+    "AllowedTags": {
+      "label": "Allowed Tags",
+      "desc": "When the list is not empty, only this content is visible."
+    },
+    "EnableLiveTvAccess": {
+      "label": "Live TV Access"
+    },
+    "EnableLiveTvManagement": {
+      "label": "Live TV Management",
+      "desc": "Schedule and delete recordings."
+    },
+    "EnableContentDeletion": {
+      "label": "Delete in All Libraries",
+      "desc": "Turn off to choose the libraries where deletion is allowed."
+    },
+    "SimultaneousStreamLimit": {
+      "label": "Simultaneous Streams",
+      "desc": "Maximum number of streams at once. 0: unlimited."
+    },
+    "MaxActiveSessions": {
+      "label": "Simultaneous Sessions",
+      "desc": "Maximum number of open sessions at once. 0: unlimited."
+    },
+    "LoginAttemptsBeforeLockout": {
+      "label": "Attempts Before Lockout",
+      "desc": "Failed sign-ins before the account is disabled. 0: default (3), -1: never."
+    },
+    "EnableRemoteControlOfOtherUsers": {
+      "label": "Control Other Users",
+      "desc": "Drive playback on other users’ devices."
+    },
+    "EnableSharedDeviceControl": {
+      "label": "Control Shared Devices",
+      "desc": "Drive DLNA players and shared devices."
+    },
+    "EnableUserPreferenceAccess": {
+      "label": "Edit Own Preferences",
+      "desc": "Access to one’s own profile settings."
+    },
+    "EnableSubtitleDownloading": {
+      "label": "Download Subtitles",
+      "desc": "Search for subtitles online."
+    },
+    "EnableSubtitleManagement": {
+      "label": "Manage Subtitles",
+      "desc": "Search, add and delete subtitles."
+    },
+    "EnableLyricManagement": {
+      "label": "Manage Lyrics"
+    },
+    "EnableCollectionManagement": {
+      "label": "Manage Collections",
+      "desc": "Create collections and add items to them."
+    },
+    "EnablePublicSharing": {
+      "label": "Public Sharing",
+      "desc": "Create share links to media."
+    },
+    "AllowSharingPersonalItems": {
+      "label": "Share Personal Items",
+      "desc": "Share playlists and collections with other users."
+    },
+    "AllowCameraUpload": {
+      "label": "Camera Upload",
+      "desc": "Upload photos from mobile devices to the server."
+    },
+    "unlock": "Unlock",
+    "disableAdmin": "Jellyfin won’t disable an administrator: remove that role first.",
+    "IncludeTags": {
+      "label": "Allowed Tags",
+      "desc": "When the list is not empty, only content with these tags is visible."
+    }
+  },
+  "devices": {
+    "count": "{n, plural, =0 {No devices} one {# device} other {# devices}}",
+    "allUsers": "All Users",
+    "filter": "User",
+    "empty": "No devices.",
+    "unnamed": "Unnamed device",
+    "thisDevice": "This Device",
+    "foot": "Deleting a device signs it out: it will have to sign in again with a password.",
+    "reported": "Original Name",
+    "app": "App",
+    "user": "Last User",
+    "lastActivity": "Last Activity",
+    "ip": "IP Address",
+    "remote": "Remote Control",
+    "id": "Identifier",
+    "customName": "Custom Name",
+    "customNameHint": "Leave empty to use the device’s own name.",
+    "delete": "Delete Device",
+    "deleteLead": "{name} will be signed out and will have to sign in again.",
+    "deleteConfirm": "Delete",
+    "ownHint": "Wicaby uses this device to connect to the server.",
+    "renamed": "Device renamed.",
+    "deleted": "{name} was deleted.",
+    "failed": "Failed: {error}"
+  },
+  "schedule": {
+    "label": "Access Schedule",
+    "none": "No schedule: the user can sign in at any time.",
+    "desc": "The user can only sign in during these times.",
+    "add": "Add Time Range",
+    "day": "Day",
+    "from": "Start",
+    "until": "End",
+    "to": "to",
+    "remove": "Remove Time Range",
+    "endOfDay": "Midnight (end of day)",
+    "days": {
+      "Everyday": "Every Day",
+      "Weekday": "Weekdays",
+      "Weekend": "Weekends",
+      "Sunday": "Sunday",
+      "Monday": "Monday",
+      "Tuesday": "Tuesday",
+      "Wednesday": "Wednesday",
+      "Thursday": "Thursday",
+      "Friday": "Friday",
+      "Saturday": "Saturday"
+    }
+  }
+}

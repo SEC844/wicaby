@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (android:dataExtractionRules). Nothing secret leaves the device, neither in a
+     cloud backup nor in a device-to-device transfer:
+     - files/mesh: Tailscale / NetBird node keys and config;
+     - files/datastore: the DataStore preferences, holding the Keystore-sealed ("Vault") access
+       tokens and qBittorrent password (the Keystore key itself never leaves the device, so a
+       copy would be useless anyway), plus server and session details. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="mesh" />
+        <exclude domain="file" path="datastore" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="mesh" />
+        <exclude domain="file" path="datastore" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,105 @@
+{
+  "state": {
+    "downloading": "Downloading",
+    "forcedDL": "Downloading (Forced)",
+    "metaDL": "Fetching Metadata",
+    "stalledDL": "Waiting for Peers",
+    "queuedDL": "Queued",
+    "paused": "Paused",
+    "checking": "Checking",
+    "uploading": "Seeding",
+    "forcedUP": "Seeding (Forced)",
+    "stalledUP": "Completed · Waiting to Seed",
+    "queuedUP": "Completed · Queued",
+    "completed": "Completed",
+    "allocating": "Allocating Space",
+    "moving": "Moving",
+    "missingFiles": "Missing Files",
+    "error": "Error",
+    "unknown": "Unknown State"
+  },
+  "eta": {
+    "seconds": "{count}s",
+    "days": "{count}d"
+  },
+  "magnetLink": "Magnet Link",
+  "dropNeedsSetup": "Connect qBittorrent first to add torrents",
+  "panel": {
+    "connecting": "Connecting to qBittorrent…",
+    "setup": {
+      "title": "Connect qBittorrent",
+      "body": "Track and control your qBittorrent downloads from Wicaby. Finished torrents can go straight into your libraries.",
+      "button": "Set Up qBittorrent"
+    },
+    "banner": {
+      "offline": "qBittorrent can’t be reached",
+      "auth": "Sign-in refused",
+      "certificate": "Unrecognized certificate",
+      "certificateBody": "{host} uses a certificate that Windows doesn’t recognize. Check it in Settings before you accept it.",
+      "certificateBodyLinux": "{host} uses a certificate that your system doesn’t recognize. Check it in Settings before you accept it.",
+      "certificateBodyUnnamed": "The server uses a certificate that Windows doesn’t recognize. Check it in Settings before you accept it.",
+      "certificateBodyUnnamedLinux": "The server uses a certificate that your system doesn’t recognize. Check it in Settings before you accept it.",
+      "noResponse": "qBittorrent isn’t responding.",
+      "offlineHint": "Make sure qBittorrent is running and its Web UI is turned on.",
+      "connecting": "Connecting…",
+      "settings": "Settings"
+    },
+    "speedsAria": "Total speeds",
+    "download": "Download",
+    "upload": "Upload",
+    "free": "{size} free",
+    "altSpeed": "Alternative Speed",
+    "altSpeedAria": "Alternative Speed Limits",
+    "settings": "qBittorrent Settings",
+    "empty": {
+      "title": "No Torrents",
+      "body": "Add a magnet link or drop a .torrent file into the window."
+    },
+    "progress": "{done} of {total}",
+    "ratio": "ratio {ratio}",
+    "peersTitle": "Connected peers (in swarm)",
+    "peers": "{seeds} ({seedsTotal}) seeds · {peers} ({peersTotal}) peers",
+    "available": "Available in {library}",
+    "pause": "Pause",
+    "more": "More Options"
+  },
+  "menu": {
+    "forceStart": "Force Start",
+    "recheck": "Force Recheck",
+    "moveUp": "Move Up in Queue",
+    "moveDown": "Move Down in Queue",
+    "sequential": "Sequential Download",
+    "firstLast": "First and Last Pieces First",
+    "category": "Category",
+    "noCategory": "None",
+    "remove": "Delete…"
+  },
+  "drop": "Drop your .torrent files",
+  "remove": {
+    "label": "Delete Torrent",
+    "title": "Delete this torrent?",
+    "deleteFiles": "Also Delete Files",
+    "deleteFilesDesc": "The downloaded files will be erased from qBittorrent’s disk.",
+    "confirmWithFiles": "Delete with Files"
+  },
+  "add": {
+    "label": "Add Torrent",
+    "titleExternal": "Add this torrent?",
+    "lead": "A magnet link was opened with Wicaby. Make sure it’s the right torrent before sending it to qBittorrent.",
+    "magnet": "Magnet Link",
+    "invalidMagnet": "This isn’t a valid magnet link.",
+    "pasted": "Pasted from the clipboard.",
+    "files": ".torrent Files",
+    "removeFile": "Remove {name}",
+    "chooseFiles": "Choose Files",
+    "dropHint": "You can also drop .torrent files anywhere in the window.",
+    "category": "Category",
+    "noCategory": "None",
+    "folder": "Folder",
+    "defaultFolder": "qBittorrent’s default folder",
+    "startPaused": "Start Paused",
+    "sequential": "Sequential Download",
+    "adding": "Adding…",
+    "added": "{count, plural, one {Torrent added} other {# torrents added}}"
+  }
+}

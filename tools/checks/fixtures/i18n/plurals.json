@@ -1,0 +1,29 @@
+{
+  "note": "Plural fixtures for tools/checks/i18n-check.mjs (rule 6). French CLDR `one` covers 0 and 1; an ICU =0 branch wins over it. Cases with `message` always run; cases with `key` run against the catalogue once the key exists (livetv-spec-final.md §13, §21.8).",
+  "cases": [
+    { "lang": "fr", "message": "{count, plural, one {# chaîne} other {# chaînes}}", "params": { "count": 0 }, "expect": "0 chaîne" },
+    { "lang": "fr", "message": "{count, plural, one {# chaîne} other {# chaînes}}", "params": { "count": 1 }, "expect": "1 chaîne" },
+    { "lang": "fr", "message": "{count, plural, one {# chaîne} other {# chaînes}}", "params": { "count": 2 }, "expect": "2 chaînes" },
+    { "lang": "fr", "message": "{count, plural, one {# chaîne} other {# chaînes}}", "params": { "count": 1500 }, "expect": "1 500 chaînes" },
+    { "lang": "en", "message": "{count, plural, one {# channel} other {# channels}}", "params": { "count": 0 }, "expect": "0 channels" },
+    { "lang": "en", "message": "{count, plural, one {# channel} other {# channels}}", "params": { "count": 1 }, "expect": "1 channel" },
+    { "lang": "fr", "message": "{count, plural, =0 {À l’heure} one {# minute} other {# minutes}}", "params": { "count": 0 }, "expect": "À l’heure" },
+    { "lang": "fr", "message": "{count, plural, =0 {À l’heure} one {# minute} other {# minutes}}", "params": { "count": 1 }, "expect": "1 minute" },
+    { "lang": "fr", "message": "{count, plural, =0 {À l’heure} one {# minute} other {# minutes}}", "params": { "count": 5 }, "expect": "5 minutes" },
+    { "lang": "en", "message": "{count, plural, =0 {On Time} one {# minute} other {# minutes}}", "params": { "count": 0 }, "expect": "On Time" },
+    { "lang": "fr", "message": "{count, plural, one {# conflit} other {# conflits}}", "params": { "count": 0 }, "expect": "0 conflit" },
+    { "lang": "fr", "message": "{count, plural, one {# conflit} other {# conflits}}", "params": { "count": 1 }, "expect": "1 conflit" },
+
+    { "lang": "fr", "key": "livetv.record.minutes", "params": { "count": 0 }, "expect": "À l’heure" },
+    { "lang": "fr", "key": "livetv.record.minutes", "params": { "count": 1 }, "expect": "1 minute" },
+    { "lang": "en", "key": "livetv.record.minutes", "params": { "count": 0 }, "expect": "On Time" },
+    { "lang": "fr", "key": "livetv.record.keepUpToValue", "params": { "count": 0 }, "expect": "Tous les épisodes" },
+    { "lang": "fr", "key": "livetv.record.keepUpToValue", "params": { "count": 1 }, "expect": "Le dernier épisode" },
+    { "lang": "fr", "key": "livetv.record.keepUpToValue", "params": { "count": 3 }, "expect": "Les 3 derniers épisodes" },
+    { "lang": "fr", "key": "livetv.scheduled.ruleEpisodes", "params": { "count": 0 }, "expect": "Aucun épisode programmé" },
+    { "lang": "fr", "key": "livetv.scheduled.ruleEpisodes", "params": { "count": 1 }, "expect": "1 épisode programmé" },
+    { "lang": "fr", "key": "livetv.scheduled.badgeAria", "params": { "count": 0 }, "expect": "0 conflit" },
+    { "lang": "fr", "key": "livetv.scheduled.badgeAria", "params": { "count": 1 }, "expect": "1 conflit" },
+    { "lang": "en", "key": "livetv.scheduled.badgeAria", "params": { "count": 1 }, "expect": "1 conflict" }
+  ]
+}

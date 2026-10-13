@@ -1,0 +1,281 @@
+# Desktop app (`apps/desktop`)
+
+The Windows client is Electron 44 with a Svelte 5 + Vite UI, and plays video with **mpv** running as a child process. It talks to Emby and Jellyfin, to several servers at once. Like Emby Theater, it is a thin native shell around a web UI with a native player under it, but every part is rewritten. For a deeper walkthrough (startup sequence, playback flow), see [architecture.md](architecture.md) (in French).
+
+## Processes and layout
+
+```
+apps/desktop/
+├─ src/main/        Electron main process (Node): all server logic, playback, storage
+│  ├─ index.ts      composition root: builds every service in bootstrap()
+│  ├─ ipc.ts        ipcMain handlers, sender and argument validation
+│  ├─ protocols.ts  app:// and wicaby-media:// handlers, CSP
+│  ├─ connection/   ConnectionManager, ApiClient, discovery (UDP 7359 + WoL), Emby Connect, ServerSocket (WebSocket)
+│  ├─ playback/     PlaybackService, MpvPlayer + MpvController, HtmlPlayer, device profiles, track selection, HDR
+│  ├─ windows/      WindowManager (main window, mpv video + OSD pair)
+│  ├─ downloads/    DownloadManager (Range resume, offline progress queue)
+│  ├─ comics/       CBZ reader backend (zip, ComicInfo, page sizes)
+│  ├─ torrents/     qBittorrent Web API client and service
+│  ├─ vpn/          installed Tailscale/NetBird clients + the embedded mesh node
+│  ├─ admin/        item image upload / remote images
+│  ├─ features/     display mode, Windows HDR, tray, taskbar, startup, notifications
+│  ├─ core/         settings, JSON store, DPAPI vault, logs
+│  └─ i18n.ts       main-process translations
+├─ src/preload/     contextBridge: exposes window.wicaby
+├─ src/renderer/    Svelte 5 UI (routes/, components/, admin/, lib/, locales/)
+├─ src/shared/      contract.ts (IPC types + channels), i18n-core, hdr, bif, mpv-args, models
+├─ scripts/         dev.mjs, build-main.mjs, fetch-mpv.ps1, cdp.mjs
+└─ electron-builder.yml
+```
+
+- **Main** owns everything that touches a server or the OS: connections, tokens, playback, reporting, downloads, torrents, the mesh. **The renderer never sees an access token.** API calls go over IPC, and media goes through `wicaby-media://`.
+- **Preload** (`src/preload/index.ts`) wraps `ipcRenderer.invoke` and `on` into the typed `WicabyBridge` and exposes it as `window.wicaby`. It strips Electron's "Error invoking remote method" prefix, so the UI can show main's error messages as they are.
+- **Renderer** is a single-page Svelte app with a hash router (`lib/router.svelte.ts`) and `$state` stores (`lib/stores.svelte.ts`). The same bundle also renders the player OSD (route `#/osd`, opened with `?osd=1`).
+
+Every window runs with `contextIsolation`, `sandbox`, no `nodeIntegration` and `webSecurity` on. DevTools exist only in unpackaged builds: with the Vite dev server, or with `WICABY_DEVTOOLS=1` on `npm start`. A packaged build ignores both variables, and no remote debugging port is opened. Navigation outside the app is blocked. `window.open` goes to the default browser, for http(s) only. Web permissions are refused except `fullscreen` and `clipboard-sanitized-write`.
+
+## Protocols
+
+Both schemes are registered as privileged before `ready` (`registerSchemes()`).
+
+### `app://wicaby/`
+
+`app://wicaby/` serves the built renderer (`out/renderer`). It is a real secure origin, not `file://`. HTML responses carry this CSP:
+
+```
+default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob: wicaby-media:; media-src 'self' blob: data: wicaby-media:;
+connect-src 'self' wicaby-media:; font-src 'self' data:; worker-src 'self' blob:;
+frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none';
+form-action 'none'; frame-ancestors 'none'
+```
+
+`connect-src` is closed to the network: an XSS in the UI could not exfiltrate anything. The only frame allowed is YouTube's privacy-enhanced embed, for trailers. Main adds a `Referer: https://com.wika.wicaby/` header on those requests, because YouTube rejects embeds without one.
+
+In development, the main window loads from the Vite dev server instead (`WICABY_DEV_URL`).
+
+### `wicaby-media://`
+
+`wicaby-media://` replaces the `?api_key=` URLs other clients use:
+
+| URL | Serves |
+|---|---|
+| `wicaby-media://api/<serverId>/<path>` | Server API (images, streams, subtitles, HLS). Main resolves the server's base URL (adds `/emby` when needed), adds the auth headers, forwards `Range`, `Accept`, `If-None-Match` and `If-Modified-Since`, drops `Set-Cookie`, and adds CORS for hls.js. Without the server id, the primary server. |
+| `wicaby-media://remote-image/?u=<url>` | Artwork previews from metadata providers (TMDb, TVDb, fanart.tv…) for the admin image picker. Only public http(s) host names (no IP literal, localhost or `.local`), image responses only, size capped. |
+| `wicaby-media://local/<id>`, `wicaby-media://poster/<id>` | Downloaded files and posters, with byte ranges (206/416). |
+| `wicaby-media://comic/<serverId>/<itemId>/<page>[?thumb]` | Page images of an opened CBZ. |
+
+## IPC contract
+
+`src/shared/contract.ts` declares everything that crosses the process boundary: the `WicabyBridge` interface, every payload type, and the `Channels` map (`domain:action` names). Main, preload and renderer import the same file, so any drift between them fails to compile.
+
+| Domain | What it covers |
+|---|---|
+| `app` | `info`, `quit`, `openExternal` (http/https only), `openPath(logs \| downloads \| mpv-config \| data)`, `log`, `storage`, `clearStorage` |
+| `window` | minimise, maximise, close, fullscreen, state. Called from the OSD, these act on the playback windows, and closing stops playback. |
+| `settings` | `get`, `update` (deep merge + sanitising in `SettingsService`), folder and mpv pickers, `audioDevices`, export, import, reset, `onChange` |
+| `servers` | `discover`, `list`, `add`, `embyConnect`, `select`, `remove`, `wake` |
+| `session` | `get`, `publicUsers`, `login`, `logout`, `disconnect`, `onChange` (all take an optional `serverId`) |
+| `api` | `get`, `post`, `del`, `put`, `uploadImage`: a proxy to a server. Paths must be relative. Only GET, POST, DELETE and PUT are accepted. A 401 signs that session out. |
+| `playback` | `play(PlayRequest)`, `command(PlaybackCommand)`, `getState`, `onState` |
+| `htmlPlayer` | `onLoad`, `onCommand`, `emit`: the bridge to the fallback `<video>` player |
+| `downloads` | `list`, `add`, `pause`, `resume`, `remove`, `reveal`, `onChange` |
+| `comics` | `open`, `saveProgress` |
+| `vpn` | `status`, `connect`, `peers`, and `embedded.{status, logout, onChange}` |
+| `torrents` | state and watch mode, test, configure and forget, certificate trust, add, actions, remove, category, alt speed, magnet hand-over |
+| `events` | `onServerEvent` (WebSocket messages), `onNavigate`, `onToast` |
+
+`ipc.ts` rejects any call whose `senderFrame.url` is not a Wicaby page (`WindowManager.isAppUrl`). It then checks argument types and sizes before calling a service. `html-player:event` is only accepted from the main window.
+
+To add a call:
+
+1. Declare it in `WicabyBridge` and `Channels`.
+2. Implement it in `preload/index.ts`.
+3. Handle and validate it in `ipc.ts`.
+
+The compiler points at whatever is missing.
+
+## mpv embedding
+
+### Why mpv runs in its own windows
+
+mpv runs as `mpv.exe`, a child process, and is driven over its JSON IPC on a named pipe (`\\.\pipe\wicaby-mpv-<uuid>`). It renders into a window that Wicaby owns, through `--wid=<HWND>`, with `--vo=gpu-next --gpu-api=d3d11 --ao=wasapi`. A crash in a decoder therefore never takes the app down, and any mpv build can be used.
+
+This setup comes from what Windows HDR playback needs:
+
+- **HDR needs a real HWND.** Every Windows player with working HDR passthrough gives mpv a real HWND with a D3D11 swapchain. The libmpv render API only supports OpenGL and software rendering, so it cannot carry HDR on Windows.
+- **No compositor or texture alternative.** Chromium owns Electron's DirectComposition tree, which rules out mpv's composition output mode. Shared-texture import loses HDR, display sync and frame pacing.
+- **No foreign child.** Electron cannot host its web contents as a child of a foreign HWND, so the UI cannot sit inside mpv's window.
+
+### The window pair
+
+`WindowManager.createPlaybackWindows()` builds two top-level windows:
+
+- **Video:** a `BaseWindow` with no web contents, frameless and **transparent** (`backgroundColor: '#00000000'`). mpv creates its own child window inside it. Chromium composites a window's own surface *above* its child windows (electron#10547), so any opaque background, or an attached web view, would hide the video. That is why it is a bare transparent `BaseWindow` and not a `BrowserWindow`.
+- **OSD:** a transparent, frameless `BrowserWindow`, owned by the video window (`parent: video`). It loads the same UI at `#/osd`, so the controls float above the picture.
+
+How the pair behaves:
+
+- The OSD is the window the user moves, resizes and snaps. The video window follows its bounds, and `settlePlayback()` re-checks both 150 ms after the last move or display change: a monitor with another DPI rescales each window separately.
+- Focus that lands on the video window (Alt+Tab, taskbar) is handed to the OSD. While playing, the main window is hidden, and it comes back when playback ends.
+- Fullscreen is manual: both windows cover the display's bounds, which also hides the taskbar.
+- mpv resizes its child asynchronously and sometimes misses the last resize. `MpvPlayer` compares mpv's `osd-dimensions` with the host and, if they differ, nudges the host by one pixel to make mpv re-read the rectangle.
+- A watchdog pings mpv over a second pipe client and kills a hung process.
+
+### What can and cannot change
+
+- `--wid`, the IPC options and the input options are fixed. Neither the user's `mpv.conf` nor "Extra mpv arguments" (`shared/mpv-args.ts` refuses `wid`, `input-ipc-server`, `input-ipc-client`, `idle`, `keep-open`, `force-window` and `terminal`) can change them.
+- With "Use mpv.conf", `<userData>/mpv/mpv.conf` (a commented template is created on first run) is loaded after Wicaby's defaults and wins.
+- **Finding mpv** (`locateMpv`), in order: the path in settings, `resources/mpv/mpv.exe` (bundled), `vendor/mpv/mpv.exe` at the repo root (development), `PATH`, Scoop, `%LOCALAPPDATA%\Programs\mpv`, then `C:\Program Files\mpv`.
+
+## HTML player fallback
+
+The fallback is used when mpv is not found or the user chooses it, globally (`playback.player`: `auto`, `mpv` or `html`) or per content type (`playback.playerByType` for movie, episode, music and live). `auto` means mpv when it is found, else `<video>`. Asking for mpv without it falls back with a toast.
+
+- `playback/html-player.ts` implements the same `ActivePlayer` interface as mpv. It sends `html-player:load` and `html-player:command` to the main window and receives `html-player:event` (`time`, `volume`, `stats`, `ended`, `error`) back. Reporting, queueing, taskbar buttons and remote control therefore share one code path.
+- `routes/Player.svelte` plays through hls.js or a plain `src`, always via `wicaby-media://`.
+- `playback/device-profile.ts` has two profiles:
+  - `mpv` direct-plays almost everything;
+  - `html` direct-plays MP4 and WebM and asks for HLS otherwise. An audio track other than the default forces a remux, because `<video>` cannot switch tracks.
+- **Limits:** Chromium's Matroska support is partial (`.mkv` is served as `video/webm`). There is no HDR passthrough and no audio bitstreaming.
+
+## Multi-server sessions
+
+Wicaby can be signed in to several Emby and Jellyfin servers at once, and it merges their content.
+
+**Main side.**
+
+- `ConnectionManager` keeps one session per `serverId`. Each session has its own `ApiClient`, user, WebSocket and status (`connecting`, `server-selected`, `signed-in`, `offline`).
+- The **primary server** (`activeId` in `servers.json`) answers every call made without a `serverId`: jump list, `wicaby://item/<id>`, older routes.
+- `SessionState.status/server/user` describe the primary server; `sessions[]` lists them all. The global status is `signed-in` as soon as any session is.
+- At startup, every saved session resumes in parallel. A server that is off goes `offline` without blocking the others.
+- Tokens stay in the vault, one per server.
+- **Addressing.** Each server keeps several addresses: last, manual, local and remote. `probeServer()` races them. When a VPN is connected, it also races the overlay address of a matching peer (same name or known host, or an endpoint equal to the server's LAN IP), 600 ms later, and accepts it only if the same server id answers.
+
+**Addressing in calls.** Everything server-specific takes a `serverId`:
+
+- IPC parameters;
+- `wicaby-media://api/<serverId>/…`;
+- `PlayRequest.serverId`. The queue, reporting, markers and next episode stay on that server, and a remote `Play` command plays on the server that sent it.
+
+**Renderer side.**
+
+- **Item identity.** `lib/api.ts` stamps `ServerId` on every item. Identity is `itemKey(item) = <serverId>:<itemId>`, and routes are `/item/<serverId>/<itemId>`, `/library/<serverId>/<id>` and `/read/<serverId>/<id>`.
+- **Home rows.** "Continue", "Next Up" and "Favourites" merge every server and sort by last played. "Latest" keeps one row per library.
+- **Search and favourites** query all servers in parallel.
+- **Sidebar.** Libraries are grouped by server once more than one is connected.
+- **Duplicates.** A title found on several servers (same Imdb, Tmdb or Tvdb id) appears once, and its page offers "Available on N servers".
+
+## Administration
+
+Admins get a server dashboard without leaving the app. The entry appears in the sidebar when a signed-in session's user `isAdmin` and the app is online. `routes/Admin.svelte` lets you pick among the servers where you are an admin.
+
+- **Sections** (`renderer/admin/sections.ts`, one lazy-loaded component each): Dashboard, Activity, Users, Devices, Libraries, Scheduled tasks, Transcoding, Server settings, Plugins, API keys and Logs. A section whose file does not exist is not listed.
+- **Item tools** (`admin/item/`): metadata editor, identify, images (upload or remote, through `api.uploadImage`: JPEG, PNG, WebP or GIF, 20 MB at most), subtitles search, refresh and delete.
+- **API.** All admin traffic goes through the `api` proxy. `PUT` is only there for a few Jellyfin configuration routes.
+- **Testing.** The mocks in `tools/mock-server/mock-admin/*.mjs` extend `mock-emby.mjs` and `mock-jellyfin.mjs` with the admin endpoints. `MOCK_PENDING_RESTART=1` makes `/System/Info` report a restart required (an update is always offered), for the background alerts below.
+
+## History and Windows integration
+
+- **History** (`routes/History.svelte`, account menu → History). Recently played movies and episodes from every signed-in server (`SortBy=DatePlayed`, Emby and Jellyfin alike), grouped by day, with hours watched this week and this month and the top genres (`shared/history.ts`).
+- **Continue watching** (`main/features/continue-watching.ts`). The top 5 resume items across servers appear in a "Continue watching" group of the taskbar jump list and in the tray menu; each opens its item through the `--wicaby-nav` argument. The list is refreshed (debounced 3 s) on sign-in or sign-out, on a server's `UserDataChanged` and at the end of a playback. An entry removed from the jump list by the user is not put back during the session, since Windows would hide the whole group.
+- **Admin alerts** (`main/features/admin-alerts.ts`, `shared/admin-alerts.ts`). For servers where the user is an admin, Wicaby reads `GET /System/Info` and `GET /ScheduledTasks` (same routes on Emby and Jellyfin) one minute after startup and then every 15 minutes, and shows a tray notification for a failed scheduled task, a restart required or an update available. The poll is skipped while the main window is visible and focused; a route the server refuses or lacks gives no alert. Each alert is shown once (`admin-alerts.json`). Setting: Windows → `windows.notifyAdmin`.
+- **Toast buttons.** A new-episode toast for a single episode has Play and Mark watched buttons, run against the server that announced it.
+
+## Torrents
+
+An optional qBittorrent panel uses the Web API v2 (`main/torrents/`):
+
+- **Configuration.** `settings.torrents.url` and `username`. The password lives in the vault. An empty URL means no polling at all.
+- **Polling.** Incremental `/sync/maindata`, every 1.5 s while the list is on screen (`fg`), every 10 s in the background (`bg`, only when completion features need it), and not at all otherwise (`off`).
+- **Self-signed HTTPS.** The certificate is shown and, once accepted, pinned by fingerprint per host (`torrents.json`).
+- **Categories → libraries.** `libraryMap` links a qBittorrent category to a library on a given server. When a torrent completes, Wicaby can notify, ask the server to scan, and look for the new item (after 15 s, 45 s, 2 min, 5 min and 10 min) to offer "Available in <library>".
+- **Adding.** Magnet links and `.torrent` files are accepted. Wicaby can register as the Windows `magnet:` handler (`magnetHandler`); the link reaches the running instance through `second-instance`. A magnet on the clipboard is offered too.
+
+## Trakt scrobbling
+
+Wicaby can scrobble what it plays to [Trakt](https://trakt.tv) itself, for servers that don't run the Trakt plugin (`main/features/trakt.ts`, `trakt-client.ts`; Settings → Accounts).
+
+- **Your own Trakt app.** Trakt only accepts registered applications, and Wicaby ships no shared key. Create one at <https://trakt.tv/oauth/applications/new>: any name, **Redirect URI** `urn:ietf:wg:oauth:2.0:oob`, and the `/scrobble` permission ticked. Paste its **Client ID** and **Client Secret** in Settings → Accounts → Trakt, then press Connect.
+- **Device code.** Wicaby shows a code; open `trakt.tv/activate`, sign in and enter it. Wicaby polls `/oauth/device/token` at the interval Trakt gives and stores the tokens; it refreshes them before they expire and asks you to connect again if Trakt revokes them. Disconnect revokes the token.
+- **Storage.** The client secret, access and refresh tokens are in the DPAPI vault (`trakt:account`), never in `settings.json`, and never logged.
+- **Scrobbles.** The playback reports (`PlaybackService`, event `report`) map to `/scrobble/start` (play, unpause), `/scrobble/pause` and `/scrobble/stop`, with the progress in percent (Trakt marks the item watched from 80 %). Only movies and episodes with an IMDb, TMDB or TVDB id are sent; trailers and Live TV never are.
+- **Server plugin.** For an admin, Wicaby reads `GET /Plugins` (Emby and Jellyfin): a server with an active Trakt plugin is skipped and the pane says why. Without admin rights the plugin list is unreadable, so each server has a switch (`settings.trakt.offServers`).
+- **Testing.** `node tools/mock-server/mock-trakt.mjs 8940` and `WICABY_TRAKT_URL=http://127.0.0.1:8940` on an unpackaged build (a packaged build ignores the variable). The mock approves a device code after two polls; `GET /mock/state` lists the scrobbles. `node tools/checks/trakt-check.mjs` runs the flow headlessly.
+
+## i18n
+
+French is the reference language and the fallback; English is the other one. `ui.language` (`auto`, `fr` or `en`) defaults to `auto`, which follows Windows: `fr-*` gives French, anything else English. A change applies live in both processes. The full conventions are in [i18n.md](i18n.md).
+
+- **Catalogues:** `src/renderer/locales/{fr,en}/<namespace>.json`. Nested keys are flattened to `namespace.a.b`.
+- **Format:** `src/shared/i18n-core.ts` parses an ICU-lite format (`{name}`, `plural` with `#`, `select`).
+- **Renderer:** `lib/i18n.svelte.ts` provides `t`, `tParts`, `has` and `fmt` (`Intl`-based numbers, dates, bytes, durations and lists).
+- **Main:** `main/i18n.ts` bundles the `common`, `errors` and `main` namespaces, for the tray, taskbar, notifications, dialogs and errors.
+- **Check:** `node tools/checks/i18n-check.mjs --strict` (in `npm run checks`) checks catalogue parity, unknown keys and hard-coded French.
+
+## Settings and storage
+
+`core/settings.ts` holds the typed `Settings` (see `contract.ts`) with its defaults. Every update is deep-merged and then sanitised: numbers are clamped and unknown enum values fall back to the default. The result is persisted through `JsonStore`, which coalesces writes and writes to a temp file before renaming it, so a crash never leaves half a file. The settings page (`routes/Settings.svelte`) has these sections:
+
+- General and Appearance;
+- Playback, Audio and Subtitles;
+- Library, Downloads, Torrents, Server and Accounts (Trakt);
+- Windows, Privacy and Advanced;
+- About.
+
+Settings can be exported, imported and reset. `system.hardwareAcceleration` is read straight from `settings.json` before `ready`, because Chromium's GPU switches must be set before startup.
+
+Files under `%APPDATA%\Wicaby` (`app.getPath('userData')`):
+
+| File | Content |
+|---|---|
+| `settings.json` | settings |
+| `servers.json` | known servers, addresses, primary and active sessions |
+| `vault.bin` | DPAPI-encrypted (`safeStorage`) tokens, the qBittorrent password, a pending mesh auth key, the Trakt client secret and tokens |
+| `device.json` | the DeviceId sent to servers |
+| `downloads.json` | download queue and offline progress |
+| `torrents.json` | pinned certificates, available items |
+| `admin-alerts.json` | admin alerts already shown (failed task, restart, update) |
+| `mesh/` | embedded node prefs and state ([mesh.md](mesh.md)) |
+| `mpv/mpv.conf` | optional user mpv config |
+| `cache/comics/` | CBZ cache (size from `system.comicCacheGb`) |
+| `logs/` | one `wicaby-<date>.log` per day, the last 7 kept |
+| `hdr-restore.json` | Windows HDR state to restore after a crash |
+
+## Build and packaging
+
+**Requirements:**
+
+- Windows 10/11 x64;
+- Node.js 24 (the `.nvmrc` version; 22.12 or later also works) with npm;
+- PowerShell 5.1 for the helper scripts;
+- Go, only to build the mesh helper.
+
+The repo root is an npm workspace (`apps/desktop`), so run npm from the root:
+
+```sh
+npm ci
+npm run fetch-mpv     # pinned shinchiro mpv build (x86-64-v3, AVX2), SHA-256 checked, into vendor/mpv
+# for CPUs without AVX2, run the script directly (npm does not forward -Generic):
+#   powershell -File apps/desktop/scripts/fetch-mpv.ps1 -Generic
+npm run build:mesh    # optional: vendor/vpn-helper/wicaby-mesh.exe (needs Go)
+
+npm run dev           # Vite (HMR) + esbuild watch; Electron restarts when main changes
+npm run check         # svelte-check + tsc on the main/preload config
+npm run checks        # every self-check in tools/checks (run-all.mjs, 14 of them)
+npm run build         # vite build (renderer) + esbuild (main, preload) + licence folder into apps/desktop/out/
+npm run dist          # build + electron-builder --win: NSIS installer and portable exe
+npm run dist:portable # build + portable exe only
+```
+
+- **Dev runs:** `npm run dev -- <electron args>` passes arguments to Electron, for example `--user-data-dir=<tmp>` to keep a test profile apart, or `--remote-debugging-port=<n>` for `scripts/cdp.mjs`. `WICABY_DEV_PORT` pins the Vite port, so several dev instances can run side by side.
+- **Main bundle:** `scripts/build-main.mjs` bundles `src/main/index.ts` and `src/preload/index.ts` to CommonJS (`out/main/index.cjs`, `out/preload/index.cjs`) for Node 24 (Electron 44's Node). Sandboxed preloads can only `require('electron')`, so everything else is inlined.
+- **Mock servers:** never test against a real server. Use `node tools/mock-server/mock-emby.mjs 8096 [silent.mkv]` (user `Wika`, password `wicaby`), `mock-jellyfin.mjs` or `mock-qbittorrent.mjs`.
+
+**Packaging** (`electron-builder.yml`):
+
+- Output goes to `release/` at the repo root: `Wicaby-<version>-x64.exe` (NSIS, per-user, installation folder can be changed) and `Wicaby-<version>-portable.exe`. The version comes from `apps/desktop/package.json`.
+- `extraResources` copies `out/licenses` (staged by `tools/release/licenses.mjs` at the end of `npm run build`: `LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, the GPL-2.0 and LGPL-2.1 texts and `npm-licenses.txt`, the licences of the imported npm packages read from `node_modules`) to `resources/licenses`, `vendor/mpv` to `resources/mpv` (without `d3dcompiler_43.dll`, `doc/`, `installer/`, `updater.bat` and `mpv-*register.bat`) and `vendor/vpn-helper` to `resources/vpn-helper`. The mpv and helper folders are bundled only when they were filled beforehand. Without mpv the app uses the HTML player, and without the helper it offers no embedded mesh.
+- The app is packaged as asar, registers the `wicaby://` protocol, and uses `com.wika.wicaby` as its appId and AppUserModelID.
+- The desktop app has no auto-updater. New versions are downloaded from the `wicaby-releases` page ([release.md](release.md)).
+- The executables are not code-signed, so Windows SmartScreen may warn on first launch.

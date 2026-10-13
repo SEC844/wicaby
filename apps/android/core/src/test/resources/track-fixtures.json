@@ -1,0 +1,463 @@
+{
+  "_comment": "X-05 golden vectors, read by tools/checks/track-check.mjs (track-selection.ts, scoped-prefs.ts) and TrackMemoryTest.kt. Edit here, then run node tools/checks/sync-track-fixtures.mjs. matching: pick `picked` in episode1, then match in episode2 (expect: the index, -1 = subtitles off, null = no match, the mode decides). legacy: an old track-memory.json entry. scopes: steps on one doc (get expect null = nothing remembered).",
+  "matching": [
+    {
+      "name": "Signs & Songs vs Full: Full kept when the order flips",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "English - Signs & Songs" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "English - Full" }
+      ],
+      "picked": 3,
+      "episode2": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "English - Full" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "English - Signs & Songs" }
+      ],
+      "expect": 2
+    },
+    {
+      "name": "Signs & Songs flagged forced: never taken for Full",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "Full" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "Signs & Songs", "IsForced": true }
+      ],
+      "picked": 2,
+      "episode2": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "Signs & Songs", "IsForced": true },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "srt", "Title": "Dialogue" }
+      ],
+      "expect": 3
+    },
+    {
+      "name": "Commentary: English 5.1 kept when the order flips",
+      "kind": "audio",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6, "Title": "English 5.1" },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2, "Title": "English 2.0 Commentary" }
+      ],
+      "picked": 1,
+      "episode2": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2, "Title": "English 2.0 Commentary" },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6, "Title": "English 5.1" }
+      ],
+      "expect": 2
+    },
+    {
+      "name": "Commentary: never picked when the main English track is missing",
+      "kind": "audio",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6, "Title": "English 5.1" },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 2, "Title": "English 2.0 Commentary" }
+      ],
+      "picked": 1,
+      "episode2": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "ac3", "Channels": 6 },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6, "Title": "English 2.0 Commentary" }
+      ],
+      "expect": null
+    },
+    {
+      "name": "A forced pick never maps to a full track",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 3, "Type": "Subtitle", "Language": "fre", "Codec": "srt", "IsForced": true },
+        { "Index": 4, "Type": "Subtitle", "Language": "fre", "Codec": "srt" }
+      ],
+      "picked": 3,
+      "episode2": [
+        { "Index": 3, "Type": "Subtitle", "Language": "fre", "Codec": "srt" }
+      ],
+      "expect": null
+    },
+    {
+      "name": "A full pick never maps to a forced track (forced in the title only)",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 3, "Type": "Subtitle", "Language": "fre", "Codec": "srt" }
+      ],
+      "picked": 3,
+      "episode2": [
+        { "Index": 3, "Type": "Subtitle", "Language": "fre", "Codec": "srt", "Title": "Français (forcés)" }
+      ],
+      "expect": null
+    },
+    {
+      "name": "Another language never matches",
+      "kind": "audio",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2 }
+      ],
+      "picked": 1,
+      "episode2": [
+        { "Index": 1, "Type": "Audio", "Language": "fre", "Codec": "aac", "Channels": 2 }
+      ],
+      "expect": null
+    },
+    {
+      "name": "Codec beats position",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "pgssub" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "subrip" }
+      ],
+      "picked": 2,
+      "episode2": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "subrip" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "pgssub" }
+      ],
+      "expect": 3
+    },
+    {
+      "name": "A tie goes to the lowest index; tags en and eng are the same language",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 4, "Type": "Subtitle", "Language": "eng", "Codec": "srt" },
+        { "Index": 5, "Type": "Subtitle", "Language": "eng", "Codec": "srt" },
+        { "Index": 6, "Type": "Subtitle", "Language": "eng", "Codec": "srt" }
+      ],
+      "picked": 6,
+      "episode2": [
+        { "Index": 8, "Type": "Subtitle", "Language": "en", "Codec": "srt" },
+        { "Index": 7, "Type": "Subtitle", "Language": "en", "Codec": "srt" }
+      ],
+      "expect": 7
+    },
+    {
+      "name": "Untitled Full vs titled Signs & Songs (not flagged forced): Full kept when the order flips",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "Signs & Songs" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass" }
+      ],
+      "picked": 3,
+      "episode2": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "Signs & Songs" }
+      ],
+      "expect": 2
+    },
+    {
+      "name": "Untitled regular vs SDH: the regular track kept when the order flips",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "SDH" }
+      ],
+      "picked": 2,
+      "episode2": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "SDH" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass" }
+      ],
+      "expect": 3
+    },
+    {
+      "name": "Commentary named in DisplayTitle only: the commentary kept when the order flips",
+      "kind": "audio",
+      "episode1": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6 },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2, "DisplayTitle": "English Commentary AAC stereo" }
+      ],
+      "picked": 2,
+      "episode2": [
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6 },
+        { "Index": 3, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2, "DisplayTitle": "English Commentary AAC stereo" }
+      ],
+      "expect": 3
+    },
+    {
+      "name": "Subtitles turned off stay off",
+      "kind": "subtitle",
+      "episode1": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "srt" }
+      ],
+      "picked": null,
+      "episode2": [
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "Codec": "srt" }
+      ],
+      "expect": -1
+    }
+  ],
+  "legacy": [
+    {
+      "name": "Old audio language",
+      "kind": "audio",
+      "choice": {
+        "audio": "jpn",
+        "subtitle": { "language": "eng", "forced": false },
+        "at": 1
+      },
+      "streams": [
+        { "Index": 1, "Type": "Audio", "Language": "fre", "Codec": "ac3", "Channels": 6 },
+        { "Index": 2, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "IsForced": true },
+        { "Index": 4, "Type": "Subtitle", "Language": "eng", "Codec": "ass" }
+      ],
+      "expect": 2
+    },
+    {
+      "name": "Old full subtitle",
+      "kind": "subtitle",
+      "choice": {
+        "audio": "jpn",
+        "subtitle": { "language": "eng", "forced": false },
+        "at": 1
+      },
+      "streams": [
+        { "Index": 2, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "IsForced": true },
+        { "Index": 4, "Type": "Subtitle", "Language": "eng", "Codec": "ass" }
+      ],
+      "expect": 4
+    },
+    {
+      "name": "Old forced subtitle",
+      "kind": "subtitle",
+      "choice": {
+        "subtitle": { "language": "fre", "forced": true },
+        "at": 1
+      },
+      "streams": [
+        { "Index": 3, "Type": "Subtitle", "Language": "fre", "Codec": "srt" },
+        { "Index": 4, "Type": "Subtitle", "Language": "fre", "Codec": "srt", "IsForced": true }
+      ],
+      "expect": 4
+    },
+    {
+      "name": "Old subtitles off",
+      "kind": "subtitle",
+      "choice": { "audio": "eng", "subtitle": null, "at": 1 },
+      "streams": [
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "srt" }
+      ],
+      "expect": -1
+    },
+    {
+      "name": "Old audio language: the default of two same-language tracks",
+      "kind": "audio",
+      "choice": { "audio": "eng", "at": 1 },
+      "streams": [
+        { "Index": 2, "Type": "Audio", "Language": "eng", "Codec": "aac", "Channels": 2, "Title": "English stereo" },
+        { "Index": 3, "Type": "Audio", "Language": "eng", "Codec": "ac3", "Channels": 6, "IsDefault": true }
+      ],
+      "expect": 3
+    },
+    {
+      "name": "Old full subtitle: the default non-SDH of two same-language tracks",
+      "kind": "subtitle",
+      "choice": {
+        "subtitle": { "language": "eng", "forced": false },
+        "at": 1
+      },
+      "streams": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "Codec": "aac", "Channels": 2 },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "SDH" },
+        { "Index": 4, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "IsDefault": true }
+      ],
+      "expect": 4
+    },
+    {
+      "name": "Old full subtitle: a non-SDH track beats an SDH default",
+      "kind": "subtitle",
+      "choice": {
+        "subtitle": { "language": "eng", "forced": false },
+        "at": 1
+      },
+      "streams": [
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "Codec": "ass", "Title": "SDH", "IsDefault": true },
+        { "Index": 4, "Type": "Subtitle", "Language": "eng", "Codec": "ass" }
+      ],
+      "expect": 4
+    }
+  ],
+  "scopes": [
+    {
+      "name": "Speed per title: the next episode, not a movie",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "title",
+          "ctx": { "title": "srv:series1" },
+          "value": 1.25
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "title",
+          "ctx": { "title": "srv:series1" },
+          "expect": 1.25
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "title",
+          "ctx": { "title": "srv:movie1" },
+          "expect": null
+        }
+      ]
+    },
+    {
+      "name": "Speed global: the next episode and a movie",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:series1" },
+          "value": 1.25
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:series1" },
+          "expect": 1.25
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:movie1" },
+          "expect": 1.25
+        }
+      ]
+    },
+    {
+      "name": "Per title, then global: the per-title value never comes back",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "title",
+          "ctx": { "title": "srv:series1" },
+          "value": 1.5
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:series1" },
+          "expect": null
+        },
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:series1" },
+          "value": 1.1
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": { "title": "srv:series1" },
+          "expect": 1.1
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "title",
+          "ctx": { "title": "srv:movie1" },
+          "expect": 1.1
+        }
+      ]
+    },
+    {
+      "name": "Per library",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "aspect",
+          "scope": "library",
+          "ctx": { "title": "srv:a", "library": "srv:anime" },
+          "value": "fill"
+        },
+        {
+          "op": "get",
+          "prop": "aspect",
+          "scope": "library",
+          "ctx": { "title": "srv:b", "library": "srv:anime" },
+          "expect": "fill"
+        },
+        {
+          "op": "get",
+          "prop": "aspect",
+          "scope": "library",
+          "ctx": { "title": "srv:c", "library": "srv:films" },
+          "expect": null
+        },
+        {
+          "op": "get",
+          "prop": "aspect",
+          "scope": "library",
+          "ctx": { "title": "srv:d" },
+          "expect": null
+        }
+      ]
+    },
+    {
+      "name": "Live TV and downloads use the global value",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "aspect",
+          "scope": "title",
+          "ctx": { "global": true },
+          "value": "zoom"
+        },
+        {
+          "op": "get",
+          "prop": "aspect",
+          "scope": "title",
+          "ctx": { "global": true },
+          "expect": "zoom"
+        },
+        {
+          "op": "get",
+          "prop": "aspect",
+          "scope": "title",
+          "ctx": { "title": "srv:x" },
+          "expect": "zoom"
+        }
+      ]
+    },
+    {
+      "name": "Off: nothing read, nothing written",
+      "steps": [
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": {},
+          "value": 2
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "off",
+          "ctx": {},
+          "expect": null
+        },
+        {
+          "op": "set",
+          "prop": "speed",
+          "scope": "off",
+          "ctx": {},
+          "value": 0.75
+        },
+        {
+          "op": "get",
+          "prop": "speed",
+          "scope": "global",
+          "ctx": {},
+          "expect": 2
+        }
+      ]
+    }
+  ]
+}

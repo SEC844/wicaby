@@ -1,0 +1,394 @@
+{
+  "common": {
+    "forbidden": "Votre compte n’a pas les droits d’administration sur ce serveur.",
+    "unsupported": "Ce serveur ne propose pas cette fonction.",
+    "failed": "L’opération a échoué.",
+    "copied": "Copié dans le presse-papiers",
+    "saved": "Modifications enregistrées",
+    "unsaved": "Modifications non enregistrées",
+    "invalid": "Corrigez les valeurs signalées avant d’enregistrer.",
+    "revert": "Annuler les modifications",
+    "notSet": "Non défini",
+    "default": "Par défaut",
+    "loading": "Chargement…"
+  },
+  "restart": {
+    "title": "Redémarrage requis",
+    "desc": "Certaines modifications ne s’appliqueront qu’après le redémarrage du serveur.",
+    "action": "Redémarrer",
+    "confirmTitle": "Redémarrer le serveur ?",
+    "confirmText": "Les lectures en cours seront interrompues et le serveur restera indisponible quelques instants.",
+    "started": "Redémarrage du serveur en cours…"
+  },
+  "server": {
+    "general": "Général",
+    "network": "Réseau",
+    "networkFoot": "Les réglages réseau s’appliquent au redémarrage du serveur.",
+    "portClash": "Les ports HTTP et HTTPS locaux doivent être différents.",
+    "networkUnavailable": "La configuration réseau de ce serveur n’a pas pu être lue.",
+    "riskyTitle": "Modifier l’accès au serveur",
+    "riskyText": "Ces changements touchent la façon dont on joint le serveur. Vous pourriez perdre l’accès depuis Wicaby ou depuis l’extérieur :",
+    "riskyConfirm": "Enregistrer quand même",
+    "fields": {
+      "serverName": {
+        "label": "Nom du serveur",
+        "desc": "Le nom affiché dans les applications.",
+        "invalid": "64 caractères au maximum."
+      },
+      "uiCulture": {
+        "label": "Langue d’affichage",
+        "desc": "Langue des notifications et du tableau de bord du serveur.",
+        "invalid": "Langue inconnue."
+      },
+      "metadataLanguage": {
+        "label": "Langue des métadonnées",
+        "desc": "Langue préférée pour les titres, résumés et images.",
+        "invalid": "Langue inconnue."
+      },
+      "metadataCountry": {
+        "label": "Pays",
+        "desc": "Pays utilisé pour les classifications et les dates de sortie.",
+        "invalid": "Pays inconnu."
+      },
+      "logRetention": {
+        "label": "Conservation des journaux",
+        "desc": "Nombre de jours avant la suppression des anciens journaux.",
+        "invalid": "Entre 1 et 3650 jours."
+      },
+      "cachePath": {
+        "label": "Dossier du cache",
+        "desc": "Défini dans la configuration du serveur.",
+        "invalid": "Chemin invalide."
+      },
+      "metadataPath": {
+        "label": "Dossier des métadonnées",
+        "desc": "Défini dans la configuration du serveur.",
+        "invalid": "Chemin invalide."
+      },
+      "httpPort": {
+        "label": "Port HTTP local",
+        "desc": "Port d’écoute du serveur sur le réseau local.",
+        "invalid": "Port entre 1 et 65535."
+      },
+      "httpsPort": {
+        "label": "Port HTTPS local",
+        "desc": "Port des connexions chiffrées sur le réseau local.",
+        "invalid": "Port entre 1 et 65535."
+      },
+      "remoteAccess": {
+        "label": "Accès à distance",
+        "desc": "Autorise les connexions depuis l’extérieur du réseau local.",
+        "invalid": "Valeur invalide."
+      },
+      "publicHttpPort": {
+        "label": "Port HTTP public",
+        "desc": "Port exposé sur Internet, s’il diffère du port local.",
+        "invalid": "Port entre 1 et 65535."
+      },
+      "publicHttpsPort": {
+        "label": "Port HTTPS public",
+        "desc": "Port HTTPS exposé sur Internet.",
+        "invalid": "Port entre 1 et 65535."
+      },
+      "domain": {
+        "label": "Domaine externe",
+        "desc": "Nom de domaine utilisé pour joindre le serveur depuis Internet.",
+        "invalid": "Nom de domaine invalide."
+      },
+      "upnp": {
+        "label": "Redirection de port automatique (UPnP)",
+        "desc": "Ouvre les ports sur le routeur quand il le permet.",
+        "invalid": "Valeur invalide."
+      },
+      "lan": {
+        "label": "Réseaux locaux",
+        "desc": "Adresses ou sous-réseaux considérés comme locaux, un par ligne. Vide : détection automatique.",
+        "invalid": "Une entrée n’est pas une adresse ou un sous-réseau valide.",
+        "placeholder": "192.168.1.0/24"
+      },
+      "baseUrl": {
+        "label": "Chemin de base",
+        "desc": "Préfixe d’URL quand le serveur est derrière un proxy inverse.",
+        "invalid": "Chemin invalide."
+      },
+      "proxies": {
+        "label": "Proxys connus",
+        "desc": "Adresses des proxys inverses autorisés, une par ligne.",
+        "invalid": "Une entrée n’est pas valide.",
+        "placeholder": "10.0.0.2"
+      }
+    }
+  },
+  "transcoding": {
+    "hwNone": "Aucune",
+    "range": "Valeur entre {min} et {max}.",
+    "groups": {
+      "hardware": "Accélération matérielle",
+      "encoding": "Encodage",
+      "tonemap": "Mappage tonal HDR",
+      "processing": "Traitement"
+    },
+    "fields": {
+      "hwaccel": {
+        "label": "Type d’accélération",
+        "desc": "Utilise le processeur graphique pour décoder et encoder la vidéo."
+      },
+      "vaapiDevice": {
+        "label": "Périphérique VA-API",
+        "desc": "Chemin du périphérique de rendu, par exemple /dev/dri/renderD128."
+      },
+      "qsvDevice": {
+        "label": "Périphérique Quick Sync",
+        "desc": "Laissez vide pour le choix automatique."
+      },
+      "hwEncoding": {
+        "label": "Encodage matériel",
+        "desc": "Encode aussi la vidéo avec le processeur graphique."
+      },
+      "hevc10": {
+        "label": "Décoder le HEVC 10 bits",
+        "desc": "À activer si le processeur graphique le prend en charge."
+      },
+      "vp910": {
+        "label": "Décoder le VP9 10 bits",
+        "desc": "À activer si le processeur graphique le prend en charge."
+      },
+      "hevcEncoding": {
+        "label": "Encodage H.265 (HEVC)",
+        "desc": "Autorise le HEVC pour les clients compatibles."
+      },
+      "av1Encoding": {
+        "label": "Encodage AV1",
+        "desc": "Autorise l’AV1 pour les clients compatibles."
+      },
+      "preset": {
+        "label": "Préréglage de l’encodeur",
+        "desc": "Plus lent donne une meilleure qualité à débit égal."
+      },
+      "h264Crf": {
+        "label": "Qualité H.264 (CRF)",
+        "desc": "De 0 à 51, plus bas pour une meilleure qualité. 23 par défaut."
+      },
+      "h265Crf": {
+        "label": "Qualité H.265 (CRF)",
+        "desc": "De 0 à 51, plus bas pour une meilleure qualité. 28 par défaut."
+      },
+      "threads": {
+        "label": "Fils de transcodage",
+        "desc": "0 ou -1 pour le réglage automatique."
+      },
+      "maxTranscodes": {
+        "label": "Transcodages simultanés",
+        "desc": "Nombre maximal de transcodages vidéo en même temps, 0 pour aucune limite."
+      },
+      "tonemap": {
+        "label": "Mappage tonal",
+        "desc": "Convertit le HDR en SDR pour les écrans qui ne le gèrent pas."
+      },
+      "vppTonemap": {
+        "label": "Mappage tonal VPP",
+        "desc": "Mappage tonal natif d’Intel, plus rapide."
+      },
+      "tonemapAlgo": {
+        "label": "Algorithme",
+        "desc": "Méthode de conversion des hautes lumières."
+      },
+      "tonemapMode": {
+        "label": "Mode",
+        "desc": "Canaux sur lesquels s’applique le mappage."
+      },
+      "throttling": {
+        "label": "Limiter le transcodage",
+        "desc": "Ralentit l’encodage quand le client a assez d’avance."
+      },
+      "throttleDelay": {
+        "label": "Délai avant limitation",
+        "desc": "Avance minimale, en secondes, avant de ralentir."
+      },
+      "segmentDeletion": {
+        "label": "Supprimer les segments",
+        "desc": "Efface les segments déjà lus pour économiser le disque."
+      },
+      "segmentKeep": {
+        "label": "Conserver les segments",
+        "desc": "Durée, en secondes, avant la suppression d’un segment lu."
+      },
+      "subtitleExtraction": {
+        "label": "Extraire les sous-titres à la volée",
+        "desc": "Extrait les sous-titres intégrés pendant la lecture."
+      },
+      "downmixBoost": {
+        "label": "Amplification du mixage stéréo",
+        "desc": "Gain appliqué quand le son multicanal est réduit en stéréo."
+      },
+      "tempPath": {
+        "label": "Dossier temporaire",
+        "desc": "Où le serveur écrit les fichiers de transcodage."
+      }
+    },
+    "presets": {
+      "auto": "Automatique",
+      "veryslow": "Très lent",
+      "slower": "Plus lent",
+      "slow": "Lent",
+      "medium": "Moyen",
+      "fast": "Rapide",
+      "faster": "Plus rapide",
+      "veryfast": "Très rapide",
+      "superfast": "Ultra rapide",
+      "ultrafast": "Le plus rapide"
+    },
+    "tonemapAlgos": {
+      "none": "Aucun"
+    },
+    "tonemapModes": {
+      "auto": "Automatique"
+    },
+    "decodeCodecs": {
+      "label": "Décodage matériel",
+      "desc": "Formats que le processeur graphique décode."
+    },
+    "codecs": {
+      "h264": "H.264",
+      "hevc": "HEVC",
+      "mpeg2video": "MPEG-2",
+      "mpeg4": "MPEG-4",
+      "vc1": "VC-1",
+      "vp8": "VP8",
+      "vp9": "VP9",
+      "av1": "AV1"
+    },
+    "encoder": "Encodeur",
+    "decoder": "Décodeur",
+    "noHwCodecs": "Aucun codec matériel détecté sur ce serveur.",
+    "showOther": "{n, plural, one {Afficher # autre réglage} other {Afficher # autres réglages}}",
+    "hideOther": "Masquer les autres réglages",
+    "jobs": {
+      "title": "Transcodages en cours",
+      "none": "Aucun transcodage en cours.",
+      "unavailable": "Les sessions de ce serveur ne sont pas disponibles.",
+      "videoDirect": "Vidéo directe",
+      "fps": "{n} i/s",
+      "hardware": "Matériel ({name})",
+      "software": "Logiciel"
+    },
+    "reasons": {
+      "ContainerNotSupported": "conteneur non pris en charge",
+      "VideoCodecNotSupported": "codec vidéo non pris en charge",
+      "AudioCodecNotSupported": "codec audio non pris en charge",
+      "SubtitleCodecNotSupported": "sous-titres incrustés",
+      "VideoResolutionNotSupported": "résolution trop élevée",
+      "VideoBitrateNotSupported": "débit vidéo trop élevé",
+      "ContainerBitrateExceedsLimit": "débit au-delà de la limite",
+      "AudioChannelsNotSupported": "canaux audio non pris en charge",
+      "VideoRangeTypeNotSupported": "HDR non pris en charge",
+      "VideoLevelNotSupported": "niveau vidéo non pris en charge",
+      "VideoProfileNotSupported": "profil vidéo non pris en charge",
+      "AudioBitrateNotSupported": "débit audio trop élevé",
+      "DirectPlayError": "erreur de lecture directe"
+    }
+  },
+  "plugins": {
+    "tabsLabel": "Affichage des extensions",
+    "tabs": {
+      "installed": "Installées",
+      "catalog": "Catalogue",
+      "repos": "Dépôts"
+    },
+    "search": "Rechercher une extension",
+    "category": "Catégorie",
+    "allCategories": "Toutes les catégories",
+    "noneInstalled": "Aucune extension installée.",
+    "update": "Mettre à jour ({version})",
+    "configure": "Réglages",
+    "configureHint": "Ouvre la page de l’extension sur le serveur, dans votre navigateur.",
+    "enable": "Activer {name}",
+    "uninstall": "Désinstaller {name}",
+    "uninstallShort": "Désinstaller",
+    "uninstallTitle": "Désinstaller {name} ?",
+    "uninstallText": "L’extension sera retirée au prochain redémarrage du serveur. Ses réglages peuvent être perdus.",
+    "installedFoot": "Les installations, mises à jour et suppressions prennent effet au redémarrage du serveur.",
+    "noMatch": "Aucune extension ne correspond.",
+    "catalogEmpty": "Le catalogue est vide ou injoignable.",
+    "premium": "Premium",
+    "installed": "Installée",
+    "install": "Installer",
+    "catalogFoot": "{n, plural, one {# extension} other {# extensions}}",
+    "enabled": "Extension activée",
+    "disabled": "Extension désactivée",
+    "uninstalled": "Désinstallation de {name} au prochain redémarrage",
+    "installing": "Installation de {name} lancée",
+    "confirmInstallTitle": "Installer {name} ?",
+    "confirmUpdateTitle": "Mettre à jour {name} vers {version} ?",
+    "confirmInstallText": "Une extension s’exécute sur le serveur avec un accès complet. Elle sera chargée au prochain redémarrage du serveur.",
+    "status": {
+      "Active": "Active",
+      "Restart": "Redémarrage requis",
+      "Deleted": "Supprimée au redémarrage",
+      "Superseded": "Remplacée",
+      "Superceded": "Remplacée",
+      "Malfunctioned": "En erreur",
+      "NotSupported": "Incompatible",
+      "Disabled": "Désactivée"
+    },
+    "repos": {
+      "add": "Ajouter un dépôt",
+      "none": "Aucun dépôt configuré.",
+      "enable": "Activer {name}",
+      "remove": "Retirer {name}",
+      "foot": "Le catalogue regroupe les extensions des dépôts activés.",
+      "addTitle": "Ajouter un dépôt",
+      "addText": "N’ajoutez que des dépôts de confiance : une extension a accès à tout le serveur.",
+      "name": "Nom",
+      "url": "Adresse du manifeste",
+      "badUrl": "Adresse invalide ou déjà présente.",
+      "added": "Dépôt ajouté",
+      "removed": "Dépôt retiré",
+      "removeTitle": "Retirer le dépôt {name} ?",
+      "removeText": "Ses extensions disparaîtront du catalogue. Les extensions déjà installées restent en place."
+    }
+  },
+  "apikeys": {
+    "intro": "Les clés d’API donnent un accès administrateur complet aux applications externes. Ne les partagez pas.",
+    "new": "Nouvelle clé",
+    "none": "Aucune clé d’API.",
+    "unnamed": "Application sans nom",
+    "createdOn": "Créée le {date}",
+    "lastUsed": "utilisée {when}",
+    "revoke": "Révoquer",
+    "foot": "Une application dont la clé est révoquée perd immédiatement l’accès.",
+    "newTitle": "Nouvelle clé d’API",
+    "newText": "Indiquez le nom de l’application qui utilisera cette clé.",
+    "appName": "Nom de l’application",
+    "appPlaceholder": "Ex. : Home Assistant",
+    "create": "Créer",
+    "created": "Clé créée pour {app}",
+    "revealTitle": "Votre nouvelle clé",
+    "revealText": "Copiez la clé de {app} maintenant : elle ne sera plus affichée en entier.",
+    "revokeTitle": "Révoquer la clé de {app} ?",
+    "revokeText": "L’application qui l’utilise ne pourra plus accéder au serveur. Cette action est définitive.",
+    "revoked": "Clé de {app} révoquée"
+  },
+  "logs": {
+    "back": "Journaux",
+    "follow": "Suivre en direct",
+    "search": "Rechercher dans le journal",
+    "levelLabel": "Niveau",
+    "reload": "Recharger",
+    "levels": {
+      "all": "Tout",
+      "error": "Erreurs",
+      "warn": "Avertissements",
+      "info": "Infos",
+      "debug": "Débogage"
+    },
+    "noMatch": "Aucune ligne ne correspond.",
+    "empty": "Ce journal est vide.",
+    "lineCount": "{n, plural, one {# ligne} other {# lignes}}",
+    "filteredCount": "{n, plural, one {# ligne} other {# lignes}} sur {total}",
+    "none": "Aucun journal sur ce serveur.",
+    "current": "Actuel",
+    "modified": "Modifié {when}",
+    "foot": "Les journaux peuvent contenir des chemins et des adresses : vérifiez-les avant de les partager."
+  }
+}

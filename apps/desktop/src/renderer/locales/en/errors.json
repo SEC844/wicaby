@@ -1,0 +1,142 @@
+{
+  "playback": {
+    "notAllowed": "This user isn’t allowed to play this item",
+    "noCompatibleStream": "No compatible stream",
+    "rateLimit": "Simultaneous stream limit reached",
+    "refused": "The server refused playback ({code})",
+    "nothingToPlay": "Nothing to play",
+    "notOffline": "This item isn’t available offline",
+    "noMediaSource": "No media source",
+    "liveStreamFailed": "Couldn’t open the live stream",
+    "noPlayMethod": "The server doesn’t offer a compatible way to play this item",
+    "fileError": "Playback failed ({reason})",
+    "fileErrorUnknown": "Playback failed (mpv error)",
+    "mpvExited": "mpv quit unexpectedly",
+    "mpvStartExit": "mpv stopped during startup",
+    "mpvTooOld": "mpv {version} is too old: Wicaby needs mpv {min} or later",
+    "mpvPipe": "Couldn’t connect to the mpv IPC pipe",
+    "mpvNotStarted": "mpv isn’t running",
+    "connectionLost": "Lost the connection to the server, playback stopped"
+  },
+  "comics": {
+    "unsupported": "Unsupported format: only CBZ comics can be read for now (CBR, PDF, and EPUB aren’t supported yet).",
+    "invalidServer": "Invalid server",
+    "invalidId": "Invalid ID",
+    "notDownloaded": "You’re offline and this book isn’t downloaded",
+    "noPages": "No pages were found in this archive",
+    "notAllowed": "This user isn’t allowed to read this book"
+  },
+  "ipc": {
+    "invalidServer": "Invalid server",
+    "invalidQuery": "Invalid request",
+    "unauthorizedSender": "Unauthorized sender",
+    "unknownCache": "Unknown cache",
+    "invalidSettings": "Invalid settings",
+    "fileTooLarge": "The file is too large",
+    "notSettingsExport": "This file isn’t a Wicaby settings export",
+    "invalidAddress": "Invalid address",
+    "invalidCredentials": "Invalid username or password",
+    "invalidId": "Invalid ID",
+    "invalidIds": "Invalid IDs",
+    "methodRefused": "Method not allowed",
+    "pathRefused": "Path not allowed",
+    "invalidPlayRequest": "Invalid playback request",
+    "invalidCommand": "Invalid command",
+    "unknownNetwork": "Unknown network",
+    "invalidOptions": "Invalid options",
+    "invalidManagementUrl": "Invalid management server address",
+    "invalidKey": "Invalid key",
+    "embeddedUnavailable": "The built-in network isn’t available",
+    "invalidPage": "Invalid page",
+    "invalidUrlScheme": "Invalid address: use http:// or https://",
+    "invalidTorrent": "Invalid torrent",
+    "invalidCategory": "Invalid category",
+    "invalidCertificate": "Invalid certificate",
+    "nothingToAdd": "Nothing to add",
+    "invalidMagnet": "Invalid magnet link",
+    "invalidTorrentFile": "Invalid .torrent file",
+    "torrentFilesTooLarge": "The .torrent files are too large",
+    "invalidFolder": "Invalid folder",
+    "unknownAction": "Unknown action"
+  },
+  "connection": {
+    "timeout": "The request timed out",
+    "notAServer": "Not an Emby or Jellyfin server",
+    "noAddress": "No address",
+    "unreachable": "Server can’t be reached",
+    "noServerConnected": "No server connected",
+    "notSignedIn": "Not signed in",
+    "emptyAddress": "Enter a server address",
+    "unknownServer": "Unknown server",
+    "wrongServer": "This address answers with a different server",
+    "noServerSelected": "No server selected",
+    "wrongCredentials": "Incorrect username or password",
+    "invalidMac": "Invalid MAC address: {mac}",
+    "embyConnect": {
+      "wrongCredentials": "Incorrect Emby Connect username or password",
+      "unavailable": "Emby Connect isn’t available (HTTP {status})",
+      "serversUnavailable": "Couldn’t get your Emby Connect servers (HTTP {status})",
+      "exchangeRefused": "The server refused the Emby Connect sign-in (HTTP {status})"
+    }
+  },
+  "settings": {
+    "invalidFile": "Invalid settings file"
+  },
+  "downloads": {
+    "noServer": "No server",
+    "forbidden": "This user isn’t allowed to download"
+  },
+  "torrents": {
+    "noResponse": "qBittorrent isn’t responding.",
+    "certificate": "Unrecognized certificate",
+    "nothingAtAddress": "Nothing is responding at this address.",
+    "unreachable": "qBittorrent can’t be reached.",
+    "banned": "qBittorrent blocked this address after too many failed attempts. Try again later.",
+    "wrongCredentials": "Incorrect username or password",
+    "forbidden": "qBittorrent denied access",
+    "queueDisabled": "The qBittorrent queue is turned off",
+    "unknownCategory": "qBittorrent doesn’t know this category",
+    "invalidFile": "Invalid .torrent file",
+    "unsupported": "This version of qBittorrent doesn’t support this",
+    "httpStatus": "qBittorrent responded with {status}",
+    "serverSaid": "qBittorrent responded: {message}",
+    "rejected": "qBittorrent rejected this torrent",
+    "notConnected": "qBittorrent isn’t connected",
+    "unknownCertificate": "Unknown certificate. Test the connection again."
+  },
+  "vpn": {
+    "unavailable": "Private network unavailable",
+    "embeddedMissing": "The built-in network isn’t included in this version",
+    "connectFailed": "Couldn’t connect",
+    "awaitingApproval": "Waiting for approval from the network administrator",
+    "otherSession": "In use by another Windows session",
+    "tailscaleReset": "Tailscale needs you to confirm its settings. Connect from the Tailscale app.",
+    "tailscaleBusy": "Tailscale is in use by another Windows session.",
+    "needsAdmin": "The client needs administrator rights. Connect from its app.",
+    "needsOperator": "Tailscale only accepts connections from root on this computer. Run once in a terminal: sudo tailscale set --operator=$USER, then try again.",
+    "needsRoot": "NetBird needs root rights. Run in a terminal: sudo netbird up",
+    "serviceStopped": "The client’s service isn’t running. Open its app.",
+    "upFailedDetail": "Couldn’t connect: {detail}",
+    "upFailed": "Couldn’t connect to the private network"
+  },
+  "images": {
+    "invalidItem": "Invalid item",
+    "typeRefused": "Image type not allowed",
+    "formatRefused": "Image format not allowed",
+    "invalid": "Invalid image",
+    "tooLarge": "The image is too large (20 MB maximum)",
+    "notAnImage": "The file isn’t an image"
+  },
+  "trakt": {
+    "invalidClient": "Invalid Client ID or Client Secret",
+    "failed": "Couldn’t reach Trakt: {error}",
+    "expired": "The code expired. Start the connection again.",
+    "denied": "Access was denied on Trakt.",
+    "reauthorize": "Trakt revoked access. Connect again."
+  },
+  "livetv": {
+    "tuneTimeout": "The channel isn’t responding.",
+    "tunerBusy": "No tuner available.",
+    "noStream": "This server offers no playable stream for this channel."
+  }
+}

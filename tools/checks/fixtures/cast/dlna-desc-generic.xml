@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <URLBase>http://127.0.0.1:8970/</URLBase>
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>
+    <friendlyName>Mock Renderer</friendlyName>
+    <manufacturer>Wicaby test mocks</manufacturer>
+    <modelName>Generic Renderer</modelName>
+    <modelNumber>1.0</modelNumber>
+    <UDN>uuid:5f9ec1b4-0c6a-4d5e-9a10-000000000001</UDN>
+    <serviceList>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:AVTransport</serviceId>
+        <SCPDURL>scpd/avt.xml</SCPDURL>
+        <controlURL>ctl/avt</controlURL>
+        <eventSubURL>evt/avt</eventSubURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:RenderingControl:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:RenderingControl</serviceId>
+        <SCPDURL>scpd/rc.xml</SCPDURL>
+        <controlURL>ctl/rc</controlURL>
+        <eventSubURL>evt/rc</eventSubURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:ConnectionManager:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:ConnectionManager</serviceId>
+        <SCPDURL>scpd/cm.xml</SCPDURL>
+        <controlURL>ctl/cm</controlURL>
+        <eventSubURL>evt/cm</eventSubURL>
+      </service>
+    </serviceList>
+  </device>
+</root>

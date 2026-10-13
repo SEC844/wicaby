@@ -1,0 +1,394 @@
+{
+  "common": {
+    "forbidden": "Your account isn’t an administrator on this server.",
+    "unsupported": "This server doesn’t offer this feature.",
+    "failed": "The operation failed.",
+    "copied": "Copied to clipboard",
+    "saved": "Changes saved",
+    "unsaved": "Unsaved changes",
+    "invalid": "Fix the highlighted values before saving.",
+    "revert": "Discard Changes",
+    "notSet": "Not Set",
+    "default": "Default",
+    "loading": "Loading…"
+  },
+  "restart": {
+    "title": "Restart Required",
+    "desc": "Some changes take effect only after the server restarts.",
+    "action": "Restart",
+    "confirmTitle": "Restart the server?",
+    "confirmText": "Playback in progress will stop and the server will be unavailable for a moment.",
+    "started": "Server is restarting…"
+  },
+  "server": {
+    "general": "General",
+    "network": "Network",
+    "networkFoot": "Network settings take effect when the server restarts.",
+    "portClash": "Local HTTP and HTTPS ports must be different.",
+    "networkUnavailable": "This server’s network configuration couldn’t be read.",
+    "riskyTitle": "Change Server Access",
+    "riskyText": "These changes affect how the server is reached. You could lose access from Wicaby or from outside your network:",
+    "riskyConfirm": "Save Anyway",
+    "fields": {
+      "serverName": {
+        "label": "Server Name",
+        "desc": "The name shown in apps.",
+        "invalid": "64 characters at most."
+      },
+      "uiCulture": {
+        "label": "Display Language",
+        "desc": "Language of the server’s notifications and dashboard.",
+        "invalid": "Unknown language."
+      },
+      "metadataLanguage": {
+        "label": "Metadata Language",
+        "desc": "Preferred language for titles, overviews and images.",
+        "invalid": "Unknown language."
+      },
+      "metadataCountry": {
+        "label": "Country",
+        "desc": "Used for age ratings and release dates.",
+        "invalid": "Unknown country."
+      },
+      "logRetention": {
+        "label": "Log Retention",
+        "desc": "Days before old logs are deleted.",
+        "invalid": "Between 1 and 3650 days."
+      },
+      "cachePath": {
+        "label": "Cache Folder",
+        "desc": "Set in the server configuration.",
+        "invalid": "Invalid path."
+      },
+      "metadataPath": {
+        "label": "Metadata Folder",
+        "desc": "Set in the server configuration.",
+        "invalid": "Invalid path."
+      },
+      "httpPort": {
+        "label": "Local HTTP Port",
+        "desc": "The port the server listens on in your local network.",
+        "invalid": "Port between 1 and 65535."
+      },
+      "httpsPort": {
+        "label": "Local HTTPS Port",
+        "desc": "Port for encrypted connections in your local network.",
+        "invalid": "Port between 1 and 65535."
+      },
+      "remoteAccess": {
+        "label": "Remote Access",
+        "desc": "Allows connections from outside your local network.",
+        "invalid": "Invalid value."
+      },
+      "publicHttpPort": {
+        "label": "Public HTTP Port",
+        "desc": "Port exposed to the internet, if different from the local one.",
+        "invalid": "Port between 1 and 65535."
+      },
+      "publicHttpsPort": {
+        "label": "Public HTTPS Port",
+        "desc": "HTTPS port exposed to the internet.",
+        "invalid": "Port between 1 and 65535."
+      },
+      "domain": {
+        "label": "External Domain",
+        "desc": "Domain name used to reach the server from the internet.",
+        "invalid": "Invalid domain name."
+      },
+      "upnp": {
+        "label": "Automatic Port Mapping (UPnP)",
+        "desc": "Opens ports on your router when it allows it.",
+        "invalid": "Invalid value."
+      },
+      "lan": {
+        "label": "Local Networks",
+        "desc": "Addresses or subnets treated as local, one per line. Leave empty to detect them automatically.",
+        "invalid": "An entry isn’t a valid address or subnet.",
+        "placeholder": "192.168.1.0/24"
+      },
+      "baseUrl": {
+        "label": "Base URL",
+        "desc": "URL prefix when the server sits behind a reverse proxy.",
+        "invalid": "Invalid path."
+      },
+      "proxies": {
+        "label": "Known Proxies",
+        "desc": "Addresses of trusted reverse proxies, one per line.",
+        "invalid": "An entry isn’t valid.",
+        "placeholder": "10.0.0.2"
+      }
+    }
+  },
+  "transcoding": {
+    "hwNone": "None",
+    "range": "Value between {min} and {max}.",
+    "groups": {
+      "hardware": "Hardware Acceleration",
+      "encoding": "Encoding",
+      "tonemap": "HDR Tone Mapping",
+      "processing": "Processing"
+    },
+    "fields": {
+      "hwaccel": {
+        "label": "Acceleration Type",
+        "desc": "Uses the graphics card to decode and encode video."
+      },
+      "vaapiDevice": {
+        "label": "VA-API Device",
+        "desc": "Render device path, for example /dev/dri/renderD128."
+      },
+      "qsvDevice": {
+        "label": "Quick Sync Device",
+        "desc": "Leave empty to pick one automatically."
+      },
+      "hwEncoding": {
+        "label": "Hardware Encoding",
+        "desc": "Also encodes video on the graphics card."
+      },
+      "hevc10": {
+        "label": "Decode 10-Bit HEVC",
+        "desc": "Turn on if the graphics card supports it."
+      },
+      "vp910": {
+        "label": "Decode 10-Bit VP9",
+        "desc": "Turn on if the graphics card supports it."
+      },
+      "hevcEncoding": {
+        "label": "H.265 (HEVC) Encoding",
+        "desc": "Allows HEVC for compatible clients."
+      },
+      "av1Encoding": {
+        "label": "AV1 Encoding",
+        "desc": "Allows AV1 for compatible clients."
+      },
+      "preset": {
+        "label": "Encoder Preset",
+        "desc": "Slower gives better quality at the same bitrate."
+      },
+      "h264Crf": {
+        "label": "H.264 Quality (CRF)",
+        "desc": "From 0 to 51, lower for better quality. Default 23."
+      },
+      "h265Crf": {
+        "label": "H.265 Quality (CRF)",
+        "desc": "From 0 to 51, lower for better quality. Default 28."
+      },
+      "threads": {
+        "label": "Transcoding Threads",
+        "desc": "0 or -1 to choose automatically."
+      },
+      "maxTranscodes": {
+        "label": "Simultaneous Transcodes",
+        "desc": "Maximum number of video transcodes at once, 0 for no limit."
+      },
+      "tonemap": {
+        "label": "Tone Mapping",
+        "desc": "Converts HDR to SDR for screens that can’t show it."
+      },
+      "vppTonemap": {
+        "label": "VPP Tone Mapping",
+        "desc": "Intel’s native tone mapping, faster."
+      },
+      "tonemapAlgo": {
+        "label": "Algorithm",
+        "desc": "How highlights are compressed."
+      },
+      "tonemapMode": {
+        "label": "Mode",
+        "desc": "Channels the tone mapping applies to."
+      },
+      "throttling": {
+        "label": "Throttle Transcoding",
+        "desc": "Slows encoding down once the client is far enough ahead."
+      },
+      "throttleDelay": {
+        "label": "Throttle Delay",
+        "desc": "Seconds of lead before throttling starts."
+      },
+      "segmentDeletion": {
+        "label": "Delete Segments",
+        "desc": "Removes segments already played to save disk space."
+      },
+      "segmentKeep": {
+        "label": "Keep Segments For",
+        "desc": "Seconds before a played segment is deleted."
+      },
+      "subtitleExtraction": {
+        "label": "Extract Subtitles on the Fly",
+        "desc": "Extracts embedded subtitles during playback."
+      },
+      "downmixBoost": {
+        "label": "Stereo Downmix Boost",
+        "desc": "Gain applied when multichannel audio is mixed down to stereo."
+      },
+      "tempPath": {
+        "label": "Temporary Folder",
+        "desc": "Where the server writes transcoding files."
+      }
+    },
+    "presets": {
+      "auto": "Automatic",
+      "veryslow": "Very Slow",
+      "slower": "Slower",
+      "slow": "Slow",
+      "medium": "Medium",
+      "fast": "Fast",
+      "faster": "Faster",
+      "veryfast": "Very Fast",
+      "superfast": "Super Fast",
+      "ultrafast": "Fastest"
+    },
+    "tonemapAlgos": {
+      "none": "None"
+    },
+    "tonemapModes": {
+      "auto": "Automatic"
+    },
+    "decodeCodecs": {
+      "label": "Hardware Decoding",
+      "desc": "Formats the graphics card decodes."
+    },
+    "codecs": {
+      "h264": "H.264",
+      "hevc": "HEVC",
+      "mpeg2video": "MPEG-2",
+      "mpeg4": "MPEG-4",
+      "vc1": "VC-1",
+      "vp8": "VP8",
+      "vp9": "VP9",
+      "av1": "AV1"
+    },
+    "encoder": "Encoder",
+    "decoder": "Decoder",
+    "noHwCodecs": "No hardware codecs were detected on this server.",
+    "showOther": "{n, plural, one {Show # More Setting} other {Show # More Settings}}",
+    "hideOther": "Hide More Settings",
+    "jobs": {
+      "title": "Active Transcodes",
+      "none": "Nothing is transcoding right now.",
+      "unavailable": "This server’s sessions aren’t available.",
+      "videoDirect": "Direct video",
+      "fps": "{n} fps",
+      "hardware": "Hardware ({name})",
+      "software": "Software"
+    },
+    "reasons": {
+      "ContainerNotSupported": "container not supported",
+      "VideoCodecNotSupported": "video codec not supported",
+      "AudioCodecNotSupported": "audio codec not supported",
+      "SubtitleCodecNotSupported": "burned-in subtitles",
+      "VideoResolutionNotSupported": "resolution too high",
+      "VideoBitrateNotSupported": "video bitrate too high",
+      "ContainerBitrateExceedsLimit": "bitrate over the limit",
+      "AudioChannelsNotSupported": "audio channels not supported",
+      "VideoRangeTypeNotSupported": "HDR not supported",
+      "VideoLevelNotSupported": "video level not supported",
+      "VideoProfileNotSupported": "video profile not supported",
+      "AudioBitrateNotSupported": "audio bitrate too high",
+      "DirectPlayError": "direct play error"
+    }
+  },
+  "plugins": {
+    "tabsLabel": "Plugin View",
+    "tabs": {
+      "installed": "Installed",
+      "catalog": "Catalog",
+      "repos": "Repositories"
+    },
+    "search": "Search plugins",
+    "category": "Category",
+    "allCategories": "All Categories",
+    "noneInstalled": "No plugins installed.",
+    "update": "Update ({version})",
+    "configure": "Settings",
+    "configureHint": "Opens the plugin’s page on the server in your browser.",
+    "enable": "Turn On {name}",
+    "uninstall": "Uninstall {name}",
+    "uninstallShort": "Uninstall",
+    "uninstallTitle": "Uninstall {name}?",
+    "uninstallText": "The plugin is removed the next time the server restarts. Its settings may be lost.",
+    "installedFoot": "Installs, updates and removals take effect when the server restarts.",
+    "noMatch": "No plugins match.",
+    "catalogEmpty": "The catalog is empty or can’t be reached.",
+    "premium": "Premium",
+    "installed": "Installed",
+    "install": "Install",
+    "catalogFoot": "{n, plural, one {# plugin} other {# plugins}}",
+    "enabled": "Plugin turned on",
+    "disabled": "Plugin turned off",
+    "uninstalled": "{name} will be uninstalled on restart",
+    "installing": "Installing {name}",
+    "confirmInstallTitle": "Install {name}?",
+    "confirmUpdateTitle": "Update {name} to {version}?",
+    "confirmInstallText": "A plugin runs on the server with full access. It loads the next time the server restarts.",
+    "status": {
+      "Active": "Active",
+      "Restart": "Restart Required",
+      "Deleted": "Removed on Restart",
+      "Superseded": "Superseded",
+      "Superceded": "Superseded",
+      "Malfunctioned": "Error",
+      "NotSupported": "Incompatible",
+      "Disabled": "Off"
+    },
+    "repos": {
+      "add": "Add Repository",
+      "none": "No repositories set up.",
+      "enable": "Turn On {name}",
+      "remove": "Remove {name}",
+      "foot": "The catalog lists the plugins of every repository that’s on.",
+      "addTitle": "Add Repository",
+      "addText": "Only add repositories you trust: a plugin has access to the whole server.",
+      "name": "Name",
+      "url": "Manifest URL",
+      "badUrl": "Invalid URL, or already added.",
+      "added": "Repository added",
+      "removed": "Repository removed",
+      "removeTitle": "Remove the {name} repository?",
+      "removeText": "Its plugins leave the catalogue. Plugins already installed stay in place."
+    }
+  },
+  "apikeys": {
+    "intro": "API keys give outside apps full administrator access. Don’t share them.",
+    "new": "New Key",
+    "none": "No API keys.",
+    "unnamed": "Unnamed App",
+    "createdOn": "Created {date}",
+    "lastUsed": "used {when}",
+    "revoke": "Revoke",
+    "foot": "An app whose key is revoked loses access right away.",
+    "newTitle": "New API Key",
+    "newText": "Name the app that will use this key.",
+    "appName": "App Name",
+    "appPlaceholder": "e.g. Home Assistant",
+    "create": "Create",
+    "created": "Key created for {app}",
+    "revealTitle": "Your New Key",
+    "revealText": "Copy the key for {app} now: it won’t be shown in full again.",
+    "revokeTitle": "Revoke the key for {app}?",
+    "revokeText": "The app using it will no longer reach the server. This can’t be undone.",
+    "revoked": "Key for {app} revoked"
+  },
+  "logs": {
+    "back": "Logs",
+    "follow": "Follow Live",
+    "search": "Search this log",
+    "levelLabel": "Level",
+    "reload": "Reload",
+    "levels": {
+      "all": "All",
+      "error": "Errors",
+      "warn": "Warnings",
+      "info": "Info",
+      "debug": "Debug"
+    },
+    "noMatch": "No lines match.",
+    "empty": "This log is empty.",
+    "lineCount": "{n, plural, one {# line} other {# lines}}",
+    "filteredCount": "{n, plural, one {# line} other {# lines}} of {total}",
+    "none": "No logs on this server.",
+    "current": "Current",
+    "modified": "Modified {when}",
+    "foot": "Logs can contain paths and addresses: check them before sharing."
+  }
+}

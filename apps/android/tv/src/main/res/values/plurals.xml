@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="items_count">
+        <item quantity="one">%1$d élément</item>
+        <item quantity="many">%1$d éléments</item>
+        <item quantity="other">%1$d éléments</item>
+    </plurals>
+    <plurals name="torrents_seeds">
+        <item quantity="one">%1$d source</item>
+        <item quantity="many">%1$d sources</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+</resources>

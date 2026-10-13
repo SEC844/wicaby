@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- gplay flavour only (cast spec CA-10): Google Play services replaces the FFmpeg decoder. -->
+<resources>
+    <string name="about_line">Wicaby %1$s · Police Geist (SIL OFL 1.1) · Services Google Play (propriétaire) · libass (ISC)</string>
+    <string name="licence_play_services">Services Google Play (propriétaire)</string>
+    <string name="gplay_exception_title">Exception de licence GPL</string>
+</resources>

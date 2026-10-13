@@ -1,0 +1,57 @@
+# Weekly dependency updates. Minor and patch bumps are grouped into one PR per ecosystem;
+# majors arrive as separate PRs so each can be checked on its own.
+version: 2
+updates:
+  # npm workspaces root; its only workspace is apps/desktop (Electron, Svelte, Vite, ...).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(npm)
+
+  # Android (Gradle root apps/android). Media3 and org.jellyfin.media3:media3-ffmpeg-decoder
+  # must stay on matching Media3 versions: review those bumps together.
+  - package-ecosystem: gradle
+    directory: /apps/android
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      gradle-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(android)
+
+  # Go mesh helper. A NetBird bump can move the Android patch anchor in
+  # packages/mesh/scripts/build-mesh-aar.{ps1,sh}: CI rebuilds the AAR and fails loudly if so,
+  # and the AGPL guard runs on every update.
+  - package-ecosystem: gomod
+    directory: /packages/mesh
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      gomod-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(go)
+
+  # Actions used in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(actions)

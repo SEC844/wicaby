@@ -1,0 +1,105 @@
+{
+  "state": {
+    "downloading": "Téléchargement",
+    "forcedDL": "Téléchargement forcé",
+    "metaDL": "Récupération des métadonnées",
+    "stalledDL": "En attente de sources",
+    "queuedDL": "En file d’attente",
+    "paused": "En pause",
+    "checking": "Vérification",
+    "uploading": "Partage",
+    "forcedUP": "Partage forcé",
+    "stalledUP": "Terminé · partage en attente",
+    "queuedUP": "Terminé · en file d’attente",
+    "completed": "Terminé",
+    "allocating": "Allocation de l’espace",
+    "moving": "Déplacement",
+    "missingFiles": "Fichiers introuvables",
+    "error": "Erreur",
+    "unknown": "État inconnu"
+  },
+  "eta": {
+    "seconds": "{count} s",
+    "days": "{count} j"
+  },
+  "magnetLink": "Lien magnet",
+  "dropNeedsSetup": "Connectez d’abord qBittorrent pour ajouter des torrents",
+  "panel": {
+    "connecting": "Connexion à qBittorrent…",
+    "setup": {
+      "title": "Connectez qBittorrent",
+      "body": "Suivez et pilotez les téléchargements de votre qBittorrent depuis Wicaby. Les torrents terminés peuvent rejoindre directement vos bibliothèques.",
+      "button": "Configurer qBittorrent"
+    },
+    "banner": {
+      "offline": "qBittorrent injoignable",
+      "auth": "Connexion refusée",
+      "certificate": "Certificat non reconnu",
+      "certificateBody": "{host} utilise un certificat que Windows ne reconnaît pas. Vérifiez-le dans les réglages avant de l’accepter.",
+      "certificateBodyLinux": "{host} utilise un certificat que votre système ne reconnaît pas. Vérifiez-le dans les réglages avant de l’accepter.",
+      "certificateBodyUnnamed": "Le serveur utilise un certificat que Windows ne reconnaît pas. Vérifiez-le dans les réglages avant de l’accepter.",
+      "certificateBodyUnnamedLinux": "Le serveur utilise un certificat que votre système ne reconnaît pas. Vérifiez-le dans les réglages avant de l’accepter.",
+      "noResponse": "qBittorrent ne répond pas.",
+      "offlineHint": "Vérifiez que qBittorrent est lancé et que son interface web est active.",
+      "connecting": "Connexion…",
+      "settings": "Réglages"
+    },
+    "speedsAria": "Vitesses globales",
+    "download": "Réception",
+    "upload": "Envoi",
+    "free": "{size} libres",
+    "altSpeed": "Vitesse réduite",
+    "altSpeedAria": "Limites de vitesse alternatives",
+    "settings": "Réglages qBittorrent",
+    "empty": {
+      "title": "Aucun torrent",
+      "body": "Ajoutez un lien magnet ou déposez un fichier .torrent dans la fenêtre."
+    },
+    "progress": "{done} sur {total}",
+    "ratio": "ratio {ratio}",
+    "peersTitle": "Sources connectées (dans l’essaim)",
+    "peers": "{seeds} ({seedsTotal}) sources · {peers} ({peersTotal}) pairs",
+    "available": "Disponible dans {library}",
+    "pause": "Mettre en pause",
+    "more": "Plus d’actions"
+  },
+  "menu": {
+    "forceStart": "Forcer le démarrage",
+    "recheck": "Vérifier les données",
+    "moveUp": "Monter dans la file",
+    "moveDown": "Descendre dans la file",
+    "sequential": "Téléchargement séquentiel",
+    "firstLast": "Premier et dernier morceaux d’abord",
+    "category": "Catégorie",
+    "noCategory": "Aucune",
+    "remove": "Supprimer…"
+  },
+  "drop": "Déposez vos fichiers .torrent",
+  "remove": {
+    "label": "Supprimer le torrent",
+    "title": "Supprimer ce torrent ?",
+    "deleteFiles": "Supprimer aussi les fichiers",
+    "deleteFilesDesc": "Les fichiers téléchargés seront effacés du disque de qBittorrent.",
+    "confirmWithFiles": "Supprimer avec les fichiers"
+  },
+  "add": {
+    "label": "Ajouter un torrent",
+    "titleExternal": "Ajouter ce torrent ?",
+    "lead": "Un lien magnet a été ouvert avec Wicaby. Vérifiez qu’il s’agit bien du bon torrent avant de l’envoyer à qBittorrent.",
+    "magnet": "Lien magnet",
+    "invalidMagnet": "Ce n’est pas un lien magnet valide.",
+    "pasted": "Collé depuis le presse-papiers.",
+    "files": "Fichiers .torrent",
+    "removeFile": "Retirer {name}",
+    "chooseFiles": "Choisir des fichiers",
+    "dropHint": "Vous pouvez aussi déposer des fichiers .torrent n’importe où dans la fenêtre.",
+    "category": "Catégorie",
+    "noCategory": "Aucune",
+    "folder": "Dossier",
+    "defaultFolder": "Dossier par défaut de qBittorrent",
+    "startPaused": "Démarrer en pause",
+    "sequential": "Téléchargement séquentiel",
+    "adding": "Ajout…",
+    "added": "{count, plural, one {Torrent ajouté} other {# torrents ajoutés}}"
+  }
+}

@@ -1,0 +1,464 @@
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { app, dialog, Menu, nativeTheme, session, shell } from 'electron';
+import { Channels, type AppInfo } from '../shared/contract';
+import { CastManager } from './cast/cast-manager';
+import { EphemeralTokens } from './cast/ephemeral-token';
+import type { SocketMessage } from './connection/server-socket';
+import { ComicService } from './comics/comic-service';
+import { ConnectionManager } from './connection/connection-manager';
+import { watchNetwork } from './connection/network-watch';
+import { JsonStore } from './core/json-store';
+import { logger } from './core/log';
+import { isSafeMpvPath, SettingsService } from './core/settings';
+import { CredentialVault } from './core/vault';
+import { DownloadManager } from './downloads/download-manager';
+import { FileSources } from './files/sources';
+import { AdminAlerts } from './features/admin-alerts';
+import { ContinueWatching } from './features/continue-watching';
+import { DisplayModeSwitcher } from './features/display-mode';
+import { HdrModeSwitcher } from './features/hdr-mode';
+import { Notifier } from './features/notify';
+import { Reminders } from './features/reminders';
+import { liveLinkFromArgv } from '../shared/livetv/reminders';
+import { installLoginItem, startedHidden } from './features/startup';
+import { installJumpList } from './features/taskbar';
+import { TraktService } from './features/trakt';
+import { DesktopIntegration } from './features/tray';
+import { createSettingsExtras } from './core/settings-extras';
+import { initI18n, t } from './i18n';
+import { isSafeManagementUrl, registerIpc } from './ipc';
+import { mpvCandidates, mpvVersion } from './playback/mpv-controller';
+import { PlaybackService, validId } from './playback/playback-service';
+import { commandName } from './playback/remote-commands';
+import { tileService } from './photos/tiles';
+import { handleProtocols, registerSchemes } from './protocols';
+import { TorrentService } from './torrents/torrent-service';
+import { VpnService } from './vpn';
+import { EmbeddedMesh, locateMeshHelper } from './vpn/embedded-mesh';
+import { vpnFixture } from './vpn/fixture';
+import { WindowManager } from './windows/window-manager';
+
+const APP_ID = 'com.wika.wicaby';
+const log = logger.scope('main');
+
+// A packaged build ignores the development switches entirely: every module that reads them
+// later (protocol origin check, devtools, logging) sees them unset.
+if (app.isPackaged) {
+  delete process.env.WICABY_DEV_URL;
+  delete process.env.WICABY_DEVTOOLS;
+}
+
+registerSchemes();
+// Keep rasterization, video decode and compositing on the GPU, even on drivers
+// Chromium blocklists by default; scrolling and transitions stay at display rate.
+// "Accélération matérielle de l'interface" off: none of that, and no GPU at all (read before ready).
+if (hardwareAccelerationSetting()) {
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+  app.commandLine.appendSwitch('enable-zero-copy');
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+  // HTML player decode: D3D11 on Windows, VA-API through GL on Linux.
+  app.commandLine.appendSwitch('enable-features', process.platform === 'win32' ? 'CanvasOopRasterization,D3D11VideoDecoder' : 'CanvasOopRasterization,VaapiVideoDecoder,AcceleratedVideoDecodeLinuxGL');
+} else {
+  app.disableHardwareAcceleration();
+}
+// mpv embeds into an X11 window id (--wid): run under X11, or XWayland in a Wayland session.
+if (process.platform === 'linux') app.commandLine.appendSwitch('ozone-platform', 'x11');
+
+function hardwareAccelerationSetting(): boolean {
+  try {
+    const doc = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8')) as { system?: { hardwareAcceleration?: unknown } };
+    return doc.system?.hardwareAcceleration !== false;
+  } catch {
+    return true;
+  }
+}
+// Dev runs (electron.exe) get their own id: sharing it makes Windows cache Electron's icon and jump list for the packaged app.
+app.setAppUserModelId(app.isPackaged ? APP_ID : `${APP_ID}.dev`);
+Menu.setApplicationMenu(null);
+// Dark Mica and dark native caption buttons regardless of the Windows theme.
+nativeTheme.themeSource = 'dark';
+
+// Accepts --wicaby-nav=/route (jump list) and wicaby://item/<id> (deep link).
+function routeFromArgv(argv: string[]): string | null {
+  for (const arg of argv) {
+    let route: string | null = null;
+    if (arg.startsWith('--wicaby-nav=')) route = arg.slice('--wicaby-nav='.length);
+    else if (arg.startsWith('wicaby://')) route = `/${arg.slice('wicaby://'.length).replace(/\/+$/, '')}`;
+    // /name, /name/:id or /name/:server/:id (jump list "Continue watching" entries).
+    if (route && /^\/[a-z]+(\/[A-Za-z0-9-]{1,64}){0,2}$/.test(route)) return route;
+  }
+  return null;
+}
+
+const MPV_CONF_TEMPLATE = `# Wicaby: mpv configuration
+# Read only when "Utiliser mpv.conf" is enabled in Wicaby's settings.
+# Wicaby's own options (wid, OSD, input) are applied before this file.
+#
+# profile=high-quality
+# scale=ewa_lanczossharp
+# dscale=mitchell
+# video-sync=display-resample
+# interpolation=yes
+# tscale=oversample
+# sub-font="Segoe UI Semibold"
+# sub-font-size=44
+`;
+
+// mpvCandidates (mpv-controller.ts) in order, each one validated.
+function findSafeMpv(configured: string, resourcesPath: string, appRoot: string): string | null {
+  const candidates = mpvCandidates(configured, resourcesPath, appRoot);
+  return candidates.find((c) => isSafeMpvPath(c)) ?? null;
+}
+
+// The embedded mesh passes its stored control URL to the helper on every start. One saved
+// before the https-or-loopback rule (or edited on disk) is dropped and the node left off,
+// so it never reaches --control-url; the user signs in again from Settings.
+function dropUnsafeMeshControlUrl(file: string): void {
+  let prefs: Record<string, unknown>;
+  try {
+    prefs = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return;
+  }
+  if (!prefs || typeof prefs !== 'object' || prefs.managementUrl === undefined || isSafeManagementUrl(prefs.managementUrl)) return;
+  delete prefs.managementUrl;
+  prefs.enabled = false;
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(prefs, null, 2));
+  fs.renameSync(tmp, file);
+  log.warn('mesh: dropped a control URL that is neither https nor loopback');
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  void bootstrap();
+}
+
+async function bootstrap(): Promise<void> {
+  await app.whenReady();
+  const userData = app.getPath('userData');
+  const logDir = path.join(userData, 'logs');
+  logger.init(logDir);
+  log.info(`==== Wicaby ${app.getVersion()} starting (Electron ${process.versions.electron}, ${os.release()}) ====`);
+
+  const settings = new SettingsService(path.join(userData, 'settings.json'));
+  initI18n(settings);
+  const device = new JsonStore<{ deviceId: string }>(path.join(userData, 'device.json'), { deviceId: randomUUID() });
+  device.flush();
+  const identity = {
+    client: 'Wicaby',
+    version: app.getVersion(),
+    deviceId: device.value.deviceId,
+    deviceName: os.hostname().replace(/[^\x20-\x7e]/g, '') || 'Windows',
+  };
+
+  // After whenReady: the async safeStorage API needs a ready app. Every vault user below gets it loaded.
+  const vault = await CredentialVault.open(path.join(userData, 'vault.bin'), undefined, { allowPlainText: () => settings.value.system.plainTextVault });
+  let plainTextVault = settings.value.system.plainTextVault;
+  settings.on('change', (s) => {
+    if (s.system.plainTextVault !== plainTextVault && vault.plainText) void vault.save();
+    plainTextVault = s.system.plainTextVault;
+  });
+  dropUnsafeMeshControlUrl(path.join(userData, 'mesh', 'wicaby.json'));
+  const vpn = new VpnService((url) => void shell.openExternal(url), vpnFixture(process.env.WICABY_VPN_FIXTURE, app.isPackaged));
+  const mesh = new EmbeddedMesh({
+    exe: locateMeshHelper(process.resourcesPath, app.getAppPath()),
+    dataDir: path.join(userData, 'mesh'),
+    vault,
+    deviceName: identity.deviceName,
+  });
+  vpn.setEmbedded(mesh);
+  const connection = new ConnectionManager(path.join(userData, 'servers.json'), vault, identity, vpn);
+  connection.setAllowControl(settings.value.remote.allowControl);
+  // File sources (file-sources-spec): one local session each, next to the servers.
+  const files = new FileSources(path.join(userData, 'files'), vault, identity, connection);
+  files.start();
+  // A packaged build always loads its own bundled pages.
+  const devUrl = app.isPackaged ? undefined : process.env.WICABY_DEV_URL;
+  const icon = path.join(app.getAppPath(), 'resources', 'icon.ico');
+  const windows = new WindowManager({
+    preload: path.join(__dirname, '..', 'preload', 'index.cjs'),
+    devUrl,
+    icon: fs.existsSync(icon) ? icon : undefined,
+    settings,
+  });
+  const downloads = new DownloadManager(path.join(userData, 'downloads.json'), connection, settings, windows);
+  const display = new DisplayModeSwitcher();
+  const hdr = new HdrModeSwitcher(userData);
+  void hdr.restoreAfterCrash();
+  const comicsDir = path.join(userData, 'cache', 'comics');
+  const comics = new ComicService(comicsDir, connection, downloads, () => settings.value.system.comicCacheGb * 1024 ** 3);
+  const torrents = new TorrentService(path.join(userData, 'torrents.json'), settings, vault, connection, windows);
+  const trakt = new TraktService(vault, settings, connection);
+
+  const mpvConfigDir = path.join(userData, 'mpv');
+  fs.mkdirSync(mpvConfigDir, { recursive: true });
+  const confPath = path.join(mpvConfigDir, 'mpv.conf');
+  if (!fs.existsSync(confPath)) fs.writeFileSync(confPath, MPV_CONF_TEMPLATE);
+
+  // Whatever is found (setting, bundled copy, PATH...), only a validated local mpv.exe is run:
+  // the first candidate that passes, not the first that merely exists.
+  const findMpv = () => findSafeMpv(settings.value.playback.mpvPath, process.resourcesPath, app.getAppPath());
+  let mpvPath = findMpv();
+  let mpvVer: Promise<string | null> = mpvPath ? mpvVersion(mpvPath) : Promise.resolve(null);
+  settings.on('change', () => {
+    const next = findMpv();
+    if (next !== mpvPath) {
+      mpvPath = next;
+      mpvVer = mpvPath ? mpvVersion(mpvPath) : Promise.resolve(null);
+    }
+  });
+  log.info(`mpv: ${mpvPath ?? 'not found'}`);
+
+  const toast = (kind: 'info' | 'success' | 'error', message: string, ms?: number) => windows.broadcast(Channels.toast, { kind, message, ms });
+
+  const playback = new PlaybackService({
+    connection,
+    settings,
+    windows,
+    downloads,
+    display,
+    hdr,
+    mpvExe: () => mpvPath,
+    mpvConfigDir,
+    deviceId: identity.deviceId,
+    onMessage: toast,
+  });
+
+  const cast = new CastManager({ connection, local: playback, deviceId: identity.deviceId, notify: toast, settings, tokens: new EphemeralTokens(vault, identity.version) });
+  playback.beforePlay = () => cast.stopSenderReported();
+  // CA-11: disposable cast tokens left by a crash or a quit are revoked once their server is signed in again.
+  connection.on('session', () => void cast.cleanupTokens());
+
+  const notifier = new Notifier({ connection, downloads, settings, windows, playback, icon: fs.existsSync(icon) ? icon : undefined });
+  const reminders = new Reminders(path.join(userData, 'reminders.json'), { connection, settings, windows, notifier, playback });
+
+  // Photos map tiles (PH-09): only while the map is on; turning it off forgets the areas viewed.
+  const tilesDir = path.join(userData, 'tiles');
+  const tiles = tileService({
+    config: () => settings.value.photos.map,
+    userAgent: `Wicaby/${app.getVersion()} (+https://github.com/WicaebethTheo/wicaby-releases)`,
+    dir: tilesDir,
+  });
+  settings.on('change', (s: { photos: { map: { enabled: boolean } } }) => {
+    if (!s.photos.map.enabled) fs.rmSync(tilesDir, { recursive: true, force: true });
+  });
+  handleProtocols({ rendererDir: path.join(__dirname, '..', 'renderer'), connection, downloads, comics, tiles });
+
+  // Nothing in the UI needs camera, mic, geolocation or notifications from the web layer.
+  const allowed = new Set(['fullscreen', 'clipboard-sanitized-write']);
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
+  session.defaultSession.setPermissionCheckHandler((_wc, permission) => allowed.has(permission));
+
+  const appInfo = async (): Promise<AppInfo> => ({
+    name: 'Wicaby',
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chromium: process.versions.chrome,
+    node: process.versions.node,
+    platform: `${os.type()} ${os.arch()}`,
+    osRelease: os.release(),
+    deviceId: identity.deviceId,
+    deviceName: identity.deviceName,
+    mpvPath,
+    mpvVersion: await mpvVer,
+    userDataPath: userData,
+    logPath: logger.filePath,
+    isPackaged: app.isPackaged,
+    vaultPlainText: vault.plainText,
+    refreshRateMatch: display.available(),
+  });
+
+  registerIpc({
+    windows,
+    settings,
+    connection,
+    playback,
+    downloads,
+    comics,
+    vpn,
+    torrents,
+    trakt,
+    reminders,
+    cast,
+    appInfo,
+    files,
+    extras: createSettingsExtras({ mpvExe: () => mpvPath, runningMpv: () => playback.mpv, comicsDir, logDir, currentLog: () => logger.filePath }),
+    openPath: (kind) => {
+      const target = kind === 'logs' ? logDir : kind === 'mpv-config' ? mpvConfigDir : kind === 'data' ? userData : settings.value.downloads.folder;
+      fs.mkdirSync(target, { recursive: true });
+      void shell.openPath(target);
+    },
+  });
+
+  connection.on('session', (s) => windows.broadcast(Channels.sessionChanged, s));
+  settings.on('change', (s) => windows.broadcast(Channels.settingsChanged, s));
+  settings.on('change', (s) => connection.setAllowControl(s.remote.allowControl));
+  playback.on('state', (s) => windows.broadcast(Channels.playbackState, s));
+  downloads.on('change', (d) => windows.broadcast(Channels.downloadsChanged, d));
+  torrents.on('state', (s) => windows.send(windows.main, Channels.torrentsChanged, s));
+  trakt.on('state', (s) => windows.send(windows.main, Channels.traktChanged, s));
+  playback.on('report', (action, serverId, item, positionMs, durationMs) => trakt.scrobble(action, serverId, item, positionMs, durationMs));
+  mesh.on('change', (s) => windows.broadcast(Channels.vpnEmbeddedChanged, s));
+  cast.on('state', (s) => windows.broadcast(Channels.castState, s));
+  cast.on('targets', (list) => windows.broadcast(Channels.castTargetsUpdated, list));
+  connection.on('server-message', (msg: SocketMessage, serverId: string) => {
+    // The cast mirror's SessionsStart pushes (cast-spec CA-04).
+    if (msg.MessageType === 'Sessions') return cast.onSessions(serverId, msg.Data);
+    if (playback.handleRemote(msg, serverId)) return;
+    const d = (msg.Data ?? {}) as Record<string, unknown>;
+    const args = (d.Arguments ?? {}) as Record<string, string>;
+    // handleRemote already dropped every remote command but DisplayMessage while remote control is off.
+    if (msg.MessageType === 'GeneralCommand') {
+      switch (commandName(d.Name, ['DisplayMessage', 'DisplayContent', 'GoHome', 'GoToSettings'] as const)) {
+        case 'DisplayMessage':
+          // Plain text (the toast does not render markup), capped like the other apps.
+          // Up for the sender's TimeoutMs (3-30 s, 8 s without one).
+          toast('info', [args.Header, args.Text].filter((v) => typeof v === 'string' && v).join(' · ').slice(0, 500), Math.min(30_000, Math.max(3000, Number(args.TimeoutMs) || 8000)));
+          return;
+        case 'DisplayContent':
+          // The id ends up in a route: Emby ids are digits, Jellyfin ids hex or GUIDs.
+          if (validId(args.ItemId)) windows.send(windows.main, Channels.navigate, `/item/${serverId}/${args.ItemId}`);
+          return;
+        case 'GoHome':
+          windows.send(windows.main, Channels.navigate, '/home');
+          return;
+        case 'GoToSettings':
+          windows.send(windows.main, Channels.navigate, '/settings');
+          return;
+      }
+    }
+    windows.broadcast(Channels.serverEvent, { type: msg.MessageType, data: msg.Data, serverId });
+  });
+
+  // --hidden (login item): no window, only the tray icon.
+  const main = windows.createMain(startedHidden(process.argv));
+  // "Échelle de l'interface": Chromium zoom, per origin, so the OSD window follows too.
+  const applyZoom = () => {
+    if (!main.isDestroyed()) main.webContents.setZoomFactor(settings.value.ui.zoom / 100);
+  };
+  main.webContents.on('did-finish-load', applyZoom);
+  settings.on('change', applyZoom);
+  // "Confirmer avant de quitter pendant une lecture": closing the main window or quitting the app.
+  let quitConfirmed = false;
+  const confirmQuit = (): boolean => {
+    if (quitConfirmed) return true;
+    const parent = windows.playback?.osd ?? windows.main;
+    const ask = (o: Electron.MessageBoxSyncOptions) => (parent && !parent.isDestroyed() ? dialog.showMessageBoxSync(parent, o) : dialog.showMessageBoxSync(o)) === 0;
+    // A cast the sender reports for (direct DLNA, Cast DMR) ends with the app (cast-spec §2.5); session targets play on.
+    const casting = cast.senderReported;
+    if (casting) {
+      quitConfirmed = ask({
+        type: 'question',
+        buttons: [t('cast.quit.confirm'), t('common.actions.cancel')],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        title: 'Wicaby',
+        message: t('cast.quit.title'),
+        detail: t('cast.quit.body', { device: casting.name }),
+      });
+      if (quitConfirmed) void cast.stop();
+      return quitConfirmed;
+    }
+    if (!settings.value.ui.confirmQuitDuringPlayback || !playback.getState().active) return true;
+    const opts: Electron.MessageBoxSyncOptions = {
+      type: 'question',
+      buttons: [t('common.actions.quit'), t('common.actions.cancel')],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+      title: 'Wicaby',
+      message: t('main.dialog.quitPlayback.message'),
+      detail: t('main.dialog.quitPlayback.detail'),
+    };
+    quitConfirmed = ask(opts);
+    return quitConfirmed;
+  };
+  // After the close-to-tray handler: a window only hidden is not a quit.
+  main.on('close', (event) => {
+    if (!event.defaultPrevented && !confirmQuit()) event.preventDefault();
+  });
+  const initialRoute = routeFromArgv(process.argv);
+  if (initialRoute) main.webContents.once('did-finish-load', () => windows.send(main, Channels.navigate, initialRoute));
+  // wicaby://live?channel=…: tuned once the servers are up (reminders.watch retries, F3).
+  const link = liveLinkFromArgv(process.argv);
+  if (link) main.webContents.once('did-finish-load', () => void reminders.watch(link.channel, link.server));
+  // Launched by Windows as the magnet: handler.
+  main.webContents.once('did-finish-load', () => torrents.handleArgv(process.argv));
+  // Linux without a keyring: say why sign-ins do not survive a restart (Confidentialité pane to keep them).
+  if (vault.plainText && !settings.value.system.plainTextVault) main.webContents.once('did-finish-load', () => toast('info', t('main.vault.memoryOnly')));
+
+  const adminAlerts = new AdminAlerts({ connection, settings, windows, notifier }, path.join(userData, 'admin-alerts.json'));
+  windows.onHiddenToTray = () => notifier.trayHint();
+  const desktop = new DesktopIntegration({
+    windows,
+    playback,
+    settings,
+    downloads,
+    icon: fs.existsSync(icon) ? icon : await app.getFileIcon(process.execPath, { size: 'small' }),
+  });
+  installLoginItem(settings);
+
+  app.on('second-instance', (_e, argv) => {
+    if (torrents.handleArgv(argv)) return;
+    const live = liveLinkFromArgv(argv);
+    if (live) return void reminders.watch(live.channel, live.server);
+    const route = routeFromArgv(argv);
+    // Another login-item launch (--hidden) leaves the running instance as it is.
+    if (!route && startedHidden(argv)) return;
+    windows.focusMain();
+    if (route) windows.send(windows.main, Channels.navigate, route);
+  });
+
+  installJumpList();
+  const continueWatching = new ContinueWatching(connection, playback);
+  continueWatching.on('change', (entries) => {
+    installJumpList(entries);
+    desktop.setContinue(entries);
+  });
+  if (app.isPackaged) app.setAsDefaultProtocolClient('wicaby');
+  // A server only on the mesh needs the embedded node up before the address race.
+  void mesh.resume().finally(() => connection.resumeLastSession());
+  // Wake, network change, or a server that dropped: re-pick its address and reconnect (connection-manager recheck()).
+  watchNetwork((moved) => void connection.recheckAll(moved));
+  // File sources that went offline (a share asleep, a drive unplugged) come back on the same passes.
+  watchNetwork(() => void files.recheckAll());
+
+  app.on('window-all-closed', () => app.quit());
+
+  let cleaned = false;
+  app.on('before-quit', (event) => {
+    if (cleaned) return;
+    if (!confirmQuit()) {
+      windows.cancelQuit();
+      return event.preventDefault();
+    }
+    event.preventDefault();
+    cleaned = true;
+    void (async () => {
+      try {
+        cast.dispose();
+        await Promise.race([playback.shutdown(), new Promise((r) => setTimeout(r, 4000))]);
+        // A credential change still being encrypted reaches the disk before exit.
+        if (vault.busy) await Promise.race([vault.flush(), new Promise((r) => setTimeout(r, 2000))]);
+      } finally {
+        settings.flush();
+        reminders.flush();
+        connection.flush();
+        files.shutdown();
+        downloads.flush();
+        torrents.flush();
+        adminAlerts.flush();
+        vpn.dispose();
+        desktop.dispose();
+        log.info('==== Wicaby exiting ====');
+        app.quit();
+      }
+    })();
+  });
+}

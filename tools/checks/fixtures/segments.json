@@ -1,0 +1,90 @@
+{
+  "_": "Intro range and credits start. Emby: point markers mixed into Chapters; Jellyfin: /MediaSegments. Read by tools/checks/parity-check.mjs (apps/desktop/src/shared/markers.ts) and the Android JVM test ParityFixturesTest (Segments.kt). Ticks are 10 000 per ms; null = no marker.",
+  "cases": [
+    {
+      "name": "emby intro and credits",
+      "chapters": [
+        { "StartPositionTicks": 0, "MarkerType": "Chapter" },
+        { "StartPositionTicks": 600000000, "MarkerType": "IntroStart" },
+        { "StartPositionTicks": 1500000000, "MarkerType": "IntroEnd" },
+        { "StartPositionTicks": 3000000000, "MarkerType": "Chapter" },
+        { "StartPositionTicks": 24000000000, "MarkerType": "CreditsStart" }
+      ],
+      "introStartMs": 60000, "introEndMs": 150000, "creditsStartMs": 2400000
+    },
+    {
+      "name": "emby intro without IntroEnd stops at the next chapter",
+      "chapters": [
+        { "StartPositionTicks": 0, "MarkerType": "Chapter" },
+        { "StartPositionTicks": 200000000, "MarkerType": "IntroStart" },
+        { "StartPositionTicks": 950000000, "MarkerType": "Chapter" }
+      ],
+      "introStartMs": 20000, "introEndMs": 95000, "creditsStartMs": null
+    },
+    {
+      "name": "emby markers out of order",
+      "chapters": [
+        { "StartPositionTicks": 1500000000, "MarkerType": "IntroEnd" },
+        { "StartPositionTicks": 24000000000, "MarkerType": "CreditsStart" },
+        { "StartPositionTicks": 600000000, "MarkerType": "IntroStart" }
+      ],
+      "introStartMs": 60000, "introEndMs": 150000, "creditsStartMs": 2400000
+    },
+    {
+      "name": "emby stray IntroEnd before the intro is skipped",
+      "chapters": [
+        { "StartPositionTicks": 100000000, "MarkerType": "IntroEnd" },
+        { "StartPositionTicks": 600000000, "MarkerType": "IntroStart" },
+        { "StartPositionTicks": 1500000000, "MarkerType": "IntroEnd" }
+      ],
+      "introStartMs": 60000, "introEndMs": 150000, "creditsStartMs": null
+    },
+    {
+      "name": "emby IntroStart with nothing after it: no intro",
+      "chapters": [
+        { "StartPositionTicks": 0, "MarkerType": "Chapter" },
+        { "StartPositionTicks": 600000000, "MarkerType": "IntroStart" }
+      ],
+      "introStartMs": null, "introEndMs": null, "creditsStartMs": null
+    },
+    {
+      "name": "emby credits at 0 are ignored",
+      "chapters": [{ "StartPositionTicks": 0, "MarkerType": "CreditsStart" }],
+      "introStartMs": null, "introEndMs": null, "creditsStartMs": null
+    },
+    {
+      "name": "emby plain chapters",
+      "chapters": [{ "StartPositionTicks": 0, "MarkerType": "Chapter" }, { "StartPositionTicks": 3000000000, "MarkerType": "Chapter" }],
+      "introStartMs": null, "introEndMs": null, "creditsStartMs": null
+    },
+    {
+      "name": "jellyfin intro and outro",
+      "segments": [
+        { "Type": "Intro", "StartTicks": 100000000, "EndTicks": 700000000 },
+        { "Type": "Outro", "StartTicks": 13000000000, "EndTicks": 14000000000 }
+      ],
+      "introStartMs": 10000, "introEndMs": 70000, "creditsStartMs": 1300000
+    },
+    {
+      "name": "jellyfin earliest intro and earliest outro",
+      "segments": [
+        { "Type": "Outro", "StartTicks": 14000000000, "EndTicks": 14500000000 },
+        { "Type": "Recap", "StartTicks": 0, "EndTicks": 300000000 },
+        { "Type": "Intro", "StartTicks": 4000000000, "EndTicks": 4300000000 },
+        { "Type": "Outro", "StartTicks": 13000000000, "EndTicks": 13500000000 },
+        { "Type": "Intro", "StartTicks": 300000000, "EndTicks": 900000000 }
+      ],
+      "introStartMs": 30000, "introEndMs": 90000, "creditsStartMs": 1300000
+    },
+    {
+      "name": "jellyfin outro only",
+      "segments": [{ "Type": "Outro", "StartTicks": 13000000000, "EndTicks": 14000000000 }],
+      "introStartMs": null, "introEndMs": null, "creditsStartMs": 1300000
+    },
+    {
+      "name": "jellyfin nothing usable",
+      "segments": [{ "Type": "Commercial", "StartTicks": 0, "EndTicks": 300000000 }],
+      "introStartMs": null, "introEndMs": null, "creditsStartMs": null
+    }
+  ]
+}

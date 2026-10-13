@@ -1,0 +1,224 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Pull requests: a new push cancels the run in progress. main: every commit gets a full run.
+# Note: this repo is private, so Actions minutes count against the account quota, and Windows
+# minutes count double (the desktop job runs on windows-latest).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  desktop:
+    name: Desktop (Electron + Svelte)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Root package.json is the npm workspaces root (workspace: apps/desktop).
+      - name: Install
+        run: npm ci
+
+      - name: Type-check (svelte-check + tsc)
+        run: npm run check
+
+      - name: Self-checks (every check in tools/checks/run-all.mjs)
+        run: npm run checks
+
+      - name: Markdown links (relative links and images)
+        run: node tools/checks/links-check.mjs
+
+      - name: Build renderer + main
+        run: npm run build
+
+  desktop-linux:
+    name: Desktop Linux (AppImage + deb)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check (svelte-check + tsc)
+        run: npm run check
+
+      # The same checks as on Windows; the platform-dependent ones cover win32 and linux either way.
+      - name: Self-checks (every check in tools/checks/run-all.mjs)
+        run: npm run checks
+
+      - name: Build renderer + main
+        run: npm run build
+
+      # vendor/vpn-helper/wicaby-mesh + THIRD_PARTY_LICENSES.txt; the script runs go test and the
+      # AGPL guard on the linux/amd64 build graph.
+      - name: Build mesh helper (linux/amd64, AGPL guard)
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: npm run build:mesh
+
+      # electron-builder downloads its own appimagetool and fpm. The deb needs a Homepage, taken
+      # from extraMetadata (no homepage in package.json).
+      - name: Package AppImage + deb
+        working-directory: apps/desktop
+        run: npx electron-builder --linux AppImage deb --x64 --publish never -c.extraMetadata.homepage=https://github.com/${{ github.repository }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-linux
+          path: |
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  mesh:
+    name: Mesh helper (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/mesh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      - name: Test
+        run: go test ./...
+
+      # NetBird keeps AGPL code in management/, signal/, relay/ and combined/; none may be
+      # linked into the desktop helper or the Android AAR (same guard as build-vpn-helper.mjs
+      # and build-mesh-aar.ps1/.sh, run on both build graphs).
+      - name: AGPL guard
+        run: |
+          set -euo pipefail
+          agpl='github\.com/netbirdio/netbird/(management|signal|relay|combined)(/|$)'
+
+          echo '::group::Desktop helper (windows/amd64, ./cmd/wicaby-mesh)'
+          # List first, filter second: a failing `go list` must fail the step, not read as "no hits".
+          deps="$(GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go list -deps ./cmd/wicaby-mesh)"
+          [ -n "$deps" ] || { echo '::error::go list returned no packages for ./cmd/wicaby-mesh'; exit 1; }
+          hits="$(printf '%s\n' "$deps" | grep -E "$agpl" || true)"
+          echo '::endgroup::'
+          if [ -n "$hits" ]; then echo "::error::AGPL NetBird packages linked into wicaby-mesh.exe:"; echo "$hits"; exit 1; fi
+
+          echo '::group::Android AAR (android/arm64, ./mobile, release tags)'
+          ts_keep='netstack,udptransport,nattraversal,portmapper,dns,health,bakedroots,tailnetlock,useproxy,ipnbus,ace,cachenetmap,serve,acme'
+          tags="$(go run tailscale.com/cmd/featuretags --min "--add=$ts_keep")"
+          [ -n "$tags" ] || { echo '::error::tailscale.com/cmd/featuretags returned no tags'; exit 1; }
+          echo "tags: $tags"
+          deps="$(GOOS=android GOARCH=arm64 CGO_ENABLED=1 go list -tags "$tags" -deps ./mobile)"
+          [ -n "$deps" ] || { echo '::error::go list returned no packages for ./mobile'; exit 1; }
+          hits="$(printf '%s\n' "$deps" | grep -E "$agpl" || true)"
+          echo '::endgroup::'
+          if [ -n "$hits" ]; then echo "::error::AGPL NetBird packages linked into wicaby-mesh.aar:"; echo "$hits"; exit 1; fi
+
+          echo 'OK: no AGPL NetBird package in either build graph'
+
+  android:
+    name: Android (TV + mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      # vendor/android/wicaby-mesh.aar is not in git; core links it through the ivy repo in
+      # apps/android/settings.gradle.kts. Rebuilt only when the Go module or the script changes.
+      - name: Restore mesh AAR
+        id: aar
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: vendor/android
+          key: mesh-aar-${{ runner.os }}-${{ hashFiles('packages/mesh/go.mod', 'packages/mesh/go.sum', 'packages/mesh/mesh/**', 'packages/mesh/mobile/**', 'packages/mesh/scripts/build-mesh-aar.sh') }}
+
+      # No `gomobile init`: `gomobile bind` only needs gobind on PATH, and init would replace the
+      # pinned gobind with gobind@latest (x/mobile cmd/gomobile/init.go), which
+      # build-mesh-aar.sh then refuses.
+      - name: Install gomobile
+        if: steps.aar.outputs.cache-hit != 'true'
+        working-directory: packages/mesh
+        run: |
+          set -euo pipefail
+          v="$(go list -m -f '{{.Version}}' golang.org/x/mobile)"
+          go install "golang.org/x/mobile/cmd/gomobile@$v" "golang.org/x/mobile/cmd/gobind@$v"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build mesh AAR (patched NetBird, AGPL guard)
+        if: steps.aar.outputs.cache-hit != 'true'
+        run: bash packages/mesh/scripts/build-mesh-aar.sh
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          # Open-source GitHub Actions cache backend (the default 'enhanced' one is a
+          # separate commercial service).
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # testDebugUnitTest runs the unit tests of the modules without flavours (core, tv, ...); mobile has
+      # foss and gplay (cast spec CA-10), so it has no testDebugUnitTest: both are named. `lint` covers
+      # mobile's default flavour (foss), :mobile:lintGplayDebug the other one.
+      # chmod: safeguard in case gradlew lost its executable bit in git.
+      - name: Unit tests, debug builds, lint
+        working-directory: apps/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --stacktrace testDebugUnitTest :mobile:testFossDebugUnitTest :mobile:testGplayDebugUnitTest :tv:assembleDebug :mobile:assembleDebug lint :mobile:lintGplayDebug
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # foss resolves no Play services, gplay no FFmpeg decoder (cast spec CA-10).
+      - name: Flavour dependencies
+        run: node tools/checks/flavour-check.mjs --gradle
+
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-reports
+          path: |
+            apps/android/*/build/reports/
+            apps/android/*/build/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

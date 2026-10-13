@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:dlna="urn:schemas-dlna-org:device-1-0" xmlns:sec="http://www.sec.co.kr/dlna">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <device>
+    <dlna:X_DLNADOC>DMR-1.50</dlna:X_DLNADOC>
+    <deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>
+    <friendlyName>[TV] Mock Samsung</friendlyName>
+    <manufacturer>Samsung Electronics</manufacturer>
+    <modelName>Samsung TV (mock profile)</modelName>
+    <UDN>uuid:5f9ec1b4-0c6a-4d5e-9a10-000000000003</UDN>
+    <sec:ProductCap>Y2018,WebURIPlayable,SeekTRACK_NR,NavigateInPause,ScreenMirroringP2PMAC=</sec:ProductCap>
+    <serviceList>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:RenderingControl:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:RenderingControl</serviceId>
+        <controlURL>ctl/rc</controlURL>
+        <eventSubURL>evt/rc</eventSubURL>
+        <SCPDURL>scpd/rc.xml</SCPDURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:ConnectionManager:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:ConnectionManager</serviceId>
+        <controlURL>ctl/cm</controlURL>
+        <eventSubURL>evt/cm</eventSubURL>
+        <SCPDURL>scpd/cm.xml</SCPDURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:AVTransport</serviceId>
+        <controlURL>ctl/avt</controlURL>
+        <eventSubURL>evt/avt</eventSubURL>
+        <SCPDURL>scpd/avt.xml</SCPDURL>
+      </service>
+    </serviceList>
+  </device>
+</root>

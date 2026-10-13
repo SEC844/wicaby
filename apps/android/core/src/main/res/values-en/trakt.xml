@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TP-09: Trakt (core/trakt). -->
+<resources>
+    <string name="trakt_title">Trakt</string>
+    <string name="trakt_error_invalid_client">Invalid Client ID or Client Secret</string>
+    <string name="trakt_error_failed">Couldn’t reach Trakt: %1$s</string>
+    <string name="trakt_error_expired">The code expired. Start the connection again.</string>
+    <string name="trakt_error_denied">Access was denied on Trakt.</string>
+    <string name="trakt_error_reauthorize">Trakt revoked access. Connect again.</string>
+    <string name="trakt_client_id">Client ID</string>
+    <string name="trakt_client_secret">Client Secret</string>
+    <string name="trakt_saved">Saved</string>
+    <string name="trakt_hint">Trakt requires an app in your name: create one at trakt.tv/oauth/applications with the redirect URI urn:ietf:wg:oauth:2.0:oob, then enter its Client ID and Client Secret here.</string>
+    <string name="trakt_connect">Connect</string>
+    <string name="trakt_code_title">Enter This Code on Trakt</string>
+    <string name="trakt_code_body">Open %1$s or scan the QR code, sign in, and enter the code. Wicaby is waiting for approval.</string>
+    <string name="trakt_connected">Connected to Trakt</string>
+    <string name="trakt_connected_as">Connected as %1$s</string>
+    <string name="trakt_connected_desc">Movies and episodes played in Wicaby are scrobbled to Trakt (start, pause, and stop), and “Watched” updates your Trakt history.</string>
+    <string name="trakt_disconnect">Disconnect</string>
+    <string name="trakt_servers">Servers</string>
+    <string name="trakt_no_server">No server signed in.</string>
+    <string name="trakt_server_plugin">Server’s Trakt plugin</string>
+    <string name="trakt_servers_hint">A server’s Trakt plugin already scrobbles, so Wicaby doesn’t do it twice. Without administrator rights, Wicaby can’t check plugins: turn off a server that already has the Trakt plugin.</string>
+    <string name="trakt_foot">The Client Secret and tokens are encrypted by the Android Keystore on this device and are never logged.</string>
+</resources>

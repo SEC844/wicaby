@@ -1,0 +1,54 @@
+{
+  "intro": {
+    "title": "Welcome to Wicaby",
+    "body": "All your media in one place.",
+    "language": "Language",
+    "system": "System"
+  },
+  "actions": {
+    "start": "Get Started",
+    "skip": "Skip Setup",
+    "notNow": "Not Now"
+  },
+  "progress": "Step {step} of {count}",
+  "look": {
+    "title": "Make It Yours",
+    "body": "Choose a theme and a color. You can change them in Settings.",
+    "preview": "Preview"
+  },
+  "where": {
+    "title": "Where Is Your Server?",
+    "yours": "Signed in to {servers}",
+    "lan": {
+      "title": "On This Network",
+      "body": "Wicaby finds it on its own."
+    },
+    "vpn": {
+      "title": "Away from Home with a VPN",
+      "body": "Tailscale or NetBird, built into Wicaby.",
+      "byAddress": "Add by Address"
+    },
+    "public": {
+      "title": "I Have a Public Address",
+      "body": "An https:// address, for example through a reverse proxy.",
+      "placeholder": "https://media.example.com",
+      "insecure": "This connection isn’t encrypted."
+    }
+  },
+  "signin": {
+    "title": "Sign In to {server}",
+    "addAnother": "Add Another Server"
+  },
+  "extras": {
+    "title": "A Few Extras",
+    "startup": "Open at Windows Startup",
+    "torrents": "Set Up…",
+    "trakt": "Connect…"
+  },
+  "done": {
+    "title": "You’re All Set",
+    "remote": "Remote Access Settings",
+    "start": "Start Watching",
+    "none": "No server yet. You can add one in Settings."
+  }
+}

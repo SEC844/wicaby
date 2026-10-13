@@ -1,0 +1,262 @@
+/* Shared look of the administration sections: the same quiet grouped cards as
+   Settings. Global but prefixed `a-` so nothing outside the admin pane matches. */
+
+.a-gh {
+  margin: 30px 0 8px 2px;
+  font-size: var(--fs-footnote);
+  font-weight: 500;
+  color: var(--label-3);
+}
+.a-gh:first-child {
+  margin-top: 0;
+}
+.a-foot {
+  margin: 10px 2px 0;
+  font-size: var(--fs-footnote);
+  color: var(--label-3);
+  line-height: 1.5;
+}
+.a-group {
+  border-radius: var(--r-sm);
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow: hidden;
+}
+.a-group + .a-group {
+  margin-top: 12px;
+}
+.a-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 11px 18px;
+}
+.a-row.compact {
+  min-height: 40px;
+  padding-block: 8px;
+}
+/* Hairline between rows, inset to the text edge. */
+.a-row + .a-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 0;
+  height: 1px;
+  background: var(--separator);
+}
+.a-txt {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.a-lbl {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--label);
+}
+.a-lbl.soft {
+  font-weight: 400;
+  color: var(--label-2);
+}
+.a-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-footnote);
+  color: var(--label-3);
+  line-height: 1.45;
+}
+.a-val {
+  flex: none;
+  font-size: var(--fs-callout);
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  user-select: text;
+}
+.a-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* Push button: small and neutral, like Settings. */
+.a-push {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--r-xs);
+  background: var(--fill-2);
+  font-size: var(--fs-callout);
+  font-weight: 500;
+  color: var(--label);
+  white-space: nowrap;
+  transition: background-color var(--t-fast) var(--ease);
+}
+.a-push:hover,
+.a-push:focus-visible {
+  background: var(--fill-3);
+}
+.a-push:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.a-push.ghost {
+  background: transparent;
+  color: var(--label-2);
+}
+.a-push.ghost:hover,
+.a-push.ghost:focus-visible {
+  background: var(--fill-2);
+  color: var(--label);
+}
+.a-push.primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.a-push.primary:hover,
+.a-push.primary:focus-visible {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+}
+.a-push.danger {
+  color: var(--danger);
+}
+.a-push.icon {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  color: var(--label-2);
+}
+.a-push.icon:hover,
+.a-push.icon:focus-visible {
+  color: var(--label);
+}
+
+/* Status dot + text. */
+.a-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  font-size: var(--fs-footnote);
+  color: var(--label-2);
+}
+.a-status::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--label-3);
+}
+.a-status.ok::before {
+  background: var(--success);
+}
+.a-status.warn::before {
+  background: var(--warning);
+}
+.a-status.bad::before {
+  background: var(--danger);
+}
+
+.a-empty {
+  padding: 28px 18px;
+  font-size: var(--fs-callout);
+  color: var(--label-3);
+  text-align: center;
+}
+
+/* Thin progress track (accent fill is allowed for progress). */
+.a-progress {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+.a-progress > span {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+  background: var(--accent);
+  border-radius: inherit;
+  transition: transform var(--t-med) var(--ease);
+}
+.a-progress.muted > span {
+  background: var(--label-3);
+}
+
+/* Text fields inside sheets and rows. */
+.a-input {
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: var(--fill-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  font: inherit;
+  font-size: var(--fs-callout);
+  color: var(--label);
+  outline: none;
+  min-width: 0;
+}
+.a-input:focus {
+  background: var(--fill-2);
+}
+textarea.a-input {
+  height: auto;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+/* Sheet body used by confirmation and edit sheets. */
+.a-sheet {
+  padding: 26px 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.a-sheet h2 {
+  margin: 0;
+  padding-right: 36px;
+  font-size: var(--fs-title-3);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+}
+.a-sheet p {
+  margin: 0;
+  font-size: var(--fs-callout);
+  color: var(--label-2);
+  line-height: 1.5;
+}
+.a-sheet label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-footnote);
+  color: var(--label-2);
+}
+.a-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.a-sheet-actions .a-push {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+}

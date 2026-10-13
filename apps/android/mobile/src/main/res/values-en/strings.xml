@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English. Same keys and format arguments as values/strings.xml (French, the default). -->
+<resources>
+    <string name="loading">Loading…</string>
+
+    <!-- Server -->
+    <string name="welcome">Welcome to Wicaby</string>
+    <string name="welcome_sub">Connect to your Emby or Jellyfin server.</string>
+    <string name="on_network">On This Network</string>
+    <string name="searching_lan">Searching your local network…</string>
+    <string name="no_server_found">No servers found on your network.</string>
+    <string name="search_again">Search Again</string>
+    <string name="manual_address">Server Address</string>
+    <string name="remote_access_setup">Remote Access (Tailscale / NetBird)</string>
+    <string name="address_hint">192.168.1.20:8096 or https://…</string>
+    <string name="connect">Connect</string>
+    <string name="server_unreachable">Server can’t be reached</string>
+    <string name="saved_server">Last Server</string>
+
+    <!-- Users -->
+    <string name="who_is_watching">Who’s Watching?</string>
+    <string name="other_user">Other</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="sign_in">Sign In</string>
+    <string name="wrong_credentials">Incorrect username or password</string>
+    <string name="password_for">Password for %1$s</string>
+    <string name="show_password">Show Password</string>
+    <string name="hide_password">Hide Password</string>
+    <string name="change_server">Switch Server</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Home</string>
+    <string name="tab_libraries">Libraries</string>
+    <string name="tab_search">Search</string>
+    <string name="tab_downloads">Downloads</string>
+    <string name="tab_settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="nav_libraries">Libraries</string>
+    <string name="nav_downloads">Downloads</string>
+
+    <!-- Home -->
+    <string name="continue_watching">Continue Watching</string>
+    <string name="next_up">Up Next</string>
+    <string name="latest_in">Recently Added in %1$s</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="more_info">More Info</string>
+    <string name="empty_home">Nothing to show yet.</string>
+    <string name="load_error">Can’t reach the server.</string>
+    <string name="offline_hint">Your downloads are still available offline.</string>
+    <string name="retry">Retry</string>
+
+    <!-- Libraries -->
+    <plurals name="items_count">
+        <item quantity="one">%1$s item</item>
+        <item quantity="other">%1$s items</item>
+    </plurals>
+    <string name="sort_name">Name</string>
+    <string name="sort_added">Date Added</string>
+    <string name="sort_year">Year</string>
+    <string name="sort_rating">Rating</string>
+    <string name="filter_all">All</string>
+    <string name="filter_unplayed">Unwatched</string>
+    <string name="filter_favorites">Favorites</string>
+    <string name="no_libraries">No video libraries.</string>
+    <string name="nothing_here">Nothing here.</string>
+
+    <!-- Search -->
+    <string name="search_hint">Movies, shows, episodes…</string>
+    <string name="search_empty">No results.</string>
+    <string name="search_prompt">Type at least two letters.</string>
+    <string name="clear">Clear</string>
+
+    <!-- Detail -->
+    <string name="from_start">Start Over</string>
+    <string name="favorite">Favorite</string>
+    <string name="watched">Watched</string>
+    <string name="download">Download</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="resume_time_left">Resume · %1$s left</string>
+    <string name="play_episode">Play S%1$d, E%2$d</string>
+    <string name="season_n">Season %1$d</string>
+    <string name="episode_code">S%1$d, E%2$d</string>
+    <string name="cast">Cast</string>
+    <string name="similar">More Like This</string>
+    <string name="more">More</string>
+    <string name="less">Less</string>
+    <string name="stereo">Stereo</string>
+
+    <!-- Downloads -->
+    <string name="downloads_empty">No downloads</string>
+    <string name="downloads_empty_sub">Tap Download on a movie or episode to watch it offline.</string>
+    <string name="download_queued">Queued</string>
+    <string name="download_failed">Failed · tap to retry</string>
+    <string name="download_size">%1$s of %2$s</string>
+    <string name="downloaded_size">Downloaded · %1$s</string>
+    <string name="delete">Delete</string>
+    <string name="storage_used">%1$s used</string>
+    <plurals name="pending_sync">
+        <item quantity="one">%1$d playback position waiting to sync</item>
+        <item quantity="other">%1$d playback positions waiting to sync</item>
+    </plurals>
+    <string name="download_channel">Downloads</string>
+    <string name="downloading_n">Downloading %1$s</string>
+
+    <!-- Torrents (qBittorrent) -->
+    <string name="segment_offline">Offline</string>
+    <string name="qbit_title">Connect qBittorrent</string>
+    <string name="qbit_sub">The qBittorrent Web UI must be turned on.</string>
+    <string name="qbit_address">Address, e.g. 192.168.1.10:8080</string>
+    <string name="qbit_disconnect">Disconnect qBittorrent</string>
+    <string name="qbit_add_hint">Magnet link or .torrent</string>
+    <string name="qbit_add">Add</string>
+    <string name="qbit_connecting">Connecting to qBittorrent…</string>
+    <string name="remove">Remove</string>
+    <string name="remove_with_files">Remove and Delete Files</string>
+
+    <!-- Settings -->
+    <string name="settings_account">Account</string>
+    <string name="signed_in_as">%1$s on %2$s</string>
+    <string name="switch_user">Switch User</string>
+    <string name="switch_server">Switch Server</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="settings_accent">Accent Color</string>
+    <string name="accent_blue">Blue</string>
+    <string name="accent_indigo">Indigo</string>
+    <string name="accent_purple">Purple</string>
+    <string name="accent_pink">Pink</string>
+    <string name="accent_red">Red</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_green">Green</string>
+    <string name="accent_graphite">Graphite</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">System Default</string>
+    <string name="settings_playback">Playback</string>
+    <string name="settings_bitrate">Maximum Streaming Bitrate</string>
+    <string name="settings_bitrate_auto">Auto</string>
+    <string name="mbps">%1$d Mbps</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="wifi_only">Wi-Fi Only</string>
+    <string name="wifi_only_sub">Wait for an unmetered network.</string>
+    <string name="open_in_browser">Open in Browser</string>
+    <string name="about">About</string>
+    <string name="about_line">Wicaby %1$s · Geist font (SIL OFL 1.1) · FFmpeg (GPL v3) · libass (ISC)</string>
+
+    <!-- Player -->
+    <string name="audio">Audio Track</string>
+    <string name="subtitles">Subtitles</string>
+    <string name="subtitles_off">Off</string>
+    <string name="speed_normal">Normal</string>
+    <string name="track_unknown">Track %1$d</string>
+    <string name="skip_intro">Skip Intro</string>
+    <string name="up_next">Next Episode</string>
+    <string name="play_now">Play</string>
+    <string name="up_next_in">Starts in %1$ds</string>
+    <string name="still_watching">Are you still watching?</string>
+    <string name="still_watching_sub">Playback is paused.</string>
+    <string name="keep_watching">Continue</string>
+    <string name="stop_watching">Stop</string>
+    <string name="seek_back_seconds">−%1$ds</string>
+    <string name="seek_forward_seconds">+%1$ds</string>
+    <string name="rewind_10">Back 10 seconds</string>
+    <string name="forward_10">Forward 10 seconds</string>
+    <string name="close">Close</string>
+    <string name="brightness">Brightness</string>
+    <string name="volume">Volume</string>
+    <string name="pip">Picture-in-Picture</string>
+    <string name="eyebrow_offline">%1$s · Offline Copy</string>
+    <!-- Comic reader -->
+    <string name="reader_read">Read</string>
+    <string name="reader_resume_page">Resume Reading (p. %1$d)</string>
+    <string name="reader_loading">Loading book… %1$d%%</string>
+    <string name="reader_back">Back</string>
+    <string name="reader_page_of">Page %1$s of %2$d</string>
+    <string name="reader_rtl">Manga Order</string>
+    <string name="reader_webtoon">Vertical Scroll</string>
+    <string name="play_on_failed">The device didn’t respond.</string>
+    <string name="play_on_unavailable">This server doesn’t allow remote control.</string>
+    <string name="play_on_waiting">Waiting for playback…</string>
+    <string name="play_on_back">Back 10 Seconds</string>
+    <string name="play_on_forward">Forward 30 Seconds</string>
+    <string name="play_on_next">Next</string>
+    <string name="play_on_other">Other Devices</string>
+    <string name="pair_tv">Connect a TV</string>
+    <string name="pair_tv_sub">Take a photo of the code Wicaby shows on the TV</string>
+    <string name="pair_no_code">No readable Wicaby TV code in the photo.</string>
+    <string name="pair_no_camera">No camera app available.</string>
+    <string name="pair_done">TV connected.</string>
+    <string name="pair_failed">The TV couldn’t sign in. Try again with the new code.</string>
+    <string name="pair_confirm_title">Connect This TV?</string>
+    <string name="pair_confirm_body">The TV at %1$s will use %2$s’s session from this phone.</string>
+    <string name="pair_connect">Connect</string>
+    <string name="pair_cancel">Cancel</string>
+
+    <!-- Segment skipping, watched episodes, offline -->
+    <string name="skip_intro_mode">Intros</string>
+    <string name="skip_ask">Offer to Skip</string>
+    <string name="skip_auto">Skip Automatically</string>
+    <string name="skip_off">Don’t Offer</string>
+    <string name="mark_played">Mark as Watched</string>
+    <string name="mark_unplayed">Mark as Unwatched</string>
+    <string name="mark_previous_played">Mark Previous Episodes as Watched</string>
+    <string name="mark_season_played">Mark Season as Watched</string>
+    <string name="mark_season_unplayed">Mark Season as Unwatched</string>
+    <string name="mark_failed">Couldn’t change the watched status.</string>
+    <!-- Live TV (livetv.json names, §13) -->
+    <string name="livetv_tabs_now">Live</string>
+    <string name="livetv_tabs_guide">Guide</string>
+    <string name="livetv_now_resume">Resume %1$s</string>
+    <string name="livetv_now_rows_favorites">Favorite Channels</string>
+    <string name="livetv_now_rows_recents">Recently Watched</string>
+    <string name="livetv_now_rows_on_now">On Now</string>
+    <string name="livetv_now_rows_movies">Movies On Now</string>
+    <string name="livetv_now_rows_sports">Live Sports</string>
+    <string name="livetv_now_rows_news">News</string>
+    <string name="livetv_now_rows_kids">Kids</string>
+    <string name="livetv_now_rows_series">TV Shows</string>
+    <string name="livetv_now_rows_all_channels">All Channels</string>
+    <string name="livetv_now_until">until %1$s</string>
+    <string name="livetv_guide_today">Today</string>
+    <string name="livetv_guide_tomorrow">Tomorrow</string>
+    <string name="livetv_guide_dayparts_now">Now</string>
+    <string name="livetv_guide_dayparts_morning">Morning</string>
+    <string name="livetv_guide_dayparts_afternoon">Afternoon</string>
+    <string name="livetv_guide_dayparts_evening">Evening</string>
+    <string name="livetv_guide_dayparts_tonight">Tonight</string>
+    <string name="livetv_guide_dayparts_night">Night</string>
+    <string name="livetv_channel_agenda">Channel Schedule</string>
+    <string name="livetv_channel_logo_alt">%1$s logo</string>
+    <string name="livetv_sheet_watch_channel">Watch Channel</string>
+    <string name="livetv_channel_hide">Hide Channel</string>
+    <string name="livetv_channel_add_to_group">Add to Group…</string>
+    <string name="livetv_manage_new_group">New Group</string>
+    <string name="livetv_manage_group_name">Group Name</string>
+    <!-- Live player (M-2) -->
+    <string name="player_live_channel_list">Channel List</string>
+    <string name="player_live_last_channel">Last Channel</string>
+    <string name="player_live_next_channel">Next Channel</string>
+    <string name="player_live_previous_channel">Previous Channel</string>
+    <string name="player_live_tuning">Tuning…</string>
+    <!-- Live TV recordings (M-3) -->
+    <string name="livetv_tabs_recordings">Recordings</string>
+    <string name="livetv_tabs_scheduled">Scheduled</string>
+    <string name="livetv_actions_record">Record</string>
+    <string name="livetv_actions_record_series">Record Series</string>
+    <string name="livetv_actions_cancel_recording">Cancel Recording</string>
+    <string name="livetv_record_options">Recording Options…</string>
+    <string name="livetv_record_title">Recording Options</string>
+    <string name="livetv_record_this_episode">This Episode</string>
+    <string name="livetv_record_whole_series">Whole Series</string>
+    <string name="livetv_record_start_early">Start Early</string>
+    <string name="livetv_record_end_late">End Late</string>
+    <string name="livetv_record_new_only">New Episodes Only</string>
+    <string name="livetv_record_any_channel">On Any Channel</string>
+    <string name="livetv_record_any_time">At Any Time</string>
+    <string name="livetv_record_days">Days</string>
+    <string name="livetv_record_every_day">Every Day</string>
+    <string name="livetv_record_weekdays">Weekdays</string>
+    <string name="livetv_record_weekends">Weekends</string>
+    <string name="livetv_record_skip_in_library">Skip Episodes Already in Library</string>
+    <string name="livetv_record_keep_up_to">Keep</string>
+    <string name="livetv_record_keep_until">Keep Until</string>
+    <string name="livetv_record_keep_until_deleted">I Delete It</string>
+    <string name="livetv_record_keep_until_space">Space Is Needed</string>
+    <string name="livetv_record_keep_until_watched">I Watch It</string>
+    <string name="livetv_record_save_default">Use This Padding by Default</string>
+    <string name="livetv_record_schedule">Schedule</string>
+    <string name="livetv_record_apply">Apply</string>
+    <string name="livetv_toasts_recording_scheduled">Recording scheduled</string>
+    <string name="livetv_toasts_recording_canceled">Recording canceled</string>
+    <string name="livetv_toasts_series_scheduled">Series scheduled</string>
+    <string name="livetv_toasts_series_canceled">Series canceled</string>
+    <string name="livetv_toasts_already_scheduled">This recording is already scheduled.</string>
+    <string name="livetv_toasts_forbidden">Your account can’t manage recordings.</string>
+    <string name="livetv_toasts_premiere">The server refused to record. Emby requires Emby Premiere for DVR.</string>
+    <string name="livetv_toasts_not_series">This program isn’t a series.</string>
+    <string name="livetv_toasts_rule_updated">Rule updated</string>
+    <string name="livetv_toasts_padding_updated">Padding updated</string>
+    <string name="livetv_toasts_priorities_updated">Priorities updated</string>
+    <string name="livetv_scheduled_upcoming">Upcoming</string>
+    <string name="livetv_scheduled_rules">Series Rules</string>
+    <string name="livetv_scheduled_status_scheduled">Scheduled</string>
+    <string name="livetv_scheduled_status_recording">Recording</string>
+    <string name="livetv_scheduled_status_conflict_ok">Conflict, Will Record</string>
+    <string name="livetv_scheduled_status_wont">Won’t Record</string>
+    <string name="livetv_scheduled_status_error">Error</string>
+    <string name="livetv_scheduled_empty">No recordings scheduled. Open a program in the guide to record it.</string>
+    <string name="livetv_scheduled_rules_empty">No series rules.</string>
+    <string name="livetv_scheduled_read_only">Your account can see recordings but not schedule them.</string>
+    <string name="livetv_scheduled_recording_now">Recording Now</string>
+    <string name="livetv_scheduled_show">Show</string>
+    <string name="livetv_scheduled_padding">padding −%1$d / +%2$d min</string>
+    <string name="livetv_scheduled_edit_padding">Edit Padding</string>
+    <string name="livetv_scheduled_skip_episode">Skip This Episode</string>
+    <string name="livetv_scheduled_cancel">Cancel Recording</string>
+    <string name="livetv_scheduled_all_channels">All Channels</string>
+    <string name="livetv_scheduled_edit_rule">Edit Rule</string>
+    <string name="livetv_scheduled_delete_rule">Delete Rule</string>
+    <string name="livetv_scheduled_delete_rule_confirm">Delete the rule “%1$s” and its scheduled recordings?</string>
+    <string name="livetv_scheduled_reorder">Reorder Priorities…</string>
+    <string name="livetv_recordings_empty">No recordings yet. Open a program in the guide to record it.</string>
+    <string name="livetv_recordings_new_only">new episodes only</string>
+    <string name="livetv_recordings_sections_in_progress">In Progress</string>
+    <string name="livetv_recordings_sections_recent">Recently Recorded</string>
+    <string name="livetv_recordings_sections_series">TV Shows</string>
+    <string name="livetv_recordings_sections_movies">Movies</string>
+    <string name="livetv_recordings_sections_sports">Sports</string>
+    <string name="livetv_recordings_sections_other">Other</string>
+    <string name="livetv_recordings_delete_confirm">Delete “%1$s”? The file will be removed from the server.</string>
+    <string name="livetv_manage_move_up">Move Up</string>
+    <string name="livetv_manage_move_down">Move Down</string>
+    <plurals name="livetv_record_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="livetv_record_minutes_zero">On Time</string>
+    <plurals name="livetv_record_keep_up_to_value">
+        <item quantity="one">Latest %d Episode</item>
+        <item quantity="other">Latest %d Episodes</item>
+    </plurals>
+    <string name="livetv_record_keep_up_to_value_zero">All Episodes</string>
+    <plurals name="livetv_toasts_recordings_deleted">
+        <item quantity="one">%d recording deleted</item>
+        <item quantity="other">%d recordings deleted</item>
+    </plurals>
+    <plurals name="livetv_scheduled_conflicts">
+        <item quantity="one">%d recording won’t happen</item>
+        <item quantity="other">%d recordings won’t happen</item>
+    </plurals>
+    <plurals name="livetv_scheduled_rule_episodes">
+        <item quantity="one">%d episode scheduled</item>
+        <item quantity="other">%d episodes scheduled</item>
+    </plurals>
+    <string name="livetv_scheduled_rule_episodes_zero">No episodes scheduled</string>
+    <plurals name="livetv_recordings_episodes">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
+    <plurals name="livetv_recordings_delete_many">
+        <item quantity="one">Delete %d recording?</item>
+        <item quantity="other">Delete %d recordings?</item>
+    </plurals>
+    <string name="livetv_scheduled_reorder_hint">Move a rule with the arrows. The first one wins a conflict.</string>
+    <plurals name="livetv_recordings_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="cancel">Cancel</string>
+    <!-- CA-05: "Play on" request while the app is in the background -->
+    <string name="remote_play_request_title">Playback Requested by %1$s</string>
+    <string name="remote_play_action">Play</string>
+    <string name="remote_play_dismiss">Dismiss</string>
+    <string name="remote_channel_name">Remote Control</string>
+    <string name="settings_cast_title">Casting</string>
+    <string name="settings_cast_discovery">Search for TVs and players on the local network</string>
+    <string name="settings_cast_seed">Renderer address (debug)</string>
+    <string name="settings_cast_allow_hevc">Allow HEVC on Chromecast</string>
+    <string name="settings_cast_dolby">The TV or amplifier accepts Dolby (AC3/EAC3)</string>
+    <!-- Onboarding (OB-M1), several servers (TP-06) and the OLED theme (OB-X) -->
+    <string name="wizard_continue">Continue</string>
+    <string name="public_address_hint">https://media.example.com</string>
+    <string name="other_servers">Other Servers</string>
+    <string name="other_servers_hint">Titles from all your servers show up in Home, Libraries and Search.</string>
+    <string name="add_server">Add Server</string>
+    <string name="remove_server">Remove Server</string>
+    <string name="server_is_main">This server is already your main server.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_oled">OLED (Pure Black)</string>
+</resources>

@@ -1,0 +1,142 @@
+{
+  "playback": {
+    "notAllowed": "La lecture de ce contenu n’est pas autorisée pour cet utilisateur",
+    "noCompatibleStream": "Aucun flux compatible",
+    "rateLimit": "Limite de flux simultanés atteinte",
+    "refused": "Lecture refusée par le serveur ({code})",
+    "nothingToPlay": "Rien à lire",
+    "notOffline": "Ce contenu n’est pas disponible hors ligne",
+    "noMediaSource": "Aucune source média",
+    "liveStreamFailed": "Impossible d’ouvrir le flux en direct",
+    "noPlayMethod": "Le serveur ne propose aucun mode de lecture compatible",
+    "fileError": "Lecture impossible ({reason})",
+    "fileErrorUnknown": "Lecture impossible (erreur mpv)",
+    "mpvExited": "mpv a quitté de façon inattendue",
+    "mpvStartExit": "mpv s’est arrêté au démarrage",
+    "mpvTooOld": "mpv {version} est trop ancien : Wicaby a besoin de mpv {min} ou plus récent",
+    "mpvPipe": "Impossible de joindre le pipe IPC de mpv",
+    "mpvNotStarted": "mpv non démarré",
+    "connectionLost": "Connexion au serveur perdue : lecture interrompue"
+  },
+  "comics": {
+    "unsupported": "Format non pris en charge : seules les bandes dessinées CBZ sont lisibles pour le moment (pas encore de CBR, PDF ni EPUB).",
+    "invalidServer": "Serveur invalide",
+    "invalidId": "Identifiant invalide",
+    "notDownloaded": "Hors ligne : ce livre n’est pas téléchargé",
+    "noPages": "Aucune page trouvée dans cette archive",
+    "notAllowed": "Lecture non autorisée pour cet utilisateur"
+  },
+  "ipc": {
+    "invalidServer": "Serveur invalide",
+    "invalidQuery": "Requête invalide",
+    "unauthorizedSender": "Expéditeur non autorisé",
+    "unknownCache": "Cache inconnu",
+    "invalidSettings": "Réglages invalides",
+    "fileTooLarge": "Fichier trop volumineux",
+    "notSettingsExport": "Ce fichier n’est pas un export de réglages Wicaby",
+    "invalidAddress": "Adresse invalide",
+    "invalidCredentials": "Identifiants invalides",
+    "invalidId": "Identifiant invalide",
+    "invalidIds": "Identifiants invalides",
+    "methodRefused": "Méthode refusée",
+    "pathRefused": "Chemin refusé",
+    "invalidPlayRequest": "Requête de lecture invalide",
+    "invalidCommand": "Commande invalide",
+    "unknownNetwork": "Réseau inconnu",
+    "invalidOptions": "Options invalides",
+    "invalidManagementUrl": "Adresse du serveur de gestion invalide",
+    "invalidKey": "Clé invalide",
+    "embeddedUnavailable": "Réseau intégré indisponible",
+    "invalidPage": "Page invalide",
+    "invalidUrlScheme": "Adresse invalide : http:// ou https:// attendu",
+    "invalidTorrent": "Torrent invalide",
+    "invalidCategory": "Catégorie invalide",
+    "invalidCertificate": "Certificat invalide",
+    "nothingToAdd": "Rien à ajouter",
+    "invalidMagnet": "Lien magnet invalide",
+    "invalidTorrentFile": "Fichier .torrent invalide",
+    "torrentFilesTooLarge": "Fichiers .torrent trop volumineux",
+    "invalidFolder": "Dossier invalide",
+    "unknownAction": "Action inconnue"
+  },
+  "connection": {
+    "timeout": "Délai dépassé",
+    "notAServer": "Pas un serveur Emby/Jellyfin",
+    "noAddress": "Aucune adresse",
+    "unreachable": "Serveur injoignable",
+    "noServerConnected": "Aucun serveur connecté",
+    "notSignedIn": "Non connecté",
+    "emptyAddress": "Adresse vide",
+    "unknownServer": "Serveur inconnu",
+    "wrongServer": "L’adresse répond avec un autre serveur",
+    "noServerSelected": "Aucun serveur sélectionné",
+    "wrongCredentials": "Identifiants incorrects",
+    "invalidMac": "Adresse MAC invalide : {mac}",
+    "embyConnect": {
+      "wrongCredentials": "Identifiants Emby Connect incorrects",
+      "unavailable": "Emby Connect indisponible (HTTP {status})",
+      "serversUnavailable": "Liste des serveurs Emby Connect indisponible (HTTP {status})",
+      "exchangeRefused": "Échange Emby Connect refusé (HTTP {status})"
+    }
+  },
+  "settings": {
+    "invalidFile": "Fichier de réglages invalide"
+  },
+  "downloads": {
+    "noServer": "Aucun serveur",
+    "forbidden": "Téléchargement non autorisé pour cet utilisateur"
+  },
+  "torrents": {
+    "noResponse": "qBittorrent ne répond pas.",
+    "certificate": "Certificat non reconnu",
+    "nothingAtAddress": "Rien ne répond à cette adresse.",
+    "unreachable": "qBittorrent est injoignable.",
+    "banned": "qBittorrent a bloqué cette adresse après trop d’échecs. Réessayez plus tard.",
+    "wrongCredentials": "Identifiant ou mot de passe incorrect",
+    "forbidden": "Accès refusé par qBittorrent",
+    "queueDisabled": "La file d’attente de qBittorrent est désactivée",
+    "unknownCategory": "Catégorie inconnue de qBittorrent",
+    "invalidFile": "Fichier .torrent invalide",
+    "unsupported": "Fonction absente de cette version de qBittorrent",
+    "httpStatus": "qBittorrent a répondu {status}",
+    "serverSaid": "qBittorrent a répondu : {message}",
+    "rejected": "qBittorrent a refusé ce torrent",
+    "notConnected": "qBittorrent n’est pas connecté",
+    "unknownCertificate": "Certificat inconnu, testez la connexion à nouveau"
+  },
+  "vpn": {
+    "unavailable": "Réseau privé indisponible",
+    "embeddedMissing": "Le réseau intégré n’est pas inclus dans cette version",
+    "connectFailed": "Connexion impossible",
+    "awaitingApproval": "En attente d’approbation par l’administrateur du réseau",
+    "otherSession": "Utilisé par une autre session Windows",
+    "tailscaleReset": "Tailscale demande de confirmer ses réglages : connectez-vous depuis l’application Tailscale.",
+    "tailscaleBusy": "Tailscale est utilisé par une autre session Windows.",
+    "needsAdmin": "Le client a besoin des droits administrateur : connectez-vous depuis son application.",
+    "needsOperator": "Tailscale n’accepte la connexion que de root sur cet ordinateur. Exécutez une fois dans un terminal : sudo tailscale set --operator=$USER, puis réessayez.",
+    "needsRoot": "NetBird a besoin des droits root. Exécutez dans un terminal : sudo netbird up",
+    "serviceStopped": "Le service du client n’est pas démarré : ouvrez son application.",
+    "upFailedDetail": "Échec de la connexion : {detail}",
+    "upFailed": "Échec de la connexion au réseau privé"
+  },
+  "images": {
+    "invalidItem": "Élément invalide",
+    "typeRefused": "Type d’image refusé",
+    "formatRefused": "Format d’image refusé",
+    "invalid": "Image invalide",
+    "tooLarge": "Image trop volumineuse (20 Mo au plus)",
+    "notAnImage": "Le contenu du fichier ne correspond pas à une image"
+  },
+  "trakt": {
+    "invalidClient": "Client ID ou Client Secret invalide",
+    "failed": "Trakt n’a pas pu être joint : {error}",
+    "expired": "Le code a expiré. Recommencez la connexion.",
+    "denied": "L’accès a été refusé sur Trakt.",
+    "reauthorize": "Trakt a révoqué l’accès. Reconnectez-vous."
+  },
+  "livetv": {
+    "tuneTimeout": "La chaîne ne répond pas.",
+    "tunerBusy": "Aucun tuner disponible.",
+    "noStream": "Ce serveur ne propose aucun flux lisible pour cette chaîne."
+  }
+}

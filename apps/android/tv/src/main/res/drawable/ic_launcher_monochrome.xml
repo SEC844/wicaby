@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Android 13+ themed icon layer: one colour, the launcher tints it. The gap stays open. -->
+    <group
+        android:translateX="17.11673"
+        android:translateY="17.39554"
+        android:scaleX="0.07137550000000001"
+        android:scaleY="0.07137550000000001">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M187.76 461.85A65 65 0 0 1 303.24 402.15L373.35 537.76L461.97 401.13A65 65 0 0 1 574.18 406.54L643.25 539.52L692 464.44A42.5 42.5 0 0 0 751.57 483.36L797.83 456.96A11 11 0 0 1 813.03 471.6L694.63 698.56A65 65 0 0 1 579.32 698.46L510.28 565.54L421.53 702.37A65 65 0 0 1 309.26 696.85Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M707.5 334A25 25 0 0 1 744.89 312.29L840.39 366.79A25 25 0 0 1 840.39 410.21L744.89 464.71A25 25 0 0 1 707.5 443Z" />
+    </group>
+</vector>

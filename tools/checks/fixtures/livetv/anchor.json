@@ -1,0 +1,268 @@
+{
+  "about": "Days, dayparts and the anchor rule (§6.4, §21.4). Each case runs under its \"tz\" (Node: TZ; JVM: an injected TimeZone). Times are ISO with the local offset. fn: dayStart, addDays(t, n), dayKey, parseDayKey, parseAt(day, HHMM), dayChips(now, guideEnd|null) → {index, key, start, hours}; daypartTime(day, id); leftForNow(now, laneMs); leftForDaypart(day, id); leftForDay(day, currentLeft, live); shiftDay(left, days); anchorScenario(start, events) → {mode, recenter} per event.",
+  "cases": [
+    {
+      "name": "[Europe/Paris] day chips over the 25 h day (2026-10-25)",
+      "tz": "Europe/Paris",
+      "fn": "dayChips",
+      "args": ["2026-10-24T10:00:00+02:00","2026-10-27T12:00:00+01:00"],
+      "out": [
+        {"index":0,"key":"2026-10-24","start":"2026-10-24T00:00:00+02:00","hours":24},
+        {"index":1,"key":"2026-10-25","start":"2026-10-25T00:00:00+02:00","hours":25},
+        {"index":2,"key":"2026-10-26","start":"2026-10-26T00:00:00+01:00","hours":24},
+        {"index":3,"key":"2026-10-27","start":"2026-10-27T00:00:00+01:00","hours":24}
+      ]
+    },
+    {
+      "name": "[Europe/Paris] day chips: no GuideInfo → now + 7 days",
+      "tz": "Europe/Paris",
+      "fn": "dayChips",
+      "args": ["2026-10-22T10:00:00+02:00",null],
+      "out": [
+        {"index":0,"key":"2026-10-22","start":"2026-10-22T00:00:00+02:00","hours":24},
+        {"index":1,"key":"2026-10-23","start":"2026-10-23T00:00:00+02:00","hours":24},
+        {"index":2,"key":"2026-10-24","start":"2026-10-24T00:00:00+02:00","hours":24},
+        {"index":3,"key":"2026-10-25","start":"2026-10-25T00:00:00+02:00","hours":25},
+        {"index":4,"key":"2026-10-26","start":"2026-10-26T00:00:00+01:00","hours":24},
+        {"index":5,"key":"2026-10-27","start":"2026-10-27T00:00:00+01:00","hours":24},
+        {"index":6,"key":"2026-10-28","start":"2026-10-28T00:00:00+01:00","hours":24},
+        {"index":7,"key":"2026-10-29","start":"2026-10-29T00:00:00+01:00","hours":24}
+      ]
+    },
+    {
+      "name": "[Europe/Paris] day chips: guide end at midnight excludes that day",
+      "tz": "Europe/Paris",
+      "fn": "dayChips",
+      "args": ["2026-10-22T10:00:00+02:00","2026-10-24T00:00:00+02:00"],
+      "out": [
+        {"index":0,"key":"2026-10-22","start":"2026-10-22T00:00:00+02:00","hours":24},
+        {"index":1,"key":"2026-10-23","start":"2026-10-23T00:00:00+02:00","hours":24}
+      ]
+    },
+    {
+      "name": "[Europe/Paris] \"Nuit\" on the change night lands on local 00:00",
+      "tz": "Europe/Paris",
+      "fn": "daypartTime",
+      "args": ["2026-10-24T00:00:00+02:00","night"],
+      "out": "2026-10-25T00:00:00+02:00"
+    },
+    {
+      "name": "[Europe/Paris] \"Nuit\" of the 25 h day",
+      "tz": "Europe/Paris",
+      "fn": "daypartTime",
+      "args": ["2026-10-25T00:00:00+02:00","night"],
+      "out": "2026-10-26T00:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] \"Ce soir\" = 21:00 on the 25 h day",
+      "tz": "Europe/Paris",
+      "fn": "daypartTime",
+      "args": ["2026-10-25T00:00:00+02:00","tonight"],
+      "out": "2026-10-25T21:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] \"Matin\" = 06:00 after the change",
+      "tz": "Europe/Paris",
+      "fn": "daypartTime",
+      "args": ["2026-10-25T00:00:00+02:00","morning"],
+      "out": "2026-10-25T06:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] daypart jump puts the time 30 min in",
+      "tz": "Europe/Paris",
+      "fn": "leftForDaypart",
+      "args": ["2026-10-25T00:00:00+02:00","tonight"],
+      "out": "2026-10-25T20:30:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] \"Maintenant\": now line at ⅓ of a 4 h 30 lane",
+      "tz": "Europe/Paris",
+      "fn": "leftForNow",
+      "args": ["2026-10-22T21:42:00+02:00",16200000],
+      "out": "2026-10-22T20:12:00+02:00"
+    },
+    {
+      "name": "[Europe/Paris] picking a day keeps the time of day across DST",
+      "tz": "Europe/Paris",
+      "fn": "leftForDay",
+      "args": ["2026-10-25T00:00:00+02:00","2026-10-24T20:00:00+02:00",false],
+      "out": "2026-10-25T20:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] picking a day while live lands on Soirée (18:00 − 30 min)",
+      "tz": "Europe/Paris",
+      "fn": "leftForDay",
+      "args": ["2026-10-26T00:00:00+01:00","2026-10-24T20:00:00+02:00",true],
+      "out": "2026-10-26T17:30:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] Ctrl+→ keeps the wall clock (25 h later)",
+      "tz": "Europe/Paris",
+      "fn": "shiftDay",
+      "args": ["2026-10-24T21:00:00+02:00",1],
+      "out": "2026-10-25T21:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] Ctrl+← keeps the wall clock",
+      "tz": "Europe/Paris",
+      "fn": "shiftDay",
+      "args": ["2026-10-26T08:15:00+01:00",-2],
+      "out": "2026-10-24T08:15:00+02:00"
+    },
+    {
+      "name": "[Europe/Paris] day start inside the repeated hour",
+      "tz": "Europe/Paris",
+      "fn": "dayStart",
+      "args": ["2026-10-25T02:30:00+01:00"],
+      "out": "2026-10-25T00:00:00+02:00"
+    },
+    {
+      "name": "[Europe/Paris] addDays across DST",
+      "tz": "Europe/Paris",
+      "fn": "addDays",
+      "args": ["2026-10-25T12:00:00+01:00",1],
+      "out": "2026-10-26T00:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] day key",
+      "tz": "Europe/Paris",
+      "fn": "dayKey",
+      "args": ["2026-10-25T23:30:00+01:00"],
+      "out": "2026-10-25"
+    },
+    {
+      "name": "[Europe/Paris] parse day key",
+      "tz": "Europe/Paris",
+      "fn": "parseDayKey",
+      "args": ["2026-10-25"],
+      "out": "2026-10-25T00:00:00+02:00"
+    },
+    {
+      "name": "[Europe/Paris] parse day key: invalid date",
+      "tz": "Europe/Paris",
+      "fn": "parseDayKey",
+      "args": ["2026-02-30"],
+      "out": null
+    },
+    {
+      "name": "[Europe/Paris] parse at=2100",
+      "tz": "Europe/Paris",
+      "fn": "parseAt",
+      "args": ["2026-10-25T00:00:00+02:00","2100"],
+      "out": "2026-10-25T21:00:00+01:00"
+    },
+    {
+      "name": "[Europe/Paris] parse at=2500 → null",
+      "tz": "Europe/Paris",
+      "fn": "parseAt",
+      "args": ["2026-10-25T00:00:00+02:00","2500"],
+      "out": null
+    },
+    {
+      "name": "[Europe/Paris] live re-anchors after 5 min idle when the now line drifts; manual never moves",
+      "tz": "Europe/Paris",
+      "fn": "anchorScenario",
+      "args": [
+        "2026-10-22T20:00:00+02:00",
+        [
+          {"type":"tick","at":"2026-10-22T20:01:00+02:00","nowFrac":0.65},
+          {"type":"tick","at":"2026-10-22T20:05:00+02:00","nowFrac":0.62},
+          {"type":"tick","at":"2026-10-22T20:06:00+02:00","nowFrac":0.5},
+          {"type":"input","at":"2026-10-22T20:06:30+02:00"},
+          {"type":"tick","at":"2026-10-22T20:10:00+02:00","nowFrac":0.65},
+          {"type":"tick","at":"2026-10-22T20:11:30+02:00","nowFrac":0.66},
+          {"type":"pick","at":"2026-10-22T20:12:00+02:00"},
+          {"type":"tick","at":"2026-10-22T20:30:00+02:00","nowFrac":0.9},
+          {"type":"hidden","at":"2026-10-22T20:31:00+02:00"},
+          {"type":"visible","at":"2026-10-22T20:40:00+02:00"},
+          {"type":"tick","at":"2026-10-22T21:30:00+02:00","nowFrac":-1},
+          {"type":"now","at":"2026-10-22T21:31:00+02:00"},
+          {"type":"scroll","at":"2026-10-22T21:32:00+02:00","nowVisible":true},
+          {"type":"hidden","at":"2026-10-22T21:33:00+02:00"},
+          {"type":"visible","at":"2026-10-22T21:37:00+02:00"},
+          {"type":"hidden","at":"2026-10-22T21:40:00+02:00"},
+          {"type":"visible","at":"2026-10-22T21:46:00+02:00"},
+          {"type":"scroll","at":"2026-10-22T21:47:00+02:00","nowVisible":false},
+          {"type":"tick","at":"2026-10-22T22:30:00+02:00","nowFrac":1.5}
+        ]
+      ],
+      "out": [
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":true},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":true},
+        {"mode":"manual","recenter":false},
+        {"mode":"manual","recenter":false},
+        {"mode":"manual","recenter":false},
+        {"mode":"manual","recenter":false},
+        {"mode":"manual","recenter":false},
+        {"mode":"live","recenter":true},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":false},
+        {"mode":"live","recenter":true},
+        {"mode":"manual","recenter":false},
+        {"mode":"manual","recenter":false}
+      ]
+    },
+    {
+      "name": "[America/New_York] day chips over the 25 h day (2026-11-01)",
+      "tz": "America/New_York",
+      "fn": "dayChips",
+      "args": ["2026-10-31T10:00:00-04:00","2026-11-02T12:00:00-05:00"],
+      "out": [
+        {"index":0,"key":"2026-10-31","start":"2026-10-31T00:00:00-04:00","hours":24},
+        {"index":1,"key":"2026-11-01","start":"2026-11-01T00:00:00-04:00","hours":25},
+        {"index":2,"key":"2026-11-02","start":"2026-11-02T00:00:00-05:00","hours":24}
+      ]
+    },
+    {
+      "name": "[America/New_York] Paris change day is an ordinary day in New York",
+      "tz": "America/New_York",
+      "fn": "dayChips",
+      "args": ["2026-10-25T10:00:00-04:00","2026-10-26T10:00:00-04:00"],
+      "out": [
+        {"index":0,"key":"2026-10-25","start":"2026-10-25T00:00:00-04:00","hours":24},
+        {"index":1,"key":"2026-10-26","start":"2026-10-26T00:00:00-04:00","hours":24}
+      ]
+    },
+    {
+      "name": "[America/New_York] \"Nuit\" on the change night lands on local 00:00",
+      "tz": "America/New_York",
+      "fn": "daypartTime",
+      "args": ["2026-10-31T00:00:00-04:00","night"],
+      "out": "2026-11-01T00:00:00-04:00"
+    },
+    {
+      "name": "[America/New_York] \"Ce soir\" = 21:00 after the change",
+      "tz": "America/New_York",
+      "fn": "daypartTime",
+      "args": ["2026-11-01T00:00:00-04:00","tonight"],
+      "out": "2026-11-01T21:00:00-05:00"
+    },
+    {
+      "name": "[America/New_York] Ctrl+→ keeps the wall clock across the change",
+      "tz": "America/New_York",
+      "fn": "shiftDay",
+      "args": ["2026-10-31T21:00:00-04:00",1],
+      "out": "2026-11-01T21:00:00-05:00"
+    },
+    {
+      "name": "[America/New_York] spring forward: 02:30 does not exist on 2026-03-08",
+      "tz": "America/New_York",
+      "fn": "shiftDay",
+      "args": ["2026-03-07T02:30:00-05:00",1],
+      "out": "2026-03-08T03:30:00-04:00"
+    },
+    {
+      "name": "[America/New_York] spring forward day is 23 h",
+      "tz": "America/New_York",
+      "fn": "dayChips",
+      "args": ["2026-03-08T10:00:00-04:00","2026-03-08T20:00:00-04:00"],
+      "out": [{"index":0,"key":"2026-03-08","start":"2026-03-08T00:00:00-05:00","hours":23}]
+    }
+  ]
+}

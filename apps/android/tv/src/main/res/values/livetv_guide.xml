@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV en direct : la grille du guide, sa recherche et le saut par numéro (spec livetv §6, §12, §13.3, §21.7, TV-2). -->
+<resources>
+    <string name="livetv_guide_today">Aujourd’hui</string>
+    <string name="livetv_guide_tomorrow">Demain</string>
+    <string name="livetv_guide_day">Jour</string>
+    <string name="livetv_guide_dayparts_now">Maintenant</string>
+    <string name="livetv_guide_dayparts_morning">Matin</string>
+    <string name="livetv_guide_dayparts_afternoon">Après-midi</string>
+    <string name="livetv_guide_dayparts_evening">Soirée</string>
+    <string name="livetv_guide_dayparts_tonight">Ce soir</string>
+    <string name="livetv_guide_dayparts_night">Nuit</string>
+    <string name="livetv_guide_detail">Détails du programme</string>
+    <string name="livetv_guide_jump_to">Aller à %1$s</string>
+    <string name="livetv_guide_aria_grid">Guide des programmes</string>
+    <string name="livetv_guide_aria_cell">%1$s, %2$s, de %3$s à %4$s</string>
+    <string name="livetv_guide_aria_filler">%1$s, aucune information de programme</string>
+    <string name="livetv_guide_aria_on_now">en cours, %1$d %% écoulés</string>
+    <string name="livetv_marks_timer">Enregistrement programmé</string>
+    <string name="livetv_marks_series">Série programmée</string>
+    <string name="livetv_marks_recording">Enregistrement en cours</string>
+    <string name="livetv_marks_wont_record">Ne sera pas enregistré</string>
+    <string name="livetv_marks_conflict_ok">Conflit, sera enregistré</string>
+    <string name="livetv_marks_error">Erreur d’enregistrement</string>
+    <string name="livetv_marks_rule_skips">La règle de série n’enregistre pas cette diffusion.</string>
+    <string name="livetv_marks_reminder">Rappel programmé</string>
+    <string name="livetv_actions_search">Rechercher</string>
+    <string name="livetv_actions_record">Enregistrer</string>
+    <string name="livetv_actions_cancel_recording">Annuler l’enregistrement</string>
+    <string name="livetv_sheet_watch_channel">Regarder la chaîne</string>
+    <string name="livetv_sheet_remind_me">Me le rappeler</string>
+    <string name="livetv_sheet_cancel_reminder">Annuler le rappel</string>
+    <string name="livetv_search_placeholder">Chaîne, numéro ou programme</string>
+    <string name="livetv_search_channels">Chaînes</string>
+    <string name="livetv_search_programs">Programmes</string>
+    <string name="livetv_search_empty">Aucun résultat pour « %1$s »</string>
+    <string name="livetv_search_min_chars">Tapez au moins deux caractères.</string>
+    <string name="livetv_search_voice">Recherche vocale</string>
+    <string name="livetv_guide_record_failed">L’enregistrement n’a pas pu être modifié.</string>
+    <string name="livetv_guide_record_forbidden">Votre compte ne peut pas gérer les enregistrements.</string>
+</resources>

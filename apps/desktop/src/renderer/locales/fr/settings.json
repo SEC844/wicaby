@@ -1,0 +1,855 @@
+{
+  "general": {
+    "language": {
+      "label": "Langue / Language",
+      "desc": "Langue de l’interface de Wicaby. Automatique suit la langue de Windows.",
+      "descLinux": "Langue de l’interface de Wicaby. Automatique suit la langue du système.",
+      "auto": "Automatique",
+      "fr": "Français",
+      "en": "English"
+    },
+    "account": {
+      "admin": "Administrateur",
+      "user": "Utilisateur"
+    },
+    "startup": "Démarrage",
+    "startPage": {
+      "label": "Page de démarrage",
+      "desc": "La page ouverte après la connexion à votre serveur.",
+      "home": "Accueil",
+      "favorites": "Favoris",
+      "missing": "Bibliothèque introuvable"
+    },
+    "updates": {
+      "label": "Rechercher les mises à jour",
+      "desc": "Vérifiera au démarrage si une nouvelle version est disponible."
+    },
+    "player": "Lecteur",
+    "startFullscreen": {
+      "label": "Démarrer en plein écran",
+      "desc": "La vidéo s’ouvre directement en plein écran."
+    },
+    "confirmQuit": {
+      "label": "Confirmer avant de quitter pendant une lecture",
+      "desc": "Fermer Wicaby pendant une vidéo demande d’abord une confirmation."
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "space": "Espace",
+      "esc": "Échap",
+      "live": "TV en direct",
+      "record": "Appuyez sur une touche…",
+      "recordHint": "Enregistrer un raccourci pour « {action} »",
+      "captured": "Raccourci enregistré : {combo}",
+      "reset": "Réinitialiser",
+      "resetAll": "Tout réinitialiser",
+      "disable": "Désactiver",
+      "disabled": "Désactivé",
+      "conflict": "Déjà utilisé par « {action} »",
+      "import": "Importer…",
+      "export": "Exporter…",
+      "imported": "Raccourcis importés",
+      "invalidFile": "Fichier de raccourcis non valide : rien n’a été modifié.",
+      "action": {
+        "playPause": "Lecture ou pause",
+        "seekBack": "Reculer",
+        "seekForward": "Avancer",
+        "seekBackLong": "Reculer (long)",
+        "seekForwardLong": "Avancer (long)",
+        "volumeUp": "Monter le volume",
+        "volumeDown": "Baisser le volume",
+        "mute": "Couper le son",
+        "fullscreen": "Plein écran",
+        "next": "Élément suivant",
+        "previous": "Élément précédent",
+        "audioTrack": "Piste audio suivante",
+        "subtitleTrack": "Sous-titres suivants",
+        "audioDelayUp": "Retarder l’audio de 100 ms (mpv)",
+        "audioDelayDown": "Avancer l’audio de 100 ms (mpv)",
+        "subtitleDelayUp": "Retarder les sous-titres de 100 ms (mpv)",
+        "subtitleDelayDown": "Avancer les sous-titres de 100 ms (mpv)",
+        "jump": "Aller à 0 %… 90 %",
+        "info": "Informations de lecture",
+        "aspect": "Format de l’image suivant",
+        "skipSegment": "Passer l’intro ou le générique",
+        "escape": "Quitter le plein écran, puis la lecture",
+        "fastForward": "Chapitre suivant (avance rapide)",
+        "rewind": "Chapitre précédent (retour rapide)",
+        "sleep": "Minuterie de mise en veille",
+        "quality": "Qualité",
+        "subtitleSearch": "Rechercher des sous-titres",
+        "subSeekBack": "Réplique précédente (mpv)",
+        "subSeekForward": "Réplique suivante (mpv)",
+        "speedDown": "Ralentir de 0,25×",
+        "speedUp": "Accélérer de 0,25×",
+        "speedReset": "Vitesse normale"
+      }
+    },
+    "setup": {
+      "label": "Relancer la configuration",
+      "desc": "Langue, apparence, serveurs et accès à distance, étape par étape.",
+      "button": "Relancer"
+    }
+  },
+  "page": {
+    "title": "Paramètres",
+    "search": "Rechercher un réglage",
+    "categories": "Catégories",
+    "noResults": "Aucun réglage ne correspond à « {query} ».",
+    "nextLaunch": "Au prochain lancement",
+    "copied": "Copié"
+  },
+  "units": {
+    "seconds": "{count} s",
+    "minutes": "{count} min",
+    "percent": "{value} %",
+    "gigabytes": "{size} Go"
+  },
+  "panes": {
+    "general": {
+      "label": "Général",
+      "blurb": "Votre compte, le démarrage et le comportement du lecteur."
+    },
+    "appearance": {
+      "label": "Apparence",
+      "blurb": "Thème, affiches, densité et accessibilité."
+    },
+    "playback": {
+      "label": "Lecture",
+      "blurb": "Moteur de lecture, qualité, reprise et enchaînement."
+    },
+    "audio": {
+      "label": "Audio",
+      "blurb": "Sortie, langue, traitement du son et passthrough vers l’ampli."
+    },
+    "subtitles": {
+      "label": "Sous-titres",
+      "blurb": "Langue, activation automatique et style."
+    },
+    "library": {
+      "label": "Bibliothèque et accueil",
+      "blurb": "Rangées de l’accueil, tri et affichage des bibliothèques."
+    },
+    "downloads": {
+      "label": "Téléchargements",
+      "blurb": "Dossier et file d’attente hors ligne."
+    },
+    "torrents": {
+      "label": "Torrents",
+      "blurb": "Connexion à qBittorrent et catégories des bibliothèques."
+    },
+    "server": {
+      "label": "Serveurs",
+      "blurb": "Connexion, comptes et ajout de serveurs."
+    },
+    "remote": {
+      "label": "Accès à distance",
+      "blurb": "Tailscale ou NetBird, pour retrouver vos serveurs partout."
+    },
+    "windows": {
+      "label": "Windows",
+      "labelLinux": "Bureau",
+      "blurb": "Zone de notification, démarrage et notifications.",
+      "blurbLinux": "Zone de notification, démarrage et notifications."
+    },
+    "privacy": {
+      "label": "Confidentialité et stockage",
+      "blurb": "Caches, journaux et dossier de données."
+    },
+    "advanced": {
+      "label": "Avancé",
+      "blurb": "Accélération matérielle, options mpv et sauvegarde des réglages."
+    },
+    "about": {
+      "label": "À propos",
+      "blurb": "Version, environnement et journaux."
+    },
+    "accounts": {
+      "label": "Comptes",
+      "blurb": "Services en ligne reliés à Wicaby, comme Trakt."
+    }
+  },
+  "appearance": {
+    "theme": {
+      "title": "Thème",
+      "dark": "Sombre",
+      "darkDesc": "Graphite et Mica",
+      "darkDescLinux": "Graphite",
+      "oled": "OLED",
+      "oledDesc": "Noir pur, sans Mica",
+      "oledDescLinux": "Noir pur"
+    },
+    "accent": {
+      "label": "Couleur d’accentuation"
+    },
+    "accents": {
+      "blue": "Bleu",
+      "indigo": "Indigo",
+      "purple": "Violet",
+      "pink": "Rose",
+      "red": "Rouge",
+      "orange": "Orange",
+      "green": "Vert",
+      "graphite": "Graphite"
+    },
+    "compactSidebar": {
+      "label": "Barre latérale compacte",
+      "desc": "N’affiche que les icônes de navigation."
+    },
+    "layout": "Mise en page",
+    "density": {
+      "label": "Densité",
+      "desc": "Compacte resserre les marges et les rangées pour voir plus d’affiches à la fois.",
+      "comfortable": "Confortable",
+      "compact": "Compacte"
+    },
+    "posterSize": {
+      "label": "Taille des affiches",
+      "desc": "Dans les rangées et les grilles de bibliothèque."
+    },
+    "zoom": {
+      "label": "Échelle de l’interface",
+      "desc": "Agrandit ou réduit tout Wicaby, textes compris."
+    },
+    "posters": "Affiches",
+    "cardTitles": {
+      "label": "Titres sous les affiches",
+      "desc": "Désactivé, seules les images restent ; les vignettes larges gardent leur titre."
+    },
+    "cardRatings": {
+      "label": "Note du public",
+      "desc": "Affiche la note sur l’image, par exemple ★ 7,4."
+    },
+    "cardAges": {
+      "label": "Classification par âge",
+      "desc": "Affiche la classification du serveur, par exemple 12 ou TP."
+    },
+    "cardQuality": {
+      "label": "Qualité vidéo",
+      "desc": "Affiche 4K, HD ou SD pour les films et les épisodes."
+    },
+    "home": "Accueil",
+    "hero": {
+      "label": "Bandeau à la une",
+      "desc": "Le grand visuel en haut de l’accueil, avec ce que vous regardez ou les nouveautés."
+    },
+    "heroAutoplay": {
+      "label": "Défilement automatique",
+      "desc": "Passe au visuel suivant toutes les 8 secondes."
+    },
+    "accessibility": "Accessibilité",
+    "reduceMotion": {
+      "label": "Réduire les animations",
+      "desc": "Supprime les zooms et transitions. Suit aussi le réglage de Windows.",
+      "descLinux": "Supprime les zooms et transitions. Suit aussi le réglage du système."
+    },
+    "reduceTransparency": {
+      "label": "Réduire la transparence",
+      "desc": "Rend les barres et menus opaques. Utile sur les GPU modestes."
+    }
+  },
+  "playback": {
+    "player": {
+      "label": "Lecteur",
+      "desc": "Auto utilise mpv quand il est disponible, sinon le lecteur intégré.",
+      "auto": "Auto",
+      "builtIn": "Intégré"
+    },
+    "byType": {
+      "title": "Lecteur par type de contenu",
+      "aria": "Lecteur pour {type}",
+      "sameAsAbove": "Comme ci-dessus",
+      "movie": "Films",
+      "episode": "Épisodes",
+      "music": "Musique",
+      "live": "TV en direct"
+    },
+    "quality": "Qualité",
+    "bitrateLocal": {
+      "label": "Débit maximal en réseau local",
+      "desc": "Quand le serveur est joint par une adresse privée (maison, bureau). Au-delà, il transcode."
+    },
+    "bitrateRemote": {
+      "label": "Débit maximal à distance",
+      "desc": "Par Internet ou un VPN. Baissez-le si la lecture s’interrompt hors de chez vous."
+    },
+    "maxResolution": {
+      "label": "Résolution maximale",
+      "desc": "Au-delà, le serveur réduit l’image. Utile sur une connexion lente ou un petit écran.",
+      "unlimited": "Illimitée"
+    },
+    "forceTranscode": {
+      "label": "Forcer le transcodage",
+      "desc": "Le serveur réencode toujours la vidéo, même quand mpv pourrait lire le fichier tel quel."
+    },
+    "connection": "{kind, select, lan {Connexion actuelle : réseau local ({address}).} other {Connexion actuelle : à distance ({address}).}}",
+    "resumeNav": "Reprise et navigation",
+    "resume": {
+      "label": "Reprise",
+      "desc": "Pour les boutons de lecture des affiches et des épisodes. La fiche garde ses deux boutons.",
+      "ask": "Toujours demander",
+      "resume": "Reprendre",
+      "start": "Depuis le début"
+    },
+    "speed": {
+      "label": "Vitesse par défaut",
+      "desc": "Pour les films et les épisodes ; modifiable pendant la lecture.",
+      "normal": "Normale"
+    },
+    "seekShort": {
+      "label": "Saut court",
+      "desc": "Flèches gauche et droite, et boutons de la barre de lecture."
+    },
+    "seekLong": {
+      "label": "Saut long",
+      "desc": "Maj avec les flèches gauche et droite."
+    },
+    "remoteControl": "Autoriser le contrôle à distance",
+    "remoteControlHint": "Les autres applications Wicaby, Emby et Jellyfin de ce compte peuvent lancer et piloter la lecture ici.",
+    "pauseOnMinimize": {
+      "label": "Mettre en pause quand la fenêtre est réduite",
+      "desc": "La lecture s’arrête quand vous réduisez la fenêtre de la vidéo."
+    },
+    "episodes": "Épisodes, intro et générique",
+    "autoPlayNext": {
+      "label": "Enchaîner l’épisode suivant",
+      "desc": "Lance automatiquement l’épisode suivant à la fin d’un épisode."
+    },
+    "countdown": {
+      "label": "Compte à rebours",
+      "desc": "Durée de la carte « À suivre » avant l’épisode suivant."
+    },
+    "skipIntro": {
+      "label": "Passer l’intro",
+      "desc": "Sur Emby, le réglage de votre compte serveur s’applique s’il est défini."
+    },
+    "skipCredits": {
+      "label": "Passer le générique",
+      "desc": "Auto passe à l’épisode suivant (ou termine) dès le début du générique de fin."
+    },
+    "skipRecap": {
+      "label": "Passer les résumés",
+      "desc": "Le « Précédemment » en début d’épisode, quand le serveur le repère (segments de média Jellyfin)."
+    },
+    "skipPreview": {
+      "label": "Passer les aperçus",
+      "desc": "L’annonce du prochain épisode, souvent après le générique."
+    },
+    "skipCommercial": {
+      "label": "Passer les publicités",
+      "desc": "Les coupures publicitaires des enregistrements TV."
+    },
+    "skip": {
+      "ask": "Proposer",
+      "auto": "Auto",
+      "off": "Jamais"
+    },
+    "mpv": {
+      "title": "Moteur mpv",
+      "unknownVersion": "version inconnue",
+      "notFound": "Introuvable",
+      "copyPath": "Copier le chemin",
+      "missing": "Choisissez un mpv.exe existant, ou récupérez une build avec {command}.",
+      "missingLinux": "Installez mpv 0.37 ou plus récent avec le gestionnaire de paquets de votre distribution, ou choisissez son fichier.",
+      "autoDetect": "Détection auto",
+      "choose": "Choisir…",
+      "detected": "mpv {version} détecté"
+    },
+    "mpvConf": {
+      "label": "Utiliser mpv.conf",
+      "desc": "Charge votre configuration mpv (scalers, profils, police) après celle de Wicaby.",
+      "openFolder": "Ouvrir le dossier"
+    },
+    "video": "Vidéo",
+    "hwdec": {
+      "label": "Décodage matériel",
+      "desc": "D3D11VA convient à tous les GPU récents, NVDEC aux cartes NVIDIA.",
+      "descLinux": "VA-API convient aux GPU Intel et AMD, NVDEC aux cartes NVIDIA, Vulkan aux pilotes récents.",
+      "off": "Désactivé (logiciel)"
+    },
+    "hdrPassthrough": {
+      "label": "HDR passthrough",
+      "desc": "Sur un écran HDR, transmet les métadonnées HDR de la source ; désactivé, mpv adapte l’image au pic de l’écran."
+    },
+    "hdrAuto": {
+      "label": "Activer le HDR de Windows automatiquement",
+      "desc": "Allume le HDR de Windows au lancement d’un titre HDR ou Dolby Vision lu avec mpv, puis le rétablit à l’arrêt."
+    },
+    "matchRefresh": {
+      "label": "Adapter la fréquence d’affichage",
+      "desc": "Passe l’écran en 24, 25, 50 ou 60 Hz selon la vidéo pour supprimer les saccades.",
+      "unavailable": "Nécessite une session X11 avec xrandr, ou KDE Plasma sous Wayland avec kscreen-doctor."
+    },
+    "aspect": {
+      "label": "Format de l’image",
+      "desc": "Format de départ de chaque vidéo. Un changement pendant la lecture est gardé selon « Mémoriser les réglages »."
+    },
+    "cinemaMode": {
+      "label": "Bandes-annonces avant le film",
+      "desc": "Lit une ou deux bandes-annonces stockées sur le serveur avant un film, sauf à la reprise."
+    },
+    "remember": {
+      "title": "Mémoriser les réglages",
+      "speed": "Vitesse",
+      "audioDelay": "Décalage audio",
+      "subtitleDelay": "Décalage des sous-titres",
+      "aspect": "Format de l’image",
+      "scope": {
+        "off": "Non",
+        "global": "Partout",
+        "library": "Par bibliothèque",
+        "title": "Par titre"
+      },
+      "clear": "Effacer les réglages mémorisés",
+      "cleared": "Réglages mémorisés effacés"
+    }
+  },
+  "audio": {
+    "output": {
+      "label": "Sortie audio",
+      "desc": "Utilisée par mpv ; le lecteur intégré suit Windows.",
+      "descLinux": "Utilisée par mpv ; le lecteur intégré suit la sortie du système.",
+      "searching": "Recherche des sorties…",
+      "needsMpv": "mpv est nécessaire pour choisir une sortie.",
+      "refresh": "Actualiser la liste",
+      "default": "Sortie par défaut de Windows",
+      "defaultLinux": "Sortie par défaut du système",
+      "saved": "Périphérique enregistré",
+      "missing": "Périphérique absent"
+    },
+    "language": {
+      "label": "Langue préférée",
+      "desc": "Piste choisie par défaut quand elle existe.",
+      "aria": "Langue audio préférée"
+    },
+    "languages": {
+      "server": "Selon le serveur",
+      "fre": "Français",
+      "eng": "Anglais",
+      "ger": "Allemand",
+      "spa": "Espagnol",
+      "ita": "Italien",
+      "jpn": "Japonais"
+    },
+    "exclusive": {
+      "label": "WASAPI exclusif",
+      "labelLinux": "Mode exclusif",
+      "desc": "mpv prend le contrôle exclusif de la sortie, sans mixage Windows.",
+      "descLinux": "mpv prend le contrôle exclusif de la sortie, sans mixage PipeWire ou PulseAudio."
+    },
+    "volume": "Volume et dynamique",
+    "normalize": {
+      "label": "Normaliser le volume",
+      "desc": "Égalise le niveau entre les scènes et d’un titre à l’autre, sans toucher à vos réglages de volume."
+    },
+    "boost": {
+      "label": "Amplification jusqu’à 150 %",
+      "desc": "Pour les films mixés trop bas. Au-delà de 100 %, les pics peuvent saturer."
+    },
+    "night": {
+      "label": "Mode nuit",
+      "desc": "Resserre l’écart entre dialogues et explosions pour écouter à faible volume."
+    },
+    "dialogue": {
+      "label": "Dialogues renforcés",
+      "desc": "Met en avant la voie centrale en 5.1 et 7.1, et la parole en stéréo."
+    },
+    "volumeFoot": "Normalisation, mode nuit et dialogues renforcés s’appliquent avec mpv, même pendant la lecture.",
+    "passthrough": "Passthrough (bitstream)",
+    "atmosIncluded": "Atmos inclus",
+    "passthroughFoot": "Les formats activés sont envoyés tels quels à l’ampli via HDMI ou S/PDIF, qui se charge du décodage. Le passthrough force WASAPI en mode exclusif, quel que soit le réglage ci-dessus ; volume, mode nuit et dialogues renforcés ne s’appliquent pas à ces pistes. S’applique au prochain lancement de mpv.",
+    "passthroughFootLinux": "Les formats activés sont envoyés tels quels à l’ampli via HDMI ou S/PDIF, qui se charge du décodage. La sortie doit accepter le passthrough (activez-le dans PipeWire ou PulseAudio, ou activez le mode exclusif) ; sinon, Wicaby repasse en PCM. Volume, mode nuit et dialogues renforcés ne s’appliquent pas à ces pistes. S’applique au prochain lancement de mpv."
+  },
+  "subtitles": {
+    "language": {
+      "label": "Langue préférée",
+      "desc": "Piste choisie par défaut quand elle existe.",
+      "aria": "Langue des sous-titres"
+    },
+    "show": {
+      "label": "Afficher",
+      "aria": "Activation des sous-titres"
+    },
+    "modes": {
+      "manual": {
+        "label": "Manuel",
+        "desc": "Seulement les sous-titres forcés ; les autres à la demande."
+      },
+      "foreign": {
+        "label": "Langue étrangère uniquement",
+        "desc": "Quand l’audio n’est pas dans votre langue ; sinon, seulement les forcés."
+      },
+      "always": {
+        "label": "Toujours",
+        "desc": "Toujours dans votre langue quand la piste existe."
+      },
+      "default": {
+        "label": "Selon le fichier",
+        "desc": "Suit la piste par défaut du fichier et du serveur."
+      }
+    },
+    "alwaysForced": {
+      "label": "Toujours afficher les sous-titres forcés",
+      "desc": "Les passages dans une autre langue et les panneaux restent traduits, même sous-titres désactivés."
+    },
+    "forcedFoot": "Les sous-titres forcés ne traduisent que les passages étrangers et les panneaux. Un choix fait pendant un épisode est retenu pour toute la série.",
+    "style": "Style",
+    "sample": "Voici à quoi ressemblent vos sous-titres.",
+    "size": {
+      "label": "Taille",
+      "aria": "Taille des sous-titres",
+      "small": "Petite",
+      "normal": "Normale",
+      "large": "Grande",
+      "xlarge": "Très grande"
+    },
+    "scaleWithVideo": {
+      "label": "Taille selon la résolution de la vidéo",
+      "desc": "Les sous-titres suivent la hauteur de l’image plutôt que celle de la fenêtre : plus petits sur un film en Scope."
+    },
+    "font": {
+      "label": "Police",
+      "aria": "Police des sous-titres"
+    },
+    "color": {
+      "label": "Couleur",
+      "aria": "Couleur des sous-titres",
+      "white": "Blanc",
+      "yellow": "Jaune",
+      "lightGray": "Gris clair"
+    },
+    "border": {
+      "label": "Lisibilité",
+      "aria": "Contour des sous-titres",
+      "outline": "Contour",
+      "shadow": "Ombre",
+      "box": "Fond"
+    },
+    "position": {
+      "label": "Position",
+      "aria": "Position des sous-titres",
+      "bottom": "En bas",
+      "slightlyRaised": "Légèrement relevés",
+      "raised": "Relevés"
+    },
+    "overrideAss": {
+      "label": "Appliquer aux sous-titres ASS",
+      "desc": "Remplace aussi le style des sous-titres stylisés (animés). Désactivé, leur mise en page et leurs polices intégrées sont respectées."
+    },
+    "footMpvConf": "mpv.conf est activé : votre configuration mpv décide du style.",
+    "footStyle": "Le style s’applique avec mpv, même pendant la lecture. Les sous-titres image (PGS, VobSub) gardent le leur."
+  },
+  "library": {
+    "customizeHome": {
+      "label": "Personnaliser l’accueil",
+      "desc": "Choisir et réordonner les rangées : Continuer, À suivre, Nouveautés, Favoris…"
+    },
+    "libraries": "Bibliothèques",
+    "sort": {
+      "label": "Tri par défaut",
+      "desc": "Pour les bibliothèques dont vous n’avez pas encore changé le tri."
+    },
+    "sorts": {
+      "SortName": "Nom",
+      "DateCreated": "Date d’ajout",
+      "ProductionYear": "Année",
+      "CommunityRating": "Note",
+      "PremiereDate": "Date de sortie"
+    },
+    "order": {
+      "label": "Ordre",
+      "asc": "Croissant",
+      "desc": "Décroissant"
+    },
+    "view": {
+      "label": "Affichage",
+      "desc": "Affiches verticales ou vignettes larges pour les films et les séries.",
+      "poster": "Affiches",
+      "thumb": "Vignettes"
+    },
+    "foot": "Un tri choisi dans la barre d’une bibliothèque reste propre à celle-ci."
+  },
+  "downloads": {
+    "folder": {
+      "label": "Dossier",
+      "change": "Changer…"
+    },
+    "concurrent": {
+      "label": "Téléchargements simultanés",
+      "desc": "Les téléchargements interrompus reprennent là où ils se sont arrêtés.",
+      "less": "Moins",
+      "more": "Plus"
+    },
+    "storage": "Stockage",
+    "offline": {
+      "label": "Contenus hors ligne",
+      "desc": "{count, plural, one {# élément · {size}} other {# éléments · {size}}}"
+    }
+  },
+  "server": {
+    "status": {
+      "signedIn": "Connecté",
+      "notSignedIn": "Non connecté",
+      "connecting": "Connexion…"
+    },
+    "signOut": "Se déconnecter",
+    "add": {
+      "label": "Ajouter un serveur",
+      "desc": "Emby ou Jellyfin : ses bibliothèques s’affichent avec celles des autres serveurs.",
+      "button": "Ajouter…"
+    },
+    "switch": {
+      "label": "Changer de serveur",
+      "desc": "Les identifiants des autres serveurs restent enregistrés.",
+      "button": "Changer…"
+    },
+    "foot": "Votre jeton d’accès est chiffré par Windows et ne quitte jamais cet appareil.",
+    "footLinux": "Votre jeton d’accès est chiffré par le trousseau du système et ne quitte jamais cet appareil."
+  },
+  "windows": {
+    "window": "Fenêtre",
+    "closeToTray": {
+      "label": "Réduire dans la zone de notification à la fermeture",
+      "labelLinux": "Réduire dans la zone de notification à la fermeture",
+      "desc": "Fermer la fenêtre la masque sans quitter : la lecture continue. Pour quitter, faites un clic droit sur l’icône Wicaby.",
+      "descLinux": "Fermer la fenêtre la masque sans quitter : la lecture continue. Pour quitter, faites un clic droit sur l’icône Wicaby. Nécessite un bureau qui affiche les icônes de notification."
+    },
+    "launchAtStartup": {
+      "label": "Lancer au démarrage de Windows",
+      "labelLinux": "Lancer à l’ouverture de session",
+      "desc": "Wicaby démarre réduit dans la zone de notification, sans ouvrir de fenêtre.",
+      "descLinux": "Wicaby démarre réduit dans la zone de notification, sans ouvrir de fenêtre."
+    },
+    "notifications": "Notifications",
+    "notifyDownloads": {
+      "label": "Téléchargements terminés",
+      "desc": "Prévient quand un contenu est disponible hors ligne."
+    },
+    "notifyNewEpisodes": {
+      "label": "Nouveaux épisodes",
+      "desc": "Pour les séries que vous suivez : un épisode en cours ou à suivre."
+    },
+    "notifyAdmin": {
+      "label": "Alertes d’administration",
+      "desc": "Sur les serveurs que vous administrez : tâche planifiée en échec, redémarrage requis ou mise à jour disponible."
+    },
+    "foot": "Cliquez sur une notification pour ouvrir le contenu concerné."
+  },
+  "privacy": {
+    "clear": "Vider",
+    "imageCache": {
+      "label": "Cache des images",
+      "desc": "Affiches et visuels déjà téléchargés. Ils seront rechargés depuis le serveur.",
+      "descSize": "Affiches et visuels déjà téléchargés · {size}. Ils seront rechargés depuis le serveur.",
+      "cleared": "Cache des images vidé"
+    },
+    "apiCache": {
+      "label": "Cache de l’API",
+      "desc": "Réponses du serveur gardées deux minutes pour revenir en arrière sans attendre.",
+      "cleared": "Cache de l’API vidé"
+    },
+    "comicCache": {
+      "label": "Cache des bandes dessinées",
+      "desc": "Archives ouvertes dans le lecteur. Les plus anciennes partent au-delà de la limite.",
+      "descSize": "Archives ouvertes dans le lecteur · {size}. Les plus anciennes partent au-delà de la limite.",
+      "aria": "Taille maximale du cache des BD"
+    },
+    "logs": {
+      "label": "Journaux",
+      "desc": "Journaux de diagnostic. Celui du jour est conservé.",
+      "descSize": "Journaux de diagnostic · {size}. Celui du jour est conservé.",
+      "cleared": "Anciens journaux supprimés"
+    },
+    "dataFolder": {
+      "label": "Dossier de données",
+      "desc": "Réglages, serveurs enregistrés et caches de Wicaby."
+    },
+    "plainTextVault": {
+      "label": "Garder les connexions sans trousseau",
+      "desc": "Aucun trousseau système (GNOME Keyring, KWallet) n’est disponible : vos jetons d’accès ne peuvent pas être chiffrés. Désactivé, ils restent en mémoire et vous vous reconnectez à chaque lancement. Activé, ils sont enregistrés sur le disque sans réel chiffrement, lisibles par quiconque accède à vos fichiers."
+    },
+    "vaultMemory": "Aucun trousseau système n’est disponible : ces identifiants ne sont pas chiffrés. Ils restent en mémoire seulement et sont oubliés à la fermeture de Wicaby.",
+    "vaultDisk": "Aucun trousseau système n’est disponible : ces identifiants ne sont pas chiffrés. Ils sont enregistrés sur le disque sans réel chiffrement, comme choisi dans Confidentialité et stockage.",
+    "foot": "Vider les caches ne supprime ni vos téléchargements ni vos identifiants."
+  },
+  "advanced": {
+    "hwAccel": {
+      "label": "Accélération matérielle de l’interface",
+      "desc": "Désactivée, l’interface est dessinée sans le GPU : à essayer en cas d’écran noir ou de scintillement. La vidéo mpv n’est pas concernée."
+    },
+    "fps": {
+      "label": "Compteur d’images par seconde",
+      "desc": "Affiche la fluidité de l’interface dans un coin de la fenêtre."
+    },
+    "mpvArgs": {
+      "label": "Arguments supplémentaires",
+      "desc": "Options mpv séparées par des espaces, appliquées au prochain lancement de mpv. Exemple : {example}",
+      "placeholder": "--option=valeur",
+      "aria": "Arguments mpv supplémentaires",
+      "rejected": "Ignoré : {args}. Écrivez chaque option sous la forme --nom=valeur (ou --no-nom). Seules les options d’image, de mise à l’échelle, de shaders, de sous-titres, de synchronisation, de debanding, de dithering, d’interpolation, de tone mapping et d’audio sont acceptées ; les scripts, fichiers de configuration et journaux sont refusés. Les chemins de fichiers (sous-titres, shaders) doivent être complets, sur un disque local (C:\\…) ou dans le dossier de mpv (~~/…), jamais sur un partage réseau."
+    },
+    "backup": "Sauvegarde des réglages",
+    "exportImport": {
+      "label": "Exporter ou importer",
+      "desc": "Un fichier JSON avec tous vos réglages, pour un autre PC ou une réinstallation.",
+      "import": "Importer…",
+      "export": "Exporter…",
+      "exported": "Réglages exportés",
+      "imported": "Réglages importés"
+    },
+    "reset": {
+      "label": "Réinitialiser tous les réglages",
+      "desc": "Revient aux valeurs d’origine. Serveurs, comptes et téléchargements sont conservés.",
+      "button": "Réinitialiser…",
+      "done": "Réglages réinitialisés"
+    }
+  },
+  "cast": {
+    "title": "Diffusion",
+    "discovery": "Rechercher les téléviseurs et Chromecast sur le réseau local",
+    "relay": "Faire passer le flux par cet ordinateur",
+    "relayHint": "Le téléviseur ne reçoit jamais votre jeton d’accès. L’ordinateur doit rester allumé pendant la lecture.",
+    "allowHevc": "Autoriser HEVC sur les Chromecast",
+    "allowHevcHint": "Pour les téléviseurs avec Chromecast intégré qui décodent le HEVC.",
+    "dolby": "Le téléviseur ou l’ampli accepte le Dolby (AC3/EAC3)"
+  },
+  "about": {
+    "devBuild": "{version} (développement)",
+    "system": "Système",
+    "device": "Appareil",
+    "ids": "Identifiants",
+    "deviceId": "Identifiant de l’appareil",
+    "data": "Données",
+    "support": "Assistance",
+    "logs": {
+      "label": "Journaux",
+      "desc": "Utile pour signaler un problème."
+    },
+    "trademarks": "DLNA et UPnP sont des marques de leurs propriétaires respectifs ; Wicaby n’est pas certifié."
+  },
+  "torrents": {
+    "connection": "Connexion",
+    "address": "Adresse",
+    "username": "Utilisateur",
+    "password": "Mot de passe",
+    "saved": "Enregistré",
+    "invalidAddress": "Adresse invalide : saisissez par exemple {example}",
+    "connectedToast": "qBittorrent connecté",
+    "none": "Aucune",
+    "connected": "Connecté",
+    "failed": "Connexion impossible",
+    "unreachable": "qBittorrent est injoignable",
+    "hint": "Activez l’interface web dans qBittorrent (Options, Interface web), puis saisissez son adresse.",
+    "testing": "Test…",
+    "test": "Tester la connexion",
+    "connecting": "Connexion…",
+    "cert": {
+      "title": "Certificat non reconnu",
+      "body": "{host} présente un certificat que Windows ne reconnaît pas, souvent auto-signé. Acceptez-le seulement si c’est bien votre qBittorrent.",
+      "bodyLinux": "{host} présente un certificat que votre système ne reconnaît pas, souvent auto-signé. Acceptez-le seulement si c’est bien votre qBittorrent.",
+      "details": "Détails du certificat",
+      "issuedTo": "Émis pour : {subject}",
+      "issuedBy": "Émis par : {issuer}",
+      "accept": "Accepter ce certificat"
+    },
+    "passwordNote": "Le mot de passe est chiffré par Windows sur cet appareil.",
+    "passwordNoteLinux": "Le mot de passe est chiffré par le trousseau du système sur cet appareil.",
+    "forget": "Oublier",
+    "libraries": "Bibliothèques",
+    "needQbt": "Connectez qBittorrent pour associer ses catégories à vos bibliothèques.",
+    "needServer": "Connectez-vous à votre serveur pour associer les catégories à ses bibliothèques.",
+    "noCategories": "Aucune catégorie dans qBittorrent. Créez-en une par type de média, par exemple « films » et « series ».",
+    "libraryFor": "Bibliothèque pour {category}",
+    "scan": {
+      "label": "Analyser la bibliothèque à la fin",
+      "desc": "Quand un torrent d’une catégorie associée se termine, Wicaby demande au serveur d’analyser la bibliothèque. Nécessite un compte administrateur."
+    },
+    "options": "Options",
+    "notify": {
+      "label": "Notifier à la fin d’un torrent",
+      "desc": "Une notification Windows signale chaque torrent terminé.",
+      "descLinux": "Une notification du bureau signale chaque torrent terminé."
+    },
+    "magnet": {
+      "label": "Ouvrir les liens magnet avec Wicaby",
+      "desc": "Les liens magnet ouverts dans le navigateur arrivent dans Wicaby. Chaque lien est confirmé avant d’être ajouté."
+    }
+  },
+  "trakt": {
+    "clientId": "Client ID",
+    "clientSecret": "Client Secret",
+    "saved": "Enregistré",
+    "hint": "Trakt exige une application à votre nom : créez-la sur trakt.tv/oauth/applications avec l’URI de redirection urn:ietf:wg:oauth:2.0:oob, puis collez ici son Client ID et son Client Secret.",
+    "connect": "Se connecter",
+    "code": "Saisissez ce code sur Trakt",
+    "codeDesc": "Ouvrez {url}, connectez-vous et saisissez le code. Wicaby attend la validation.",
+    "open": "Ouvrir Trakt",
+    "connected": "Connecté à Trakt",
+    "connectedAs": "Connecté en tant que {user}",
+    "connectedDesc": "Les films et épisodes lus dans Wicaby sont scrobblés sur Trakt (début, pause, fin).",
+    "disconnect": "Se déconnecter",
+    "servers": "Serveurs",
+    "noServer": "Aucun serveur connecté.",
+    "server": {
+      "plugin": "Le plugin Trakt de ce serveur scrobble déjà : Wicaby ne le fait pas en double.",
+      "unknown": "Wicaby ne peut pas vérifier les plugins sans droits d’administrateur. Désactivez si ce serveur a déjà le plugin Trakt.",
+      "none": "Aucun plugin Trakt sur ce serveur : Wicaby scrobble ses lectures.",
+      "toggle": "Scrobbler les lectures de {server}"
+    },
+    "foot": "Le Client Secret et les jetons sont chiffrés par Windows sur cet appareil et ne sont jamais journalisés.",
+    "footLinux": "Le Client Secret et les jetons sont chiffrés par le trousseau du système sur cet appareil et ne sont jamais journalisés."
+  },
+  "livetv": {
+    "title": "TV en direct",
+    "reminderLead": {
+      "label": "Rappel avant le début",
+      "desc": "Quand prévenir avant un programme pour lequel un rappel est réglé.",
+      "atStart": "Au début"
+    },
+    "reminderAutoTune": {
+      "label": "Changer de chaîne au rappel",
+      "desc": "Pendant une chaîne en direct, passe sur la chaîne du rappel après 10 secondes, sauf si vous choisissez de rester."
+    }
+  },
+  "remote": {
+    "status": {
+      "title": "État"
+    },
+    "device": {
+      "title": "Cet appareil",
+      "name": "Nom",
+      "address": "Adresse"
+    },
+    "peers": {
+      "title": "Appareils de votre réseau ({count})",
+      "server": "{kind} · {name}",
+      "find": "Trouver les serveurs"
+    },
+    "routes": {
+      "title": "Réseaux routés"
+    },
+    "advanced": {
+      "title": "Avancé",
+      "management": "Serveur de gestion",
+      "hosted": "Service officiel",
+      "change": "Modifier…"
+    },
+    "actions": {
+      "turnOff": "Désactiver",
+      "signOut": "Se déconnecter du réseau",
+      "switch": "Passer à {name}…"
+    },
+    "switch": {
+      "body": "Vous quitterez {name}. Vos appareils y restent enregistrés."
+    },
+    "managedByApp": "Géré par l’app {name}",
+    "diag": {
+      "title": "Diagnostic",
+      "lastError": "Dernière erreur : {message}",
+      "none": "Aucune erreur récente.",
+      "copy": "Copier le diagnostic",
+      "copied": "Diagnostic copié, adresses et clés masquées.",
+      "logs": "Ouvrir le dossier des journaux"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- gplay flavour only (cast spec CA-10): the Cast SDK reads its options from here. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.wika.wicaby.mobile.cast.WicabyCastOptions" />
+    </application>
+</manifest>

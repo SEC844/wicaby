@@ -1,0 +1,1596 @@
+{
+  "about": "Timer status (§9.3), Cancelled/Completed filtering, overlay and marks (§6.7), record-option presence (§9.2), DVR error mapping (§9.1). fn: mapTimerStatus(status); normalizeTimers(dtos); buildOverlay(dtos) → {programId: timer}; markFor(program, timerDtos | null); conflictCount(dtos); visibleOptions(defaults, mode) → option ids; applyOptions(defaults, changes); quickRecordBody(defaults, padding); mapDvrError(kind, op, status, message).",
+  "cases": [
+    {"name":"status New","fn":"mapTimerStatus","args":["New"],"out":"scheduled"},
+    {"name":"status InProgress","fn":"mapTimerStatus","args":["InProgress"],"out":"recording"},
+    {"name":"status ConflictedOk","fn":"mapTimerStatus","args":["ConflictedOk"],"out":"conflict-ok"},
+    {"name":"status ConflictedNotOk","fn":"mapTimerStatus","args":["ConflictedNotOk"],"out":"conflict-wont"},
+    {"name":"status Error","fn":"mapTimerStatus","args":["Error"],"out":"error"},
+    {"name":"status Cancelled","fn":"mapTimerStatus","args":["Cancelled"],"out":null},
+    {"name":"status Completed","fn":"mapTimerStatus","args":["Completed"],"out":null},
+    {"name":"status undefined","fn":"mapTimerStatus","args":[null],"out":"scheduled"},
+    {
+      "name": "normalise: Cancelled and Completed dropped, sorted by start",
+      "fn": "normalizeTimers",
+      "args": [
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": [
+        {
+          "id": "t2",
+          "start": 1792692000000,
+          "end": 1792699200000,
+          "name": "T t2",
+          "status": "recording",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p2"
+        },
+        {
+          "id": "t1",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t1",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p1",
+          "channelId": "c1"
+        },
+        {
+          "id": "t5",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t5",
+          "status": "conflict-wont",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p5"
+        },
+        {
+          "id": "t6",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t6",
+          "status": "conflict-ok",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p6"
+        },
+        {
+          "id": "t7",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t7",
+          "status": "error",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p7"
+        },
+        {
+          "id": "t8",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t8",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p8",
+          "seriesTimerId": "s1"
+        },
+        {
+          "id": "t9",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t9",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p5"
+        }
+      ]
+    },
+    {
+      "name": "overlay: the stronger status wins for one programme",
+      "fn": "buildOverlay",
+      "args": [
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": {
+        "p2": {
+          "id": "t2",
+          "start": 1792692000000,
+          "end": 1792699200000,
+          "name": "T t2",
+          "status": "recording",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p2"
+        },
+        "p1": {
+          "id": "t1",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t1",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p1",
+          "channelId": "c1"
+        },
+        "p5": {
+          "id": "t9",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t9",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p5"
+        },
+        "p6": {
+          "id": "t6",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t6",
+          "status": "conflict-ok",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p6"
+        },
+        "p7": {
+          "id": "t7",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t7",
+          "status": "error",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p7"
+        },
+        "p8": {
+          "id": "t8",
+          "start": 1792695600000,
+          "end": 1792699200000,
+          "name": "T t8",
+          "status": "scheduled",
+          "prePaddingS": 60,
+          "postPaddingS": 300,
+          "programId": "p8",
+          "seriesTimerId": "s1"
+        }
+      }
+    },
+    {
+      "name": "conflict badge count",
+      "fn": "conflictCount",
+      "args": [
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": 1
+    },
+    {
+      "name": "mark timer",
+      "fn": "markFor",
+      "args": [
+        {"id":"p1"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "timer"
+    },
+    {
+      "name": "mark series",
+      "fn": "markFor",
+      "args": [
+        {"id":"p8"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "series"
+    },
+    {
+      "name": "mark recording",
+      "fn": "markFor",
+      "args": [
+        {"id":"p2"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "recording"
+    },
+    {
+      "name": "mark conflict-wont (p5 has a scheduled twin: scheduled wins)",
+      "fn": "markFor",
+      "args": [
+        {"id":"p5"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "timer"
+    },
+    {
+      "name": "mark conflict-ok",
+      "fn": "markFor",
+      "args": [
+        {"id":"p6"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "conflict-ok"
+    },
+    {
+      "name": "mark error",
+      "fn": "markFor",
+      "args": [
+        {"id":"p7"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "error"
+    },
+    {
+      "name": "mark rule-skip: seriesTimerId but no timer (Cancelled tombstone)",
+      "fn": "markFor",
+      "args": [
+        {"id":"p3","seriesTimerId":"s1"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "rule-skip"
+    },
+    {
+      "name": "mark nothing",
+      "fn": "markFor",
+      "args": [
+        {"id":"p9"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": null
+    },
+    {
+      "name": "mark the overlay beats a stale payload timerId",
+      "fn": "markFor",
+      "args": [
+        {"id":"p9","timerId":"old"},
+        [
+          {
+            "Id": "t1",
+            "Status": "New",
+            "Name": "T t1",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p1",
+            "ChannelId": "c1"
+          },
+          {
+            "Id": "t2",
+            "Status": "InProgress",
+            "Name": "T t2",
+            "StartDate": "2026-10-22T18:00:00Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p2"
+          },
+          {
+            "Id": "t3",
+            "Status": "Cancelled",
+            "Name": "T t3",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p3",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t4",
+            "Status": "Completed",
+            "Name": "T t4",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p4"
+          },
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          },
+          {
+            "Id": "t6",
+            "Status": "ConflictedOk",
+            "Name": "T t6",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p6"
+          },
+          {
+            "Id": "t7",
+            "Status": "Error",
+            "Name": "T t7",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p7"
+          },
+          {
+            "Id": "t8",
+            "Status": "New",
+            "Name": "T t8",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p8",
+            "SeriesTimerId": "s1"
+          },
+          {
+            "Id": "t9",
+            "Status": "New",
+            "Name": "T t9",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": null
+    },
+    {
+      "name": "mark conflict-wont alone",
+      "fn": "markFor",
+      "args": [
+        {"id":"p5"},
+        [
+          {
+            "Id": "t5",
+            "Status": "ConflictedNotOk",
+            "Name": "T t5",
+            "StartDate": "2026-10-22T19:00:00.0000000Z",
+            "EndDate": "2026-10-22T20:00:00.0000000Z",
+            "PrePaddingSeconds": 60,
+            "PostPaddingSeconds": 300,
+            "ProgramId": "p5"
+          }
+        ]
+      ],
+      "out": "conflict-wont"
+    },
+    {
+      "name": "mark before the overlay loads: payload timerId",
+      "fn": "markFor",
+      "args": [{"id":"p1","timerId":"t1"},null],
+      "out": "timer"
+    },
+    {
+      "name": "mark before the overlay loads: payload series",
+      "fn": "markFor",
+      "args": [{"id":"p1","timerId":"t1","seriesTimerId":"s1"},null],
+      "out": "series"
+    },
+    {
+      "name": "options: Emby series (null field hidden)",
+      "fn": "visibleOptions",
+      "args": [
+        {
+          "ProgramId": "p1",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "RecordNewOnly": false,
+          "RecordAnyChannel": false,
+          "RecordAnyTime": true,
+          "Days": ["Monday"],
+          "SkipEpisodesInLibrary": false,
+          "KeepUpTo": 0,
+          "KeepUntil": "UntilDeleted",
+          "MaxRecordingSeconds": 0,
+          "ParentFolderId": null
+        },
+        "series"
+      ],
+      "out": ["startEarly","endLate","newOnly","anyChannel","anyTime","days","skipInLibrary","keepUpTo","keepUntil","maxLength"]
+    },
+    {
+      "name": "options: Emby single episode",
+      "fn": "visibleOptions",
+      "args": [
+        {
+          "ProgramId": "p1",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "RecordNewOnly": false,
+          "RecordAnyChannel": false,
+          "RecordAnyTime": true,
+          "Days": ["Monday"],
+          "SkipEpisodesInLibrary": false,
+          "KeepUpTo": 0,
+          "KeepUntil": "UntilDeleted",
+          "MaxRecordingSeconds": 0,
+          "ParentFolderId": null
+        },
+        "single"
+      ],
+      "out": ["startEarly","endLate","keepUntil"]
+    },
+    {
+      "name": "options: Jellyfin series (no MaxRecordingSeconds, no folder)",
+      "fn": "visibleOptions",
+      "args": [
+        {
+          "ProgramId": "p1",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "RecordNewOnly": false,
+          "RecordAnyChannel": false,
+          "RecordAnyTime": true,
+          "Days": [],
+          "DayPattern": "Daily",
+          "SkipEpisodesInLibrary": false,
+          "KeepUpTo": 0,
+          "KeepUntil": "UntilDeleted"
+        },
+        "series"
+      ],
+      "out": ["startEarly","endLate","newOnly","anyChannel","anyTime","days","skipInLibrary","keepUpTo","keepUntil"]
+    },
+    {
+      "name": "options: a minimal defaults object shows only its fields",
+      "fn": "visibleOptions",
+      "args": [{"PrePaddingSeconds":0},"series"],
+      "out": ["startEarly"]
+    },
+    {
+      "name": "POST body: defaults with only the changed fields applied; unknown fields ignored",
+      "fn": "applyOptions",
+      "args": [
+        {
+          "ProgramId": "p1",
+          "PrePaddingSeconds": 0,
+          "PostPaddingSeconds": 0,
+          "RecordNewOnly": false,
+          "RecordAnyChannel": false,
+          "RecordAnyTime": true,
+          "Days": [],
+          "DayPattern": "Daily",
+          "SkipEpisodesInLibrary": false,
+          "KeepUpTo": 0,
+          "KeepUntil": "UntilDeleted"
+        },
+        {"PostPaddingSeconds":1800,"MaxRecordingSeconds":3600}
+      ],
+      "out": {
+        "ProgramId": "p1",
+        "PrePaddingSeconds": 0,
+        "PostPaddingSeconds": 1800,
+        "RecordNewOnly": false,
+        "RecordAnyChannel": false,
+        "RecordAnyTime": true,
+        "Days": [],
+        "DayPattern": "Daily",
+        "SkipEpisodesInLibrary": false,
+        "KeepUpTo": 0,
+        "KeepUntil": "UntilDeleted"
+      }
+    },
+    {
+      "name": "quick record with lt.dvrPadding",
+      "fn": "quickRecordBody",
+      "args": [{"ProgramId":"p1","PrePaddingSeconds":0,"PostPaddingSeconds":0},{"pre":120,"post":600}],
+      "out": {"ProgramId":"p1","PrePaddingSeconds":120,"PostPaddingSeconds":600}
+    },
+    {
+      "name": "quick record without padding: defaults unchanged",
+      "fn": "quickRecordBody",
+      "args": [{"ProgramId":"p1","PrePaddingSeconds":30},null],
+      "out": {"ProgramId":"p1","PrePaddingSeconds":30}
+    },
+    {
+      "name": "error emby createTimer 400 ",
+      "fn": "mapDvrError",
+      "args": ["emby","createTimer",400,""],
+      "out": "already-scheduled"
+    },
+    {
+      "name": "error jellyfin createTimer 400 ",
+      "fn": "mapDvrError",
+      "args": ["jellyfin","createTimer",400,""],
+      "out": "already-scheduled"
+    },
+    {
+      "name": "error emby createTimer 403 ",
+      "fn": "mapDvrError",
+      "args": ["emby","createTimer",403,""],
+      "out": "forbidden"
+    },
+    {
+      "name": "error jellyfin recordings 403 ",
+      "fn": "mapDvrError",
+      "args": ["jellyfin","recordings",403,""],
+      "out": "forbidden"
+    },
+    {
+      "name": "error emby createTimer 500 Emby Premiere required",
+      "fn": "mapDvrError",
+      "args": ["emby","createTimer",500,"Emby Premiere required"],
+      "out": "premiere"
+    },
+    {
+      "name": "error emby createSeriesTimer 500 A valid Emby Premiere licence is required",
+      "fn": "mapDvrError",
+      "args": ["emby","createSeriesTimer",500,"A valid Emby Premiere licence is required"],
+      "out": "premiere"
+    },
+    {
+      "name": "error emby createSeriesTimer 500 Program is not a series",
+      "fn": "mapDvrError",
+      "args": ["emby","createSeriesTimer",500,"Program is not a series"],
+      "out": "not-series"
+    },
+    {
+      "name": "error jellyfin createSeriesTimer 500 Premiere",
+      "fn": "mapDvrError",
+      "args": ["jellyfin","createSeriesTimer",500,"Premiere"],
+      "out": "not-series"
+    },
+    {
+      "name": "error emby createTimer 500 Object reference not set",
+      "fn": "mapDvrError",
+      "args": ["emby","createTimer",500,"Object reference not set"],
+      "out": "server"
+    },
+    {
+      "name": "error jellyfin cancelTimer 404 ",
+      "fn": "mapDvrError",
+      "args": ["jellyfin","cancelTimer",404,""],
+      "out": "not-found"
+    },
+    {
+      "name": "error emby updateTimer 400 bad",
+      "fn": "mapDvrError",
+      "args": ["emby","updateTimer",400,"bad"],
+      "out": "server"
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+{
+  "keys": [
+    {
+      "rel": "a/b.mkv",
+      "size": 1000,
+      "mtimeMs": 1700000000999,
+      "key": "a/b.mkv\u00001000\u00001700000000"
+    },
+    {
+      "rel": "x.mkv",
+      "size": 0,
+      "mtimeMs": 999,
+      "key": "x.mkv\u00000\u00000"
+    }
+  ],
+  "file": {
+    "size": 1000,
+    "mtimeMs": 1700000000999
+  },
+  "now": 2000000000000,
+  "reports": [
+    {
+      "prev": null,
+      "pos": 1000,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 4999,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 5000,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 5000,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 50000,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 50000,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 89999,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 89999,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 90000,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 100000,
+        "played": true,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": null,
+      "pos": 50000,
+      "dur": 0,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 0,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": true,
+        "lastPlayedAt": 1,
+        "title": "Tag"
+      },
+      "pos": 40000,
+      "dur": 0,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 40000,
+        "durationMs": 100000,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000,
+        "title": "Tag"
+      }
+    },
+    {
+      "prev": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 100000,
+        "played": true,
+        "hidden": false,
+        "lastPlayedAt": 1
+      },
+      "pos": 30000,
+      "dur": 100000,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 30000,
+        "durationMs": 100000,
+        "played": true,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    },
+    {
+      "prev": {
+        "size": 999,
+        "mtimeSec": 1700000000,
+        "positionMs": 50000,
+        "durationMs": 100000,
+        "played": true,
+        "hidden": false,
+        "lastPlayedAt": 1,
+        "title": "Old"
+      },
+      "pos": 30000,
+      "dur": 0,
+      "expect": {
+        "size": 1000,
+        "mtimeSec": 1700000000,
+        "positionMs": 0,
+        "durationMs": 0,
+        "played": false,
+        "hidden": false,
+        "lastPlayedAt": 2000000000000
+      }
+    }
+  ],
+  "continue": {
+    "doc": {
+      "v": 1,
+      "records": {
+        "a.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 100,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 30
+        },
+        "b.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 100,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": true,
+          "lastPlayedAt": 40
+        },
+        "c.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 0,
+          "durationMs": 1000,
+          "played": true,
+          "hidden": false,
+          "lastPlayedAt": 50
+        },
+        "d.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 200,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 60
+        },
+        "e.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 300,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 60
+        }
+      }
+    },
+    "limit": 2,
+    "expect": [
+      "d.mkv",
+      "e.mkv"
+    ],
+    "all": [
+      "d.mkv",
+      "e.mkv",
+      "a.mkv"
+    ]
+  },
+  "prune": {
+    "doc": {
+      "v": 1,
+      "records": {
+        "a.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 100,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 30
+        },
+        "b.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 100,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": true,
+          "lastPlayedAt": 40
+        },
+        "c.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 0,
+          "durationMs": 1000,
+          "played": true,
+          "hidden": false,
+          "lastPlayedAt": 50
+        },
+        "d.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 200,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 60
+        },
+        "e.mkv": {
+          "size": 1,
+          "mtimeSec": 1,
+          "positionMs": 300,
+          "durationMs": 1000,
+          "played": false,
+          "hidden": false,
+          "lastPlayedAt": 60
+        }
+      }
+    },
+    "max": 3,
+    "expect": [
+      "c.mkv",
+      "d.mkv",
+      "e.mkv"
+    ]
+  }
+}

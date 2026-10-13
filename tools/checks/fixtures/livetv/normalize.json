@@ -1,0 +1,433 @@
+{
+  "about": "DTO normalisation (§4.4), date parsing, probes V15/V16 and clock skew (§21.4). fn: parseServerDate(s) → ms|null; normalizeChannel(dto, serverId, index); normalizeProgram(dto, {kind, categorySource}); flagsOf(dto, kind); hdProbe(rawPrograms); onNowProbe(rawItems, nowMs); defaultCaps(kind); skewSequence([[serverMs, clientMs]…]) → state after each; pf → PF.",
+  "cases": [
+    {
+      "name": "date \"2026-10-22T19:00:00.0000000Z\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T19:00:00.0000000Z"],
+      "out": 1792695600000
+    },
+    {
+      "name": "date \"2026-10-22T19:00:00Z\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T19:00:00Z"],
+      "out": 1792695600000
+    },
+    {
+      "name": "date \"2026-10-22T19:00:00\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T19:00:00"],
+      "out": 1792695600000
+    },
+    {
+      "name": "date \"2026-10-22T21:00:00+02:00\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T21:00:00+02:00"],
+      "out": 1792695600000
+    },
+    {
+      "name": "date \"2026-10-22T19:00:00.1234567Z\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T19:00:00.1234567Z"],
+      "out": 1792695600123
+    },
+    {
+      "name": "date \"2026-10-22T19:00Z\"",
+      "fn": "parseServerDate",
+      "args": ["2026-10-22T19:00Z"],
+      "out": 1792695600000
+    },
+    {"name":"date \"nope\"","fn":"parseServerDate","args":["nope"],"out":null},
+    {"name":"date \"\"","fn":"parseServerDate","args":[""],"out":null},
+    {
+      "name": "PF bits",
+      "fn": "pf",
+      "args": [],
+      "out": {
+        "Live": 1,
+        "New": 2,
+        "Premiere": 4,
+        "Repeat": 8,
+        "HD": 16,
+        "Movie": 32,
+        "Sports": 64,
+        "News": 128,
+        "Kids": 256,
+        "Series": 512
+      }
+    },
+    {
+      "name": "Emby channel with tags, favourite, last played",
+      "fn": "normalizeChannel",
+      "args": [
+        {
+          "Id": "ch1",
+          "Name": "Ciné Club",
+          "ChannelNumber": "012",
+          "ImageTags": {"Primary":"tag1"},
+          "UserData": {"IsFavorite":true,"LastPlayedDate":"2026-10-20T20:00:00.0000000Z"},
+          "Tags": ["Cinéma",""],
+          "ChannelType": "TV"
+        },
+        "srv",
+        3
+      ],
+      "out": {
+        "id": "ch1",
+        "serverId": "srv",
+        "number": "012",
+        "numKey": [12,-1],
+        "name": "Ciné Club",
+        "favorite": true,
+        "tags": ["Cinéma"],
+        "radio": false,
+        "serverIndex": 3,
+        "logoTag": "tag1",
+        "lastPlayed": 1792526400000
+      }
+    },
+    {
+      "name": "Jellyfin radio channel, no number, no logo",
+      "fn": "normalizeChannel",
+      "args": [{"Id":"r1","Name":"Radio Test","ChannelType":"Radio","UserData":{"IsFavorite":false}},"srv",0],
+      "out": {
+        "id": "r1",
+        "serverId": "srv",
+        "number": "",
+        "numKey": null,
+        "name": "Radio Test",
+        "favorite": false,
+        "tags": [],
+        "radio": true,
+        "serverIndex": 0
+      }
+    },
+    {"name":"channel without id → null","fn":"normalizeChannel","args":[{"Name":"x"},"srv",0],"out":null},
+    {
+      "name": "Number field fallback (sub-channel)",
+      "fn": "normalizeChannel",
+      "args": [{"Id":"c2","Name":"Sub","Number":"13.2"},"srv",1],
+      "out": {
+        "id": "c2",
+        "serverId": "srv",
+        "number": "13.2",
+        "numKey": [13,2],
+        "name": "Sub",
+        "favorite": false,
+        "tags": [],
+        "radio": false,
+        "serverIndex": 1
+      }
+    },
+    {
+      "name": "Emby episode: Name is the show, EpisodeTitle separate, S/É",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-1",
+          "ChannelId": "ch1",
+          "Name": "Grand Format",
+          "EpisodeTitle": "Le retour",
+          "ParentIndexNumber": 2,
+          "IndexNumber": 4,
+          "StartDate": "2026-10-22T18:50:00.0000000Z",
+          "EndDate": "2026-10-22T19:45:00.0000000Z",
+          "IsSeries": true,
+          "IsNew": true,
+          "IsRepeat": false,
+          "OfficialRating": "TP",
+          "SeriesId": "ser1",
+          "TimerId": "t1",
+          "SeriesTimerId": "st1"
+        },
+        {"kind":"emby"}
+      ],
+      "out": {
+        "id": "p-1",
+        "channelId": "ch1",
+        "start": 1792695000000,
+        "end": 1792698300000,
+        "title": "Grand Format",
+        "flags": 514,
+        "episodeTitle": "Le retour",
+        "season": 2,
+        "episode": 4,
+        "rating": "TP",
+        "seriesId": "ser1",
+        "timerId": "t1",
+        "seriesTimerId": "st1"
+      }
+    },
+    {
+      "name": "Jellyfin never sets New even if a value slips in",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-2",
+          "ChannelId": "ch1",
+          "Name": "Grand Format",
+          "EpisodeTitle": "Le retour",
+          "ParentIndexNumber": 2,
+          "IndexNumber": 4,
+          "StartDate": "2026-10-22T18:50:00.0000000Z",
+          "EndDate": "2026-10-22T19:45:00.0000000Z",
+          "IsSeries": true,
+          "IsNew": true,
+          "IsRepeat": false,
+          "OfficialRating": "TP",
+          "SeriesId": "ser1",
+          "TimerId": "t1",
+          "SeriesTimerId": "st1",
+          "IsHD": true
+        },
+        {"kind":"jellyfin"}
+      ],
+      "out": {
+        "id": "p-2",
+        "channelId": "ch1",
+        "start": 1792695000000,
+        "end": 1792698300000,
+        "title": "Grand Format",
+        "flags": 528,
+        "episodeTitle": "Le retour",
+        "season": 2,
+        "episode": 4,
+        "rating": "TP",
+        "seriesId": "ser1",
+        "timerId": "t1",
+        "seriesTimerId": "st1"
+      }
+    },
+    {
+      "name": "flags absent → 0; New never inferred from IsSeries && !IsRepeat",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-3",
+          "ChannelId": "ch2",
+          "Name": "Feuilleton",
+          "StartDate": "2026-10-22T10:00:00Z",
+          "EndDate": "2026-10-22T10:26:00Z",
+          "IsSeries": true,
+          "IsRepeat": false
+        },
+        {"kind":"emby"}
+      ],
+      "out": {
+        "id": "p-3",
+        "channelId": "ch2",
+        "start": 1792663200000,
+        "end": 1792664760000,
+        "title": "Feuilleton",
+        "flags": 512
+      }
+    },
+    {
+      "name": "every flag",
+      "fn": "flagsOf",
+      "args": [
+        {
+          "IsLive": true,
+          "IsNew": true,
+          "IsPremiere": true,
+          "IsRepeat": true,
+          "IsHD": true,
+          "IsMovie": true,
+          "IsSports": true,
+          "IsNews": true,
+          "IsKids": true,
+          "IsSeries": true
+        },
+        "emby"
+      ],
+      "out": 1023
+    },
+    {
+      "name": "flags must be true booleans",
+      "fn": "flagsOf",
+      "args": [{"IsLive":"true","IsMovie":1,"IsNews":true},"emby"],
+      "out": 128
+    },
+    {
+      "name": "genres-only programme, categorySource flags: no category bit",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-4",
+          "ChannelId": "ch3",
+          "Name": "Match",
+          "StartDate": "2026-10-22T20:00:00Z",
+          "EndDate": "2026-10-22T22:00:00Z",
+          "Genres": ["Sports","Football"]
+        },
+        {"kind":"emby","categorySource":"flags"}
+      ],
+      "out": {"id":"p-4","channelId":"ch3","start":1792699200000,"end":1792706400000,"title":"Match","flags":0}
+    },
+    {
+      "name": "genres-only programme, categorySource genres: Sports bit",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-4",
+          "ChannelId": "ch3",
+          "Name": "Match",
+          "StartDate": "2026-10-22T20:00:00Z",
+          "EndDate": "2026-10-22T22:00:00Z",
+          "Genres": ["Sports","Football"]
+        },
+        {"kind":"emby","categorySource":"genres"}
+      ],
+      "out": {"id":"p-4","channelId":"ch3","start":1792699200000,"end":1792706400000,"title":"Match","flags":64}
+    },
+    {
+      "name": "genres-only XMLTV \"Movie / Drama\", genres mode",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-5",
+          "ChannelId": "ch3",
+          "Name": "Film",
+          "StartDate": "2026-10-22T20:00:00Z",
+          "EndDate": "2026-10-22T22:00:00Z",
+          "Genres": ["Movie / Drama"]
+        },
+        {"kind":"jellyfin","categorySource":"genres"}
+      ],
+      "out": {"id":"p-5","channelId":"ch3","start":1792699200000,"end":1792706400000,"title":"Film","flags":32}
+    },
+    {
+      "name": "image tag kept when asked",
+      "fn": "normalizeProgram",
+      "args": [
+        {
+          "Id": "p-6",
+          "ChannelId": "ch3",
+          "Name": "Match",
+          "StartDate": "2026-10-22T20:00:00Z",
+          "EndDate": "2026-10-22T22:00:00Z",
+          "Genres": ["Sports","Football"],
+          "ImageTags": {"Primary":"img"}
+        },
+        {}
+      ],
+      "out": {
+        "id": "p-6",
+        "channelId": "ch3",
+        "start": 1792699200000,
+        "end": 1792706400000,
+        "title": "Match",
+        "flags": 0,
+        "imageTag": "img"
+      }
+    },
+    {
+      "name": "missing channel → null",
+      "fn": "normalizeProgram",
+      "args": [{"Id":"x","StartDate":"2026-10-22T20:00:00Z","EndDate":"2026-10-22T21:00:00Z"},{}],
+      "out": null
+    },
+    {
+      "name": "bad date → null",
+      "fn": "normalizeProgram",
+      "args": [{"Id":"x","ChannelId":"c","StartDate":"soon","EndDate":"2026-10-22T21:00:00Z"},{}],
+      "out": null
+    },
+    {
+      "name": "V16 HD probe: no IsHD key anywhere (Emby 4.1.1) → false",
+      "fn": "hdProbe",
+      "args": [[{"Id":"a","IsLive":true},{"Id":"b"}]],
+      "out": false
+    },
+    {
+      "name": "V16 HD probe: IsHD present (false counts) → true",
+      "fn": "hdProbe",
+      "args": [[{"Id":"a"},{"Id":"b","IsHD":false}]],
+      "out": true
+    },
+    {
+      "name": "V15 on-now probe: all airing → recommended",
+      "fn": "onNowProbe",
+      "args": [[{"StartDate":"2026-10-22T18:00:00Z","EndDate":"2026-10-22T20:00:00Z"}],1792695600000],
+      "out": "recommended"
+    },
+    {
+      "name": "V15 on-now probe: one future item → window",
+      "fn": "onNowProbe",
+      "args": [
+        [
+          {"StartDate":"2026-10-22T18:00:00Z","EndDate":"2026-10-22T20:00:00Z"},
+          {"StartDate":"2026-10-22T19:30:00Z","EndDate":"2026-10-22T20:00:00Z"}
+        ],
+        1792695600000
+      ],
+      "out": "window"
+    },
+    {
+      "name": "V15 on-now probe: ended exactly now → window",
+      "fn": "onNowProbe",
+      "args": [[{"StartDate":"2026-10-22T18:00:00Z","EndDate":"2026-10-22T19:00:00Z"}],1792695600000],
+      "out": "window"
+    },
+    {
+      "name": "caps Emby",
+      "fn": "defaultCaps",
+      "args": ["emby"],
+      "out": {
+        "kind": "emby",
+        "canRecord": true,
+        "channelTags": false,
+        "categorySource": "unknown",
+        "categoryFilterOnChannels": "unknown",
+        "programSearch": "server",
+        "recordingOptions": "emby",
+        "onNowSource": "recommended",
+        "newFlag": true,
+        "hdFlag": "unknown",
+        "killEncodes": true,
+        "clockSkewMs": 0
+      }
+    },
+    {
+      "name": "caps Jellyfin: no IsNew, HD known",
+      "fn": "defaultCaps",
+      "args": ["jellyfin"],
+      "out": {
+        "kind": "jellyfin",
+        "canRecord": true,
+        "channelTags": false,
+        "categorySource": "unknown",
+        "categoryFilterOnChannels": "unknown",
+        "programSearch": "items",
+        "recordingOptions": "jellyfin",
+        "onNowSource": "recommended",
+        "newFlag": false,
+        "hdFlag": true,
+        "killEncodes": true,
+        "clockSkewMs": 0
+      }
+    },
+    {
+      "name": "clock skew: set after 3 answers over 2 min, cleared by one within",
+      "fn": "skewSequence",
+      "args": [
+        [
+          [1792696200000,1792695600000],
+          [1792696200000,1792695600000],
+          [1792696201000,1792695600000],
+          [1792696140000,1792695600000],
+          [1792695630000,1792695600000],
+          [1792695300000,1792695600000]
+        ]
+      ],
+      "out": [
+        {"streak":1,"skewMs":0},
+        {"streak":2,"skewMs":0},
+        {"streak":3,"skewMs":601000},
+        {"streak":4,"skewMs":540000},
+        {"streak":0,"skewMs":0},
+        {"streak":1,"skewMs":0}
+      ]
+    }
+  ]
+}

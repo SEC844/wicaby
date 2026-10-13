@@ -1,0 +1,70 @@
+{
+  "_": "Several servers merged (TP-06). Read by tools/checks/parity-check.mjs (apps/desktop/src/renderer/lib/items.ts merge/sameTitle) and the Android JVM test ServersTest (core Servers.kt). merge: one list per server, expected = the merged ServerId:Id keys.",
+  "merge": [
+    {
+      "name": "one server: unchanged, same-server duplicates kept",
+      "lists": [[
+        { "Id": "1", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Imdb": "tt1" } },
+        { "Id": "2", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Imdb": "tt1" } },
+        { "Id": "3", "ServerId": "a", "Type": "Movie" }
+      ]],
+      "byDate": false,
+      "expected": ["a:1", "a:2", "a:3"]
+    },
+    {
+      "name": "interleaved, the second server's copy of a film dropped",
+      "lists": [
+        [
+          { "Id": "1", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Imdb": "tt1", "Tmdb": "11" } },
+          { "Id": "2", "ServerId": "a", "Type": "Series", "ProviderIds": { "Tvdb": "22" } }
+        ],
+        [
+          { "Id": "1", "ServerId": "b", "Type": "Movie", "ProviderIds": { "Tmdb": "11" } },
+          { "Id": "9", "ServerId": "b", "Type": "Movie", "ProviderIds": { "Imdb": "tt9" } },
+          { "Id": "8", "ServerId": "b", "Type": "Movie" }
+        ]
+      ],
+      "byDate": false,
+      "expected": ["a:1", "a:2", "b:9", "b:8"]
+    },
+    {
+      "name": "provider ids match per type and ignore other providers and empty values",
+      "lists": [
+        [
+          { "Id": "1", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Tvdb": "5", "Zap2It": "z" } },
+          { "Id": "2", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Imdb": "" } }
+        ],
+        [
+          { "Id": "3", "ServerId": "b", "Type": "Series", "ProviderIds": { "tvdb": "5" } },
+          { "Id": "4", "ServerId": "b", "Type": "Movie", "ProviderIds": { "Zap2It": "z", "IMDB": "" } }
+        ]
+      ],
+      "byDate": false,
+      "expected": ["a:1", "b:3", "a:2", "b:4"]
+    },
+    {
+      "name": "by date: most recently played first, the newer copy kept, undated last",
+      "lists": [
+        [
+          { "Id": "1", "ServerId": "a", "Type": "Movie", "ProviderIds": { "Imdb": "tt1" }, "UserData": { "LastPlayedDate": "2026-01-01T10:00:00.0000000Z" } },
+          { "Id": "2", "ServerId": "a", "Type": "Movie" }
+        ],
+        [
+          { "Id": "7", "ServerId": "b", "Type": "Movie", "ProviderIds": { "Imdb": "tt1" }, "UserData": { "LastPlayedDate": "2026-03-01T10:00:00.0000000Z" } },
+          { "Id": "8", "ServerId": "b", "Type": "Movie", "UserData": { "LastPlayedDate": "2026-02-01T10:00:00Z" } }
+        ]
+      ],
+      "byDate": true,
+      "expected": ["b:7", "b:8", "a:2"]
+    },
+    {
+      "name": "a server that failed (null) leaves only its part out",
+      "lists": [
+        null,
+        [{ "Id": "5", "ServerId": "b", "Type": "Movie" }]
+      ],
+      "byDate": false,
+      "expected": ["b:5"]
+    }
+  ]
+}

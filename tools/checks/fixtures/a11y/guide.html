@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+  Reference markup for the Live TV guide accessibility contract (livetv-spec-final.md §12, §21.7, §6.7, §8.5).
+  tools/checks/livetv-a11y-check.mjs --record renders this page in Electron and stores its accessibility tree
+  and forced-colours probe as guide-ax.json, the known-good fixture the gate (and its seeded failures) runs on.
+  It is test data, not app code: Guide.svelte (D-4) only has to produce the same roles, names and attributes.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide a11y fixture</title>
+<style>
+  body { margin: 0; background: #0b0b0d; color: #f2f2f5; font: 14px system-ui, sans-serif; }
+  .guide { position: relative; width: 1000px; }
+  .row { display: flex; height: 68px; }
+  .chan { width: 188px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; box-sizing: border-box; }
+  .cell { position: relative; width: 240px; flex: none; padding: 8px 12px; box-sizing: border-box; background: #1c1c20; margin-right: 2px; }
+  .cell:focus, .chan:focus { outline: none; background: #f2f2f5; color: #0b0b0d; }
+  .cell.recording { outline: 1px solid #ff453a; outline-offset: -1px; }
+  .marks { position: absolute; right: 8px; top: 8px; display: flex; gap: 4px; align-items: center; }
+  /* Marks keep a shape that survives forced colours: borders, glyphs and strokes, never a background alone. */
+  [data-mark] { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; }
+  [data-mark] > * { flex: none; }
+  [data-mark='conflict-wont'] { width: auto; gap: 2px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; border: 3.5px solid #ff453a; box-sizing: border-box; }
+  [data-mark='series'] { border: 1.5px solid #ff453a; border-radius: 50%; box-sizing: border-box; }
+  [data-mark='conflict-wont'] .dot { border-color: #8e8e93; }
+  [data-mark='error'] { font-weight: 700; }
+  svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+  @media (forced-colors: active) {
+    .cell:focus, .chan:focus, .row:focus { outline: 3px solid Highlight; outline-offset: -3px; }
+    .cell.recording { outline-color: Highlight; }
+  }
+</style>
+</head>
+<body>
+<div class="guide" role="grid" aria-label="Guide des programmes" aria-rowcount="5" aria-colcount="-1">
+  <div class="row" role="row" aria-rowindex="1">
+    <div class="chan" role="columnheader">mar. 13</div>
+    <div class="cell" role="columnheader">20:00</div>
+    <div class="cell" role="columnheader">20:30</div>
+  </div>
+  <div class="row" role="row" aria-rowindex="2">
+    <div class="chan" role="rowheader" tabindex="-1" aria-label="Chaîne 1, Ciné Club">1 Ciné Club</div>
+    <div class="cell" role="gridcell" tabindex="0" data-pid="p1" aria-label="Le Journal, Ciné Club, de 20:00 à 20:40, Direct, programmé">Le Journal
+      <span class="marks"><span data-mark="timer" aria-hidden="true"><span class="dot"></span></span></span></div>
+    <div class="cell" role="gridcell" tabindex="-1" data-pid="p2" aria-label="Grand Format, Ciné Club, de 20:40 à 21:45, règle de série">Grand Format
+      <span class="marks"><span data-mark="series" aria-hidden="true"><span class="dot"></span></span></span></div>
+    <div class="cell recording" role="gridcell" tabindex="-1" data-pid="p3" aria-label="Film : Néon Fantôme, Ciné Club, de 21:45 à 23:30, enregistrement en cours">Film : Néon Fantôme
+      <span class="marks"><span data-mark="recording" aria-hidden="true"><span class="dot"></span></span></span></div>
+  </div>
+  <div class="row" role="row" aria-rowindex="3">
+    <div class="chan" role="rowheader" tabindex="-1" aria-label="Chaîne 2, Euro 3">2 Euro 3</div>
+    <div class="cell" role="gridcell" tabindex="-1" data-pid="p4" aria-label="Débat, Euro 3, de 20:00 à 21:00, ne sera pas enregistré">Débat
+      <span class="marks"><span data-mark="conflict-wont" aria-hidden="true"><span class="dot"></span><svg viewBox="0 0 12 12"><path d="M1 11 11 1"/></svg></span></span></div>
+    <div class="cell" role="gridcell" tabindex="-1" data-pid="p5" aria-label="Magazine, Euro 3, de 21:00 à 22:00, conflit, sera enregistré">Magazine
+      <span class="marks"><span data-mark="conflict-ok" aria-hidden="true"><span class="dot"></span></span></span></div>
+    <div class="cell" role="gridcell" tabindex="-1" data-pid="p6" aria-label="Sport, Euro 3, de 22:00 à 23:00, erreur d’enregistrement">Sport
+      <span class="marks"><span data-mark="error" aria-hidden="true">!</span></span></div>
+  </div>
+  <div class="row" role="row" aria-rowindex="4">
+    <div class="chan" role="rowheader" tabindex="-1" aria-label="Chaîne 5.1, Équipe 21">5.1 Équipe 21</div>
+    <div class="cell" role="gridcell" tabindex="-1" data-pid="p7" aria-label="Jeunesse, Équipe 21, de 20:00 à 20:30, rappel">Jeunesse
+      <span class="marks"><span data-mark="reminder" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span></span></div>
+    <div class="cell" role="gridcell" tabindex="-1" data-filler="1" aria-label="Équipe 21, aucune information de programme">Aucune information de programme</div>
+  </div>
+  <div class="row" role="row" aria-rowindex="5" aria-busy="true">
+    <div class="chan" role="rowheader" tabindex="-1" aria-label="Chaîne 6, Radio Néon">6 Radio Néon</div>
+  </div>
+</div>
+<div role="status" aria-live="polite">12 Ciné Club, Film : Néon Fantôme</div>
+<script>document.querySelector('[data-pid="p1"]').focus();</script>
+</body>
+</html>

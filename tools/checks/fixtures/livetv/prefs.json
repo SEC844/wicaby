@@ -1,0 +1,238 @@
+{
+  "about": "DisplayPreferences wicaby-livetv (§5.4): lt.* keys, 6 kB chunking, read-modify-write, refuse-to-write. fn: decodePrefs(customPrefs); encodeField(field, value); chunkStats(prefix, count, idPattern) → {keys, bytes, roundTrip}; mergeCustomPrefs(server, changes); prefsBody(serverDto, custom); syncScenario(steps) where a step is {queue}|{loaded}|{write: serverDto} → {load} or {write: body|null}.",
+  "cases": [
+    {
+      "name": "decode: empty document → defaults",
+      "fn": "decodePrefs",
+      "args": [{}],
+      "out": {
+        "sort": "number",
+        "favFirst": false,
+        "lens": {"kind":"all"},
+        "fav": [],
+        "hidden": [],
+        "groups": [],
+        "recents": [],
+        "badges": ["live","new","hd"],
+        "dvrPadding": null
+      }
+    },
+    {
+      "name": "decode: every key, other apps keys ignored, broken values fall back",
+      "fn": "decodePrefs",
+      "args": [
+        {
+          "lt.v": "1",
+          "lt.sort": "name",
+          "lt.favFirst": "1",
+          "lt.lens": "{\"kind\":\"tag\",\"tag\":\"Sport\"}",
+          "lt.fav.0": "[\"c1\",\"c2\"]",
+          "lt.fav.1": "[\"c3\",\"c1\"]",
+          "lt.hidden.0": "not json",
+          "lt.hidden.1": "[\"h1\"]",
+          "lt.groups.0": "[{\"id\":\"g1\",\"name\":\"Infos\",\"ids\":[\"c2\",\"c2\",\"c9\"]},{\"id\":\"\",\"name\":\"x\",\"ids\":[]}]",
+          "lt.recents": "[\"c3\",\"c2\"]",
+          "lt.badges": "live,hd,bogus",
+          "lt.dvrPadding": "{\"pre\":120,\"post\":600}",
+          "other.app": "x"
+        }
+      ],
+      "out": {
+        "sort": "name",
+        "favFirst": true,
+        "lens": {"kind":"tag","tag":"Sport"},
+        "fav": ["c1","c2","c3"],
+        "hidden": ["h1"],
+        "groups": [{"id":"g1","name":"Infos","ids":["c2","c9"]}],
+        "recents": ["c3","c2"],
+        "badges": ["live","hd"],
+        "dvrPadding": {"pre":120,"post":600}
+      }
+    },
+    {
+      "name": "decode: a gap ends the chunk list",
+      "fn": "decodePrefs",
+      "args": [{"lt.fav.0":"[\"a\"]","lt.fav.2":"[\"b\"]"}],
+      "out": {
+        "sort": "number",
+        "favFirst": false,
+        "lens": {"kind":"all"},
+        "fav": ["a"],
+        "hidden": [],
+        "groups": [],
+        "recents": [],
+        "badges": ["live","new","hd"],
+        "dvrPadding": null
+      }
+    },
+    {
+      "name": "decode: bad sort and lens → defaults; an empty badge list means every badge off",
+      "fn": "decodePrefs",
+      "args": [{"lt.sort":"random","lt.lens":"{\"kind\":\"tag\"}","lt.badges":""}],
+      "out": {
+        "sort": "number",
+        "favFirst": false,
+        "lens": {"kind":"all"},
+        "fav": [],
+        "hidden": [],
+        "groups": [],
+        "recents": [],
+        "badges": [],
+        "dvrPadding": null
+      }
+    },
+    {
+      "name": "chunking above 6 kB: 2,000 GUID-like ids, each chunk ≤ 6,000 bytes, round trip",
+      "fn": "chunkStats",
+      "args": ["lt.hidden",2000,"6a2f1c3e-0000-4000-8000-{i}"],
+      "out": {
+        "keys": ["lt.hidden.0","lt.hidden.1","lt.hidden.2","lt.hidden.3","lt.hidden.4","lt.hidden.5","lt.hidden.6","lt.hidden.7","lt.hidden.8","lt.hidden.9","lt.hidden.10","lt.hidden.11","lt.hidden.12","lt.hidden.13"],
+        "bytes": [5968,5968,5968,5968,5968,5968,5968,5968,5968,5968,5968,5968,5968,430],
+        "roundTrip": true
+      }
+    },
+    {
+      "name": "chunking: small list fits one chunk",
+      "fn": "encodeField",
+      "args": ["fav",["c1","c2"]],
+      "out": {"lt.fav.0":"[\"c1\",\"c2\"]"}
+    },
+    {"name":"chunking: empty list writes no key","fn":"encodeField","args":["hidden",[]],"out":{}},
+    {
+      "name": "encode lens",
+      "fn": "encodeField",
+      "args": ["lens",{"kind":"group","id":"g1"}],
+      "out": {"lt.lens":"{\"kind\":\"group\",\"id\":\"g1\"}"}
+    },
+    {
+      "name": "encode recents capped at 20",
+      "fn": "encodeField",
+      "args": [
+        "recents",
+        ["r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","r11","r12","r13","r14","r15","r16","r17","r18","r19","r20","r21","r22","r23","r24"]
+      ],
+      "out": {
+        "lt.recents": "[\"r0\",\"r1\",\"r2\",\"r3\",\"r4\",\"r5\",\"r6\",\"r7\",\"r8\",\"r9\",\"r10\",\"r11\",\"r12\",\"r13\",\"r14\",\"r15\",\"r16\",\"r17\",\"r18\",\"r19\"]"
+      }
+    },
+    {
+      "name": "encode badges and favFirst",
+      "fn": "encodeField",
+      "args": ["badges",["live","new"]],
+      "out": {"lt.badges":"live,new"}
+    },
+    {
+      "name": "merge: stale chunk keys deleted, untouched fields and other keys kept",
+      "fn": "mergeCustomPrefs",
+      "args": [
+        {
+          "lt.v": "1",
+          "lt.sort": "number",
+          "lt.fav.0": "[\"a\"]",
+          "lt.fav.1": "[\"b\"]",
+          "lt.fav.2": "[\"c\"]",
+          "lt.hidden.0": "[\"h\"]",
+          "lt.favorite": "not ours",
+          "other.app": "keep"
+        },
+        {"fav":["c","a"],"favFirst":true}
+      ],
+      "out": {
+        "lt.v": "1",
+        "lt.sort": "number",
+        "lt.hidden.0": "[\"h\"]",
+        "lt.favorite": "not ours",
+        "other.app": "keep",
+        "lt.fav.0": "[\"c\",\"a\"]",
+        "lt.favFirst": "1"
+      }
+    },
+    {
+      "name": "merge: clearing hidden removes every hidden chunk",
+      "fn": "mergeCustomPrefs",
+      "args": [
+        {
+          "lt.v": "1",
+          "lt.sort": "number",
+          "lt.fav.0": "[\"a\"]",
+          "lt.fav.1": "[\"b\"]",
+          "lt.fav.2": "[\"c\"]",
+          "lt.hidden.0": "[\"h\"]",
+          "lt.favorite": "not ours",
+          "other.app": "keep"
+        },
+        {"hidden":[]}
+      ],
+      "out": {
+        "lt.v": "1",
+        "lt.sort": "number",
+        "lt.fav.0": "[\"a\"]",
+        "lt.fav.1": "[\"b\"]",
+        "lt.fav.2": "[\"c\"]",
+        "lt.favorite": "not ours",
+        "other.app": "keep"
+      }
+    },
+    {
+      "name": "merge: dvrPadding null removes the key",
+      "fn": "mergeCustomPrefs",
+      "args": [{"lt.dvrPadding":"{\"pre\":1,\"post\":2}"},{"dvrPadding":null}],
+      "out": {"lt.v":"1"}
+    },
+    {
+      "name": "body: Id and Client set, server fields kept",
+      "fn": "prefsBody",
+      "args": [
+        {
+          "Id": "old",
+          "Client": "emby",
+          "SortBy": "SortName",
+          "ScrollDirection": "Horizontal",
+          "CustomPrefs": {"a":"b"}
+        },
+        {"lt.v":"1"}
+      ],
+      "out": {
+        "Id": "wicaby-livetv",
+        "Client": "wicaby",
+        "SortBy": "SortName",
+        "ScrollDirection": "Horizontal",
+        "CustomPrefs": {"lt.v":"1"}
+      }
+    },
+    {
+      "name": "refuse to write while the document failed to load; queued changes wait for a good read",
+      "fn": "syncScenario",
+      "args": [
+        [
+          {"queue":{"favFirst":true}},
+          {"write":{"CustomPrefs":{}}},
+          {"loaded":false},
+          {"write":{"CustomPrefs":{}}},
+          {"queue":{"sort":"name"}},
+          {"loaded":true},
+          {
+            "write": {"Id":"wicaby-livetv","Client":"wicaby","CustomPrefs":{"other.app":"x","lt.sort":"number"}}
+          },
+          {"write":{"CustomPrefs":{}}}
+        ]
+      ],
+      "out": [
+        {"load":"pending"},
+        {"write":null},
+        {"load":"failed"},
+        {"write":null},
+        {"load":"failed"},
+        {"load":"ok"},
+        {
+          "write": {
+            "Id": "wicaby-livetv",
+            "Client": "wicaby",
+            "CustomPrefs": {"other.app":"x","lt.sort":"name","lt.favFirst":"1","lt.v":"1"}
+          }
+        },
+        {"write":null}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$comment": "file-sources-spec §4.3 folder shapes, display only. children: a trailing / marks a folder. Read by files-core-check.mjs (shared/files/shapes.ts) and FilesVectorsTest (C/files/pure/Shapes.kt).",
+  "seasons": [
+    ["Season 1", 1],
+    ["Season 10", 10],
+    ["season_02", 2],
+    ["Saison 3", 3],
+    ["SAISON-4", 4],
+    ["S05", 5],
+    ["s1", 1],
+    [" Season 6 ", 6],
+    ["Specials", null],
+    ["Season", null],
+    ["Season 1000", null],
+    ["Seasons 2", null],
+    ["Example Show", null],
+    ["S01E02", null]
+  ],
+  "folders": [
+    { "name": "Season 1", "children": ["Example.Show.S01E01.mkv"], "shape": "Season" },
+    { "name": "Example Show", "children": ["tvshow.nfo", "poster.jpg"], "shape": "Series" },
+    { "name": "Example Show", "children": ["Season 1/", "Season 2/"], "shape": "Series" },
+    { "name": "Example Show", "children": ["Saison 1/", "fanart.jpg"], "shape": "Series" },
+    { "name": "Example Show", "children": ["TVSHOW.NFO"], "shape": "Series" },
+    { "name": "Example Movie (2019)", "children": ["Example.Movie.2019.1080p.mkv", "poster.jpg", "movie.nfo", "Example.Movie.2019.1080p.fr.srt"], "shape": "Movie", "film": "Example.Movie.2019.1080p.mkv" },
+    { "name": "Example Movie (2019)", "children": ["Example.Movie.2019.mkv", "Example.Movie.2019-trailer.mkv", "Example.Movie.2019.sample.mp4"], "shape": "Movie", "film": "Example.Movie.2019.mkv" },
+    { "name": "Example Movie", "children": ["Example Movie.mkv", "Extras/"], "shape": "Movie", "film": "Example Movie.mkv" },
+    { "name": "Two Films", "children": ["A.2001.mkv", "B.2002.mkv"], "shape": "Folder" },
+    { "name": "One Episode", "children": ["Example.Show.S01E01.mkv"], "shape": "Folder" },
+    { "name": "Only Extras", "children": ["Example-trailer.mkv"], "shape": "Folder" },
+    { "name": "Empty", "children": [], "shape": "Folder" },
+    { "name": "Pictures", "children": ["poster.jpg", "notes.txt"], "shape": "Folder" },
+    { "name": "Mixed", "children": ["Sub/", "Example.mkv", "Other.mkv"], "shape": "Folder" },
+    { "name": "Folder named like a film", "children": ["tvshow.nfo/"], "shape": "Folder" }
+  ],
+  "episodeOrder": [
+    {
+      "names": ["Example.Show.S01E10.mkv", "Example.Show.S01E02.mkv", "Bonus.mkv", "Example.Show.S02E01.mkv", "Example.Show.S01E01.mkv", "Another.mkv"],
+      "sorted": ["Example.Show.S01E01.mkv", "Example.Show.S01E02.mkv", "Example.Show.S01E10.mkv", "Example.Show.S02E01.mkv", "Another.mkv", "Bonus.mkv"]
+    },
+    {
+      "names": ["Show - 10 [1080p].mkv", "Show - 9 [1080p].mkv", "Show - 1 [1080p].mkv"],
+      "sorted": ["Show - 1 [1080p].mkv", "Show - 9 [1080p].mkv", "Show - 10 [1080p].mkv"]
+    },
+    {
+      "names": ["Example.Show.1x03.mkv", "Example.Show.S01E02.mkv", "Example.Show.1x01.mkv"],
+      "sorted": ["Example.Show.1x01.mkv", "Example.Show.S01E02.mkv", "Example.Show.1x03.mkv"]
+    }
+  ]
+}

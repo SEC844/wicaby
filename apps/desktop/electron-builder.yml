@@ -1,0 +1,123 @@
+appId: com.wika.wicaby
+productName: Wicaby
+copyright: Copyright © Wika
+directories:
+  # Paths are relative to apps/desktop; release/ and vendor/ live at the repo root.
+  output: ../../release
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+  - resources/**/*
+  - '!out/**/*.map'
+  - '!out/licenses/**'
+extraResources:
+  # LICENSE.txt, THIRD_PARTY_NOTICES.md, the GPL-2.0/LGPL-2.1 texts and npm-licenses.txt,
+  # staged by tools/release/licenses.mjs (the last step of `npm run build`).
+  - from: out/licenses
+    to: licenses
+asar: true
+# Electron fuses (RunAsNode off, asar-only with integrity check...), flipped before signing.
+afterPack: ./build/afterPack.mjs
+npmRebuild: false
+artifactName: ${productName}-${version}-${arch}.${ext}
+protocols:
+  - name: Wicaby
+    schemes:
+      - wicaby
+win:
+  icon: resources/icon.ico
+  # Merged with the top-level extraResources. Linux uses the system mpv (deb Depends).
+  extraResources:
+    # mpv.exe is bundled only when `npm run fetch-mpv` has populated vendor/mpv. The shinchiro
+    # archive's extras stay out: d3dcompiler_43.dll (Electron ships d3dcompiler_47.dll), the
+    # manual, the installer and the update/register scripts.
+    - from: ../../vendor/mpv
+      to: mpv
+      filter:
+        - '**/*'
+        - '!d3dcompiler_43.dll'
+        - '!doc/**'
+        - '!installer/**'
+        - '!updater.bat'
+        - '!mpv-*register.bat'
+    # wicaby-mesh.exe + THIRD_PARTY_LICENSES.txt, from `npm run build:mesh`.
+    - from: ../../vendor/vpn-helper
+      to: vpn-helper
+      filter:
+        - wicaby-mesh.exe
+        - THIRD_PARTY_LICENSES.txt
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Wicaby
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+# Linux: x64 AppImage, deb and tar.gz. mpv is not bundled: the deb depends on the distribution's
+# mpv, and the AppImage and tar.gz find it in PATH (mpvCandidates, mpv-controller.ts).
+linux:
+  icon: resources/icon.png
+  category: AudioVideo;Video;Player
+  synopsis: Media client for Emby and Jellyfin
+  # The deb needs a maintainer; no e-mail address is published. Its Homepage comes from
+  # package.json homepage or the GitHub remote (CI passes -c.extraMetadata.homepage).
+  maintainer: Wika
+  description: "Wicaby: all your media in one place. A media client for Emby and Jellyfin servers; plays through mpv."
+  # x-scheme-handler/wicaby comes from protocols above; magnet: is offered, not made the default.
+  mimeTypes:
+    - x-scheme-handler/magnet
+  desktop:
+    entry:
+      Actions: Home;Search;Downloads;Settings;
+      Keywords: emby;jellyfin;mpv;video;movies;series;
+  extraResources:
+    # wicaby-mesh (no .exe) + THIRD_PARTY_LICENSES.txt, from `GOOS=linux npm run build:mesh`.
+    - from: ../../vendor/vpn-helper
+      to: vpn-helper
+      filter:
+        - wicaby-mesh
+        - THIRD_PARTY_LICENSES.txt
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+    - target: tar.gz
+      arch: [x64]
+# Desktop actions: the jump list tasks (taskbar.ts), routed by --wicaby-nav= (index.ts). Exec differs
+# per target because AppImage launches through AppRun.
+appImage:
+  desktop:
+    desktopActions:
+      Home: { Name: Home, 'Name[fr]': Accueil, Exec: AppRun --no-sandbox --wicaby-nav=/home }
+      Search: { Name: Search, 'Name[fr]': Rechercher, Exec: AppRun --no-sandbox --wicaby-nav=/search }
+      Downloads: { Name: Downloads, 'Name[fr]': Téléchargements, Exec: AppRun --no-sandbox --wicaby-nav=/downloads }
+      Settings: { Name: Settings, 'Name[fr]': Paramètres, Exec: AppRun --no-sandbox --wicaby-nav=/settings }
+deb:
+  # 0.37: the oldest mpv whose options Wicaby passes (version-gated in mpv-controller.ts).
+  depends:
+    - mpv (>= 0.37)
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+  desktop:
+    desktopActions:
+      Home: { Name: Home, 'Name[fr]': Accueil, Exec: /opt/Wicaby/wicaby --wicaby-nav=/home }
+      Search: { Name: Search, 'Name[fr]': Rechercher, Exec: /opt/Wicaby/wicaby --wicaby-nav=/search }
+      Downloads: { Name: Downloads, 'Name[fr]': Téléchargements, Exec: /opt/Wicaby/wicaby --wicaby-nav=/downloads }
+      Settings: { Name: Settings, 'Name[fr]': Paramètres, Exec: /opt/Wicaby/wicaby --wicaby-nav=/settings }

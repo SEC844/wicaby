@@ -1,0 +1,205 @@
+{
+  "_doc": "cast-spec 2.2 section 1 and the dedupe: GET /Sessions?ControllableByUserId= rows -> picker targets. Read by tools/checks/cast-check.mjs (desktop main/cast/targets.ts); meant for the :core RemoteTargets tests too.",
+  "ctx": {
+    "serverId": "srv1",
+    "serverName": "Home",
+    "ownDeviceId": "desk",
+    "mediaType": "Video"
+  },
+  "sessions": [
+    {
+      "Id": "a",
+      "DeviceId": "desk",
+      "DeviceName": "Ce PC",
+      "Client": "Wicaby",
+      "ApplicationVersion": "0.2.0",
+      "SupportsRemoteControl": true,
+      "PlayableMediaTypes": [
+        "Audio",
+        "Video"
+      ],
+      "SupportedCommands": [
+        "Play",
+        "PlayState"
+      ]
+    },
+    {
+      "Id": "b",
+      "DeviceId": "tv1",
+      "DeviceName": "Living room",
+      "Client": "Wicaby TV",
+      "ApplicationVersion": "0.2.0",
+      "SupportsRemoteControl": true,
+      "PlayableMediaTypes": [
+        "Audio",
+        "Video"
+      ],
+      "SupportedCommands": [
+        "PlayState",
+        "SetVolume",
+        "Mute",
+        "Unmute"
+      ]
+    },
+    {
+      "Id": "c",
+      "DeviceId": "web",
+      "DeviceName": "Firefox",
+      "Client": "Emby Web",
+      "SupportsRemoteControl": false,
+      "PlayableMediaTypes": [
+        "Audio",
+        "Video"
+      ],
+      "SupportedCommands": []
+    },
+    {
+      "Id": "d",
+      "DeviceId": "spk",
+      "DeviceName": "Enceinte",
+      "Client": "Wicaby Mobile",
+      "SupportsRemoteControl": true,
+      "PlayableMediaTypes": [
+        "Audio"
+      ],
+      "SupportedCommands": []
+    },
+    {
+      "Id": "e",
+      "DeviceId": "1f2e3d4c-0000-4000-8000-00000000b4a1",
+      "DeviceName": "Mock TV",
+      "Client": "DLNA",
+      "SupportsRemoteControl": true,
+      "PlayableMediaTypes": [
+        "video",
+        "audio"
+      ],
+      "SupportedCommands": [
+        "SetVolume"
+      ]
+    },
+    {
+      "Id": "f",
+      "DeviceId": "web2",
+      "DeviceName": "Chrome",
+      "Client": "Jellyfin Web",
+      "ApplicationVersion": "10.11.0",
+      "SupportsRemoteControl": true,
+      "PlayableMediaTypes": [
+        "Audio",
+        "Video"
+      ],
+      "SupportedCommands": [
+        "DisplayMessage"
+      ]
+    }
+  ],
+  "expected": [
+    {
+      "key": "s:srv1:b",
+      "kind": "session",
+      "section": "apps",
+      "name": "Living room",
+      "detail": "Wicaby TV 0.2.0",
+      "deviceId": "tv1"
+    },
+    {
+      "key": "s:srv1:e",
+      "kind": "session",
+      "section": "dlna",
+      "name": "Mock TV",
+      "detail": "",
+      "via": "Home",
+      "deviceId": "1f2e3d4c-0000-4000-8000-00000000b4a1"
+    },
+    {
+      "key": "s:srv1:f",
+      "kind": "session",
+      "section": "apps",
+      "name": "Chrome",
+      "detail": "Jellyfin Web 10.11.0",
+      "deviceId": "web2"
+    }
+  ],
+  "ssdp": [
+    {
+      "key": "d:uuid:1F2E3D4C-0000-4000-8000-00000000B4A1",
+      "kind": "dlna",
+      "section": "dlna",
+      "name": "Mock TV",
+      "detail": "Sony",
+      "commands": [],
+      "mediaTypes": [
+        "Audio",
+        "Video"
+      ]
+    },
+    {
+      "key": "d:uuid:5a5a5a5a-1111-4111-8111-000000000001",
+      "kind": "dlna",
+      "section": "dlna",
+      "name": "Kodi",
+      "detail": "Kodi",
+      "commands": [],
+      "mediaTypes": [
+        "Audio",
+        "Video"
+      ]
+    }
+  ],
+  "cast": [
+    {
+      "key": "c:3c2b1a",
+      "kind": "cast",
+      "section": "chromecast",
+      "name": "Bedroom",
+      "detail": "Chromecast",
+      "commands": [],
+      "mediaTypes": [
+        "Audio",
+        "Video"
+      ]
+    }
+  ],
+  "merged": [
+    "s:srv1:b",
+    "s:srv1:f",
+    "s:srv1:e",
+    "d:uuid:5a5a5a5a-1111-4111-8111-000000000001",
+    "c:3c2b1a"
+  ],
+  "sessionsOnly": [
+    {
+      "item": {
+        "Type": "TvChannel"
+      },
+      "expected": true
+    },
+    {
+      "item": {
+        "Type": "Program"
+      },
+      "expected": true
+    },
+    {
+      "item": {
+        "Type": "Recording",
+        "Status": "InProgress"
+      },
+      "expected": true
+    },
+    {
+      "item": {
+        "Type": "Recording",
+        "Status": "Completed"
+      },
+      "expected": false
+    },
+    {
+      "item": {
+        "Type": "Movie"
+      },
+      "expected": false
+    }
+  ]
+}

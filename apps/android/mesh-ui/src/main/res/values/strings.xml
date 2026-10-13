@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- French is the default language; English lives in values-en. -->
+<resources>
+    <!-- Accès à distance (réseau maillé Tailscale / NetBird intégré) -->
+    <string name="mesh_title">Accès à distance</string>
+    <string name="mesh_intro">Reliez Wicaby à votre réseau Tailscale ou NetBird pour retrouver votre serveur hors de chez vous, sans installer leur application.</string>
+    <string name="mesh_join">Connecter %1$s</string>
+    <string name="mesh_advanced">Options avancées</string>
+    <string name="mesh_advanced_hide">Masquer les options</string>
+    <string name="mesh_server_hint">Serveur de contrôle (Headscale, NetBird auto-hébergé)</string>
+    <string name="mesh_key_hint">Clé d’authentification ou de configuration (facultatif)</string>
+    <string name="mesh_advanced_note">Laissez vide pour le service officiel. Avec une clé, aucune connexion par code QR n’est nécessaire ; elle n’est pas conservée.</string>
+    <string name="mesh_scope_note">Wicaby rejoint votre réseau comme un appareil à part entière, et ne l’utilise que pour joindre votre serveur.</string>
+    <string name="mesh_unsupported">Nécessite Android 8.0 ou une version plus récente.</string>
+    <string name="mesh_connecting">Connexion à %1$s…</string>
+    <string name="mesh_cancel">Annuler</string>
+    <string name="mesh_scan">Scannez avec votre téléphone pour connecter Wicaby à %1$s.</string>
+    <string name="mesh_code">Code à confirmer</string>
+    <string name="mesh_or_open">ou ouvrez cette adresse :</string>
+    <string name="mesh_connected">Connecté à %1$s</string>
+    <string name="mesh_this_device">Cet appareil : %1$s</string>
+    <string name="mesh_peers">Appareils du réseau</string>
+    <string name="mesh_no_peers">Aucun autre appareil visible pour l’instant.</string>
+    <plurals name="mesh_more_peers">
+        <item quantity="one">et %1$d autre</item>
+        <item quantity="many">et %1$d d’autres</item>
+        <item quantity="other">et %1$d autres</item>
+    </plurals>
+    <string name="mesh_qr_code">Code QR de connexion</string>
+    <string name="mesh_disconnect">Désactiver</string>
+    <string name="mesh_logout">Se déconnecter du réseau</string>
+    <string name="mesh_retry">Réessayer</string>
+    <string name="mesh_failed">Connexion à %1$s impossible.</string>
+
+    <!-- Réglages > Accès à distance (onboarding spec 3) -->
+    <string name="mesh_state_connected">Connecté</string>
+    <string name="mesh_state_needs_login">Connexion requise</string>
+    <string name="mesh_state_connecting">Connexion…</string>
+    <string name="mesh_state_off">Désactivé</string>
+    <string name="mesh_state_error">Erreur</string>
+    <string name="mesh_built_in">%1$s · intégré à Wicaby</string>
+    <string name="mesh_status_title">État</string>
+    <string name="mesh_device_title">Cet appareil</string>
+    <string name="mesh_device_name">Nom</string>
+    <string name="mesh_device_address">Adresse</string>
+    <string name="mesh_peers_title">Appareils de votre réseau (%1$d)</string>
+    <string name="mesh_peer_offline">Hors ligne</string>
+    <string name="mesh_add_server">Ajouter ce serveur</string>
+    <string name="mesh_routes_title">Réseaux routés</string>
+    <string name="mesh_management">Serveur de gestion</string>
+    <string name="mesh_hosted">Service officiel</string>
+    <string name="mesh_change">Modifier…</string>
+    <string name="mesh_save">Enregistrer</string>
+    <string name="mesh_switch">Passer à %1$s…</string>
+    <string name="mesh_switch_body">Vous quitterez %1$s. Vos appareils y restent enregistrés.</string>
+    <string name="mesh_diag_title">Diagnostic</string>
+    <string name="mesh_diag_last_error">Dernière erreur : %1$s</string>
+    <string name="mesh_diag_none">Aucune erreur récente.</string>
+    <string name="mesh_diag_show">Afficher le diagnostic</string>
+    <string name="mesh_diag_scan">Scannez ce code pour copier le texte sur votre téléphone. Adresses et clés sont masquées.</string>
+    <!-- Mobile Réglages > Accès à distance (OB-M2) -->
+    <string name="mesh_diag_copy">Copier le diagnostic</string>
+    <string name="mesh_diag_copied">Diagnostic copié, adresses et clés masquées.</string>
+    <string name="mesh_diag_share">Partager le diagnostic</string>
+</resources>

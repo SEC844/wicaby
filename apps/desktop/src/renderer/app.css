@@ -1,0 +1,452 @@
+/*
+ * Wicaby design system ("Graphite").
+ * Apple-style dark UI: near-black canvas, translucent materials, one accent,
+ * Geist everywhere. Animate only transform / opacity / filter so every
+ * transition stays on the GPU compositor. Rules for contributors: docs/design.md.
+ */
+:root {
+  /* Canvas & materials */
+  --bg: #0b0b0d;
+  --bg-elevated: #151517;
+  --bg-elevated-2: #1c1c1f;
+  --fill-1: rgb(255 255 255 / 0.04);
+  --fill-2: rgb(255 255 255 / 0.07);
+  --fill-3: rgb(255 255 255 / 0.11);
+  --fill-4: rgb(255 255 255 / 0.16);
+  --separator: rgb(255 255 255 / 0.08);
+  --hairline: rgb(255 255 255 / 0.12);
+  --material-thin: rgb(28 28 31 / 0.55);
+  --material: rgb(24 24 27 / 0.72);
+  --material-thick: rgb(20 20 23 / 0.86);
+  --blur: blur(40px) saturate(180%);
+  --scrim: rgb(0 0 0 / 0.5);
+
+  /* Labels (Apple dark: white, 60 %, 30 %, 18 %) */
+  --label: #f5f5f7;
+  --label-2: rgb(235 235 245 / 0.62);
+  --label-3: rgb(235 235 245 / 0.34);
+  --label-4: rgb(235 235 245 / 0.18);
+
+  /* System colors */
+  --blue: #0a84ff;
+  --indigo: #5e5ce6;
+  --purple: #bf5af2;
+  --pink: #ff375f;
+  --red: #ff453a;
+  --orange: #ff9f0a;
+  --yellow: #ffd60a;
+  --green: #30d158;
+  --teal: #64d2ff;
+  --graphite: #98989d;
+
+  --accent: var(--blue);
+  --accent-fg: #fff;
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+  --danger: var(--red);
+  --success: var(--green);
+  --warning: var(--orange);
+
+  /* Type: one family, Apple-like scale */
+  --font-sans: 'Geist Variable', 'Segoe UI Variable Text', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Cascadia Mono', ui-monospace, monospace;
+  --fs-hero: clamp(40px, 4.6vw, 68px);
+  --fs-large-title: 34px;
+  --fs-title-1: 28px;
+  --fs-title-2: 22px;
+  --fs-title-3: 19px;
+  --fs-headline: 15px;
+  --fs-body: 14px;
+  --fs-callout: 13px;
+  --fs-footnote: 12px;
+  --fs-caption: 11px;
+
+  /* Motion: Apple's sheet curve and a soft spring, all durations scale with --tempo */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.103, 1.085 30.7%, 1.017 39.1%, 0.996 42.9%, 0.988 47%, 0.992 55.6%, 1.001 69.8%, 1);
+  --tempo: 1;
+  --t-fast: calc(160ms * var(--tempo));
+  --t-med: calc(320ms * var(--tempo));
+  --t-slow: calc(560ms * var(--tempo));
+
+  /* Shape & depth */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 40px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 10px 30px rgb(0 0 0 / 0.5), 0 40px 90px rgb(0 0 0 / 0.55);
+  /* No coloured ring around focused controls (user preference): focus shows as a fill or a lift. */
+  --focus-ring: 0 0 0 0 transparent;
+
+  /* Layout */
+  --titlebar: 44px;
+  --caption-buttons: 140px;
+  --sidebar: 248px;
+  --gutter: clamp(24px, 3.4vw, 56px);
+
+  /* Legacy aliases, kept until every component uses the names above. */
+  --ink: var(--bg);
+  --panel: var(--bg-elevated);
+  --panel-2: var(--bg-elevated-2);
+  --panel-3: #232326;
+  --rule: var(--separator);
+  --bone: var(--label);
+  --bone-2: var(--label-2);
+  --dim: var(--label-3);
+  --clutch: var(--accent);
+  --clutch-soft: var(--accent-soft);
+  --uplink: var(--teal);
+  --radiant: var(--yellow);
+  --radius: var(--r-sm);
+  --radius-lg: var(--r-md);
+  --ease-expo: var(--ease-out);
+  --font-display: var(--font-sans);
+
+  color-scheme: dark;
+  accent-color: var(--accent);
+}
+
+html[data-accent='indigo'] { --accent: var(--indigo); }
+html[data-accent='purple'] { --accent: var(--purple); }
+html[data-accent='pink'] { --accent: var(--pink); }
+html[data-accent='red'] { --accent: var(--red); }
+html[data-accent='orange'] { --accent: var(--orange); --accent-fg: #000; }
+html[data-accent='green'] { --accent: var(--green); --accent-fg: #000; }
+html[data-accent='graphite'] { --accent: #d1d1d6; --accent-fg: #000; }
+/* Linux: the caption buttons' width varies with the desktop theme; read it from the title bar overlay
+   (windows without one keep 140px). Windows keeps the fixed value above. */
+html.linux { --caption-buttons: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 140px))); }
+
+html[data-theme='oled'] {
+  --bg: #000;
+  --bg-elevated: #0e0e10;
+  --bg-elevated-2: #161618;
+}
+
+/* Reduce transparency: opaque materials, no backdrop blur (weak GPUs, accessibility). */
+html[data-reduce-transparency] {
+  --material-thin: var(--bg-elevated);
+  --material: var(--bg-elevated);
+  --material-thick: var(--bg-elevated-2);
+  --blur: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --tempo: 0.001; }
+}
+html[data-reduce-motion] { --tempo: 0.001; }
+
+/* Settings > Apparence. Density tightens gutters and shelf gaps (--density); card widths
+   everywhere are multiplied by --card-scale (poster size × density, set in stores.svelte.ts). */
+html[data-density='compact'] {
+  --gutter: clamp(16px, 2.4vw, 36px);
+  --density: 0.7;
+}
+html[data-hide-card-titles] .card.poster > .text {
+  display: none;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--label);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  letter-spacing: -0.006em;
+  font-feature-settings: 'ss01' 1, 'cv11' 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+
+/* Windows 11: Mica shows through the sidebar like macOS vibrancy. */
+html.mica:not([data-theme='oled']):not([data-reduce-transparency]) body {
+  background: transparent;
+}
+html.osd body {
+  background: transparent !important;
+}
+
+#app {
+  height: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+button {
+  cursor: default;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+img {
+  display: block;
+}
+::selection {
+  background: var(--accent-soft);
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: none;
+}
+
+/* Overlay-style scrollbars: thin, appear on hover. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 12px;
+  border: 4px solid transparent;
+  background-clip: padding-box;
+}
+:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.14);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.28);
+}
+
+/* ---------- Primitives ---------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.large-title,
+.page-title {
+  font-size: var(--fs-large-title);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0 0 20px;
+}
+.title-1 { font-size: var(--fs-title-1); font-weight: 700; letter-spacing: -0.022em; line-height: 1.15; }
+.title-2 { font-size: var(--fs-title-2); font-weight: 650; letter-spacing: -0.018em; line-height: 1.2; }
+.title-3 { font-size: var(--fs-title-3); font-weight: 600; letter-spacing: -0.014em; line-height: 1.25; }
+.headline { font-size: var(--fs-headline); font-weight: 600; letter-spacing: -0.01em; }
+.callout { font-size: var(--fs-callout); }
+.footnote { font-size: var(--fs-footnote); color: var(--label-2); }
+.caption { font-size: var(--fs-caption); color: var(--label-3); letter-spacing: 0.01em; }
+.eyebrow {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-3);
+}
+/* Kept for older markup; renders as a tight Geist headline now. */
+.display {
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+.muted { color: var(--label-2); }
+
+.material {
+  background: var(--material);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+.material-thin {
+  background: var(--material-thin);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+.card-surface {
+  background: var(--bg-elevated);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-lg);
+}
+
+/* Buttons: pill, spring press, no layout-affecting transitions. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 560;
+  font-size: var(--fs-callout);
+  background: var(--fill-2);
+  color: var(--label);
+  white-space: nowrap;
+  transition:
+    background-color var(--t-fast) var(--ease),
+    transform var(--t-med) var(--spring),
+    opacity var(--t-fast);
+}
+.btn:is(:hover, :focus-visible) { background: var(--fill-3); }
+.btn:active { transform: scale(0.96); transition-duration: 80ms; }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); }
+.btn.primary:hover { background: color-mix(in srgb, var(--accent) 86%, #fff); }
+.btn.light { background: var(--label); color: #000; }
+.btn.light:hover { background: #fff; }
+.btn.ghost { background: transparent; }
+.btn.ghost:hover { background: var(--fill-2); }
+.btn.danger { color: var(--danger); }
+.btn.icon { width: 36px; padding: 0; }
+.btn.lg { height: 46px; padding: 0 24px; font-size: var(--fs-headline); }
+.btn.lg.icon { width: 46px; padding: 0; }
+
+.field {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  background: var(--fill-2);
+  border: 1px solid transparent;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+  user-select: text;
+}
+.field:hover { background: var(--fill-3); }
+/* Focus is a fill, never an accent ring (docs/design.md). */
+.field:focus {
+  background: var(--fill-3);
+  border-color: var(--hairline);
+}
+.field::placeholder { color: var(--label-3); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: var(--fill-2);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  color: var(--label-2);
+}
+.chip.hot { background: color-mix(in srgb, var(--yellow) 18%, transparent); color: var(--yellow); }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+
+.page {
+  padding: 24px var(--gutter) 72px;
+}
+
+/* ---------- Motion ---------- */
+
+.fade-in {
+  animation: rise var(--t-slow) var(--ease-out) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.995);
+  }
+}
+@keyframes fade {
+  from { opacity: 0; }
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--fill-1);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
+  animation: shimmer calc(1.6s * var(--tempo)) var(--ease-in-out) infinite;
+}
+
+/* Page transitions (View Transitions API, driven by lib/router.svelte.ts).
+   Only the scroller (view-transition-name: page) animates. Everything else,
+   sidebar and title bar included, is the root snapshot: show the new state
+   alone and live, never the old one stacked under it. Chromium blends a
+   paired old/new image with plus-lighter, so over Mica (transparent root)
+   the chrome would flash brighter and ghost the previous selection for the
+   whole transition. */
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-group(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* The overlay must not swallow clicks: quick clicks through the sidebar
+   reach the live page underneath instead of being lost mid-transition. */
+::view-transition {
+  pointer-events: none;
+}
+/* A short, quiet hand-off: the old page clears almost at once, the new one
+   settles in just behind it, so two dense pages never sit on top of each other. */
+::view-transition-old(page) {
+  animation: vt-out calc(120ms * var(--tempo)) linear both;
+}
+::view-transition-new(page) {
+  animation: vt-in calc(280ms * var(--tempo)) var(--ease-out) calc(60ms * var(--tempo)) both;
+}
+html[data-nav='back']::view-transition-new(page) {
+  animation-name: vt-in-back;
+}
+::view-transition-group(*) {
+  animation-duration: calc(460ms * var(--tempo));
+  animation-timing-function: var(--ease);
+}
+@keyframes vt-out {
+  to { opacity: 0; }
+}
+@keyframes vt-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+}
+@keyframes vt-in-back {
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
+}
+
+.drag { -webkit-app-region: drag; }
+.no-drag { -webkit-app-region: no-drag; }

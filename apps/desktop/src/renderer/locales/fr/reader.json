@@ -1,0 +1,31 @@
+{
+  "error": {
+    "title": "Lecture impossible"
+  },
+  "opening": "Ouverture du livre…",
+  "back": "Retour",
+  "backHint": "Retour (Échap)",
+  "page": "Page {page}",
+  "pageOf": "Page {page} sur {count}",
+  "seriesNumber": "{series} n° {number}",
+  "display": "Affichage",
+  "layout": {
+    "label": "Pages",
+    "auto": "Auto",
+    "single": "Simple",
+    "double": "Double",
+    "strip": "Vertical"
+  },
+  "fit": {
+    "label": "Ajuster",
+    "height": "Hauteur",
+    "width": "Largeur",
+    "original": "Original"
+  },
+  "manga": {
+    "label": "Sens manga",
+    "caption": "De droite à gauche",
+    "aria": "Sens de lecture manga"
+  },
+  "hint": "Ctrl + molette pour zoomer, glisser pour déplacer · F plein écran"
+}

@@ -1,0 +1,21 @@
+{
+  "about": "X-04 merged and accelerated seeking (feature-specs.md §4). Replayed by tools/checks/seek-check.mjs (D/shared/stepped-seek.ts) and SteppedSeekTest.kt (C/player/SteppedSeek.kt). presses: one entry per key event, true = a key-repeat event.",
+  "multiplier": [[1, 1], [5, 1], [6, 1.5], [15, 1.5], [16, 3], [30, 3], [31, 6], [40, 6], [60, 6], [61, 10], [500, 10]],
+  "sequences": [
+    { "name": "four taps merge into +40 s", "position": 60000, "duration": 3600000, "step": 10000, "presses": [false, false, false, false], "target": 100000, "badge": 40, "repeats": 1 },
+    { "name": "four taps 5 s from the end show +5 s", "position": 3595000, "duration": 3600000, "step": 10000, "presses": [false, false, false, false], "target": 3600000, "badge": 5, "repeats": 1 },
+    { "name": "back stops at 0", "position": 15000, "duration": 3600000, "step": -10000, "presses": [false, false, false, false], "target": 0, "badge": -15, "repeats": 1 },
+    { "name": "a 40-repeat hold reaches x6", "position": 0, "duration": 36000000, "step": 10000, "presses": [false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true], "target": 1250000, "badge": 1250, "repeats": 40 },
+    { "name": "a 40-repeat hold never passes the duration", "position": 0, "duration": 600000, "step": 10000, "presses": [false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true], "target": 600000, "badge": 600, "repeats": 40 },
+    { "name": "unknown duration has no upper bound", "position": 1000, "duration": 0, "step": 10000, "presses": [false, false], "target": 21000, "badge": 20, "repeats": 1 },
+    { "name": "a fresh tap after a hold resets the curve", "position": 0, "duration": 3600000, "step": 10000, "presses": [false, true, true, true, true, true, true, false], "target": 90000, "badge": 90, "repeats": 1 }
+  ],
+  "chapters": [
+    { "name": "next chapter", "starts": [0, 60000, 120000], "position": 30000, "forward": true, "out": 60000 },
+    { "name": "past the last chapter", "starts": [0, 60000, 120000], "position": 130000, "forward": true, "out": null },
+    { "name": "back to the current chapter start", "starts": [0, 60000, 120000], "position": 70000, "forward": false, "out": 60000 },
+    { "name": "within 3 s goes to the one before", "starts": [0, 60000, 120000], "position": 62000, "forward": false, "out": 0 },
+    { "name": "within 500 ms of 0 does nothing", "starts": [0, 60000], "position": 400, "forward": false, "out": null },
+    { "name": "before the first chapter goes to 0", "starts": [5000, 60000], "position": 3000, "forward": false, "out": 0 }
+  ]
+}

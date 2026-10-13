@@ -1,0 +1,169 @@
+/* Extras for the Users and Devices sections on top of admin/admin.css (a-*).
+   Scoped under .au because sheets are portalled to <body>, out of reach of
+   component-scoped styles. */
+
+.au .a-lbl {
+  align-items: center;
+  gap: 8px;
+}
+.au .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.au .a-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.au .a-row.sub {
+  padding-left: 40px;
+}
+.au .a-row.sub + .a-row.sub::before {
+  left: 40px;
+}
+.au .a-row.dim > .a-txt {
+  opacity: 0.45;
+}
+.au .tag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--label-2);
+}
+.au .link-row {
+  width: 100%;
+  text-align: left;
+  color: var(--label);
+  transition: background-color var(--t-fast) var(--ease);
+}
+.au .link-row:hover,
+.au .link-row:focus-visible {
+  background: var(--fill-1);
+}
+.au .chev {
+  flex: none;
+  display: grid;
+  color: var(--label-3);
+}
+.au .glyph {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--label-2);
+  background: var(--fill-2);
+}
+.au .a-input {
+  border: 0;
+}
+.au .a-input.wide {
+  width: 240px;
+}
+.au .a-input.num {
+  width: 84px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.au .a-input::placeholder {
+  color: var(--label-3);
+}
+
+/* Avatar: server image over a neutral monogram. */
+.au .avatar {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--label);
+  background: var(--fill-3);
+}
+.au .avatar.lg {
+  width: 56px;
+  height: 56px;
+  font-size: var(--fs-title-3);
+}
+.au .avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--t-med) var(--ease);
+}
+.au .avatar img.loaded {
+  opacity: 1;
+}
+
+.au .err {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  font-size: var(--fs-callout);
+  color: var(--label-2);
+}
+.au .skel {
+  height: 52px;
+}
+.au .skel + .skel {
+  border-top: 1px solid var(--separator);
+}
+
+/* Sheets */
+.au.a-sheet .a-input {
+  width: 100%;
+}
+.au.a-sheet label.inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: var(--fs-callout);
+  color: var(--label);
+}
+.au.a-sheet .hint {
+  font-size: var(--fs-footnote);
+  color: var(--label-3);
+}
+.au.a-sheet .hint.bad {
+  color: var(--warning);
+}
+.au.a-sheet .a-sheet-actions .spacer {
+  flex: 1;
+}
+.au.a-sheet dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 18px;
+  margin: 0;
+  font-size: var(--fs-callout);
+}
+.au.a-sheet dt {
+  color: var(--label-3);
+}
+.au.a-sheet dd {
+  margin: 0;
+  color: var(--label);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.au.a-sheet dd.id {
+  font-size: var(--fs-caption);
+  color: var(--label-2);
+}
+.au.a-sheet p.warn-line {
+  color: var(--label);
+}

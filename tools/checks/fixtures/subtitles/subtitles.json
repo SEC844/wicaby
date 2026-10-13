@@ -1,0 +1,67 @@
+{
+  "_comment": "X-03 subtitle search golden vectors, read by tools/checks/subtitles-check.mjs and SubtitleSearchTest.kt (core).",
+  "flags": [
+    { "name": "emby forced", "in": { "IsForced": true }, "out": { "forced": true, "sdh": false, "machine": false } },
+    { "name": "emby sdh", "in": { "IsHearingImpaired": true }, "out": { "forced": false, "sdh": true, "machine": false } },
+    { "name": "jellyfin forced and sdh", "in": { "Forced": true, "HearingImpaired": true }, "out": { "forced": true, "sdh": true, "machine": false } },
+    { "name": "jellyfin HearingImpaired wins", "in": { "HearingImpaired": false, "IsHearingImpaired": true }, "out": { "forced": false, "sdh": false, "machine": false } },
+    { "name": "ai translated", "in": { "AiTranslated": true }, "out": { "forced": false, "sdh": false, "machine": true } },
+    { "name": "machine translated", "in": { "MachineTranslated": true, "AiTranslated": false }, "out": { "forced": false, "sdh": false, "machine": true } },
+    { "name": "nothing", "in": {}, "out": { "forced": false, "sdh": false, "machine": false } }
+  ],
+  "language": [
+    { "last": "ger", "preferred": "fre", "ui": "en", "out": "ger" },
+    { "last": "", "preferred": "spa", "ui": "fr", "out": "spa" },
+    { "last": "", "preferred": "", "ui": "fr", "out": "fre" },
+    { "last": "", "preferred": "", "ui": "en", "out": "eng" },
+    { "last": "", "preferred": "", "ui": "", "out": "eng" }
+  ],
+  "failure": [
+    { "status": 404, "out": "noProvider" },
+    { "status": 403, "out": "forbidden" },
+    { "status": 401, "out": "forbidden" },
+    { "status": 500, "out": "failed" },
+    { "status": 0, "out": "failed" }
+  ],
+  "policy": [
+    { "policy": null, "jellyfin": false, "out": true },
+    { "policy": { "IsAdministrator": true, "EnableSubtitleDownloading": false }, "jellyfin": false, "out": true },
+    { "policy": { "EnableSubtitleDownloading": false, "EnableSubtitleManagement": true }, "jellyfin": false, "out": false },
+    { "policy": { "EnableSubtitleDownloading": true, "EnableSubtitleManagement": false }, "jellyfin": false, "out": true },
+    { "policy": { "EnableSubtitleManagement": false }, "jellyfin": true, "out": false },
+    { "policy": { "EnableSubtitleDownloading": false, "EnableSubtitleManagement": true }, "jellyfin": true, "out": true },
+    { "policy": {}, "jellyfin": true, "out": true }
+  ],
+  "added": [
+    {
+      "name": "new path",
+      "before": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }],
+      "after": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }, { "Index": 5, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.fre.srt" }],
+      "out": 5
+    },
+    {
+      "name": "indexes shifted: found by path",
+      "before": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }],
+      "after": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.fre.srt" }, { "Index": 5, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }],
+      "out": 4
+    },
+    {
+      "name": "no paths: new index",
+      "before": [{ "Index": 3, "Type": "Subtitle" }],
+      "after": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true }],
+      "out": 4
+    },
+    {
+      "name": "not there yet",
+      "before": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }],
+      "after": [{ "Index": 3, "Type": "Subtitle" }, { "Index": 4, "Type": "Subtitle", "IsExternal": true, "Path": "/m/a.eng.srt" }],
+      "out": null
+    },
+    {
+      "name": "embedded only",
+      "before": [{ "Index": 2, "Type": "Subtitle" }],
+      "after": [{ "Index": 2, "Type": "Subtitle" }, { "Index": 3, "Type": "Audio" }],
+      "out": null
+    }
+  ]
+}

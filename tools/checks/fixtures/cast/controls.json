@@ -1,0 +1,539 @@
+{
+  "_doc": "cast-spec 2.3 greyed-out matrix (transport never gated; general commands gated case-insensitively; SeekRelative and SetPlaybackRate Emby-only) and the Sessions-API request of each remote command (null = not sent).",
+  "matrix": [
+    {
+      "name": "Wicaby desktop on Jellyfin, queue",
+      "server": "jellyfin",
+      "target": {
+        "kind": "session",
+        "commands": [
+          "Play",
+          "PlayState",
+          "PlayNext",
+          "PlayMediaSource",
+          "SetAudioStreamIndex",
+          "SetSubtitleStreamIndex",
+          "SetVolume",
+          "VolumeUp",
+          "VolumeDown",
+          "Mute",
+          "Unmute",
+          "ToggleMute",
+          "DisplayMessage",
+          "GoHome",
+          "DisplayContent",
+          "ToggleFullscreen",
+          "GoToSettings"
+        ]
+      },
+      "queueLength": 3,
+      "expected": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": true,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      }
+    },
+    {
+      "name": "Wicaby desktop on Emby, one item",
+      "server": "emby",
+      "target": {
+        "kind": "session",
+        "commands": [
+          "Play",
+          "Playstate",
+          "PlayNext",
+          "PlayMediaSource",
+          "SetAudioStreamIndex",
+          "SetSubtitleStreamIndex",
+          "SetVolume",
+          "VolumeUp",
+          "VolumeDown",
+          "Mute",
+          "Unmute",
+          "ToggleMute",
+          "DisplayMessage",
+          "GoHome",
+          "DisplayContent",
+          "ToggleFullscreen",
+          "GoToSettings",
+          "SetPlaybackRate"
+        ]
+      },
+      "queueLength": 1,
+      "expected": {
+        "transport": true,
+        "seekRelative": true,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": true,
+        "message": true
+      }
+    },
+    {
+      "name": "SetPlaybackRate listed on Jellyfin is still off",
+      "server": "jellyfin",
+      "target": {
+        "kind": "session",
+        "commands": [
+          "SetPlaybackRate",
+          "setvolume"
+        ]
+      },
+      "queueLength": 1,
+      "expected": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": false,
+        "audio": false,
+        "subtitles": false,
+        "rate": false,
+        "message": false
+      }
+    },
+    {
+      "name": "official client listing nothing",
+      "server": "emby",
+      "target": {
+        "kind": "session",
+        "commands": []
+      },
+      "queueLength": 2,
+      "expected": {
+        "transport": true,
+        "seekRelative": true,
+        "nextPrev": true,
+        "volume": false,
+        "mute": false,
+        "audio": false,
+        "subtitles": false,
+        "rate": false,
+        "message": false
+      }
+    },
+    {
+      "name": "ToggleMute alone enables mute",
+      "server": "jellyfin",
+      "target": {
+        "kind": "session",
+        "commands": [
+          "togglemute"
+        ]
+      },
+      "queueLength": 1,
+      "expected": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": false,
+        "mute": true,
+        "audio": false,
+        "subtitles": false,
+        "rate": false,
+        "message": false
+      }
+    }
+  ],
+  "requests": [
+    {
+      "cmd": {
+        "type": "toggle-pause"
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "playstate": "PlayPause"
+      }
+    },
+    {
+      "cmd": {
+        "type": "pause"
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "playstate": "Pause"
+      }
+    },
+    {
+      "cmd": {
+        "type": "resume"
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "playstate": "Unpause"
+      }
+    },
+    {
+      "cmd": {
+        "type": "seek",
+        "positionTicks": 600000000.7
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "playstate": "Seek",
+        "seekTicks": 600000001
+      }
+    },
+    {
+      "cmd": {
+        "type": "seek-relative",
+        "deltaTicks": 300000000
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": true,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 1000000000,
+      "expected": {
+        "playstate": "SeekRelative",
+        "seekTicks": 300000000
+      }
+    },
+    {
+      "cmd": {
+        "type": "seek-relative",
+        "deltaTicks": -300000000
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 100000000,
+      "expected": {
+        "playstate": "Seek",
+        "seekTicks": 0
+      }
+    },
+    {
+      "cmd": {
+        "type": "next"
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": null
+    },
+    {
+      "cmd": {
+        "type": "next"
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": true,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "playstate": "NextTrack"
+      }
+    },
+    {
+      "cmd": {
+        "type": "volume",
+        "value": 250
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "SetVolume",
+          "Arguments": {
+            "Volume": "100"
+          }
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "volume",
+        "value": 40
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": false,
+        "mute": false,
+        "audio": false,
+        "subtitles": false,
+        "rate": false,
+        "message": false
+      },
+      "positionTicks": 0,
+      "expected": null
+    },
+    {
+      "cmd": {
+        "type": "mute",
+        "value": true
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "Mute",
+          "Arguments": {}
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "mute",
+        "value": false
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "Unmute",
+          "Arguments": {}
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "audio",
+        "index": 2
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "SetAudioStreamIndex",
+          "Arguments": {
+            "Index": "2"
+          }
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "subtitle",
+        "index": -1
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "SetSubtitleStreamIndex",
+          "Arguments": {
+            "Index": "-1"
+          }
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "rate",
+        "value": 1.5
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": true,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": {
+        "general": {
+          "Name": "SetPlaybackRate",
+          "Arguments": {
+            "PlaybackRate": "1.5"
+          }
+        }
+      }
+    },
+    {
+      "cmd": {
+        "type": "rate",
+        "value": 1.5
+      },
+      "server": "jellyfin",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": false,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": null
+    },
+    {
+      "cmd": {
+        "type": "rate",
+        "value": 8
+      },
+      "server": "emby",
+      "controls": {
+        "transport": true,
+        "seekRelative": false,
+        "nextPrev": false,
+        "volume": true,
+        "mute": true,
+        "audio": true,
+        "subtitles": true,
+        "rate": true,
+        "message": true
+      },
+      "positionTicks": 0,
+      "expected": null
+    }
+  ]
+}

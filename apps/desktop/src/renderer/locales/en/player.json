@@ -1,0 +1,232 @@
+{
+  "resume": {
+    "title": "Resume Playback",
+    "stoppedAt": "You stopped at {time}.",
+    "resume": "Resume",
+    "fromStart": "Start Over"
+  },
+  "title": {
+    "episode": "Season {season}, Episode {episode}",
+    "trailer": "Trailer",
+    "bonus": "Extra"
+  },
+  "osd": {
+    "back": "Back",
+    "backHint": "Back (Esc)",
+    "minimize": "Minimize",
+    "fullScreen": "Full Screen",
+    "fullScreenHint": "Full Screen (F)",
+    "exitFullScreen": "Exit Full Screen",
+    "loading": "Loading",
+    "position": "Position",
+    "volume": "Volume",
+    "mute": "Mute",
+    "muteHint": "Mute (M)",
+    "previous": "Previous",
+    "previousHint": "Previous (P)",
+    "next": "Next",
+    "nextHint": "Next (N)",
+    "play": "Play",
+    "pause": "Pause",
+    "playPauseHint": "Play / Pause (Space)",
+    "skipBackHint": "Skip Back {seconds}s (←)",
+    "skipBack": "{seconds, plural, one {Skip back # second} other {Skip back # seconds}}",
+    "skipForwardHint": "Skip Forward {seconds}s (→)",
+    "skipForward": "{seconds, plural, one {Skip forward # second} other {Skip forward # seconds}}",
+    "chapters": "Chapters",
+    "info": "Playback Info",
+    "infoHint": "Playback Info (I)",
+    "seekBadge": "{sign}{seconds} s",
+    "holdSpeed": "2× speed ▸▸",
+    "endsAt": "Ends at {time}",
+    "sleep": "Sleep Timer",
+    "sleepActive": "Sleep in {time}",
+    "quality": "Quality",
+    "qualityHint": "Quality (Q)"
+  },
+  "error": {
+    "title": "Playback Failed"
+  },
+  "skip": {
+    "intro": "Skip Intro",
+    "credits": "Skip Credits",
+    "recap": "Skip Recap",
+    "preview": "Skip Preview",
+    "commercial": "Skip Commercial"
+  },
+  "upNext": {
+    "title": "Next Episode",
+    "countdown": "Next episode in {seconds}s",
+    "code": "S{season}, E{episode}",
+    "watchNow": "Watch Now",
+    "stillWatching": "Are you still watching?",
+    "pausedNote": "Playback is paused. It will resume with the next episode.",
+    "continue": "Continue",
+    "stop": "Stop"
+  },
+  "tracks": {
+    "subtitlesOn": "Subtitles On",
+    "audioAndSubtitles": "Audio & Subtitles",
+    "buttonHint": "{label} (A, S)",
+    "audio": "Audio",
+    "subtitles": "Subtitles",
+    "noTracks": "No Tracks",
+    "off": "Off",
+    "forced": "Forced",
+    "external": "External",
+    "applied": "Tracks from the previous episode applied",
+    "secondary": "Show as Second Subtitle",
+    "secondaryBadge": "2",
+    "searchSubtitles": "Search Subtitles…"
+  },
+  "speed": {
+    "label": "Playback Speed",
+    "title": "Speed",
+    "normal": "Normal",
+    "rate": "{rate}×"
+  },
+  "stats": {
+    "player": "Player",
+    "builtIn": "Built-in (Chromium)",
+    "method": "Method",
+    "methods": {
+      "DirectPlay": "Direct Play",
+      "DirectStream": "Direct Stream",
+      "Transcode": "Transcoding"
+    },
+    "container": "Container",
+    "video": "Video",
+    "dynamicRange": "Dynamic Range",
+    "hdrOutput": "{format} · {output, select, passthrough {HDR output (passthrough)} hdr {HDR output (mapped to display)} other {SDR tone mapping}}",
+    "frameRate": "Frame Rate",
+    "frameRateDisplay": "{fps} → display {hz} Hz",
+    "audio": "Audio",
+    "audioBitstream": "{codec} · bitstream (exclusive WASAPI)",
+    "audioBitstreamLinux": "{codec} · bitstream (passthrough)",
+    "bitrate": "Bitrate",
+    "decoding": "Decoding",
+    "software": "Software",
+    "hardware": "Hardware ({api})",
+    "droppedFrames": "Dropped Frames",
+    "source": "Source",
+    "localFile": "Local File",
+    "server": "Server"
+  },
+  "notice": {
+    "introSkipped": "Intro skipped",
+    "segmentSkipped": "{type, select, recap {Recap skipped} preview {Preview skipped} other {Commercial skipped}}",
+    "delay": "{kind, select, audio {Audio offset} other {Subtitle offset}}: {value} ms",
+    "passthroughRefused": "Audio output refused passthrough, decoding audio instead",
+    "transcodeFallback": "Direct play failed, the server is converting it"
+  },
+  "reconnect": {
+    "title": "Reconnecting…",
+    "slow": "The server still isn’t answering.",
+    "retry": "Retry"
+  },
+  "errors": {
+    "aborted": "Playback was interrupted",
+    "network": "A network error interrupted playback",
+    "decode": "The video couldn’t be decoded",
+    "unsupported": "The built-in player doesn’t support this format",
+    "generic": "Playback error"
+  },
+  "session": {
+    "season": "Season {season}"
+  },
+  "aspect": {
+    "label": "Aspect Ratio",
+    "hint": "Aspect Ratio (Z), click for the next one",
+    "title": "Aspect Ratio",
+    "modes": {
+      "fit": "Fit",
+      "fill": "Fill Screen",
+      "stretch": "Stretch",
+      "zoom": "Zoom",
+      "original": "Original Size"
+    },
+    "zoomPercent": "Zoom {percent}%",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out"
+  },
+  "live": {
+    "tunerReleased": "No free tuner: the previous channel was released.",
+    "zapFailed": "Couldn’t switch to {channel}.",
+    "recovering": "Stream stalled, retrying…",
+    "pausedReleased": "Paused for a while: the tuner was released.",
+    "resumedAfterSleep": "Live TV stopped while the computer was asleep.",
+    "reminderCountdown": "{title} on {channel} in {seconds} s",
+    "stayHere": "Stay Here",
+    "resumeLive": "Resume Live",
+    "backToLive": "Back to Live",
+    "behind": "{time} behind",
+    "bufferFull": "Paused too long. Back to live.",
+    "timeshiftLimit": "Live TV can be paused for up to {time}.",
+    "noTimeshift": "Rewind isn’t available on this stream",
+    "timeshiftNoSpace": "Not enough disk space: Pause Live TV is limited to {time}.",
+    "timeline": "Live Buffer",
+    "badge": "Live",
+    "now": "Now",
+    "next": "Next",
+    "tuning": "Tuning…",
+    "lensPosition": "{lens} · {index} of {count}",
+    "digits": "Channel {digits}",
+    "noChannel": "No channel {number}",
+    "noMatch": "No channel",
+    "duplicates": "{count, plural, one {# channel} other {# channels}}",
+    "channelList": "Channel List",
+    "recording": "Recording",
+    "radio": "Live Radio",
+    "lensSwitched": "Filter: {name}",
+    "bannerAria": "{number} {channel}, {program}",
+    "filter": "Filter Channels",
+    "lens": {
+      "all": "All Channels",
+      "favorites": "Favorites",
+      "recents": "Recent",
+      "radio": "Radio"
+    },
+    "watchFromStart": "Watch From the Start ({time} ago)",
+    "watchLive": "Watch Live"
+  },
+  "sleep": {
+    "title": "Sleep Timer",
+    "endOfVideo": "End of This Video",
+    "endOfProgram": "End of This Program",
+    "minutes": "{count} min",
+    "extend": "+15 min",
+    "cancel": "Cancel Timer",
+    "stillWatching": "Still Watching?",
+    "pausingIn": "Pausing in {seconds}s",
+    "continue": "Continue",
+    "pause": "Pause"
+  },
+  "quality": {
+    "title": "Quality",
+    "version": "Version",
+    "quality": "Quality",
+    "original": "Original",
+    "preset": "{height}p · {bitrate}",
+    "size": "{size} ({percent}%)",
+    "direct": "Direct",
+    "transcode": "Transcoding",
+    "switched": "Quality: {label}",
+    "failed": "Couldn’t change the quality",
+    "versionSwitched": "Version: {label}"
+  },
+  "subSearch": {
+    "title": "Search Subtitles",
+    "language": "Language",
+    "titleOverride": "Filter by title",
+    "perfectMatch": "Perfect Match",
+    "downloads": "{count, plural, one {# download} other {# downloads}}",
+    "forced": "Forced",
+    "sdh": "SDH",
+    "empty": "No subtitle found",
+    "noProvider": "No subtitle provider installed on the server",
+    "forbidden": "Your account cannot download subtitles",
+    "added": "Subtitle added",
+    "failed": "Couldn’t add the subtitle",
+    "machineTranslated": "Machine Translated"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "_doc": "Query of the query-only POST /Sessions/{id}/Playing (empty body, both servers). live: a channel carries no position, source or stream indexes.",
+  "cases": [
+    {
+      "name": "queue with resume and tracks",
+      "options": {
+        "itemIds": [
+          "ep1",
+          "ep2",
+          "ep3"
+        ],
+        "startIndex": 1,
+        "positionTicks": 6000000000.4,
+        "msid": "mediasource_12",
+        "audio": 1,
+        "sub": -1
+      },
+      "live": false,
+      "query": {
+        "ItemIds": "ep1,ep2,ep3",
+        "PlayCommand": "PlayNow",
+        "StartIndex": "1",
+        "StartPositionTicks": "6000000000",
+        "MediaSourceId": "mediasource_12",
+        "AudioStreamIndex": "1",
+        "SubtitleStreamIndex": "-1"
+      }
+    },
+    {
+      "name": "one item from the start",
+      "options": {
+        "itemIds": [
+          "12345"
+        ]
+      },
+      "live": false,
+      "query": {
+        "ItemIds": "12345",
+        "PlayCommand": "PlayNow"
+      }
+    },
+    {
+      "name": "channel",
+      "options": {
+        "itemIds": [
+          "ch-1"
+        ],
+        "positionTicks": 123456789,
+        "msid": "x",
+        "audio": 2,
+        "sub": 3
+      },
+      "live": true,
+      "query": {
+        "ItemIds": "ch-1",
+        "PlayCommand": "PlayNow"
+      }
+    }
+  ]
+}

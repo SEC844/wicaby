@@ -1,0 +1,232 @@
+{
+  "resume": {
+    "title": "Reprendre la lecture",
+    "stoppedAt": "Vous vous étiez arrêté à {time}.",
+    "resume": "Reprendre",
+    "fromStart": "Depuis le début"
+  },
+  "title": {
+    "episode": "Saison {season}, épisode {episode}",
+    "trailer": "Bande-annonce",
+    "bonus": "Bonus"
+  },
+  "osd": {
+    "back": "Retour",
+    "backHint": "Retour (Échap)",
+    "minimize": "Réduire",
+    "fullScreen": "Plein écran",
+    "fullScreenHint": "Plein écran (F)",
+    "exitFullScreen": "Quitter le plein écran",
+    "loading": "Chargement",
+    "position": "Position",
+    "volume": "Volume",
+    "mute": "Muet",
+    "muteHint": "Muet (M)",
+    "previous": "Précédent",
+    "previousHint": "Précédent (P)",
+    "next": "Suivant",
+    "nextHint": "Suivant (N)",
+    "play": "Lecture",
+    "pause": "Pause",
+    "playPauseHint": "Lecture / pause (Espace)",
+    "skipBackHint": "Reculer de {seconds} s (←)",
+    "skipBack": "{seconds, plural, one {Reculer de # seconde} other {Reculer de # secondes}}",
+    "skipForwardHint": "Avancer de {seconds} s (→)",
+    "skipForward": "{seconds, plural, one {Avancer de # seconde} other {Avancer de # secondes}}",
+    "chapters": "Chapitres",
+    "info": "Informations de lecture",
+    "infoHint": "Informations (I)",
+    "seekBadge": "{sign}{seconds} s",
+    "holdSpeed": "Vitesse 2× ▸▸",
+    "endsAt": "Fin à {time}",
+    "sleep": "Minuterie de mise en veille",
+    "sleepActive": "Veille dans {time}",
+    "quality": "Qualité",
+    "qualityHint": "Qualité (Q)"
+  },
+  "error": {
+    "title": "Lecture impossible"
+  },
+  "skip": {
+    "intro": "Passer l’intro",
+    "credits": "Passer le générique",
+    "recap": "Passer le résumé",
+    "preview": "Passer l’aperçu",
+    "commercial": "Passer la publicité"
+  },
+  "upNext": {
+    "title": "Épisode suivant",
+    "countdown": "Épisode suivant dans {seconds} s",
+    "code": "S{season}, É{episode}",
+    "watchNow": "Regarder maintenant",
+    "stillWatching": "Toujours là ?",
+    "pausedNote": "La lecture est en pause. Elle reprendra avec l’épisode suivant.",
+    "continue": "Continuer",
+    "stop": "Arrêter"
+  },
+  "tracks": {
+    "subtitlesOn": "Sous-titres activés",
+    "audioAndSubtitles": "Audio et sous-titres",
+    "buttonHint": "{label} (A, S)",
+    "audio": "Audio",
+    "subtitles": "Sous-titres",
+    "noTracks": "Aucune piste",
+    "off": "Désactivés",
+    "forced": "Forcés",
+    "external": "Externe",
+    "applied": "Pistes de l’épisode précédent appliquées",
+    "secondary": "Afficher comme second sous-titre",
+    "secondaryBadge": "2",
+    "searchSubtitles": "Rechercher des sous-titres…"
+  },
+  "speed": {
+    "label": "Vitesse de lecture",
+    "title": "Vitesse",
+    "normal": "Normale",
+    "rate": "{rate}×"
+  },
+  "stats": {
+    "player": "Lecteur",
+    "builtIn": "Intégré (Chromium)",
+    "method": "Méthode",
+    "methods": {
+      "DirectPlay": "Lecture directe",
+      "DirectStream": "Flux direct",
+      "Transcode": "Transcodage"
+    },
+    "container": "Conteneur",
+    "video": "Vidéo",
+    "dynamicRange": "Plage dynamique",
+    "hdrOutput": "{format} · {output, select, passthrough {sortie HDR (passthrough)} hdr {sortie HDR (adaptée à l’écran)} other {tone mapping SDR}}",
+    "frameRate": "Images/s",
+    "frameRateDisplay": "{fps} → écran {hz} Hz",
+    "audio": "Audio",
+    "audioBitstream": "{codec} · bitstream (WASAPI exclusif)",
+    "audioBitstreamLinux": "{codec} · bitstream (passthrough)",
+    "bitrate": "Débit",
+    "decoding": "Décodage",
+    "software": "Logiciel",
+    "hardware": "Matériel ({api})",
+    "droppedFrames": "Images perdues",
+    "source": "Source",
+    "localFile": "Fichier local",
+    "server": "Serveur"
+  },
+  "notice": {
+    "introSkipped": "Intro passée",
+    "segmentSkipped": "{type, select, recap {Résumé passé} preview {Aperçu passé} other {Publicité passée}}",
+    "delay": "{kind, select, audio {Décalage audio} other {Décalage des sous-titres}} : {value} ms",
+    "passthroughRefused": "Passthrough refusé par la sortie audio : son décodé",
+    "transcodeFallback": "Lecture directe impossible : conversion par le serveur"
+  },
+  "reconnect": {
+    "title": "Reconnexion…",
+    "slow": "Le serveur ne répond toujours pas.",
+    "retry": "Réessayer"
+  },
+  "errors": {
+    "aborted": "Lecture interrompue",
+    "network": "Erreur réseau pendant la lecture",
+    "decode": "Erreur de décodage vidéo",
+    "unsupported": "Format non pris en charge par le lecteur intégré",
+    "generic": "Erreur de lecture"
+  },
+  "session": {
+    "season": "Saison {season}"
+  },
+  "aspect": {
+    "label": "Format de l’image",
+    "hint": "Format de l’image (Z), clic pour passer au suivant",
+    "title": "Format",
+    "modes": {
+      "fit": "Ajuster",
+      "fill": "Remplir l’écran",
+      "stretch": "Étirer",
+      "zoom": "Zoom",
+      "original": "Taille d’origine"
+    },
+    "zoomPercent": "Zoom {percent} %",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière"
+  },
+  "live": {
+    "tunerReleased": "Aucun tuner libre : l’ancienne chaîne a été libérée.",
+    "zapFailed": "Impossible de passer sur {channel}.",
+    "recovering": "Flux interrompu, nouvelle tentative…",
+    "pausedReleased": "Pause prolongée : le tuner a été libéré.",
+    "resumedAfterSleep": "Le direct s’est arrêté pendant la mise en veille.",
+    "reminderCountdown": "{title} sur {channel} dans {seconds} s",
+    "stayHere": "Rester ici",
+    "resumeLive": "Reprendre le direct",
+    "backToLive": "Revenir au direct",
+    "behind": "{time} de retard",
+    "bufferFull": "Pause trop longue : retour au direct.",
+    "timeshiftLimit": "Le direct peut être mis en pause {time} au maximum.",
+    "noTimeshift": "Retour en arrière indisponible sur ce flux",
+    "timeshiftNoSpace": "Espace disque insuffisant : pause du direct limitée à {time}.",
+    "timeline": "Mémoire tampon du direct",
+    "badge": "Direct",
+    "now": "Maintenant",
+    "next": "Ensuite",
+    "tuning": "Réglage…",
+    "lensPosition": "{lens} · {index}/{count}",
+    "digits": "Chaîne {digits}",
+    "noChannel": "Aucune chaîne {number}",
+    "noMatch": "Aucune chaîne",
+    "duplicates": "{count, plural, one {# chaîne} other {# chaînes}}",
+    "channelList": "Liste des chaînes",
+    "recording": "Enregistrement en cours",
+    "radio": "Radio en direct",
+    "lensSwitched": "Filtre : {name}",
+    "bannerAria": "{number} {channel}, {program}",
+    "filter": "Filtrer les chaînes",
+    "lens": {
+      "all": "Toutes les chaînes",
+      "favorites": "Favoris",
+      "recents": "Récentes",
+      "radio": "Radio"
+    },
+    "watchFromStart": "Regarder depuis le début (il y a {time})",
+    "watchLive": "Regarder en direct"
+  },
+  "sleep": {
+    "title": "Minuterie de mise en veille",
+    "endOfVideo": "Fin de cette vidéo",
+    "endOfProgram": "Fin de ce programme",
+    "minutes": "{count} min",
+    "extend": "+15 min",
+    "cancel": "Annuler la minuterie",
+    "stillWatching": "Vous regardez toujours ?",
+    "pausingIn": "Pause dans {seconds} s",
+    "continue": "Continuer",
+    "pause": "Pause"
+  },
+  "quality": {
+    "title": "Qualité",
+    "version": "Version",
+    "quality": "Qualité",
+    "original": "Originale",
+    "preset": "{height}p · {bitrate}",
+    "size": "{size} ({percent} %)",
+    "direct": "Direct",
+    "transcode": "Transcodage",
+    "switched": "Qualité : {label}",
+    "failed": "Impossible de changer la qualité",
+    "versionSwitched": "Version : {label}"
+  },
+  "subSearch": {
+    "title": "Rechercher des sous-titres",
+    "language": "Langue",
+    "titleOverride": "Filtrer par titre",
+    "perfectMatch": "Correspondance parfaite",
+    "downloads": "{count, plural, one {# téléchargement} other {# téléchargements}}",
+    "forced": "Forcés",
+    "sdh": "Malentendants",
+    "empty": "Aucun sous-titre trouvé",
+    "noProvider": "Aucun fournisseur de sous-titres n’est installé sur le serveur",
+    "forbidden": "Votre compte ne peut pas télécharger de sous-titres",
+    "added": "Sous-titre ajouté",
+    "failed": "Impossible d’ajouter le sous-titre",
+    "machineTranslated": "Traduction automatique"
+  }
+}

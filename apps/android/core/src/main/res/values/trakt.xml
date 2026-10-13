@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TP-09: Trakt (core/trakt). -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="trakt_title">Trakt</string>
+    <string name="trakt_error_invalid_client">Client ID ou Client Secret invalide</string>
+    <string name="trakt_error_failed">Trakt n’a pas pu être joint : %1$s</string>
+    <string name="trakt_error_expired">Le code a expiré. Recommencez la connexion.</string>
+    <string name="trakt_error_denied">L’accès a été refusé sur Trakt.</string>
+    <string name="trakt_error_reauthorize">Trakt a révoqué l’accès. Reconnectez-vous.</string>
+    <string name="trakt_client_id">Client ID</string>
+    <string name="trakt_client_secret">Client Secret</string>
+    <string name="trakt_saved">Enregistré</string>
+    <string name="trakt_hint">Trakt exige une application à votre nom : créez-la sur trakt.tv/oauth/applications avec l’URI de redirection urn:ietf:wg:oauth:2.0:oob, puis saisissez ici son Client ID et son Client Secret.</string>
+    <string name="trakt_connect">Se connecter</string>
+    <string name="trakt_code_title">Saisissez ce code sur Trakt</string>
+    <string name="trakt_code_body">Ouvrez %1$s ou scannez le code QR, connectez-vous et saisissez le code. Wicaby attend la validation.</string>
+    <string name="trakt_connected">Connecté à Trakt</string>
+    <string name="trakt_connected_as">Connecté en tant que %1$s</string>
+    <string name="trakt_connected_desc">Les films et épisodes lus dans Wicaby sont scrobblés sur Trakt (début, pause, fin), et « Vu » met à jour l’historique Trakt.</string>
+    <string name="trakt_disconnect">Se déconnecter</string>
+    <string name="trakt_servers">Serveurs</string>
+    <string name="trakt_no_server">Aucun serveur connecté.</string>
+    <string name="trakt_server_plugin">Plugin Trakt du serveur</string>
+    <string name="trakt_servers_hint">Le plugin Trakt d’un serveur scrobble déjà : Wicaby ne le fait pas en double. Sans droits d’administrateur, Wicaby ne peut pas vérifier les plugins : désactivez un serveur qui a déjà le plugin Trakt.</string>
+    <string name="trakt_foot">Le Client Secret et les jetons sont chiffrés par le Keystore Android sur cet appareil et ne sont jamais journalisés.</string>
+</resources>

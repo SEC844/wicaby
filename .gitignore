@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+# Gradle outputs: apps/android/.gitignore and packages/mesh/android/sample/.gitignore.
+/out/
+apps/desktop/out/
+/release/
+apps/desktop/release-*/
+
+# Downloaded or locally built binaries (npm run fetch-mpv, build:mesh, build:mesh-aar)
+vendor/
+
+# Secrets and machine-local settings
+apps/android/keystore*
+*.jks
+*.keystore
+
+# Scratch, logs and tool output
+.dev/
+*.log
+replay_pid*.log
+hs_err_pid*.log
+.DS_Store
+.idea/
+*.iml

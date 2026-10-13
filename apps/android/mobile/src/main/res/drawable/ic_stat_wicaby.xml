@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Notification small icon: white on transparent, small cut of the mark so the gap survives at 24 px. -->
+    <group
+        android:translateX="-4.62615"
+        android:translateY="-4.23737"
+        android:scaleX="0.03205782"
+        android:scaleY="0.03205782">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M183.32 464.15A70 70 0 0 1 307.68 399.85L373.84 527.81L457.77 398.41A70 70 0 0 1 578.62 404.23L643.34 528.83L664.77 495.37A56 56 0 0 0 742.56 518.84L782.49 496.05A12 12 0 0 1 799.04 512.09L698.86 701.26A70 70 0 0 1 574.88 700.77L509.8 575.47L425.73 705.09A70 70 0 0 1 304.82 699.15Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M698.8 327.46A28 28 0 0 1 740.68 303.14L847.64 364.18A28 28 0 0 1 847.64 412.82L740.68 473.86A28 28 0 0 1 698.8 449.54Z" />
+    </group>
+</vector>

@@ -1,0 +1,146 @@
+{
+  "home": {
+    "rows": {
+      "continue": "Continue Watching",
+      "nextUp": "Up Next",
+      "upcoming": "Upcoming",
+      "because": "Because You Watched {name}",
+      "becauseAny": "Because You Watched…",
+      "liveNow": "Live TV",
+      "latest": "Recently Added · {name}",
+      "favorites": "Favorites",
+      "playlists": "Playlists",
+      "collections": "Collections",
+      "libraries": "Libraries",
+      "continueMerged": "Continue Watching"
+    },
+    "eyebrow": {
+      "resume": "Resume",
+      "new": "New"
+    },
+    "empty": {
+      "title": "Nothing here yet",
+      "body": "Add media to your server and it will show up here."
+    },
+    "customize": "Customize Home",
+    "card": {
+      "timeLeft": "{time} left",
+      "nextEpisode": "Next: S{season}·E{episode}"
+    },
+    "sheet": {
+      "mergeContinue": "Merge “Continue” and “Up Next”"
+    }
+  },
+  "library": {
+    "sort": {
+      "name": "Name",
+      "dateAdded": "Date Added",
+      "year": "Year",
+      "rating": "Rating",
+      "releaseDate": "Release Date"
+    },
+    "filter": {
+      "label": "Filter",
+      "all": "All",
+      "unplayed": "Unwatched",
+      "favorites": "Favorites"
+    },
+    "genres": "Genres",
+    "allGenres": "All Genres",
+    "order": {
+      "label": "Order",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "empty": {
+      "title": "No Items",
+      "body": "Nothing matches these filters."
+    }
+  },
+  "all": "All",
+  "categories": "Categories",
+  "groups": {
+    "movies": "Movies",
+    "series": "TV Shows",
+    "episodes": "Episodes",
+    "albums": "Albums",
+    "artists": "Artists",
+    "songs": "Songs",
+    "collections": "Collections"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Movies, TV shows, episodes, artists…",
+    "searching": "Searching…",
+    "clear": "Clear",
+    "removeGenre": "Remove genre {genre}",
+    "unreachable": "Can’t search: no server is responding",
+    "noResults": {
+      "title": "No results for “{term}”",
+      "body": "Try a different title, an actor’s name, or another spelling."
+    },
+    "recent": "Recent Searches",
+    "byGenre": "Browse by Genre",
+    "live": "Live TV"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": {
+      "title": "No Favorites Yet",
+      "body": "Select the heart on a movie, show, or album and it will show up here."
+    }
+  },
+  "history": {
+    "title": "History",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "week": "Last 7 Days",
+    "month": "Last 30 Days",
+    "topGenres": "Top Genres",
+    "empty": {
+      "title": "Nothing Watched Yet",
+      "body": "Movies and episodes you watch will show up here, day by day."
+    }
+  },
+  "card": {
+    "watched": "Watched",
+    "watchedAria": "watched",
+    "unplayed": "{count, plural, one {# unwatched} other {# unwatched}}",
+    "play": "Play {name}",
+    "favorite": "Favorite"
+  },
+  "hero": {
+    "label": "Featured",
+    "roleDescription": "carousel",
+    "slides": "Slides",
+    "resume": "Resume",
+    "resumeReading": "Resume Reading",
+    "read": "Read",
+    "play": "Play",
+    "moreInfo": "More Info"
+  },
+  "homeSheet": {
+    "intro": "Choose which rows appear and in what order. Drag a row or use the arrows.",
+    "moveUp": "Move {row} Up",
+    "moveDown": "Move {row} Down",
+    "show": "Show {row}"
+  },
+  "playlist": {
+    "label": "Playlist Contents",
+    "removed": "Removed “{name}” from the playlist",
+    "remove": "Remove from Playlist",
+    "removeNamed": "Remove {name} from Playlist",
+    "empty": "This playlist is empty. Add items from the “…” menu on any item page."
+  },
+  "addTo": {
+    "title": "{kind, select, collection {Add to Collection} other {Add to Playlist}}",
+    "newPlaceholder": "{kind, select, collection {New collection} other {New playlist}}",
+    "newName": "{kind, select, collection {New collection name} other {New playlist name}}",
+    "create": "Create",
+    "none": "{kind, select, collection {No collections yet.} other {No playlists yet.}}",
+    "added": "Added to “{name}”"
+  },
+  "errors": {
+    "notSignedIn": "Not signed in"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "home": {
+    "rows": {
+      "continue": "Continuer",
+      "nextUp": "À suivre",
+      "upcoming": "À venir",
+      "because": "Parce que vous avez regardé {name}",
+      "becauseAny": "Parce que vous avez regardé…",
+      "liveNow": "TV en direct",
+      "latest": "Nouveautés · {name}",
+      "favorites": "Favoris",
+      "playlists": "Playlists",
+      "collections": "Collections",
+      "libraries": "Bibliothèques",
+      "continueMerged": "Continuer à regarder"
+    },
+    "eyebrow": {
+      "resume": "Reprendre",
+      "new": "Nouveauté"
+    },
+    "empty": {
+      "title": "Rien à afficher pour l’instant",
+      "body": "Ajoutez des médias sur votre serveur : ils apparaîtront ici."
+    },
+    "customize": "Personnaliser l’accueil",
+    "card": {
+      "timeLeft": "{time} restantes",
+      "nextEpisode": "Suivant : S{season}·É{episode}"
+    },
+    "sheet": {
+      "mergeContinue": "Fusionner « Reprendre » et « À suivre »"
+    }
+  },
+  "library": {
+    "sort": {
+      "name": "Nom",
+      "dateAdded": "Date d’ajout",
+      "year": "Année",
+      "rating": "Note",
+      "releaseDate": "Date de sortie"
+    },
+    "filter": {
+      "label": "Filtre",
+      "all": "Tout",
+      "unplayed": "Non vus",
+      "favorites": "Favoris"
+    },
+    "genres": "Genres",
+    "allGenres": "Tous les genres",
+    "order": {
+      "label": "Ordre",
+      "asc": "Croissant",
+      "desc": "Décroissant"
+    },
+    "empty": {
+      "title": "Aucun élément",
+      "body": "Rien ne correspond à ces filtres."
+    }
+  },
+  "all": "Tout",
+  "categories": "Catégories",
+  "groups": {
+    "movies": "Films",
+    "series": "Séries",
+    "episodes": "Épisodes",
+    "albums": "Albums",
+    "artists": "Artistes",
+    "songs": "Titres",
+    "collections": "Collections"
+  },
+  "search": {
+    "title": "Rechercher",
+    "placeholder": "Films, séries, épisodes, artistes…",
+    "searching": "Recherche en cours",
+    "clear": "Effacer",
+    "removeGenre": "Retirer le genre {genre}",
+    "unreachable": "Recherche impossible : aucun serveur ne répond",
+    "noResults": {
+      "title": "Aucun résultat pour « {term} »",
+      "body": "Essayez un autre titre, un nom d’acteur ou une autre orthographe."
+    },
+    "recent": "Recherches récentes",
+    "byGenre": "Parcourir par genre",
+    "live": "TV en direct"
+  },
+  "favorites": {
+    "title": "Favoris",
+    "empty": {
+      "title": "Aucun favori",
+      "body": "Touchez le cœur sur la fiche d’un film, d’une série ou d’un album : il apparaîtra ici."
+    }
+  },
+  "history": {
+    "title": "Historique",
+    "today": "Aujourd’hui",
+    "yesterday": "Hier",
+    "week": "7 derniers jours",
+    "month": "30 derniers jours",
+    "topGenres": "Genres les plus regardés",
+    "empty": {
+      "title": "Aucun visionnage récent",
+      "body": "Les films et les épisodes que vous regardez apparaîtront ici, jour par jour."
+    }
+  },
+  "card": {
+    "watched": "Vu",
+    "watchedAria": "vu",
+    "unplayed": "{count, plural, one {# non vu} other {# non vus}}",
+    "play": "Lire {name}",
+    "favorite": "Favori"
+  },
+  "hero": {
+    "label": "À la une",
+    "roleDescription": "carrousel",
+    "slides": "Diapositives",
+    "resume": "Reprendre",
+    "resumeReading": "Reprendre la lecture",
+    "read": "Lire",
+    "play": "Lecture",
+    "moreInfo": "Plus d’infos"
+  },
+  "homeSheet": {
+    "intro": "Choisissez les rangées affichées et leur ordre. Glissez une rangée ou utilisez les flèches.",
+    "moveUp": "Monter {row}",
+    "moveDown": "Descendre {row}",
+    "show": "Afficher {row}"
+  },
+  "playlist": {
+    "label": "Contenu de la playlist",
+    "removed": "« {name} » retiré de la playlist",
+    "remove": "Retirer de la playlist",
+    "removeNamed": "Retirer {name} de la playlist",
+    "empty": "Cette playlist est vide. Ajoutez des titres depuis le menu « … » d’une fiche."
+  },
+  "addTo": {
+    "title": "{kind, select, collection {Ajouter à une collection} other {Ajouter à une playlist}}",
+    "newPlaceholder": "{kind, select, collection {Nouvelle collection} other {Nouvelle playlist}}",
+    "newName": "{kind, select, collection {Nom de la nouvelle collection} other {Nom de la nouvelle playlist}}",
+    "create": "Créer",
+    "none": "{kind, select, collection {Aucune collection pour l’instant.} other {Aucune playlist pour l’instant.}}",
+    "added": "Ajouté à « {name} »"
+  },
+  "errors": {
+    "notSignedIn": "Non connecté"
+  }
+}

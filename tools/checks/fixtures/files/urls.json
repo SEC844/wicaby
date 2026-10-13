@@ -1,0 +1,234 @@
+{
+  "parse": [
+    {
+      "input": "https://dav.example/media",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example/media"
+      }
+    },
+    {
+      "input": "https://dav.example/media/",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example/media"
+      }
+    },
+    {
+      "input": "http://dav.example:8080/media/sub",
+      "expect": {
+        "protocol": "webdav",
+        "url": "http://dav.example:8080/media/sub"
+      }
+    },
+    {
+      "input": "davs://dav.example/media",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example/media"
+      }
+    },
+    {
+      "input": "webdav://dav.example/media",
+      "expect": {
+        "protocol": "webdav",
+        "url": "http://dav.example/media"
+      }
+    },
+    {
+      "input": "webdavs://dav.example/",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example"
+      }
+    },
+    {
+      "input": "https://demo:secret@dav.example/media",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example/media",
+        "user": "demo",
+        "pass": "secret"
+      }
+    },
+    {
+      "input": "https://user%40mail:p%3Ass@dav.example/m",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://dav.example/m",
+        "user": "user@mail",
+        "pass": "p:ss"
+      }
+    },
+    {
+      "input": "smb://STORAGE/media/sub",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media/sub"
+      }
+    },
+    {
+      "input": "smb://STORAGE/media",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media"
+      }
+    },
+    {
+      "input": "\\\\STORAGE\\media\\sub",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media/sub"
+      }
+    },
+    {
+      "input": "\\\\STORAGE\\media",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media"
+      }
+    },
+    {
+      "input": "STORAGE/media",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media"
+      }
+    },
+    {
+      "input": "smb://user:pw@STORAGE/media",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/media",
+        "user": "user",
+        "pass": "pw"
+      }
+    },
+    {
+      "input": "smb://STORAGE",
+      "expect": null
+    },
+    {
+      "input": "\\\\STORAGE",
+      "expect": null
+    },
+    {
+      "input": "smb://STORAGE/media/../x",
+      "expect": null
+    },
+    {
+      "input": "smb://STORAGE:445/media",
+      "expect": null
+    },
+    {
+      "input": "smb://bad host/media",
+      "expect": null
+    },
+    {
+      "input": "ftp://example/x",
+      "expect": null
+    },
+    {
+      "input": "file:///C:/x",
+      "expect": null
+    },
+    {
+      "input": "",
+      "expect": null
+    },
+    {
+      "input": "smb://192.0.2.10/media",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://192.0.2.10/media"
+      }
+    },
+    {
+      "input": "https://192.0.2.10:5006/dav",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://192.0.2.10:5006/dav"
+      }
+    },
+    {
+      "input": "smb://STORAGE/me%20dia/sub",
+      "expect": {
+        "protocol": "smb",
+        "url": "smb://STORAGE/me%20dia/sub"
+      }
+    },
+    {
+      "input": "smb://STORAGE/a<b",
+      "expect": null
+    },
+    {
+      "input": "https:///nohost",
+      "expect": {
+        "protocol": "webdav",
+        "url": "https://nohost"
+      }
+    }
+  ],
+  "redact": [
+    {
+      "input": "https://demo:secret@dav.example/media?token=x#frag",
+      "expect": "https://dav.example/media"
+    },
+    {
+      "input": "http://dav.example/a",
+      "expect": "http://dav.example/a"
+    },
+    {
+      "input": "smb://u:p@STORAGE/media",
+      "expect": "smb://STORAGE/media"
+    },
+    {
+      "input": "https://dav.example/x?y",
+      "expect": "https://dav.example/x"
+    }
+  ],
+  "unc": [
+    {
+      "url": "smb://STORAGE/media",
+      "rel": "",
+      "expect": "\\\\STORAGE\\media"
+    },
+    {
+      "url": "smb://STORAGE/media/sub",
+      "rel": "Films/Example.mkv",
+      "expect": "\\\\STORAGE\\media\\sub\\Films\\Example.mkv"
+    },
+    {
+      "url": "smb://STORAGE/me%20dia",
+      "rel": "Été/a b.mkv",
+      "expect": "\\\\STORAGE\\me dia\\Été\\a b.mkv"
+    },
+    {
+      "url": "https://dav.example/media",
+      "rel": "",
+      "expect": null
+    }
+  ],
+  "display": [
+    {
+      "input": "https://dav.example/media",
+      "expect": "dav.example/media",
+      "name": "media"
+    },
+    {
+      "input": "smb://STORAGE/media",
+      "expect": "\\\\STORAGE\\media",
+      "name": "media"
+    },
+    {
+      "input": "http://dav.example:8080/a%20b/",
+      "expect": "dav.example:8080/a b",
+      "name": "a b"
+    },
+    {
+      "input": "/home/user/Videos",
+      "expect": "/home/user/Videos",
+      "name": "Videos"
+    }
+  ]
+}

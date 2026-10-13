@@ -1,0 +1,42 @@
+{
+  "_doc": "cast-spec CA-07 DIDL-Lite: one item, every value XML-escaped, the subtitle three ways (sec:CaptionInfoEx right after the first <res>, a text/srt <res>, pv:subtitleFileUri), and the SetAVTransportURI envelope that escapes the whole document again. Read by tools/checks/cast-dlna-check.mjs; meant for the :core Dlna tests (CA-08).",
+  "cases": [
+    {
+      "name": "video, direct",
+      "input": {
+        "title": "Néon Fantôme",
+        "audio": false,
+        "url": "http://192.168.1.10:50123/c/0f1e2d3c4b5a69788796a5b4c3d2e1f0/Videos/12345/stream.mkv?Static=true&MediaSourceId=mediasource_12345&PlaySessionId=abc&DeviceId=d",
+        "mime": "video/x-matroska",
+        "durationSec": 7384.5
+      },
+      "didl": "<DIDL-Lite xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\" xmlns:sec=\"http://www.sec.co.kr/\" xmlns:pv=\"http://www.pv.com/pvns/\"><item id=\"0\" parentID=\"-1\" restricted=\"1\"><dc:title>Néon Fantôme</dc:title><upnp:class>object.item.videoItem</upnp:class><res protocolInfo=\"http-get:*:video/x-matroska:*\" duration=\"2:03:04.000\">http://192.168.1.10:50123/c/0f1e2d3c4b5a69788796a5b4c3d2e1f0/Videos/12345/stream.mkv?Static=true&amp;MediaSourceId=mediasource_12345&amp;PlaySessionId=abc&amp;DeviceId=d</res></item></DIDL-Lite>",
+      "setAVTransportURI": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:SetAVTransportURI xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><CurrentURI>http://192.168.1.10:50123/c/0f1e2d3c4b5a69788796a5b4c3d2e1f0/Videos/12345/stream.mkv?Static=true&amp;MediaSourceId=mediasource_12345&amp;PlaySessionId=abc&amp;DeviceId=d</CurrentURI><CurrentURIMetaData>&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:sec=&quot;http://www.sec.co.kr/&quot; xmlns:pv=&quot;http://www.pv.com/pvns/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;Néon Fantôme&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.videoItem&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:video/x-matroska:*&quot; duration=&quot;2:03:04.000&quot;&gt;http://192.168.1.10:50123/c/0f1e2d3c4b5a69788796a5b4c3d2e1f0/Videos/12345/stream.mkv?Static=true&amp;amp;MediaSourceId=mediasource_12345&amp;amp;PlaySessionId=abc&amp;amp;DeviceId=d&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;</CurrentURIMetaData></u:SetAVTransportURI></s:Body></s:Envelope>"
+    },
+    {
+      "name": "video, DLNA.ORG flags, subtitles",
+      "input": {
+        "title": "Tom & Jerry <\"1\">",
+        "audio": false,
+        "url": "http://192.168.1.10:50123/c/n/Videos/1/stream.ts?a=1&b=2",
+        "mime": "video/mpeg",
+        "durationSec": 59,
+        "flags": "DLNA.ORG_OP=00;DLNA.ORG_CI=1;DLNA.ORG_FLAGS=01700000000000000000000000000000",
+        "subtitleUrl": "http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt"
+      },
+      "didl": "<DIDL-Lite xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\" xmlns:sec=\"http://www.sec.co.kr/\" xmlns:pv=\"http://www.pv.com/pvns/\"><item id=\"0\" parentID=\"-1\" restricted=\"1\"><dc:title>Tom &amp; Jerry &lt;&quot;1&quot;&gt;</dc:title><upnp:class>object.item.videoItem</upnp:class><res protocolInfo=\"http-get:*:video/mpeg:DLNA.ORG_OP=00;DLNA.ORG_CI=1;DLNA.ORG_FLAGS=01700000000000000000000000000000\" duration=\"0:00:59.000\" pv:subtitleFileUri=\"http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt\" pv:subtitleFileType=\"srt\">http://192.168.1.10:50123/c/n/Videos/1/stream.ts?a=1&amp;b=2</res><sec:CaptionInfoEx sec:type=\"srt\">http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt</sec:CaptionInfoEx><res protocolInfo=\"http-get:*:text/srt:*\">http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt</res></item></DIDL-Lite>",
+      "setAVTransportURI": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:SetAVTransportURI xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><CurrentURI>http://192.168.1.10:50123/c/n/Videos/1/stream.ts?a=1&amp;b=2</CurrentURI><CurrentURIMetaData>&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:sec=&quot;http://www.sec.co.kr/&quot; xmlns:pv=&quot;http://www.pv.com/pvns/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;Tom &amp;amp; Jerry &amp;lt;&amp;quot;1&amp;quot;&amp;gt;&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.videoItem&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:video/mpeg:DLNA.ORG_OP=00;DLNA.ORG_CI=1;DLNA.ORG_FLAGS=01700000000000000000000000000000&quot; duration=&quot;0:00:59.000&quot; pv:subtitleFileUri=&quot;http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt&quot; pv:subtitleFileType=&quot;srt&quot;&gt;http://192.168.1.10:50123/c/n/Videos/1/stream.ts?a=1&amp;amp;b=2&lt;/res&gt;&lt;sec:CaptionInfoEx sec:type=&quot;srt&quot;&gt;http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt&lt;/sec:CaptionInfoEx&gt;&lt;res protocolInfo=&quot;http-get:*:text/srt:*&quot;&gt;http://192.168.1.10:50123/c/n/Videos/1/1/Subtitles/3/0/Stream.srt&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;</CurrentURIMetaData></u:SetAVTransportURI></s:Body></s:Envelope>"
+    },
+    {
+      "name": "music track, no duration",
+      "input": {
+        "title": "L'été",
+        "audio": true,
+        "url": "http://10.0.0.2:8096/Audio/7/stream.mp3?Static=true&api_key=TOKEN",
+        "mime": "audio/mpeg"
+      },
+      "didl": "<DIDL-Lite xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\" xmlns:sec=\"http://www.sec.co.kr/\" xmlns:pv=\"http://www.pv.com/pvns/\"><item id=\"0\" parentID=\"-1\" restricted=\"1\"><dc:title>L&apos;été</dc:title><upnp:class>object.item.audioItem.musicTrack</upnp:class><res protocolInfo=\"http-get:*:audio/mpeg:*\">http://10.0.0.2:8096/Audio/7/stream.mp3?Static=true&amp;api_key=TOKEN</res></item></DIDL-Lite>",
+      "setAVTransportURI": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:SetAVTransportURI xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><CurrentURI>http://10.0.0.2:8096/Audio/7/stream.mp3?Static=true&amp;api_key=TOKEN</CurrentURI><CurrentURIMetaData>&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:sec=&quot;http://www.sec.co.kr/&quot; xmlns:pv=&quot;http://www.pv.com/pvns/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;L&amp;apos;été&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.audioItem.musicTrack&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:audio/mpeg:*&quot;&gt;http://10.0.0.2:8096/Audio/7/stream.mp3?Static=true&amp;amp;api_key=TOKEN&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;</CurrentURIMetaData></u:SetAVTransportURI></s:Body></s:Envelope>"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Hand-written startup profile (no macrobenchmark module): AOT-compile the app's own code
+# and the shared core on install via ProfileInstaller. Compose, Media3 and Coil ship theirs.
+HSPLcom/wika/wicaby/mobile/**->**(**)**
+HSPLcom/wika/wicaby/core/**->**(**)**
+Lcom/wika/wicaby/mobile/**;
+Lcom/wika/wicaby/core/**;

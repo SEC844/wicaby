@@ -1,0 +1,54 @@
+{
+  "intro": {
+    "title": "Bienvenue dans Wicaby",
+    "body": "Tous tes médias au même endroit.",
+    "language": "Langue",
+    "system": "Système"
+  },
+  "actions": {
+    "start": "Commencer",
+    "skip": "Passer la configuration",
+    "notNow": "Plus tard"
+  },
+  "progress": "Étape {step} sur {count}",
+  "look": {
+    "title": "Personnalisez",
+    "body": "Choisissez un thème et une couleur. Vous pourrez les changer dans les Réglages.",
+    "preview": "Aperçu"
+  },
+  "where": {
+    "title": "Où se trouve votre serveur ?",
+    "yours": "Connecté à {servers}",
+    "lan": {
+      "title": "Sur ce réseau",
+      "body": "Wicaby le trouve tout seul."
+    },
+    "vpn": {
+      "title": "En déplacement, via un VPN",
+      "body": "Tailscale ou NetBird, intégré à Wicaby.",
+      "byAddress": "Ajouter par adresse"
+    },
+    "public": {
+      "title": "J’ai une adresse publique",
+      "body": "Une adresse https://, par exemple via un reverse proxy.",
+      "placeholder": "https://media.exemple.fr",
+      "insecure": "Cette connexion n’est pas chiffrée."
+    }
+  },
+  "signin": {
+    "title": "Connexion à {server}",
+    "addAnother": "Ajouter un autre serveur"
+  },
+  "extras": {
+    "title": "Quelques options",
+    "startup": "Ouvrir au démarrage de Windows",
+    "torrents": "Configurer…",
+    "trakt": "Connecter…"
+  },
+  "done": {
+    "title": "Tout est prêt",
+    "remote": "Réglages de l’accès à distance",
+    "start": "Commencer à regarder",
+    "none": "Aucun serveur pour l’instant. Vous pourrez en ajouter dans les Réglages."
+  }
+}

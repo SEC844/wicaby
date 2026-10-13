@@ -1,0 +1,179 @@
+{
+  "videos": [
+    {
+      "video": "Example.Movie.2019.1080p.mkv",
+      "names": [
+        "Example.Movie.2019.1080p.mkv",
+        "poster.jpg",
+        "movie.nfo",
+        "Example.Movie.2019.1080p.fr.srt",
+        "Example.Movie.2019.1080p.en.forced.srt",
+        "notes.txt"
+      ],
+      "expect": {
+        "poster": "poster.jpg",
+        "nfo": "movie.nfo",
+        "subtitles": [
+          {
+            "name": "Example.Movie.2019.1080p.en.forced.srt",
+            "forced": true,
+            "hearingImpaired": false,
+            "codec": "srt",
+            "language": "en"
+          },
+          {
+            "name": "Example.Movie.2019.1080p.fr.srt",
+            "forced": false,
+            "hearingImpaired": false,
+            "codec": "srt",
+            "language": "fr"
+          }
+        ]
+      }
+    },
+    {
+      "video": "Ep.S01E01.mkv",
+      "names": [
+        "Ep.S01E01.mkv",
+        "Ep.S01E01.nfo",
+        "Ep.S01E01-poster.png",
+        "Ep.S01E02.mkv",
+        "Ep.S01E02.jpg",
+        "Ep.S01E02.en.sdh.srt",
+        "Ep.S01E02.EN.ass",
+        "Ep.S01E02.ssa",
+        "fanart.jpg",
+        "folder.png"
+      ],
+      "expect": {
+        "poster": "Ep.S01E01-poster.png",
+        "backdrop": "fanart.jpg",
+        "nfo": "Ep.S01E01.nfo",
+        "subtitles": []
+      }
+    },
+    {
+      "video": "Ep.S01E02.mkv",
+      "names": [
+        "Ep.S01E01.mkv",
+        "Ep.S01E01.nfo",
+        "Ep.S01E01-poster.png",
+        "Ep.S01E02.mkv",
+        "Ep.S01E02.jpg",
+        "Ep.S01E02.en.sdh.srt",
+        "Ep.S01E02.EN.ass",
+        "Ep.S01E02.ssa",
+        "fanart.jpg",
+        "folder.png"
+      ],
+      "expect": {
+        "poster": "Ep.S01E02.jpg",
+        "backdrop": "fanart.jpg",
+        "subtitles": [
+          {
+            "name": "Ep.S01E02.EN.ass",
+            "forced": false,
+            "hearingImpaired": false,
+            "codec": "ass",
+            "language": "en"
+          },
+          {
+            "name": "Ep.S01E02.en.sdh.srt",
+            "forced": false,
+            "hearingImpaired": true,
+            "codec": "srt",
+            "language": "en"
+          },
+          {
+            "name": "Ep.S01E02.ssa",
+            "forced": false,
+            "hearingImpaired": false,
+            "codec": "ssa"
+          }
+        ]
+      }
+    },
+    {
+      "video": "Other.mkv",
+      "names": [
+        "Other.mkv",
+        "Other.webp",
+        "Other-fanart.jpg",
+        "Other.pt-br.vtt",
+        "Other.cc.srt",
+        "Other.forced.sub",
+        "Othering.srt"
+      ],
+      "expect": {
+        "poster": "Other.webp",
+        "backdrop": "Other-fanart.jpg",
+        "subtitles": [
+          {
+            "name": "Other.cc.srt",
+            "forced": false,
+            "hearingImpaired": true,
+            "codec": "srt"
+          },
+          {
+            "name": "Other.forced.sub",
+            "forced": true,
+            "hearingImpaired": false,
+            "codec": "sub"
+          },
+          {
+            "name": "Other.pt-br.vtt",
+            "forced": false,
+            "hearingImpaired": false,
+            "codec": "vtt",
+            "language": "pt-br"
+          }
+        ]
+      }
+    },
+    {
+      "video": "A.mkv",
+      "names": [
+        "A.mkv",
+        "B.mkv",
+        "movie.nfo",
+        "cover.jpeg"
+      ],
+      "expect": {
+        "poster": "cover.jpeg",
+        "subtitles": []
+      }
+    }
+  ],
+  "folders": [
+    {
+      "names": [
+        "tvshow.nfo",
+        "poster.png",
+        "backdrop.jpg"
+      ],
+      "expect": {
+        "poster": "poster.png",
+        "backdrop": "backdrop.jpg",
+        "nfo": "tvshow.nfo"
+      }
+    },
+    {
+      "names": [
+        "Folder.JPG",
+        "Cover.png",
+        "x.mkv",
+        "movie.nfo"
+      ],
+      "expect": {
+        "poster": "Folder.JPG",
+        "nfo": "movie.nfo"
+      }
+    },
+    {
+      "names": [
+        "readme.txt"
+      ],
+      "expect": {}
+    }
+  ]
+}

@@ -1,0 +1,858 @@
+{
+  "_doc": "cast-spec 2.6.5-6: DLNA profiles from the GetProtocolInfo Sink fixtures, the MIME each container is announced with, and Cast DMR profiles. Read by tools/checks/cast-dlna-check.mjs (desktop main/cast/profiles.ts); the :core CastProfilesTest reads the same goldens (CA-08, CA-10).",
+  "dlna": [
+    {
+      "name": "generic",
+      "sinkFixture": "dlna-protocolinfo-generic.xml",
+      "model": "Generic Renderer",
+      "expected": {
+        "Name": "Wicaby DLNA (Generic Renderer)",
+        "MaxStreamingBitrate": 40000000,
+        "MaxStaticBitrate": 40000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v,mkv,ts,avi",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,mp3"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "m4a",
+            "Type": "Audio"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac,ac3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "srt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "name": "sony",
+      "sinkFixture": "dlna-protocolinfo-sony.xml",
+      "model": "BRAVIA (mock profile)",
+      "expected": {
+        "Name": "Wicaby DLNA (BRAVIA (mock profile))",
+        "MaxStreamingBitrate": 40000000,
+        "MaxStaticBitrate": 40000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v,mkv,ts",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,mp3"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "m4a",
+            "Type": "Audio"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac,ac3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "srt",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "subrip",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "ass",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "ssa",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "vtt",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "webvtt",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Embed",
+            "Container": "mkv"
+          },
+          {
+            "Format": "srt",
+            "Method": "Encode"
+          },
+          {
+            "Format": "subrip",
+            "Method": "Encode"
+          },
+          {
+            "Format": "ass",
+            "Method": "Encode"
+          },
+          {
+            "Format": "ssa",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vtt",
+            "Method": "Encode"
+          },
+          {
+            "Format": "webvtt",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "name": "samsung",
+      "sinkFixture": "dlna-protocolinfo-samsung.xml",
+      "model": "Samsung TV (mock profile)",
+      "expected": {
+        "Name": "Wicaby DLNA (Samsung TV (mock profile))",
+        "MaxStreamingBitrate": 40000000,
+        "MaxStaticBitrate": 40000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v,mkv,ts,avi",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,mp3"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "m4a",
+            "Type": "Audio"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac,ac3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "srt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "name": "no ConnectionManager",
+      "sink": "",
+      "model": "",
+      "expected": {
+        "Name": "Wicaby DLNA",
+        "MaxStreamingBitrate": 40000000,
+        "MaxStaticBitrate": 40000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v,ts",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,mp3"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "m4a",
+            "Type": "Audio"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac,ac3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "srt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    }
+  ],
+  "mimes": [
+    {
+      "container": "mkv",
+      "audio": false,
+      "sinkFixture": "dlna-protocolinfo-samsung.xml",
+      "expected": "video/x-mkv"
+    },
+    {
+      "container": "mkv",
+      "audio": false,
+      "sinkFixture": "dlna-protocolinfo-sony.xml",
+      "expected": "video/x-matroska"
+    },
+    {
+      "container": "ts",
+      "audio": false,
+      "sinkFixture": "dlna-protocolinfo-sony.xml",
+      "expected": "video/mpeg"
+    },
+    {
+      "container": "mp4",
+      "audio": false,
+      "sink": "",
+      "expected": "video/mp4"
+    },
+    {
+      "container": "flac",
+      "audio": true,
+      "sinkFixture": "dlna-protocolinfo-sony.xml",
+      "expected": "audio/x-flac"
+    }
+  ],
+  "cast": [
+    {
+      "model": "Chromecast",
+      "prefs": {},
+      "server": "emby",
+      "expected": {
+        "Name": "Wicaby Cast (Chromecast)",
+        "MaxStreamingBitrate": 20000000,
+        "MaxStaticBitrate": 20000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v",
+            "Type": "Video",
+            "VideoCodec": "h264,vp8,vp9",
+            "AudioCodec": "aac,mp3,opus,vorbis,flac"
+          },
+          {
+            "Container": "webm",
+            "Type": "Video",
+            "VideoCodec": "vp8,vp9",
+            "AudioCodec": "opus,vorbis"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "aac,m4a",
+            "Type": "Audio",
+            "AudioCodec": "aac"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "opus,ogg,webm",
+            "Type": "Audio",
+            "AudioCodec": "opus,vorbis"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Codec": "h264",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "VideoLevel",
+                "Value": "41",
+                "IsRequired": false
+              }
+            ]
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "vtt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "model": "Chromecast Ultra",
+      "prefs": {
+        "dolby": true
+      },
+      "server": "jellyfin",
+      "expected": {
+        "Name": "Wicaby Cast (Chromecast Ultra)",
+        "MaxStreamingBitrate": 20000000,
+        "MaxStaticBitrate": 20000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc,vp8,vp9",
+            "AudioCodec": "aac,mp3,opus,vorbis,flac,ac3,eac3"
+          },
+          {
+            "Container": "webm",
+            "Type": "Video",
+            "VideoCodec": "vp8,vp9",
+            "AudioCodec": "opus,vorbis"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "aac,m4a",
+            "Type": "Audio",
+            "AudioCodec": "aac"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "opus,ogg,webm",
+            "Type": "Audio",
+            "AudioCodec": "opus,vorbis"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Codec": "h264",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "VideoLevel",
+                "Value": "51",
+                "IsRequired": false
+              }
+            ]
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "mp4",
+            "Type": "Video",
+            "VideoCodec": "hevc,h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "vtt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "model": "Google TV Streamer",
+      "prefs": {},
+      "server": "emby",
+      "expected": {
+        "Name": "Wicaby Cast (Google TV Streamer)",
+        "MaxStreamingBitrate": 20000000,
+        "MaxStaticBitrate": 20000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc,av1,vp8,vp9",
+            "AudioCodec": "aac,mp3,opus,vorbis,flac"
+          },
+          {
+            "Container": "webm",
+            "Type": "Video",
+            "VideoCodec": "vp8,vp9",
+            "AudioCodec": "opus,vorbis"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "aac,m4a",
+            "Type": "Audio",
+            "AudioCodec": "aac"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "opus,ogg,webm",
+            "Type": "Audio",
+            "AudioCodec": "opus,vorbis"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Codec": "h264",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "VideoLevel",
+                "Value": "51",
+                "IsRequired": false
+              }
+            ]
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "vtt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    },
+    {
+      "model": "Chromecast",
+      "prefs": {
+        "allowHevc": true
+      },
+      "server": "jellyfin",
+      "expected": {
+        "Name": "Wicaby Cast (Chromecast)",
+        "MaxStreamingBitrate": 20000000,
+        "MaxStaticBitrate": 20000000,
+        "MusicStreamingTranscodingBitrate": 320000,
+        "ContainerProfiles": [],
+        "ResponseProfiles": [],
+        "DirectPlayProfiles": [
+          {
+            "Container": "mp4,m4v",
+            "Type": "Video",
+            "VideoCodec": "h264,hevc,vp8,vp9",
+            "AudioCodec": "aac,mp3,opus,vorbis,flac"
+          },
+          {
+            "Container": "webm",
+            "Type": "Video",
+            "VideoCodec": "vp8,vp9",
+            "AudioCodec": "opus,vorbis"
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio"
+          },
+          {
+            "Container": "aac,m4a",
+            "Type": "Audio",
+            "AudioCodec": "aac"
+          },
+          {
+            "Container": "flac",
+            "Type": "Audio"
+          },
+          {
+            "Container": "opus,ogg,webm",
+            "Type": "Audio",
+            "AudioCodec": "opus,vorbis"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Codec": "h264",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "VideoLevel",
+                "Value": "41",
+                "IsRequired": false
+              }
+            ]
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Container": "mp4",
+            "Type": "Video",
+            "VideoCodec": "hevc,h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "ts",
+            "Type": "Video",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "Protocol": "hls",
+            "Context": "Streaming",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true
+          },
+          {
+            "Container": "mp3",
+            "Type": "Audio",
+            "AudioCodec": "mp3",
+            "Protocol": "http",
+            "Context": "Streaming"
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "vtt",
+            "Method": "External"
+          },
+          {
+            "Format": "pgs",
+            "Method": "Encode"
+          },
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvdsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "dvbsub",
+            "Method": "Encode"
+          },
+          {
+            "Format": "vobsub",
+            "Method": "Encode"
+          }
+        ]
+      }
+    }
+  ]
+}

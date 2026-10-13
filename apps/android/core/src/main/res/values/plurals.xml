@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="torrents_added">
+        <item quantity="one">%1$d torrent ajouté</item>
+        <item quantity="many">%1$d torrents ajoutés</item>
+        <item quantity="other">%1$d torrents ajoutés</item>
+    </plurals>
+    <plurals name="versions_count">
+        <item quantity="one">%1$d version</item>
+        <item quantity="many">%1$d versions</item>
+        <item quantity="other">%1$d versions</item>
+    </plurals>
+</resources>

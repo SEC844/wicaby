@@ -1,0 +1,91 @@
+{
+  "splash": {
+    "connecting": "Connecting to {server}…",
+    "connectingDefault": "Connecting to your server…"
+  },
+  "nav": {
+    "aria": "Main navigation",
+    "home": "Home",
+    "search": "Search",
+    "favorites": "Favorites",
+    "downloads": "Downloads",
+    "liveTv": "Live TV",
+    "settings": "Settings"
+  },
+  "sidebar": {
+    "show": "Show Sidebar",
+    "hide": "Hide Sidebar",
+    "libraries": "Libraries",
+    "servers": "{count, plural, one {# server} other {# servers}}",
+    "someOffline": "{count} offline",
+    "allConnected": "all connected",
+    "serverState": "{kind} · {state, select, offline {offline} other {connected}}"
+  },
+  "search": {
+    "placeholder": "Movies, TV shows, music",
+    "placeholderOffline": "Search isn’t available offline",
+    "clear": "Clear"
+  },
+  "titlebar": {
+    "offlineHint": "Server can’t be reached. Only downloads are available."
+  },
+  "account": {
+    "aria": "Account: {name}",
+    "guest": "Guest",
+    "server": "Server",
+    "servers": "{count, plural, one {# server} other {# servers}}",
+    "menu": {
+      "history": "History",
+      "servers": "Servers",
+      "switchUser": "Switch User",
+      "switchServer": "Switch Server",
+      "quit": "Quit Wicaby"
+    }
+  },
+  "fps": {
+    "meter": "{fps} fps · {worst} ms"
+  },
+  "status": {
+    "title": "Connection Status",
+    "level": {
+      "ok": "Everything is connected",
+      "warn": "Connection degraded",
+      "bad": "Server offline"
+    },
+    "servers": "Media Servers",
+    "server": {
+      "connected": "Connected",
+      "reconnecting": "Reconnecting…",
+      "offline": "Offline"
+    },
+    "route": {
+      "local": "Local",
+      "remote": "Remote",
+      "mesh": "Through the VPN"
+    },
+    "socket": {
+      "open": "Live updates on",
+      "connecting": "Live updates connecting…",
+      "down": "Live updates down, reconnecting…"
+    },
+    "vpnTitle": "Remote Access (VPN)",
+    "vpn": {
+      "embedded": "Wicaby",
+      "app": "app",
+      "connected": "Connected",
+      "needsLogin": "Sign-in required",
+      "connecting": "Connecting…",
+      "off": "Off",
+      "error": "Error",
+      "routes": "Networks: {routes}"
+    },
+    "torrents": {
+      "online": "Online",
+      "offline": "Offline",
+      "connecting": "Connecting…",
+      "auth": "Sign-in refused",
+      "certificate": "Untrusted certificate"
+    },
+    "remoteLink": "Remote Access Settings"
+  }
+}

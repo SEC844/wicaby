@@ -1,0 +1,189 @@
+// Reactive mirrors of main-process state. Main is the source of truth; these
+// objects are updated from its push events.
+import type { DownloadEntry, HtmlPlayerLoad, PlaybackState, ServerSession, SessionState, Settings, Toast } from '../../shared/contract';
+import type { BaseItem } from '../../shared/models';
+import { w } from './bridge';
+import { setLanguage } from './i18n.svelte';
+
+export const session = $state<{ value: SessionState; ready: boolean }>({ value: { status: 'no-server', sessions: [] }, ready: false });
+export const settings = $state<{ value: Settings | null }>({ value: null });
+export const playback = $state<{ value: PlaybackState | null }>({ value: null });
+export const downloads = $state<{ list: DownloadEntry[] }>({ list: [] });
+// Views of every signed-in server, primary first; each carries its ServerId.
+export const libraries = $state<{ list: BaseItem[] }>({ list: [] });
+// Live TV is offered only when a server has a tuner/guide set up for this user (servers: their ids).
+export const liveTv = $state({ available: false, servers: [] as string[] });
+
+// Signed-in servers, primary first. Reactive when read in a template or a $derived. File sources are not
+// servers (their own section, fileSessions()); fanOut() adds them to Home when the setting asks.
+export function onlineSessions(): ServerSession[] {
+  return session.value.sessions.filter((s) => s.status === 'signed-in' && s.server.kind !== 'files');
+}
+
+// File sources (file-sources-spec): every one, online or not.
+export function fileSessions(): ServerSession[] {
+  return session.value.sessions.filter((s) => s.server.kind === 'files');
+}
+
+export function isFileSource(serverId?: string): boolean {
+  return Boolean(serverId) && sessionFor(serverId)?.server.kind === 'files';
+}
+
+// More than one server signed in: the UI then names servers where it matters.
+export function multiServer(): boolean {
+  return onlineSessions().length > 1;
+}
+
+export function sessionFor(serverId?: string): ServerSession | undefined {
+  return serverId ? session.value.sessions.find((s) => s.server.id === serverId) : session.value.sessions[0];
+}
+
+export function serverName(serverId?: string): string {
+  return sessionFor(serverId)?.server.name ?? '';
+}
+
+// Last load request for the <video> player. Buffered here because it arrives
+// before the /player route has mounted.
+export const htmlPlayer = $state<{ load: HtmlPlayerLoad | null; seq: number }>({ load: null, seq: 0 });
+
+export interface ToastItem extends Toast {
+  id: number;
+  action?: { label: string; run: () => void };
+}
+export const toasts = $state<{ list: ToastItem[] }>({ list: [] });
+let toastId = 0;
+
+export function toast(kind: Toast['kind'], message: string, action?: ToastItem['action'], ms?: number): void {
+  const id = ++toastId;
+  toasts.list.push({ id, kind, message, action });
+  setTimeout(() => {
+    toasts.list = toasts.list.filter((t) => t.id !== id);
+  }, ms ?? (kind === 'error' ? 6000 : 3500));
+}
+
+// A toast that stays up while a long task runs: update() rewrites it, done() swaps it for a normal toast.
+export function progressToast(message: string): { update: (message: string) => void; done: (kind: Toast['kind'], message: string) => void } {
+  const id = ++toastId;
+  toasts.list.push({ id, kind: 'info', message });
+  return {
+    update: (m) => {
+      const x = toasts.list.find((x) => x.id === id);
+      if (x) x.message = m;
+    },
+    done: (kind, m) => {
+      toasts.list = toasts.list.filter((x) => x.id !== id);
+      toast(kind, m);
+    },
+  };
+}
+
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+// Bumped on server UserDataChanged / LibraryChanged so pages can refetch.
+export const dataVersion = $state({ userData: 0, library: 0 });
+
+function applySettings(s: Settings): void {
+  settings.value = s;
+  setLanguage(s.ui.language);
+  const root = document.documentElement;
+  root.dataset.theme = s.ui.theme;
+  root.dataset.accent = s.ui.accent;
+  root.toggleAttribute('data-reduce-transparency', s.ui.reduceTransparency);
+  if (s.ui.reduceMotion) root.dataset.reduceMotion = '1';
+  else delete root.dataset.reduceMotion;
+  // Density and poster size drive every card grid and shelf through two CSS variables (app.css).
+  root.dataset.density = s.ui.density;
+  root.style.setProperty('--card-scale', String((s.ui.posterSize / 100) * (s.ui.density === 'compact' ? 0.88 : 1)));
+  root.toggleAttribute('data-hide-card-titles', !s.ui.cardTitles);
+}
+
+async function serverViews(s: ServerSession): Promise<{ views: BaseItem[]; live: boolean }> {
+  const uid = s.user!.id;
+  const sid = s.server.id;
+  // Jellyfin 10.9+ moved the per-user route to /UserViews (see userRoute in api.ts).
+  const views = await (s.server.kind === 'jellyfin'
+    ? w.api.get<{ Items: BaseItem[] }>('/UserViews', { userId: uid }, sid)
+    : w.api.get<{ Items: BaseItem[] }>(`/Users/${uid}/Views`, undefined, sid)
+  ).then(
+    (r) => r.Items ?? [],
+    () => [] as BaseItem[],
+  );
+  for (const v of views) v.ServerId = sid;
+  // The Live TV view can be hidden from "My media"; /LiveTv/Info still knows.
+  const live =
+    views.some((l) => l.CollectionType === 'livetv') ||
+    (await w.api
+      .get<{ IsEnabled?: boolean; EnabledUsers?: string[] }>('/LiveTv/Info', undefined, sid)
+      .then((i) => Boolean(i.IsEnabled) && (!i.EnabledUsers?.length || i.EnabledUsers.includes(uid)))
+      .catch(() => false));
+  return { views, live };
+}
+
+// Session changes fire for every server's state; only a different set of signed-in users reloads.
+let librariesKey = '';
+async function loadLibraries(): Promise<void> {
+  const list = onlineSessions();
+  const key = list.map((s) => `${s.server.id}/${s.user?.id}`).join();
+  if (key === librariesKey) return;
+  librariesKey = key;
+  const results = await Promise.all(list.map(serverViews));
+  if (key !== librariesKey) return;
+  libraries.list = results.flatMap((r) => r.views);
+  liveTv.servers = list.filter((_, i) => results[i].live).map((s) => s.server.id);
+  liveTv.available = liveTv.servers.length > 0;
+}
+
+// Servers whose socket dropped or that went offline: their data may have changed meanwhile.
+const dropped = new Set<string>();
+
+export async function initStores(): Promise<void> {
+  w.session.onChange((s) => {
+    session.value = s;
+    let back = false;
+    for (const x of s.sessions) {
+      if (x.status === 'offline' || x.socket === 'down') dropped.add(x.server.id);
+      else if (x.status === 'signed-in' && x.socket === 'open' && dropped.delete(x.server.id)) back = true;
+    }
+    // Reconnected: libraries and every page reading dataVersion load again.
+    if (back) {
+      librariesKey = '';
+      dataVersion.userData++;
+      dataVersion.library++;
+    }
+    void loadLibraries();
+  });
+  w.settings.onChange(applySettings);
+  w.playback.onState((s) => {
+    const was = playback.value;
+    playback.value = s;
+    // A file source has no server socket to report UserDataChanged: its progress changed when playback ended.
+    if (was?.active && (!s.active || s.item?.id !== was.item?.id) && isFileSource(was.item?.serverId)) dataVersion.userData++;
+  });
+  w.downloads.onChange((d) => {
+    downloads.list = d;
+  });
+  w.events.onToast((t) => void toast(t.kind, t.message, undefined, t.ms));
+  w.htmlPlayer.onLoad((load) => {
+    htmlPlayer.load = load;
+    htmlPlayer.seq++;
+  });
+  w.events.onServerEvent((ev) => {
+    if (ev.type === 'UserDataChanged') dataVersion.userData++;
+    else if (ev.type === 'LibraryChanged') dataVersion.library++;
+  });
+
+  const [s, st, pb, dl] = await Promise.all([w.session.get(), w.settings.get(), w.playback.getState(), w.downloads.list()]);
+  session.value = s;
+  applySettings(st);
+  playback.value = pb;
+  downloads.list = dl;
+  session.ready = true;
+  void loadLibraries();
+}
+
+export async function updateSettings(patch: Parameters<typeof w.settings.update>[0]): Promise<void> {
+  // Patches are often built from settings.value ($state): its proxies cannot cross the bridge.
+  applySettings(await w.settings.update($state.snapshot(patch) as typeof patch));
+}

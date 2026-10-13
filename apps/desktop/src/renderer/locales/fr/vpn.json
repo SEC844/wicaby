@@ -1,0 +1,45 @@
+{
+  "caption": {
+    "tailscale": "Avec votre compte Tailscale (Google, Microsoft, GitHub…).",
+    "netbird": "Avec votre compte NetBird, ou votre propre serveur."
+  },
+  "status": {
+    "notAvailable": "{name} n’est pas disponible sur ce PC.",
+    "connected": "Connecté · {device}",
+    "connectedApp": "Connecté · {device} · application {name}",
+    "thisPc": "ce PC",
+    "finishInBrowser": "Terminez la connexion dans votre navigateur.",
+    "loginRequired": "Connexion requise.",
+    "connecting": "Connexion…",
+    "unavailable": "Indisponible pour le moment.",
+    "appDisconnected": "Application {name} déconnectée."
+  },
+  "toast": {
+    "finishInBrowser": "Terminez la connexion à {name} dans votre navigateur."
+  },
+  "actions": {
+    "pickDevice": "Choisir un appareil",
+    "pickDeviceTitle": "Choisir un appareil du réseau",
+    "reopen": "Rouvrir la page",
+    "install": "Installer",
+    "connect": "Connecter",
+    "signInWith": "Se connecter avec {name}",
+    "signOutOf": "Se déconnecter de {name}"
+  },
+  "peers": {
+    "searching": "Recherche de serveurs sur les appareils du réseau…",
+    "none": "Aucun autre appareil sur ce réseau.",
+    "noServer": "Aucun serveur sur les ports {ports}"
+  },
+  "advanced": {
+    "toggle": "Serveur NetBird auto-hébergé ou clé d’installation",
+    "urlPlaceholder": "https://netbird.exemple.fr (facultatif)",
+    "urlAria": "Adresse du serveur de gestion NetBird",
+    "keyPlaceholder": "Clé d’installation (facultatif)",
+    "keyAria": "Clé d’installation NetBird",
+    "hint": "Sans clé, la connexion se fait dans votre navigateur. La clé ne sert qu’une fois.",
+    "more": "Options avancées",
+    "app": "App {name} installée",
+    "appsHint": "Quand l’une de ces apps est connectée, Wicaby l’utilise à la place de sa propre connexion."
+  }
+}

@@ -1,0 +1,15 @@
+# This code repository is private: the forms here are for collaborators only. Public users
+# report bugs and vulnerabilities on the public WicaebethTheo/wicaby-releases repository
+# (copy these ISSUE_TEMPLATE files there, and enable Settings > Code security >
+# "Private vulnerability reporting" on it, so the advisory link below works).
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/WicaebethTheo/wicaby-releases/security/advisories/new
+    about: Please report security issues privately (see SECURITY.md), not in an issue.
+  - name: Public bug reports and feature requests
+    url: https://github.com/WicaebethTheo/wicaby-releases/issues/new/choose
+    about: Not a collaborator on this private repository? Open your issue on wicaby-releases.
+  - name: Downloads
+    url: https://github.com/WicaebethTheo/wicaby-releases/releases/latest
+    about: Latest Windows installer and Android APKs.

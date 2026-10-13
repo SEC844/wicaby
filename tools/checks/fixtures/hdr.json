@@ -1,0 +1,33 @@
+{
+  "_": "Dynamic range of a video stream, both servers' field shapes. Read by tools/checks/parity-check.mjs (apps/desktop/src/shared/hdr.ts) and the Android JVM test ParityFixturesTest (VideoRange.kt). kind: what playback switches to (null = nothing known); chip: the item page badge.",
+  "cases": [
+    { "name": "jellyfin dv profile 5", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVI", "DvProfile": 5, "DvBlSignalCompatibilityId": 0 }, "kind": "dv", "dvProfile": "5", "chip": "Dolby Vision" },
+    { "name": "jellyfin dv 8.1", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithHDR10", "DvProfile": 8, "DvBlSignalCompatibilityId": 1 }, "kind": "dv", "dvProfile": "8.1", "chip": "Dolby Vision · HDR10" },
+    { "name": "jellyfin dv 8.4", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithHLG", "DvProfile": 8, "DvBlSignalCompatibilityId": 4 }, "kind": "dv", "dvProfile": "8.4", "chip": "Dolby Vision · HLG" },
+    { "name": "jellyfin dv 8.2", "stream": { "VideoRange": "SDR", "VideoRangeType": "DOVIWithSDR", "DvProfile": 8, "DvBlSignalCompatibilityId": 2 }, "kind": "dv", "dvProfile": "8.2", "chip": "Dolby Vision" },
+    { "name": "jellyfin dv 8.1 with hdr10+", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithHDR10Plus", "DvProfile": 8, "DvBlSignalCompatibilityId": 1 }, "kind": "dv", "dvProfile": "8.1", "chip": "Dolby Vision · HDR10+" },
+    { "name": "jellyfin dv 7.6 (enhancement layer)", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithEL", "DvProfile": 7, "DvBlSignalCompatibilityId": 6 }, "kind": "dv", "dvProfile": "7.6", "chip": "Dolby Vision · HDR10" },
+    { "name": "jellyfin dv 7 without compatibility id", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithEL", "DvProfile": 7 }, "kind": "dv", "dvProfile": "7", "chip": "Dolby Vision · HDR10" },
+    { "name": "jellyfin dv 7.6 el with hdr10+", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIWithELHDR10Plus", "DvProfile": 7, "DvBlSignalCompatibilityId": 6, "ColorTransfer": "smpte2084" }, "kind": "dv", "dvProfile": "7.6", "chip": "Dolby Vision · HDR10+" },
+    { "name": "jellyfin dv invalid, pq base layer", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIInvalid", "ColorTransfer": "smpte2084" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR10" },
+    { "name": "jellyfin dv invalid, transfer unknown", "stream": { "VideoRange": "HDR", "VideoRangeType": "DOVIInvalid" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR" },
+    { "name": "jellyfin hdr10", "stream": { "VideoRange": "HDR", "VideoRangeType": "HDR10" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR10" },
+    { "name": "jellyfin hdr10+", "stream": { "VideoRange": "HDR", "VideoRangeType": "HDR10Plus" }, "kind": "hdr10+", "dvProfile": null, "chip": "HDR10+" },
+    { "name": "jellyfin hlg", "stream": { "VideoRange": "HDR", "VideoRangeType": "HLG" }, "kind": "hlg", "dvProfile": null, "chip": "HLG" },
+    { "name": "jellyfin sdr", "stream": { "VideoRange": "SDR", "VideoRangeType": "SDR" }, "kind": "sdr", "dvProfile": null, "chip": null },
+    { "name": "jellyfin unknown range type, sdr", "stream": { "VideoRange": "SDR", "VideoRangeType": "Unknown" }, "kind": "sdr", "dvProfile": null, "chip": null },
+    { "name": "emby dv 8.1", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "DolbyVision", "ExtendedVideoSubType": "DoviProfile81", "ColorTransfer": "smpte2084" }, "kind": "dv", "dvProfile": "8.1", "chip": "Dolby Vision · HDR10" },
+    { "name": "emby dv 8.4", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "DolbyVision", "ExtendedVideoSubType": "DoviProfile84", "ColorTransfer": "arib-std-b67" }, "kind": "dv", "dvProfile": "8.4", "chip": "Dolby Vision · HLG" },
+    { "name": "emby dv 7.6", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "DolbyVision", "ExtendedVideoSubType": "DoviProfile76" }, "kind": "dv", "dvProfile": "7.6", "chip": "Dolby Vision · HDR10" },
+    { "name": "emby dv 5 (pq transfer does not make a base layer)", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "DolbyVision", "ExtendedVideoSubType": "DoviProfile50", "ColorTransfer": "smpte2084" }, "kind": "dv", "dvProfile": "5", "chip": "Dolby Vision" },
+    { "name": "older emby dv, no subtype", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "DolbyVision", "ColorTransfer": "smpte2084" }, "kind": "dv", "dvProfile": null, "chip": "Dolby Vision · HDR10" },
+    { "name": "emby hdr10+", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "Hdr10Plus", "ColorTransfer": "smpte2084" }, "kind": "hdr10+", "dvProfile": null, "chip": "HDR10+" },
+    { "name": "emby hdr10", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "Hdr10", "ColorTransfer": "smpte2084" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR10" },
+    { "name": "emby hlg", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "HyperLogGamma" }, "kind": "hlg", "dvProfile": null, "chip": "HLG" },
+    { "name": "older emby, pq transfer only", "stream": { "VideoRange": "HDR", "ColorTransfer": "smpte2084" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR10" },
+    { "name": "older emby, hlg transfer only", "stream": { "VideoRange": "HDR", "ExtendedVideoType": "None", "ColorTransfer": "arib-std-b67" }, "kind": "hlg", "dvProfile": null, "chip": "HLG" },
+    { "name": "range HDR alone: PQ or HLG unknown", "stream": { "VideoRange": "HDR" }, "kind": "hdr10", "dvProfile": null, "chip": "HDR" },
+    { "name": "emby sdr", "stream": { "VideoRange": "SDR", "ExtendedVideoType": "None", "ColorTransfer": "bt709" }, "kind": "sdr", "dvProfile": null, "chip": null },
+    { "name": "nothing known", "stream": {}, "kind": null, "dvProfile": null, "chip": null }
+  ]
+}

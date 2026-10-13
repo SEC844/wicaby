@@ -1,0 +1,676 @@
+{
+  "about": "Lenses (§6.5) and categories (§6.6). fn: reconcileFavorites(rows, favOrder) → ids; recentIds(rows, recents, max); pushRecent(list, id, max); applyLens(rows, {lens, prefs, sort, favFirst}) → ids; availableLenses(rows, groups, serverTags); stepLens(list, current, delta); lensToParam / lensFromParam; categoryRows(rows, cat, set, filterOnChannels) → ids; categoryRowsProbe(setSize, count); dimmed(flags, cat); categorySourceFromTiles(flags[], channelCount); categorySourceFromGenres(genreLists); genreFlags(genres) → PF bits; genreTokens(s); searchChannels(rows, q, limit) → ids. Rows default as in channel-order.json.",
+  "cases": [
+    {
+      "name": "favourite order: listed order, missing members appended by number, stale and non-favourite ids dropped",
+      "fn": "reconcileFavorites",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        ["g","zz","b","c","g"]
+      ],
+      "out": ["g","b","a","d"]
+    },
+    {
+      "name": "recents: stored MRU first, topped up from lastPlayed",
+      "fn": "recentIds",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        ["c","zz"],
+        20
+      ],
+      "out": ["c","d","e"]
+    },
+    {
+      "name": "recents: cap",
+      "fn": "recentIds",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        ["a","b"],
+        3
+      ],
+      "out": ["a","b","d"]
+    },
+    {
+      "name": "push recent: to front, de-duplicated, capped",
+      "fn": "pushRecent",
+      "args": [["a","b","c"],"c",3],
+      "out": ["c","a","b"]
+    },
+    {
+      "name": "push recent: cap drops the oldest",
+      "fn": "pushRecent",
+      "args": [["a","b","c"],"d",3],
+      "out": ["d","a","b"]
+    },
+    {
+      "name": "lens all, number",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"all"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": ["a","b","d","e","g","f"]
+    },
+    {
+      "name": "lens all, name, favourites first",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"all"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "name",
+          "favFirst": true
+        }
+      ],
+      "out": ["a","b","d","g","e","f"]
+    },
+    {
+      "name": "lens favorites: lt.fav order, hidden removed",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"favorites"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "name",
+          "favFirst": true
+        }
+      ],
+      "out": ["g","b","a","d"]
+    },
+    {
+      "name": "lens recents: MRU order (hidden c dropped)",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"recents"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": ["e","d"]
+    },
+    {
+      "name": "lens radio",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"radio"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": ["f"]
+    },
+    {
+      "name": "lens tag Sport (hidden c dropped)",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"tag","tag":"Sport"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": ["b"]
+    },
+    {
+      "name": "lens client group, sorted by number",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"group","id":"g1"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": ["a","e"]
+    },
+    {
+      "name": "lens unknown group is empty",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"group","id":"nope"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "number",
+          "favFirst": false
+        }
+      ],
+      "out": []
+    },
+    {
+      "name": "lens server order",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"all"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "server",
+          "favFirst": false
+        }
+      ],
+      "out": ["a","b","d","e","f","g"]
+    },
+    {
+      "name": "lens recent sort inside Toutes",
+      "fn": "applyLens",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        {
+          "lens": {"kind":"all"},
+          "prefs": {
+            "favOrder": ["g","b"],
+            "hidden": ["c"],
+            "groups": [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+            "recents": ["e"]
+          },
+          "sort": "recent",
+          "favFirst": false
+        }
+      ],
+      "out": ["e","d","a","b","g","f"]
+    },
+    {
+      "name": "available lenses: radio exists, tags sorted by nameKey, then client groups",
+      "fn": "availableLenses",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        [{"id":"g1","name":"Mes infos","ids":["e","a","c"]}],
+        true
+      ],
+      "out": [
+        {"kind":"all"},
+        {"kind":"favorites"},
+        {"kind":"recents"},
+        {"kind":"radio"},
+        {"kind":"tag","tag":"Cinéma"},
+        {"kind":"tag","tag":"Généralistes"},
+        {"kind":"tag","tag":"Radio"},
+        {"kind":"tag","tag":"Sport"},
+        {"kind":"group","id":"g1"}
+      ]
+    },
+    {
+      "name": "available lenses: no radio, no server tags (Jellyfin)",
+      "fn": "availableLenses",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        [],
+        false
+      ],
+      "out": [{"kind":"all"},{"kind":"favorites"},{"kind":"recents"}]
+    },
+    {
+      "name": "step lens forward",
+      "fn": "stepLens",
+      "args": [
+        [{"kind":"all"},{"kind":"favorites"},{"kind":"recents"},{"kind":"tag","tag":"Sport"}],
+        {"kind":"recents"},
+        1
+      ],
+      "out": {"kind":"tag","tag":"Sport"}
+    },
+    {
+      "name": "step lens wraps",
+      "fn": "stepLens",
+      "args": [
+        [{"kind":"all"},{"kind":"favorites"},{"kind":"recents"},{"kind":"tag","tag":"Sport"}],
+        {"kind":"tag","tag":"Sport"},
+        1
+      ],
+      "out": {"kind":"all"}
+    },
+    {
+      "name": "step lens back wraps",
+      "fn": "stepLens",
+      "args": [
+        [{"kind":"all"},{"kind":"favorites"},{"kind":"recents"},{"kind":"tag","tag":"Sport"}],
+        {"kind":"all"},
+        -1
+      ],
+      "out": {"kind":"tag","tag":"Sport"}
+    },
+    {"name":"lens param fav","fn":"lensToParam","args":[{"kind":"favorites"}],"out":"fav"},
+    {"name":"lens from param fav","fn":"lensFromParam","args":["fav"],"out":{"lens":{"kind":"favorites"}}},
+    {"name":"lens param recent","fn":"lensToParam","args":[{"kind":"recents"}],"out":"recent"},
+    {"name":"lens from param recent","fn":"lensFromParam","args":["recent"],"out":{"lens":{"kind":"recents"}}},
+    {"name":"lens param tag:Sport","fn":"lensToParam","args":[{"kind":"tag","tag":"Sport"}],"out":"tag:Sport"},
+    {
+      "name": "lens from param tag:Sport",
+      "fn": "lensFromParam",
+      "args": ["tag:Sport"],
+      "out": {"lens":{"kind":"tag","tag":"Sport"}}
+    },
+    {"name":"lens param group:g1","fn":"lensToParam","args":[{"kind":"group","id":"g1"}],"out":"group:g1"},
+    {
+      "name": "lens from param group:g1",
+      "fn": "lensFromParam",
+      "args": ["group:g1"],
+      "out": {"lens":{"kind":"group","id":"g1"}}
+    },
+    {"name":"lens param all","fn":"lensToParam","args":[{"kind":"all"}],"out":"all"},
+    {"name":"lens from param all","fn":"lensFromParam","args":["all"],"out":{"lens":{"kind":"all"}}},
+    {
+      "name": "lens from param: category",
+      "fn": "lensFromParam",
+      "args": ["sports"],
+      "out": {"lens":{"kind":"all"},"category":"sports"}
+    },
+    {"name":"lens from param: junk → all","fn":"lensFromParam","args":["tag:"],"out":{"lens":{"kind":"all"}}},
+    {
+      "name": "category rows: intersected when the server honours the filter",
+      "fn": "categoryRows",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "sports",
+        ["b","c","zz"],
+        true
+      ],
+      "out": ["b","c"]
+    },
+    {
+      "name": "category rows: unchanged when ignored (dim only)",
+      "fn": "categoryRows",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "sports",
+        ["b"],
+        false
+      ],
+      "out": ["a","b","c","d","e","f","g"]
+    },
+    {
+      "name": "category rows: unknown → unchanged",
+      "fn": "categoryRows",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "sports",
+        ["b"],
+        "unknown"
+      ],
+      "out": ["a","b","c","d","e","f","g"]
+    },
+    {
+      "name": "ignored-flag probe: full set over 20 channels → ignored",
+      "fn": "categoryRowsProbe",
+      "args": [300,300],
+      "out": false
+    },
+    {"name":"ignored-flag probe: partial set → honoured","fn":"categoryRowsProbe","args":[42,300],"out":true},
+    {"name":"ignored-flag probe: small lineup → honoured","fn":"categoryRowsProbe","args":[12,12],"out":true},
+    {"name":"dim: non-matching cell","fn":"dimmed","args":[32,"sports"],"out":true},
+    {"name":"dim: Inédits matches Premiere","fn":"dimmed","args":[4,"new"],"out":false},
+    {"name":"dim: Inédits matches New","fn":"dimmed","args":[2,"new"],"out":false},
+    {"name":"dim: no category","fn":"dimmed","args":[0,null],"out":false},
+    {
+      "name": "flag probe: flags present → flags",
+      "fn": "categorySourceFromTiles",
+      "args": [[0,0,64],300],
+      "out": "flags"
+    },
+    {
+      "name": "flag probe: Live/Series only, > 20 channels → probe genres",
+      "fn": "categorySourceFromTiles",
+      "args": [[1,512,0],300],
+      "out": "probe"
+    },
+    {
+      "name": "flag probe: no flags, small lineup → flags",
+      "fn": "categorySourceFromTiles",
+      "args": [[0],12],
+      "out": "flags"
+    },
+    {
+      "name": "genre probe: keywords match → genres",
+      "fn": "categorySourceFromGenres",
+      "args": [[["Magazine"],["Sports"]]],
+      "out": "genres"
+    },
+    {
+      "name": "genre probe: nothing matches → unknown",
+      "fn": "categorySourceFromGenres",
+      "args": [[["Magazine"],[]]],
+      "out": "unknown"
+    },
+    {"name":"genre [\"Football\"]","fn":"genreFlags","args":[["Football"]],"out":64},
+    {"name":"genre [\"Sport\"]","fn":"genreFlags","args":[["Sport"]],"out":64},
+    {"name":"genre [\"Motorsport\"]","fn":"genreFlags","args":[["Motorsport"]],"out":64},
+    {"name":"genre [\"F1\"]","fn":"genreFlags","args":[["F1"]],"out":64},
+    {"name":"genre [\"Calcio\"]","fn":"genreFlags","args":[["Calcio"]],"out":64},
+    {"name":"genre [\"Sports\"]","fn":"genreFlags","args":[["Sports"]],"out":64},
+    {"name":"genre [\"Basketball\"]","fn":"genreFlags","args":[["Basketball"]],"out":0},
+    {"name":"genre [\"Film\"]","fn":"genreFlags","args":[["Film"]],"out":32},
+    {"name":"genre [\"Téléfilm\"]","fn":"genreFlags","args":[["Téléfilm"]],"out":32},
+    {"name":"genre [\"CINÉMA\"]","fn":"genreFlags","args":[["CINÉMA"]],"out":32},
+    {"name":"genre [\"Película\"]","fn":"genreFlags","args":[["Película"]],"out":32},
+    {"name":"genre [\"Movie / Drama\"]","fn":"genreFlags","args":[["Movie / Drama"]],"out":32},
+    {"name":"genre [\"Spielfilm\"]","fn":"genreFlags","args":[["Spielfilm"]],"out":32},
+    {"name":"genre [\"Info\"]","fn":"genreFlags","args":[["Info"]],"out":128},
+    {"name":"genre [\"Informatique\"]","fn":"genreFlags","args":[["Informatique"]],"out":0},
+    {"name":"genre [\"Actualité\"]","fn":"genreFlags","args":[["Actualité"]],"out":128},
+    {
+      "name": "genre [\"News / Current affairs\"]",
+      "fn": "genreFlags",
+      "args": [["News / Current affairs"]],
+      "out": 128
+    },
+    {"name":"genre [\"Nachrichten\"]","fn":"genreFlags","args":[["Nachrichten"]],"out":128},
+    {"name":"genre [\"Journal télévisé\"]","fn":"genreFlags","args":[["Journal télévisé"]],"out":128},
+    {"name":"genre [\"Jeunesse\"]","fn":"genreFlags","args":[["Jeunesse"]],"out":256},
+    {"name":"genre [\"Dessin animé\"]","fn":"genreFlags","args":[["Dessin animé"]],"out":256},
+    {"name":"genre [\"Dessin\"]","fn":"genreFlags","args":[["Dessin"]],"out":0},
+    {
+      "name": "genre [\"Children's / Youth programmes\"]",
+      "fn": "genreFlags",
+      "args": [["Children's / Youth programmes"]],
+      "out": 256
+    },
+    {
+      "name": "genre [\"Children’s / Youth programmes\"]",
+      "fn": "genreFlags",
+      "args": [["Children’s / Youth programmes"]],
+      "out": 256
+    },
+    {"name":"genre [\"Kinder\"]","fn":"genreFlags","args":[["Kinder"]],"out":256},
+    {"name":"genre [\"Série\"]","fn":"genreFlags","args":[["Série"]],"out":512},
+    {"name":"genre [\"Feuilleton\"]","fn":"genreFlags","args":[["Feuilleton"]],"out":512},
+    {"name":"genre [\"TV Series\"]","fn":"genreFlags","args":[["TV Series"]],"out":512},
+    {"name":"genre [\"Sitcom\"]","fn":"genreFlags","args":[["Sitcom"]],"out":512},
+    {
+      "name": "genre [\"Documentaire\",\"Société\"]",
+      "fn": "genreFlags",
+      "args": [["Documentaire","Société"]],
+      "out": 0
+    },
+    {
+      "name": "genre [\"Série\",\"Policier\",\"Film\"]",
+      "fn": "genreFlags",
+      "args": [["Série","Policier","Film"]],
+      "out": 544
+    },
+    {"name":"genre [\"Sport / Football\"]","fn":"genreFlags","args":[["Sport / Football"]],"out":64},
+    {
+      "name": "genre tokens: punctuation, quotes and accents",
+      "fn": "genreTokens",
+      "args": ["Children’s / Youth — Programmes"],
+      "out": ["children","s","youth","programmes"]
+    },
+    {
+      "name": "channel search: number prefix",
+      "fn": "searchChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "5",
+        8
+      ],
+      "out": ["e"]
+    },
+    {
+      "name": "channel search: folded name",
+      "fn": "searchChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "ECHO",
+        8
+      ],
+      "out": ["e"]
+    },
+    {
+      "name": "channel search: prefix before substring, then tag",
+      "fn": "searchChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "sport",
+        8
+      ],
+      "out": ["b","c"]
+    },
+    {
+      "name": "channel search: limit",
+      "fn": "searchChannels",
+      "args": [
+        [
+          {"id":"a","number":"1","name":"Alpha","favorite":true,"tags":["Généralistes"]},
+          {"id":"b","number":"2","name":"Bravo","favorite":true,"tags":["Sport"]},
+          {"id":"c","number":"3","name":"Charlie","tags":["Sport"],"lastPlayed":3000},
+          {"id":"d","number":"4","name":"Delta","favorite":true,"lastPlayed":5000},
+          {"id":"e","number":"5","name":"Écho","tags":["Cinéma"],"lastPlayed":4000},
+          {"id":"f","number":"","name":"Foxtrot Radio","radio":true,"tags":["Radio"]},
+          {"id":"g","number":"7","name":"Golf","favorite":true}
+        ],
+        "a",
+        2
+      ],
+      "out": ["a","b"]
+    }
+  ]
+}

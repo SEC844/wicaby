@@ -1,0 +1,43 @@
+{
+  "button": "Cast",
+  "picker": {
+    "title": "Play on…",
+    "thisDevice": "This computer",
+    "section": {
+      "apps": "Apps",
+      "dlna": "TVs and players (DLNA/UPnP)",
+      "chromecast": "Chromecast and Google TV"
+    },
+    "searching": "Looking for devices…",
+    "empty": "No devices found on this network",
+    "emptyHint": "Make sure the device is on and on the same network.",
+    "viaServer": "via {server}",
+    "firewall": "The firewall is blocking the search for TVs"
+  },
+  "bar": {
+    "castingTo": "Playing on {device}"
+  },
+  "remote": {
+    "stop": "Stop casting",
+    "playHere": "Play here",
+    "volume": "Volume",
+    "audio": "Audio",
+    "subtitles": "Subtitles",
+    "unavailable": "Not supported by this device"
+  },
+  "toast": {
+    "started": "Playing on {device}"
+  },
+  "error": {
+    "unreachable": "{device} is not responding",
+    "rejected": "{device} refused this media",
+    "lost": "Lost connection to {device}",
+    "lanOnly": "{device} can’t reach the server on the local network",
+    "relayBlocked": "{device} can’t reach this computer. Allow Wicaby in the firewall or turn off “Stream through this computer”."
+  },
+  "quit": {
+    "title": "Stop casting?",
+    "body": "Playback on {device} will stop.",
+    "confirm": "Stop and quit"
+  }
+}

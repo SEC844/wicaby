@@ -1,0 +1,110 @@
+{
+  "exif": {
+    "camera": "Appareil",
+    "exposure": "Exposition",
+    "aperture": "Ouverture",
+    "shutter": "Vitesse d’obturation",
+    "focal": "Focale",
+    "iso": "Sensibilité",
+    "dimensions": "Dimensions",
+    "altitude": "Altitude",
+    "location": "Position",
+    "software": "Logiciel",
+    "taken": "Prise de vue",
+    "apertureValue": "ƒ/{value}",
+    "exposureValue": "{value} s",
+    "focalValue": "{value} mm",
+    "isoValue": "ISO {value}",
+    "dimensionsValue": "{w} × {h}",
+    "altitudeValue": "{value} m",
+    "locationValue": "{lat} ; {lon}"
+  },
+  "title": "Photos",
+  "tabs": {
+    "timeline": "Chronologie",
+    "albums": "Albums",
+    "favorites": "Favoris",
+    "map": "Carte",
+    "label": "Vue"
+  },
+  "empty": "Aucune photo ici pour l’instant.",
+  "emptyFavorites": "Aucune photo favorite. Appuyez sur F sur une photo ou sur le cœur dans la visionneuse.",
+  "count": "{count, plural, one {# élément} other {# éléments}}",
+  "scrubber": {
+    "label": "Faire défiler par date"
+  },
+  "density": {
+    "label": "Taille des vignettes",
+    "smaller": "Vignettes plus petites",
+    "larger": "Vignettes plus grandes"
+  },
+  "tile": {
+    "photo": "Photo, {date}",
+    "video": "Vidéo, {date}, {duration}"
+  },
+  "error": {
+    "load": "Impossible de charger les photos."
+  },
+  "viewer": {
+    "info": "Informations",
+    "close": "Fermer",
+    "favorite": "Ajouter aux favoris",
+    "unfavorite": "Retirer des favoris",
+    "previous": "Précédente",
+    "next": "Suivante",
+    "zoomIn": "Agrandir",
+    "zoomOut": "Réduire",
+    "fit": "Ajuster à l’écran",
+    "saveOriginal": "Enregistrer l’original",
+    "play": "Lire la vidéo",
+    "more": "Plus d’options",
+    "slideshow": "Diaporama"
+  },
+  "info": {
+    "title": "Informations",
+    "noExif": "Aucune information de prise de vue",
+    "name": "Fichier"
+  },
+  "albums": {
+    "title": "Albums",
+    "empty": "Aucun album dans cette bibliothèque.",
+    "count": "{count, plural, one {# élément} other {# éléments}}",
+    "back": "Tous les albums"
+  },
+  "slideshow": {
+    "start": "Diaporama",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "exit": "Quitter le diaporama",
+    "interval": "Intervalle",
+    "intervalValue": "{n} s",
+    "order": "Ordre",
+    "orderDate": "Chronologique",
+    "orderShuffle": "Aléatoire",
+    "kenBurns": "Effet Ken Burns"
+  },
+  "save": {
+    "queued": "Enregistrement de l’original…",
+    "done": "Original enregistré dans les téléchargements.",
+    "denied": "Le serveur ne vous autorise pas à télécharger cet original.",
+    "reveal": "Afficher"
+  },
+  "memories": {
+    "title": "Ce jour-là",
+    "yearsAgo": "Il y a {n, plural, one {# an} other {# ans}}",
+    "play": "{title}, {count, plural, one {# photo} other {# photos}}"
+  },
+  "map": {
+    "title": "Carte",
+    "enableTitle": "Carte des photos",
+    "enableBody": "La carte télécharge des fonds de plan depuis {host}. Ce service voit les zones où vos photos ont été prises, pas les photos.",
+    "enable": "Activer la carte",
+    "tileUrl": "Adresse des fonds de plan",
+    "tileUrlHint": "Un modèle http(s) avec les marqueurs z, x et y entre accolades, par exemple celui d’un serveur de tuiles à vous. Respectez les conditions d’utilisation du service choisi.",
+    "tileUrlInvalid": "Adresse refusée : il faut un modèle http(s) avec les marqueurs z, x et y.",
+    "attribution": "Attribution affichée",
+    "noLocation": "Aucune photo géolocalisée ici.",
+    "cluster": "{count, plural, one {# photo} other {# photos}}",
+    "loading": "Lecture des positions…"
+  }
+}

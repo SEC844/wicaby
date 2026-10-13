@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Replaces android:usesCleartextTraffic="true".
+
+     Cleartext http stays allowed app-wide on purpose: Emby servers are typed in by the user
+     (LAN address, hostname, any port) and many home servers only speak http. Network Security
+     Config is static, so it cannot allow cleartext only for servers added at runtime, and the
+     mesh transport also talks to its own loopback proxy (http://127.0.0.1:<port>/...).
+     What covers it instead: connections are tried over https first and an http answer never
+     wins over an https one (core Emby.kt); a server reached over plain http is marked
+     Server.insecure, with R.string.server_insecure as the warning text. TODO: that warning is
+     not yet shown by the tv/mobile server and sign-in screens. The updater refuses http itself.
+
+     Trust: the system CA store, plus user-installed CAs so a server behind a private CA (home
+     reverse proxy, self-hosted PKI) works once its CA is installed in Android's settings.
+     The known third-party services below stay on the system store only. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <!-- Known third-party services never need cleartext. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">tailscale.com</domain>
+        <domain includeSubdomains="true">netbird.io</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

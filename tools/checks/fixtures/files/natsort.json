@@ -1,0 +1,194 @@
+{
+  "pairs": [
+    {
+      "a": "E2",
+      "b": "E10",
+      "cmp": -1
+    },
+    {
+      "a": "Example.Show.S01E02.mkv",
+      "b": "Example.Show.S01E10.mkv",
+      "cmp": -1
+    },
+    {
+      "a": "Season 2",
+      "b": "Season 10",
+      "cmp": -1
+    },
+    {
+      "a": "Season 9",
+      "b": "Season 10",
+      "cmp": -1
+    },
+    {
+      "a": "01",
+      "b": "1",
+      "cmp": -1
+    },
+    {
+      "a": "001",
+      "b": "01",
+      "cmp": -1
+    },
+    {
+      "a": "1",
+      "b": "2",
+      "cmp": -1
+    },
+    {
+      "a": "2",
+      "b": "10",
+      "cmp": -1
+    },
+    {
+      "a": "a1",
+      "b": "a01",
+      "cmp": 1
+    },
+    {
+      "a": "file9",
+      "b": "file10",
+      "cmp": -1
+    },
+    {
+      "a": "x0",
+      "b": "x00",
+      "cmp": 1
+    },
+    {
+      "a": "abc",
+      "b": "ABD",
+      "cmp": -1
+    },
+    {
+      "a": "Abc",
+      "b": "abc",
+      "cmp": -1
+    },
+    {
+      "a": "apple",
+      "b": "Banana",
+      "cmp": -1
+    },
+    {
+      "a": "Élan",
+      "b": "Elan",
+      "cmp": 1
+    },
+    {
+      "a": "elan",
+      "b": "Élan",
+      "cmp": -1
+    },
+    {
+      "a": "Élan",
+      "b": "Zebra",
+      "cmp": -1
+    },
+    {
+      "a": "café",
+      "b": "cafe 2",
+      "cmp": -1
+    },
+    {
+      "a": "10abc",
+      "b": "abc",
+      "cmp": -1
+    },
+    {
+      "a": "1 a",
+      "b": "1a",
+      "cmp": -1
+    },
+    {
+      "a": "a",
+      "b": "a1",
+      "cmp": -1
+    },
+    {
+      "a": "a",
+      "b": "aa",
+      "cmp": -1
+    },
+    {
+      "a": "img12",
+      "b": "img12a",
+      "cmp": -1
+    },
+    {
+      "a": "Part 1",
+      "b": "Part 1.5",
+      "cmp": -1
+    },
+    {
+      "a": "99999999999999999998",
+      "b": "99999999999999999999",
+      "cmp": -1
+    },
+    {
+      "a": "Ä",
+      "b": "b",
+      "cmp": -1
+    },
+    {
+      "a": "ß",
+      "b": "t",
+      "cmp": 1
+    },
+    {
+      "a": "z",
+      "b": "Ω",
+      "cmp": -1
+    },
+    {
+      "a": "Movie (1999)",
+      "b": "Movie (2001)",
+      "cmp": -1
+    },
+    {
+      "a": "Show S1",
+      "b": "Show S01",
+      "cmp": 1
+    },
+    {
+      "a": "track 7",
+      "b": "Track 08",
+      "cmp": -1
+    },
+    {
+      "a": "",
+      "b": "a",
+      "cmp": -1
+    }
+  ],
+  "sorted": {
+    "input": [
+      "Season 10",
+      "season 2",
+      "Season 1",
+      "Extras",
+      "01 Intro",
+      "1 Intro",
+      "10 End",
+      "2 Middle",
+      "Élan",
+      "elan",
+      "Zebra",
+      "zeta"
+    ],
+    "output": [
+      "01 Intro",
+      "1 Intro",
+      "2 Middle",
+      "10 End",
+      "elan",
+      "Élan",
+      "Extras",
+      "Season 1",
+      "season 2",
+      "Season 10",
+      "Zebra",
+      "zeta"
+    ]
+  }
+}

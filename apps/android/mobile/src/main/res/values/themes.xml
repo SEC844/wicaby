@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; this only sets the window before the first frame. -->
+    <!-- AppCompat parent: the activities are AppCompatActivity for the in-app language. -->
+    <style name="Theme.Wicaby" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.Wicaby.Player">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
+    <color name="bg">#FF0B0B0D</color>
+    <color name="accent">#FF0A84FF</color>
+</resources>

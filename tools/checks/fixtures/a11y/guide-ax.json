@@ -1,0 +1,1125 @@
+{
+ "source": "guide.html",
+ "lang": "fr",
+ "nodes": [
+  {
+   "nodeId": "1",
+   "childIds": [
+    "2"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "RootWebArea"
+   },
+   "name": {
+    "value": "Guide a11y fixture"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    }
+   ],
+   "backendDOMNodeId": 1
+  },
+  {
+   "nodeId": "2",
+   "parentId": "1",
+   "childIds": [
+    "7"
+   ],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 2
+  },
+  {
+   "nodeId": "7",
+   "parentId": "2",
+   "childIds": [
+    "8",
+    "53"
+   ],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 7
+  },
+  {
+   "nodeId": "8",
+   "parentId": "7",
+   "childIds": [
+    "9",
+    "13",
+    "27",
+    "42",
+    "51"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "grid"
+   },
+   "name": {
+    "value": "Guide des programmes"
+   },
+   "properties": [
+    {
+     "name": "multiselectable",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 8
+  },
+  {
+   "nodeId": "53",
+   "parentId": "7",
+   "childIds": [
+    "71"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "status"
+   },
+   "name": {
+    "value": ""
+   },
+   "properties": [
+    {
+     "name": "live",
+     "value": {
+      "value": "polite"
+     }
+    },
+    {
+     "name": "atomic",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "relevant",
+     "value": {
+      "value": "additions text"
+     }
+    }
+   ],
+   "backendDOMNodeId": 53
+  },
+  {
+   "nodeId": "9",
+   "parentId": "8",
+   "childIds": [
+    "10",
+    "11",
+    "12"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "row"
+   },
+   "name": {
+    "value": "mar. 13 20:00 20:30"
+   },
+   "backendDOMNodeId": 9
+  },
+  {
+   "nodeId": "13",
+   "parentId": "8",
+   "childIds": [
+    "14",
+    "15",
+    "19",
+    "23"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "row"
+   },
+   "name": {
+    "value": "Chaîne 1, Ciné Club Le Journal, Ciné Club, de 20:00 à 20:40, Direct, programmé Grand Format, Ciné Club, de 20:40 à 21:45, règle de série Film : Néon Fantôme, Ciné Club, de 21:45 à 23:30, enregistrement en cours"
+   },
+   "backendDOMNodeId": 13
+  },
+  {
+   "nodeId": "27",
+   "parentId": "8",
+   "childIds": [
+    "28",
+    "29",
+    "35",
+    "39"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "row"
+   },
+   "name": {
+    "value": "Chaîne 2, Euro 3 Débat, Euro 3, de 20:00 à 21:00, ne sera pas enregistré Magazine, Euro 3, de 21:00 à 22:00, conflit, sera enregistré Sport, Euro 3, de 22:00 à 23:00, erreur d’enregistrement"
+   },
+   "backendDOMNodeId": 27
+  },
+  {
+   "nodeId": "42",
+   "parentId": "8",
+   "childIds": [
+    "43",
+    "44",
+    "50"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "row"
+   },
+   "name": {
+    "value": "Chaîne 5.1, Équipe 21 Jeunesse, Équipe 21, de 20:00 à 20:30, rappel Équipe 21, aucune information de programme"
+   },
+   "backendDOMNodeId": 42
+  },
+  {
+   "nodeId": "51",
+   "parentId": "8",
+   "childIds": [
+    "52"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "row"
+   },
+   "name": {
+    "value": "Chaîne 6, Radio Néon"
+   },
+   "properties": [
+    {
+     "name": "busy",
+     "value": {
+      "value": 1
+     }
+    }
+   ],
+   "backendDOMNodeId": 51
+  },
+  {
+   "nodeId": "71",
+   "parentId": "53",
+   "childIds": [
+    "-1000000018"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "12 Ciné Club, Film : Néon Fantôme"
+   },
+   "backendDOMNodeId": 71
+  },
+  {
+   "nodeId": "10",
+   "parentId": "9",
+   "childIds": [
+    "55"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "columnheader"
+   },
+   "name": {
+    "value": "mar. 13"
+   },
+   "properties": [
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 10
+  },
+  {
+   "nodeId": "11",
+   "parentId": "9",
+   "childIds": [
+    "56"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "columnheader"
+   },
+   "name": {
+    "value": "20:00"
+   },
+   "properties": [
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 11
+  },
+  {
+   "nodeId": "12",
+   "parentId": "9",
+   "childIds": [
+    "57"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "columnheader"
+   },
+   "name": {
+    "value": "20:30"
+   },
+   "properties": [
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 12
+  },
+  {
+   "nodeId": "14",
+   "parentId": "13",
+   "childIds": [
+    "58"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "rowheader"
+   },
+   "name": {
+    "value": "Chaîne 1, Ciné Club"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 14
+  },
+  {
+   "nodeId": "15",
+   "parentId": "13",
+   "childIds": [
+    "59",
+    "16"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Le Journal, Ciné Club, de 20:00 à 20:40, Direct, programmé"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "focused",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 15
+  },
+  {
+   "nodeId": "19",
+   "parentId": "13",
+   "childIds": [
+    "60",
+    "20"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Grand Format, Ciné Club, de 20:40 à 21:45, règle de série"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 19
+  },
+  {
+   "nodeId": "23",
+   "parentId": "13",
+   "childIds": [
+    "61",
+    "24"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Film : Néon Fantôme, Ciné Club, de 21:45 à 23:30, enregistrement en cours"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 23
+  },
+  {
+   "nodeId": "28",
+   "parentId": "27",
+   "childIds": [
+    "62"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "rowheader"
+   },
+   "name": {
+    "value": "Chaîne 2, Euro 3"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 28
+  },
+  {
+   "nodeId": "29",
+   "parentId": "27",
+   "childIds": [
+    "63",
+    "30"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Débat, Euro 3, de 20:00 à 21:00, ne sera pas enregistré"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 29
+  },
+  {
+   "nodeId": "35",
+   "parentId": "27",
+   "childIds": [
+    "64",
+    "36"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Magazine, Euro 3, de 21:00 à 22:00, conflit, sera enregistré"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 35
+  },
+  {
+   "nodeId": "39",
+   "parentId": "27",
+   "childIds": [
+    "65",
+    "40"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Sport, Euro 3, de 22:00 à 23:00, erreur d’enregistrement"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 39
+  },
+  {
+   "nodeId": "43",
+   "parentId": "42",
+   "childIds": [
+    "67"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "rowheader"
+   },
+   "name": {
+    "value": "Chaîne 5.1, Équipe 21"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 43
+  },
+  {
+   "nodeId": "44",
+   "parentId": "42",
+   "childIds": [
+    "68",
+    "45"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Jeunesse, Équipe 21, de 20:00 à 20:30, rappel"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 44
+  },
+  {
+   "nodeId": "50",
+   "parentId": "42",
+   "childIds": [
+    "69"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "gridcell"
+   },
+   "name": {
+    "value": "Équipe 21, aucune information de programme"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 50
+  },
+  {
+   "nodeId": "52",
+   "parentId": "51",
+   "childIds": [
+    "70"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "rowheader"
+   },
+   "name": {
+    "value": "Chaîne 6, Radio Néon"
+   },
+   "properties": [
+    {
+     "name": "focusable",
+     "value": {
+      "value": true
+     }
+    },
+    {
+     "name": "readonly",
+     "value": {
+      "value": false
+     }
+    },
+    {
+     "name": "required",
+     "value": {
+      "value": false
+     }
+    }
+   ],
+   "backendDOMNodeId": 52
+  },
+  {
+   "nodeId": "55",
+   "parentId": "10",
+   "childIds": [
+    "-1000000002"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "mar. 13"
+   },
+   "backendDOMNodeId": 55
+  },
+  {
+   "nodeId": "56",
+   "parentId": "11",
+   "childIds": [
+    "-1000000003"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "20:00"
+   },
+   "backendDOMNodeId": 56
+  },
+  {
+   "nodeId": "57",
+   "parentId": "12",
+   "childIds": [
+    "-1000000004"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "20:30"
+   },
+   "backendDOMNodeId": 57
+  },
+  {
+   "nodeId": "58",
+   "parentId": "14",
+   "childIds": [
+    "-1000000005"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "1 Ciné Club"
+   },
+   "backendDOMNodeId": 58
+  },
+  {
+   "nodeId": "59",
+   "parentId": "15",
+   "childIds": [
+    "-1000000006"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Le Journal"
+   },
+   "backendDOMNodeId": 59
+  },
+  {
+   "nodeId": "16",
+   "parentId": "15",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 16
+  },
+  {
+   "nodeId": "60",
+   "parentId": "19",
+   "childIds": [
+    "-1000000007"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Grand Format"
+   },
+   "backendDOMNodeId": 60
+  },
+  {
+   "nodeId": "20",
+   "parentId": "19",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 20
+  },
+  {
+   "nodeId": "61",
+   "parentId": "23",
+   "childIds": [
+    "-1000000008"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Film : Néon Fantôme"
+   },
+   "backendDOMNodeId": 61
+  },
+  {
+   "nodeId": "24",
+   "parentId": "23",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 24
+  },
+  {
+   "nodeId": "62",
+   "parentId": "28",
+   "childIds": [
+    "-1000000009"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "2 Euro 3"
+   },
+   "backendDOMNodeId": 62
+  },
+  {
+   "nodeId": "63",
+   "parentId": "29",
+   "childIds": [
+    "-1000000010"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Débat"
+   },
+   "backendDOMNodeId": 63
+  },
+  {
+   "nodeId": "30",
+   "parentId": "29",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 30
+  },
+  {
+   "nodeId": "64",
+   "parentId": "35",
+   "childIds": [
+    "-1000000011"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Magazine"
+   },
+   "backendDOMNodeId": 64
+  },
+  {
+   "nodeId": "36",
+   "parentId": "35",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 36
+  },
+  {
+   "nodeId": "65",
+   "parentId": "39",
+   "childIds": [
+    "-1000000012"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Sport"
+   },
+   "backendDOMNodeId": 65
+  },
+  {
+   "nodeId": "40",
+   "parentId": "39",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 40
+  },
+  {
+   "nodeId": "67",
+   "parentId": "43",
+   "childIds": [
+    "-1000000013"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "5.1 Équipe 21"
+   },
+   "backendDOMNodeId": 67
+  },
+  {
+   "nodeId": "68",
+   "parentId": "44",
+   "childIds": [
+    "-1000000014"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Jeunesse"
+   },
+   "backendDOMNodeId": 68
+  },
+  {
+   "nodeId": "45",
+   "parentId": "44",
+   "childIds": [],
+   "ignored": true,
+   "role": {
+    "value": "none"
+   },
+   "backendDOMNodeId": 45
+  },
+  {
+   "nodeId": "69",
+   "parentId": "50",
+   "childIds": [
+    "-1000000015",
+    "-1000000016"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "Aucune information de programme"
+   },
+   "backendDOMNodeId": 69
+  },
+  {
+   "nodeId": "70",
+   "parentId": "52",
+   "childIds": [
+    "-1000000017"
+   ],
+   "ignored": false,
+   "role": {
+    "value": "StaticText"
+   },
+   "name": {
+    "value": "6 Radio Néon"
+   },
+   "backendDOMNodeId": 70
+  }
+ ],
+ "attributes": {
+  "8": {
+   "aria-label": "Guide des programmes",
+   "aria-rowcount": "5",
+   "aria-colcount": "-1"
+  },
+  "9": {
+   "aria-rowindex": "1"
+  },
+  "13": {
+   "aria-rowindex": "2"
+  },
+  "27": {
+   "aria-rowindex": "3"
+  },
+  "42": {
+   "aria-rowindex": "4"
+  },
+  "51": {
+   "aria-rowindex": "5",
+   "aria-busy": "true"
+  }
+ },
+ "forcedColors": {
+  "active": true,
+  "highlight": "rgb(26, 235, 255)",
+  "focused": {
+   "label": "Le Journal, Ciné Club, de 20:00 à 20:40, Direct, programmé",
+   "focused": true,
+   "outlineStyle": "solid",
+   "outlineWidth": "3px",
+   "outlineColor": "rgb(26, 235, 255)",
+   "outlineOffset": "-3px"
+  },
+  "focusedHeader": {
+   "label": "Chaîne 1, Ciné Club",
+   "focused": true,
+   "outlineStyle": "solid",
+   "outlineWidth": "3px",
+   "outlineColor": "rgb(26, 235, 255)",
+   "outlineOffset": "-3px"
+  },
+  "marks": [
+   {
+    "kind": "timer",
+    "signature": "span -/-/-/- 0px -   12x12 | span solid3/solid3/solid3/solid3 50% -   7x7 | cell -/-/-/- -",
+    "ink": true
+   },
+   {
+    "kind": "series",
+    "signature": "span solid1/solid1/solid1/solid1 50% -   12x12 | span solid3/solid3/solid3/solid3 50% -   7x7 | cell -/-/-/- -",
+    "ink": true
+   },
+   {
+    "kind": "recording",
+    "signature": "span -/-/-/- 0px -   12x12 | span solid3/solid3/solid3/solid3 50% -   7x7 | cell -/-/-/- solid1",
+    "ink": true
+   },
+   {
+    "kind": "conflict-wont",
+    "signature": "span -/-/-/- 0px -   21x12 | span solid3/solid3/solid3/solid3 50% -   7x7 | svg -/-/-/- 0px -  <path d=\"M1 11 11 1\"></path> 12x12 | cell -/-/-/- -",
+    "ink": true
+   },
+   {
+    "kind": "conflict-ok",
+    "signature": "span -/-/-/- 0px -   12x12 | span solid3/solid3/solid3/solid3 50% -   7x7 | cell -/-/-/- -",
+    "ink": true
+   },
+   {
+    "kind": "error",
+    "signature": "span -/-/-/- 0px - !  12x12 | cell -/-/-/- -",
+    "ink": true
+   },
+   {
+    "kind": "reminder",
+    "signature": "span -/-/-/- 0px -   12x12 | svg -/-/-/- 0px -  <path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"></path><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"></path> 12x12 | cell -/-/-/- -",
+    "ink": true
+   }
+  ]
+ }
+}

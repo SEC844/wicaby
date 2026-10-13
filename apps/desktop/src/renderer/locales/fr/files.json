@@ -1,0 +1,103 @@
+{
+  "kind": "Fichiers",
+  "section": "Fichiers",
+  "sources": "Sources de fichiers",
+  "add": {
+    "title": "Ajouter une source de fichiers",
+    "open": "Ajouter une source de fichiers",
+    "blurb": "Un dossier de cet ordinateur, un dossier WebDAV ou un partage SMB, parcouru tel quel, sans analyse.",
+    "protocol": {
+      "local": "Dossier sur cet ordinateur",
+      "webdav": "WebDAV",
+      "smb": "Partage SMB"
+    },
+    "pick": "Choisir un dossier…",
+    "noFolder": "Aucun dossier choisi",
+    "url": "Adresse",
+    "urlWebdav": "https://dav.example/media",
+    "urlSmb": "\\\\STORAGE\\media",
+    "smbHint": "Windows utilise vos identifiants de session pour ce partage. Pour d’autres identifiants, enregistrez-les d’abord dans le Gestionnaire d’identification de Windows.",
+    "smbLinux": "Les partages SMB ne sont pas encore pris en charge sous Linux.",
+    "name": "Nom",
+    "namePlaceholder": "Nom affiché dans la barre latérale",
+    "user": "Nom d’utilisateur",
+    "pass": "Mot de passe",
+    "insecure": "Je comprends que le mot de passe circule sans chiffrement (http)",
+    "test": "Tester",
+    "testing": "Test en cours…",
+    "save": "Ajouter",
+    "cancel": "Annuler",
+    "added": "Source ajoutée",
+    "ok": "Connexion réussie : {count, plural, one {# élément} other {# éléments}} à la racine."
+  },
+  "tls": {
+    "title": "Certificat non reconnu",
+    "body": "Le serveur présente un certificat qu’aucune autorité ne garantit. Ne lui faites confiance que si vous reconnaissez l’empreinte ci-dessous.",
+    "changedTitle": "Le certificat a changé",
+    "changedBody": "Le certificat de ce serveur n’est plus celui que vous aviez approuvé. Cela peut être un renouvellement, ou quelqu’un qui s’interpose.",
+    "subject": "Sujet",
+    "issuer": "Émetteur",
+    "validity": "Validité",
+    "fingerprint": "Empreinte SHA-256",
+    "previous": "Empreinte approuvée",
+    "trust": "Faire confiance à ce certificat pour cette source uniquement",
+    "trustNew": "Faire confiance au nouveau certificat"
+  },
+  "sort": {
+    "label": "Trier par",
+    "name": "Nom",
+    "modified": "Date de modification",
+    "size": "Taille"
+  },
+  "view": {
+    "grid": "Grille",
+    "list": "Liste"
+  },
+  "refresh": "Actualiser",
+  "continue": "Continuer à regarder",
+  "home": {
+    "label": "Afficher les sources de fichiers dans l’accueil",
+    "desc": "Ajoute les fichiers en cours à la rangée Continuer à regarder de l’accueil."
+  },
+  "list": {
+    "empty": "Ce dossier est vide.",
+    "truncated": "Seuls les 10 000 premiers éléments sont affichés."
+  },
+  "mdns": {
+    "find": "Chercher sur ce réseau",
+    "searching": "Recherche…",
+    "none": "Rien trouvé sur ce réseau.",
+    "windows": "Les serveurs de fichiers Windows ne s’annoncent généralement pas : tapez \\\\HÔTE\\partage."
+  },
+  "manage": {
+    "rename": "Renommer",
+    "remove": "Retirer",
+    "removeConfirm": "Retirer « {name} » ? Sa progression de lecture sera supprimée.",
+    "removed": "Source retirée",
+    "credentials": "Identifiants",
+    "none": "Aucune source de fichiers pour l’instant.",
+    "offline": "Hors ligne",
+    "pending": "Non connectée",
+    "connect": "Connecter",
+    "connectDesc": "Importée depuis un fichier de réglages. Rien ne contacte {display} tant que vous n’appuyez pas sur Connecter.",
+    "save": "Enregistrer"
+  },
+  "resume": {
+    "changed": "Ce fichier a changé depuis votre dernière lecture : lecture depuis le début."
+  },
+  "error": {
+    "auth": "Identifiants refusés : vérifiez l’utilisateur et le mot de passe.",
+    "notFound": "Dossier ou fichier introuvable.",
+    "certUntrusted": "Certificat non reconnu par ce système.",
+    "certChanged": "Le certificat du serveur a changé.",
+    "digestOnly": "Ce serveur n’accepte que l’authentification Digest, non prise en charge.",
+    "smb1": "Ce serveur ne parle que SMB1, non pris en charge.",
+    "offline": "Source injoignable pour le moment.",
+    "insecure": "Adresse http non chiffrée : cochez la case pour l’accepter.",
+    "invalid": "Adresse ou dossier non valide.",
+    "unsupported": "Ce type de source n’est pas encore pris en charge ici.",
+    "tooLarge": "Fichier trop volumineux.",
+    "cannotDecode": "Ce fichier ne peut pas être lu sur cet appareil, et les sources de fichiers ne peuvent pas le convertir.",
+    "needsMpv": "Ce fichier nécessite le lecteur mpv."
+  }
+}

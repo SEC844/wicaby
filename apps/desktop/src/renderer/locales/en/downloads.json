@@ -1,0 +1,52 @@
+{
+  "title": "Downloads",
+  "tabs": {
+    "label": "Download Type",
+    "offline": "Offline",
+    "torrents": "Torrents"
+  },
+  "openFolder": "Open Folder",
+  "offline": {
+    "title": "Offline",
+    "body": "{server} can’t be reached. Your downloads still play, and your progress will sync when the connection is back.",
+    "bodyUnnamed": "The server can’t be reached. Your downloads still play, and your progress will sync when the connection is back.",
+    "connecting": "Connecting…",
+    "stillUnreachable": "Server still can’t be reached"
+  },
+  "empty": {
+    "title": "Nothing offline yet",
+    "body": "Open a movie, season, or show and choose Download. Wicaby keeps a copy you can play without a connection and resumes interrupted downloads.",
+    "browse": "Browse Library"
+  },
+  "storage": {
+    "title": "Storage",
+    "summary": "{size} used · {items} offline",
+    "meter": "Storage breakdown",
+    "movies": "Movies",
+    "episodes": "Episodes",
+    "other": "Other",
+    "inProgress": "In Progress"
+  },
+  "sections": {
+    "active": "In Progress",
+    "done": "Available Offline"
+  },
+  "status": {
+    "queued": "Queued",
+    "paused": "Paused",
+    "failed": "Download Failed",
+    "progress": "{received} of {total}"
+  },
+  "eta": {
+    "seconds": "{count}s"
+  },
+  "actions": {
+    "keep": "Keep",
+    "cancelDownload": "Cancel Download",
+    "deleteFile": "Delete File",
+    "pause": "Pause",
+    "pauseProgress": "Pause, {percent}",
+    "reveal": "Show in File Explorer",
+    "playItem": "Play {name}"
+  }
+}

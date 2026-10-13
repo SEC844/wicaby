@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Playback -->
+    <string name="playback_error">Can’t play this</string>
+    <string name="playback_error_code">Can’t play this · %1$s</string>
+    <string name="no_playable_source">The server offers no playback method this device supports.</string>
+
+    <!-- Server -->
+    <string name="not_a_server">Not an Emby or Jellyfin server</string>
+    <string name="server_unreachable_probe">Server can’t be reached</string>
+    <string name="server_insecure">Unencrypted connection (HTTP): the access token and password travel in clear text on the network.</string>
+
+    <!-- Durations, sizes -->
+    <string name="duration_days_hours">%1$dd %2$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$02dm</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_seconds">%1$d s</string>
+    <string name="speed_per_second">%1$s/s</string>
+    <string name="size_bytes">%1$d B</string>
+
+    <!-- Torrents: states -->
+    <string name="torrent_state_downloading">Downloading</string>
+    <string name="torrent_state_seeding">Seeding</string>
+    <string name="torrent_state_paused">Paused</string>
+    <string name="torrent_state_completed">Completed</string>
+    <string name="torrent_state_queued">Queued</string>
+    <string name="torrent_state_checking">Checking</string>
+    <string name="torrent_state_stalled">Waiting for Peers</string>
+    <string name="torrent_state_metadata">Fetching Metadata</string>
+    <string name="torrent_state_moving">Moving</string>
+    <string name="torrent_state_error">Error</string>
+
+    <!-- Torrents: filters -->
+    <string name="torrent_filter_all">All</string>
+    <string name="torrent_filter_downloading">Active</string>
+    <string name="torrent_filter_completed">Completed</string>
+    <string name="torrent_filter_paused">Paused</string>
+    <string name="torrents_empty_all">No torrents</string>
+    <string name="torrents_empty_downloading">No active torrents</string>
+    <string name="torrents_empty_completed">No completed torrents</string>
+    <string name="torrents_empty_paused">No paused torrents</string>
+
+    <!-- Torrents: messages -->
+    <string name="torrent_removed">Torrent removed</string>
+    <string name="torrent_removed_files">Torrent and files deleted</string>
+    <string name="action_failed">Couldn’t do that</string>
+    <string name="connection_failed">Couldn’t connect</string>
+
+    <!-- qBittorrent: errors -->
+    <string name="qbit_bad_url">Invalid address</string>
+    <string name="qbit_unreachable">qBittorrent isn’t responding</string>
+    <string name="qbit_banned">qBittorrent blocked this address after too many failed attempts. Try again later.</string>
+    <string name="qbit_wrong_credentials">Incorrect username or password</string>
+    <string name="qbit_not_webui">This isn’t the qBittorrent Web UI</string>
+    <string name="qbit_http_error">qBittorrent replied %1$d</string>
+    <string name="qbit_session_refused">qBittorrent refused the session</string>
+    <string name="qbit_unsupported">Not supported by this qBittorrent version</string>
+    <string name="qbit_queue_disabled">qBittorrent’s queue is turned off</string>
+    <string name="qbit_unknown_category">qBittorrent doesn’t know this category</string>
+    <string name="qbit_bad_torrent_file">Invalid .torrent file</string>
+    <string name="qbit_bad_response">Unreadable response</string>
+    <string name="qbit_torrent_refused">qBittorrent rejected this torrent</string>
+    <!-- Comic reader -->
+    <string name="reader_unsupported">Format not supported: only CBZ comics can be read for now (no CBR, PDF or EPUB yet).</string>
+    <string name="reader_no_pages">No pages found in this archive</string>
+    <string name="reader_forbidden">This user is not allowed to read this book</string>
+    <string name="reader_load_error">Couldn’t open this book</string>
+
+    <!-- Versions, trailer, aspect ratio -->
+    <string name="version">Version</string>
+    <string name="dv_profile">Profile %1$s</string>
+    <string name="trailer">Trailer</string>
+    <string name="trailer_not_found">Trailer not found</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="trailer_qr_title">Trailer</string>
+    <string name="trailer_qr_body">No app on this TV can open this link. Scan the code with your phone.</string>
+    <string name="aspect">Aspect Ratio</string>
+    <string name="aspect_value">Aspect Ratio: %1$s</string>
+    <string name="aspect_fit">Fit</string>
+    <string name="aspect_fill">Fill Screen</string>
+    <string name="aspect_stretch">Stretch</string>
+    <string name="aspect_zoom">Zoom</string>
+
+    <!-- Live TV: lenses, categories, sort, shared states (LiveTvRepository) -->
+    <string name="livetv_lens_label">Filter</string>
+    <string name="livetv_lens_all">All</string>
+    <string name="livetv_lens_favorites">Favorites</string>
+    <string name="livetv_lens_recents">Recent</string>
+    <string name="livetv_lens_radio">Radio</string>
+    <string name="livetv_lens_server_groups">Server Groups</string>
+    <string name="livetv_lens_my_groups">My Groups</string>
+    <string name="livetv_lens_empty">No channels match this filter.</string>
+    <string name="livetv_lens_empty_favorites">No favorite channels yet. Long-press OK on a channel to add it.</string>
+    <string name="livetv_lens_show_all">Show All Channels</string>
+    <string name="livetv_lens_switched">Filter: %1$s</string>
+    <string name="livetv_category_movies">Movies</string>
+    <string name="livetv_category_sports">Sports</string>
+    <string name="livetv_category_news">News</string>
+    <string name="livetv_category_kids">Kids</string>
+    <string name="livetv_category_series">TV Shows</string>
+    <string name="livetv_category_new">New</string>
+    <string name="livetv_category_new_jellyfin">Premieres</string>
+    <string name="livetv_sort_label">Sort Channels</string>
+    <string name="livetv_sort_number">Number</string>
+    <string name="livetv_sort_name">Name</string>
+    <string name="livetv_sort_recent">Recently Watched</string>
+    <string name="livetv_sort_server">Server Order</string>
+    <string name="livetv_sort_favorites_first">Favorites First</string>
+    <string name="livetv_guide_no_info">No program information</string>
+    <string name="livetv_guide_retry">Retry</string>
+    <string name="livetv_guide_no_access">Live TV isn’t enabled for your account.</string>
+    <string name="livetv_channel_favorite_add">Add to Favorites</string>
+    <string name="livetv_channel_favorite_remove">Remove from Favorites</string>
+    <string name="livetv_channel_hidden_toast">Channel hidden</string>
+    <string name="livetv_toasts_favorites_unavailable">Favorites couldn’t be loaded. Try again in a moment.</string>
+    <string name="livetv_manage_sync_failed">Channel settings couldn’t sync. Try again later.</string>
+    <!-- The =0 form of ICU plurals (Android ignores quantity="zero" in French and English) -->
+    <string name="livetv_record_minutes_zero">On Time</string>
+    <string name="livetv_record_keep_up_to_value_zero">All Episodes</string>
+    <string name="livetv_scheduled_rule_episodes_zero">No episodes scheduled</string>
+
+    <!-- Updates (APKs installed outside the Play Store) -->
+    <string name="update_url">Update URL</string>
+    <string name="update_url_hint">Address of an update.json file. Empty: off.</string>
+    <string name="update_url_off">Off</string>
+    <string name="update_check">Check for Updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">Wicaby is up to date</string>
+    <string name="update_available">Update Available</string>
+    <string name="update_version">Wicaby %1$s</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Later</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_permission">To install the update, allow “Install unknown apps” for Wicaby in Android Settings, then come back here.</string>
+    <string name="update_open_settings">Open Settings</string>
+    <string name="update_check_failed">Couldn’t check for updates</string>
+    <string name="update_no_apk">No APK for this device (%1$s)</string>
+    <string name="update_download_failed">Download Failed</string>
+    <string name="update_bad_checksum">Corrupted file: the SHA-256 checksum doesn’t match</string>
+    <string name="update_install_failed">Installation failed</string>
+
+    <!-- Android 17: local network access (ACCESS_LOCAL_NETWORK) -->
+    <string name="local_network_title">Local Network Access</string>
+    <string name="local_network_rationale">To find your servers and reach them on this Wi-Fi or Ethernet network, Wicaby needs local network access. Remote servers (https, remote access) work without it.</string>
+    <string name="local_network_denied">Local network access denied</string>
+    <string name="local_network_open_settings">Open Settings</string>
+    <string name="local_network_allow">Allow</string>
+    <string name="local_network_later">Not Now</string>
+
+    <!-- Skippable segments, extras, external player, voice search -->
+    <string name="skip_recap">Skip Recap</string>
+    <string name="skip_preview">Skip Preview</string>
+    <string name="skip_commercial">Skip Commercial</string>
+    <string name="segment_recap">Recaps</string>
+    <string name="segment_preview">Previews</string>
+    <string name="segment_commercial">Commercials</string>
+    <string name="bonus">Extras</string>
+    <string name="external_player_open">Open in External Player</string>
+    <string name="voice_search">Voice Search</string>
+    <string name="voice_search_prompt">Say a title</string>
+    <!-- Live TV session (LiveSession.kt): notices over the player and tune errors. -->
+    <string name="player_live_tuner_released">No free tuner: the previous channel was released.</string>
+    <string name="player_live_zap_failed">Couldn’t switch to %1$s.</string>
+    <string name="player_live_recovering">Stream stalled, retrying…</string>
+    <string name="player_transcode_fallback">Switching to server conversion…</string>
+    <string name="player_reconnecting">Reconnecting…</string>
+    <string name="server_addresses">Server addresses</string>
+    <string name="server_addresses_hint">Wicaby uses the one that answers and switches when the network changes. Empty: the one the server announces.</string>
+    <string name="server_address_local">Local address</string>
+    <string name="server_address_remote">Remote address</string>
+    <string name="server_address_in_use">In use</string>
+    <string name="server_address_none">None</string>
+    <string name="server_address_save">Save</string>
+    <string name="server_address_invalid">Invalid address (http:// or https://)</string>
+    <string name="player_live_paused_released">Paused for a while: the tuner was released.</string>
+    <string name="errors_livetv_tuner_busy">No tuner available.</string>
+    <string name="errors_livetv_tune_timeout">The channel isn’t responding.</string>
+    <string name="errors_livetv_no_stream">This server offers no playable stream for this channel.</string>
+    <!-- Live TV reminders (Reminders.kt): notification and permission notice. -->
+    <string name="livetv_reminder_channel">Live TV Reminders</string>
+    <string name="livetv_reminder_title">%1$s Is Starting</string>
+    <string name="livetv_reminder_body">On %1$s at %2$s</string>
+    <string name="livetv_reminder_watch">Watch</string>
+    <string name="player_live_reminder_permission">Allow notifications to get reminders.</string>
+    <!-- X-06: chapters, speed and remote control. -->
+    <string name="chapters">Chapters</string>
+    <string name="chapter_position">Chapter %1$d of %2$d, %3$s</string>
+    <string name="speed">Playback Speed</string>
+    <string name="remote_message">Message Received</string>
+    <string name="settings_remote_control">Allow Remote Control</string>
+    <string name="settings_remote_control_summary">Wicaby shows up in the Emby and Jellyfin apps’ “Play on” list, which can start, pause, seek or stop playback.</string>
+    <!-- X-01: merged Continue Watching -->
+    <string name="continue_watching_merged">Continue Watching</string>
+    <string name="remove_from_continue">Remove from Continue Watching</string>
+    <string name="removed_from_continue">Removed from Continue Watching</string>
+    <string name="undo">Undo</string>
+    <string name="next_episode_short">Next: S%1$d·E%2$d</string>
+    <string name="continue_time_left">%1$s left</string>
+    <!-- X-04: player input and timers -->
+    <string name="ends_at">Ends at %1$s</string>
+    <string name="sleep_timer">Sleep Timer</string>
+    <string name="sleep_end_of_video">End of This Video</string>
+    <string name="sleep_minutes">%1$d min</string>
+    <string name="sleep_extend">+15 min</string>
+    <string name="sleep_cancel">Cancel Timer</string>
+    <string name="sleep_pause">Pause</string>
+    <string name="still_watching_pausing_in">Pausing in %1$ds</string>
+    <string name="seek_badge">%1$s%2$d s</string>
+    <!-- X-02: quality and version switching in the player. -->
+    <string name="quality">Quality</string>
+    <string name="quality_version">Version</string>
+    <string name="quality_original">Original</string>
+    <string name="quality_preset">%1$dp · %2$s Mbps</string>
+    <string name="quality_size">%1$s (%2$d%%)</string>
+    <string name="quality_switched">Quality: %1$s</string>
+    <string name="quality_failed">Couldn’t change the quality</string>
+    <!-- X-03 subtitle search in the player -->
+    <string name="subsearch_row">Search Subtitles…</string>
+    <string name="subsearch_title">Search Subtitles</string>
+    <string name="subsearch_language">Language</string>
+    <string name="subsearch_title_filter">Filter by title</string>
+    <string name="subsearch_voice">Dictate the title</string>
+    <string name="subsearch_perfect">Perfect Match</string>
+    <plurals name="subsearch_downloads">
+        <item quantity="one">%1$d download</item>
+        <item quantity="other">%1$d downloads</item>
+    </plurals>
+    <string name="subsearch_forced">Forced</string>
+    <string name="subsearch_sdh">SDH</string>
+    <string name="subsearch_machine">Machine Translated</string>
+    <string name="subsearch_empty">No subtitle found</string>
+    <string name="subsearch_no_provider">No subtitle provider installed on the server</string>
+    <string name="subsearch_forbidden">Your account cannot download subtitles</string>
+    <string name="subsearch_added">Subtitle added</string>
+    <string name="subsearch_failed">Couldn’t add the subtitle</string>
+    <string name="play_method_direct">Direct</string>
+    <string name="play_method_transcode">Transcoding</string>
+    <!-- X-05: remembered tracks and player settings. -->
+    <string name="tracks_applied">Tracks from the previous episode applied</string>
+    <string name="remember_title">Remember Settings</string>
+    <string name="remember_speed">Speed</string>
+    <string name="remember_aspect">Aspect Ratio</string>
+    <string name="scope_off">Off</string>
+    <string name="scope_global">Everywhere</string>
+    <string name="scope_library">Per Library</string>
+    <string name="scope_title">Per Title</string>
+    <string name="remember_clear">Clear Remembered Settings</string>
+    <string name="remember_cleared">Remembered settings cleared</string>
+    <!-- Cast (cast spec CA-03; shared with CA-08 and CA-10). -->
+    <string name="cast_button">Cast</string>
+    <string name="cast_picker_title">Play On…</string>
+    <string name="cast_this_device">This Device</string>
+    <string name="cast_section_apps">Apps</string>
+    <string name="cast_section_dlna">TVs and Players (DLNA/UPnP)</string>
+    <string name="cast_section_chromecast">Chromecast and Google TV</string>
+    <string name="cast_searching">Looking for devices…</string>
+    <string name="cast_empty">No devices found on this network</string>
+    <string name="cast_via_server">via %1$s</string>
+    <string name="cast_casting_to">Playing on %1$s</string>
+    <string name="cast_stop">Stop Casting</string>
+    <string name="cast_play_here">Play Here</string>
+    <string name="cast_unavailable">Not supported by this device</string>
+    <string name="cast_started">Started playing on %1$s</string>
+    <string name="cast_error_unreachable">%1$s isn’t responding</string>
+    <string name="cast_error_rejected">%1$s refused this media</string>
+    <string name="cast_error_lost">Lost connection to %1$s</string>
+    <string name="cast_error_lan_only">%1$s cannot reach the server on the local network</string>
+    <string name="cast_notification_channel">Casting</string>
+    <string name="cast_previous">Previous</string>
+    <string name="cast_mute">Mute</string>
+    <string name="cast_unmute">Unmute</string>
+    <!-- TP-01 audio effects on decoded PCM (core AudioFx), desktop settings.audio. -->
+    <string name="audio_fx">Audio Effects</string>
+    <string name="audio_fx_row">Audio Effects…</string>
+    <string name="audio_fx_dialogue">Enhance Dialogue</string>
+    <string name="audio_fx_night">Reduce Loud Sounds</string>
+    <string name="audio_fx_normalize">Normalize Volume</string>
+    <string name="audio_fx_boost">Volume Boost to 150%</string>
+    <string name="audio_fx_hint">Enhance Dialogue brings out the center channel in 5.1 and 7.1, and speech in stereo. Reduce Loud Sounds narrows the gap between dialogue and explosions. A limiter prevents clipping. Applies during playback to sound Wicaby decodes, not to HDMI passthrough tracks.</string>
+    <string name="audio_fx_bitstream">This track goes to the TV or receiver as HDMI passthrough, which decodes it, so audio effects don’t apply. Turn off passthrough for this format in Settings to use them.</string>
+    <!-- Q-A: audio delay and subtitle offset (AvSync), playback stats, speed in passthrough. -->
+    <string name="sync_row">Sync…</string>
+    <string name="sync_title">Sync</string>
+    <string name="sync_audio">Audio delay</string>
+    <string name="sync_subtitles">Subtitle offset</string>
+    <string name="sync_ms">%1$s ms</string>
+    <string name="sync_reset">Reset</string>
+    <string name="sync_series">Whole series</string>
+    <string name="sync_hint">Positive: later. Remembered for this video; “Whole series” applies it to the other episodes too.</string>
+    <string name="speed_bitstream">This track goes to the TV or receiver as HDMI passthrough, which decodes it, so the speed stays at 1×.</string>
+    <string name="stats_title">Playback stats</string>
+    <string name="stats_container">Container</string>
+    <string name="stats_video">Video</string>
+    <string name="stats_video_decoder">Video decoder</string>
+    <string name="stats_audio">Audio</string>
+    <string name="stats_audio_decoder">Audio decoder</string>
+    <string name="stats_bitrate">Bitrate</string>
+    <string name="stats_method">Playback</string>
+    <string name="stats_reason">Transcode reason</string>
+    <string name="stats_buffer">Buffer</string>
+    <string name="stats_dropped">Dropped frames</string>
+    <string name="stats_hardware">%1$s (hardware)</string>
+    <string name="stats_software">%1$s (software)</string>
+    <string name="stats_passthrough">HDMI passthrough (decoded by the TV or receiver)</string>
+    <string name="stats_direct_play">Direct play</string>
+    <string name="stats_direct_stream">Direct stream (remux)</string>
+    <string name="stats_mbps">%1$s Mb/s</string>
+    <string name="stats_seconds">%1$s s</string>
+    <!-- TP-04: shuffle and the play queue. -->
+    <string name="shuffle">Shuffle</string>
+    <string name="nothing_to_play">Nothing to play</string>
+    <string name="queue">Queue</string>
+    <string name="queue_up_next">Up Next</string>
+    <string name="queue_remove">Remove from Queue</string>
+    <string name="queue_position">%1$d of %2$d</string>
+    <!-- TP-08: watch history and stats -->
+    <string name="history">History</string>
+    <string name="history_today">Today</string>
+    <string name="history_yesterday">Yesterday</string>
+    <string name="history_week">Last 7 Days</string>
+    <string name="history_month">Last 30 Days</string>
+    <string name="history_top_genres">Top Genres</string>
+    <string name="history_empty_title">Nothing Watched Yet</string>
+    <string name="history_empty_body">Movies and episodes you watch will show up here, day by day.</string>
+    <string name="history_remove">Remove from History</string>
+    <string name="history_remove_title">Remove from History?</string>
+    <string name="history_remove_body">“%1$s” will be marked as unwatched on the server.</string>
+    <!-- TP-11: parental access schedules (Policy.AccessSchedules), enforced by the server. -->
+    <string name="access_schedule_refused">Access refused outside the allowed hours.</string>
+    <string name="access_schedule_hours">Access allowed from %1$s to %2$s</string>
+    <string name="access_schedule_hours_list">Allowed hours today: %1$s</string>
+    <string name="access_schedule_none_today">No access allowed today.</string>
+    <string name="access_schedule_midnight">midnight</string>
+    <string name="access_schedule_left">Access ends in %1$d min</string>
+    <!-- TP-06: several servers merged (desktop item.copies.availableOn). -->
+    <plurals name="item_copies_available_on">
+        <item quantity="one">Available on %d server</item>
+        <item quantity="other">Available on %d servers</item>
+    </plurals>
+
+    <!-- First-run wizard (onboarding spec), shared by TV and mobile. -->
+    <string name="onboarding_welcome_title">Welcome to Wicaby</string>
+    <string name="onboarding_welcome_body">All your media in one place.</string>
+    <string name="onboarding_language">Language</string>
+    <string name="onboarding_language_system">System</string>
+    <string name="onboarding_start">Get Started</string>
+    <string name="onboarding_skip">Skip Setup</string>
+    <string name="onboarding_not_now">Not Now</string>
+    <string name="onboarding_progress">Step %1$d of %2$d</string>
+    <string name="onboarding_rerun">Run Setup Again</string>
+    <string name="onboarding_look_title">Make It Yours</string>
+    <string name="onboarding_look_body">Choose a theme and a color. You can change them in Settings.</string>
+    <string name="onboarding_look_preview">Preview</string>
+    <string name="onboarding_where_title">Where Is Your Server?</string>
+    <string name="onboarding_where_lan">On This Network</string>
+    <string name="onboarding_where_lan_sub">Wicaby finds it on its own.</string>
+    <string name="onboarding_where_vpn">Away from Home with a VPN</string>
+    <string name="onboarding_where_vpn_sub">Tailscale or NetBird, built into Wicaby.</string>
+    <string name="onboarding_where_public">I Have a Public Address</string>
+    <string name="onboarding_where_public_sub">An https:// address, for example through a reverse proxy.</string>
+    <string name="onboarding_insecure">This connection isn’t encrypted.</string>
+    <string name="onboarding_find_servers">Find Servers</string>
+    <string name="onboarding_choose_device">Choose the device that hosts your server</string>
+    <string name="onboarding_peer_no_server">No server on ports 8096 and 8920</string>
+    <string name="onboarding_more_options">More Options</string>
+    <string name="onboarding_route_local">Local Network</string>
+    <string name="onboarding_route_remote">Remote</string>
+    <string name="onboarding_route_vpn">Through the VPN</string>
+    <string name="onboarding_by_address">Add by Address</string>
+    <string name="onboarding_signin_title">Sign In to %1$s</string>
+    <string name="onboarding_add_another">Add Another Server</string>
+    <string name="onboarding_extras_title">A Few Extras</string>
+    <string name="onboarding_home_channels">Show Wicaby Rows on the Home Screen</string>
+    <string name="onboarding_system_screensaver">Use as Screensaver…</string>
+    <string name="onboarding_done_title">You’re All Set</string>
+    <string name="onboarding_done_none">No server yet. You can add one in Settings.</string>
+    <string name="onboarding_done_remote">Remote Access Settings</string>
+    <string name="onboarding_done_start">Start Watching</string>
+    <!-- Photos (photos spec PH-01): EXIF panel labels and unit templates ({value} filled by core photos/Exif.kt). -->
+    <string name="photos_exif_camera">Camera</string>
+    <string name="photos_exif_exposure">Exposure</string>
+    <string name="photos_exif_aperture">Aperture</string>
+    <string name="photos_exif_shutter">Shutter speed</string>
+    <string name="photos_exif_focal">Focal length</string>
+    <string name="photos_exif_iso">ISO</string>
+    <string name="photos_exif_dimensions">Dimensions</string>
+    <string name="photos_exif_altitude">Altitude</string>
+    <string name="photos_exif_location">Location</string>
+    <string name="photos_exif_software">Software</string>
+    <string name="photos_exif_taken">Taken</string>
+    <string name="photos_exif_aperture_value">ƒ/{value}</string>
+    <string name="photos_exif_exposure_value">{value} s</string>
+    <string name="photos_exif_focal_value">{value} mm</string>
+    <string name="photos_exif_iso_value">ISO {value}</string>
+    <string name="photos_exif_dimensions_value">{w} × {h}</string>
+    <string name="photos_exif_altitude_value">{value} m</string>
+    <string name="photos_exif_location_value">{lat}, {lon}</string>
+    <!-- Photos (photos spec PH-05/PH-06): mobile and TV. -->
+    <string name="photos_tab_timeline">Timeline</string>
+    <string name="photos_tab_albums">Albums</string>
+    <string name="photos_tab_favorites">Favorites</string>
+    <string name="photos_empty">No photos here.</string>
+    <plurals name="photos_count">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <string name="photos_info">Info</string>
+    <string name="photos_viewer_favorite">Add to Favorites</string>
+    <string name="photos_viewer_unfavorite">Remove from Favorites</string>
+    <string name="photos_slideshow">Slideshow</string>
+    <string name="photos_slideshow_interval">Interval</string>
+    <string name="photos_slideshow_seconds">%d\u00A0s</string>
+    <string name="photos_slideshow_ken_burns">Ken Burns Effect</string>
+    <string name="photos_play_video">Play Video</string>
+    <string name="photos_zoom">Zoom</string>
+    <plurals name="photos_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="photos_slideshow_from_here">Slideshow from Here</string>
+    <string name="photos_select_clear">Clear Selection</string>
+    <!-- Photos (photos spec PH-08): "On this day" on the mobile and TV home. -->
+    <string name="photos_memories_title">On This Day</string>
+    <plurals name="photos_memories_years_ago">
+        <item quantity="one">%d year ago</item>
+        <item quantity="other">%d years ago</item>
+    </plurals>
+</resources>

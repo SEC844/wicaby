@@ -1,0 +1,59 @@
+name: Feature request
+description: Suggest an idea or an improvement for Wicaby.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      multiple: true
+      options:
+        - Windows desktop
+        - Android TV
+        - Android phone / tablet
+        - All
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How you would like it to work. Mock-ups or screenshots are welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and references
+      description: Workarounds you use now, or how Emby Theater, the Emby/Jellyfin web clients or other apps handle it.
+
+  - type: dropdown
+    id: server
+    attributes:
+      label: Server support needed
+      description: Does this depend on a server feature?
+      options:
+        - No, client only
+        - Emby and Jellyfin
+        - Emby only
+        - Jellyfin only
+        - Not sure
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this has not been requested yet.
+          required: true

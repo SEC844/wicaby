@@ -1,0 +1,42 @@
+{
+  "name": "wicaby",
+  "productName": "Wicaby",
+  "version": "0.6.0",
+  "description": "Wicaby: all your media in one place (Emby and Jellyfin client for Windows and Linux)",
+  "author": "Wika",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build:renderer && npm run build:main && node ../../tools/release/licenses.mjs",
+    "build:renderer": "vite build",
+    "build:main": "node scripts/build-main.mjs",
+    "start": "electron .",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json --noEmit",
+    "fetch-mpv": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-mpv.ps1",
+    "dist": "npm run build && electron-builder --win",
+    "dist:portable": "npm run build && electron-builder --win portable",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "devDependencies": {
+    "@electron/fuses": "1.8.0",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@lucide/svelte": "1.55.0",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tsconfig/svelte": "5.0.8",
+    "@types/leaflet": "1.9.20",
+    "@types/node": "24.19.2",
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0",
+    "esbuild": "0.28.2",
+    "hls.js": "1.7.3",
+    "leaflet": "1.9.4",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.3.4"
+  }
+}

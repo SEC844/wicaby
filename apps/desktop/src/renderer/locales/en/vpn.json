@@ -1,0 +1,45 @@
+{
+  "caption": {
+    "tailscale": "With your Tailscale account (Google, Microsoft, GitHub…).",
+    "netbird": "With your NetBird account or your own server."
+  },
+  "status": {
+    "notAvailable": "{name} isn’t available on this PC.",
+    "connected": "Connected · {device}",
+    "connectedApp": "Connected · {device} · {name} app",
+    "thisPc": "this PC",
+    "finishInBrowser": "Finish signing in with your browser.",
+    "loginRequired": "Sign-in required.",
+    "connecting": "Connecting…",
+    "unavailable": "Unavailable right now.",
+    "appDisconnected": "The {name} app is disconnected."
+  },
+  "toast": {
+    "finishInBrowser": "Finish signing in to {name} with your browser."
+  },
+  "actions": {
+    "pickDevice": "Choose Device",
+    "pickDeviceTitle": "Choose a device on the network",
+    "reopen": "Reopen Page",
+    "install": "Install",
+    "connect": "Connect",
+    "signInWith": "Sign In with {name}",
+    "signOutOf": "Sign Out of {name}"
+  },
+  "peers": {
+    "searching": "Looking for servers on network devices…",
+    "none": "No other devices on this network.",
+    "noServer": "No server on ports {ports}"
+  },
+  "advanced": {
+    "toggle": "Self-Hosted NetBird Server or Setup Key",
+    "urlPlaceholder": "https://netbird.example.com (optional)",
+    "urlAria": "NetBird management server address",
+    "keyPlaceholder": "Setup key (optional)",
+    "keyAria": "NetBird setup key",
+    "hint": "Without a key, you sign in with your browser. A key works only once.",
+    "more": "Advanced Options",
+    "app": "{name} App Installed",
+    "appsHint": "When one of these apps is connected, Wicaby uses it instead of its own connection."
+  }
+}

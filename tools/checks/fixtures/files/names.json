@@ -1,0 +1,385 @@
+[
+  {
+    "input": "Example.Movie.2019.1080p.mkv",
+    "title": "Example Movie",
+    "year": 2019,
+    "label": ""
+  },
+  {
+    "input": "Example Movie (2019).mkv",
+    "title": "Example Movie",
+    "year": 2019,
+    "label": ""
+  },
+  {
+    "input": "Example_Movie_2019_720p.mp4",
+    "title": "Example Movie",
+    "year": 2019,
+    "label": ""
+  },
+  {
+    "input": "Example.Movie.2019.2160p.UHD.BluRay.x265-GROUP.mkv",
+    "title": "Example Movie",
+    "year": 2019,
+    "label": ""
+  },
+  {
+    "input": "The.Matrix.1999.REMASTERED.1080p.BluRay.mkv",
+    "title": "The Matrix",
+    "year": 1999,
+    "label": ""
+  },
+  {
+    "input": "1917.2019.2160p.mkv",
+    "title": "1917",
+    "year": 2019,
+    "label": ""
+  },
+  {
+    "input": "1917.mkv",
+    "title": "1917",
+    "label": ""
+  },
+  {
+    "input": "2001 A Space Odyssey (1968).mkv",
+    "title": "2001 A Space Odyssey",
+    "year": 1968,
+    "label": ""
+  },
+  {
+    "input": "Blade.Runner.2049.2017.mkv",
+    "title": "Blade Runner 2049",
+    "year": 2017,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.2010.BluRay.x264-GROUP.mkv",
+    "title": "Movie Title",
+    "year": 2010,
+    "label": ""
+  },
+  {
+    "input": "Some_Movie_(2005).mp4",
+    "title": "Some Movie",
+    "year": 2005,
+    "label": ""
+  },
+  {
+    "input": "Plain Name.mkv",
+    "title": "Plain Name",
+    "label": ""
+  },
+  {
+    "input": "plain.name.avi",
+    "title": "plain name",
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.WEB-DL.mkv",
+    "title": "Movie Title",
+    "label": ""
+  },
+  {
+    "input": "Movie Title [2012] [1080p].mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.2012.MULTi.1080p.mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.2012.VOSTFR.720p.mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.(2012).PROPER.mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "Le.Film.Francais.2015.FRENCH.1080p.mkv",
+    "title": "Le Film Francais",
+    "year": 2015,
+    "label": ""
+  },
+  {
+    "input": "Amélie.2001.mkv",
+    "title": "Amélie",
+    "year": 2001,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.2012.EXTENDED.mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.1080p.mkv",
+    "title": "Movie Title",
+    "label": ""
+  },
+  {
+    "input": "Example.Show.S01E01.720p.mkv",
+    "title": "Example Show",
+    "season": 1,
+    "episode": 1,
+    "label": "S1:E1"
+  },
+  {
+    "input": "Example.Show.S01E10.mkv",
+    "title": "Example Show",
+    "season": 1,
+    "episode": 10,
+    "label": "S1:E10"
+  },
+  {
+    "input": "example.show.s1e2.mkv",
+    "title": "example show",
+    "season": 1,
+    "episode": 2,
+    "label": "S1:E2"
+  },
+  {
+    "input": "Example Show - S01E03 - Title.mkv",
+    "title": "Example Show",
+    "season": 1,
+    "episode": 3,
+    "label": "S1:E3"
+  },
+  {
+    "input": "Example.Show.S01.E04.mkv",
+    "title": "Example Show",
+    "season": 1,
+    "episode": 4,
+    "label": "S1:E4"
+  },
+  {
+    "input": "Example_Show_S01E05_HDTV.mkv",
+    "title": "Example Show",
+    "season": 1,
+    "episode": 5,
+    "label": "S1:E5"
+  },
+  {
+    "input": "Show.Name.S02E03E04.HDTV.x264-GRP.mkv",
+    "title": "Show Name",
+    "season": 2,
+    "episode": 3,
+    "episodeEnd": 4,
+    "label": "S2:E3-E4"
+  },
+  {
+    "input": "Show.S01E01-E02.mkv",
+    "title": "Show",
+    "season": 1,
+    "episode": 1,
+    "episodeEnd": 2,
+    "label": "S1:E1-E2"
+  },
+  {
+    "input": "Show.S01E01-02.mkv",
+    "title": "Show",
+    "season": 1,
+    "episode": 1,
+    "episodeEnd": 2,
+    "label": "S1:E1-E2"
+  },
+  {
+    "input": "Show.S10E100.mkv",
+    "title": "Show",
+    "season": 10,
+    "episode": 100,
+    "label": "S10:E100"
+  },
+  {
+    "input": "Show (2019) S01E01.mkv",
+    "title": "Show",
+    "season": 1,
+    "episode": 1,
+    "year": 2019,
+    "label": "S1:E1"
+  },
+  {
+    "input": "Show.2019.S01E01.1080p.mkv",
+    "title": "Show",
+    "season": 1,
+    "episode": 1,
+    "year": 2019,
+    "label": "S1:E1"
+  },
+  {
+    "input": "S01E05.mkv",
+    "title": "",
+    "season": 1,
+    "episode": 5,
+    "label": "S1:E5"
+  },
+  {
+    "input": "Show Name - 1x02 - Pilot.avi",
+    "title": "Show Name",
+    "season": 1,
+    "episode": 2,
+    "label": "S1:E2"
+  },
+  {
+    "input": "Show.Name.3x10.mkv",
+    "title": "Show Name",
+    "season": 3,
+    "episode": 10,
+    "label": "S3:E10"
+  },
+  {
+    "input": "Show.Name.10x01.mkv",
+    "title": "Show Name",
+    "season": 10,
+    "episode": 1,
+    "label": "S10:E1"
+  },
+  {
+    "input": "Daily.Show.2024.03.01.mp4",
+    "title": "Daily Show",
+    "date": "2024-03-01",
+    "label": "2024-03-01"
+  },
+  {
+    "input": "Daily Show 2024-12-31.mkv",
+    "title": "Daily Show",
+    "date": "2024-12-31",
+    "label": "2024-12-31"
+  },
+  {
+    "input": "News_2023_01_15.ts",
+    "title": "News",
+    "date": "2023-01-15",
+    "label": "2023-01-15"
+  },
+  {
+    "input": "[Grp] Some Anime - 03 [1080p].mkv",
+    "title": "Some Anime",
+    "episode": 3,
+    "label": "E3"
+  },
+  {
+    "input": "[Grp] Some Anime - 125 [720p].mkv",
+    "title": "Some Anime",
+    "episode": 125,
+    "label": "E125"
+  },
+  {
+    "input": "[Grp] Anime Title - 07v2 [1080p][ABCD1234].mkv",
+    "title": "Anime Title",
+    "episode": 7,
+    "label": "E7"
+  },
+  {
+    "input": "[Grp] Anime Title - 1000.mkv",
+    "title": "Anime Title",
+    "episode": 1000,
+    "label": "E1000"
+  },
+  {
+    "input": "Show.Name.S01E01.1080p.WEB-DL.DDP5.1.H.264-GRP.mkv",
+    "title": "Show Name",
+    "season": 1,
+    "episode": 1,
+    "label": "S1:E1"
+  },
+  {
+    "input": "Show.Name.S01E01.FRENCH.720p.mkv",
+    "title": "Show Name",
+    "season": 1,
+    "episode": 1,
+    "label": "S1:E1"
+  },
+  {
+    "input": "show_name_s03e07.m4v",
+    "title": "show name",
+    "season": 3,
+    "episode": 7,
+    "label": "S3:E7"
+  },
+  {
+    "input": "SHOW.NAME.S03E07.MKV",
+    "title": "SHOW NAME",
+    "season": 3,
+    "episode": 7,
+    "label": "S3:E7"
+  },
+  {
+    "input": "Show.Name.S03E07.REPACK.mkv",
+    "title": "Show Name",
+    "season": 3,
+    "episode": 7,
+    "label": "S3:E7"
+  },
+  {
+    "input": "video.ts",
+    "title": "video",
+    "label": ""
+  },
+  {
+    "input": "clip.webm",
+    "title": "clip",
+    "label": ""
+  },
+  {
+    "input": "Movie.Title.2012.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-GRP.mkv",
+    "title": "Movie Title",
+    "year": 2012,
+    "label": ""
+  },
+  {
+    "input": "A.Movie.2003.DVDRip.XviD.avi",
+    "title": "A Movie",
+    "year": 2003,
+    "label": ""
+  },
+  {
+    "input": "Movie 1984.mkv",
+    "title": "Movie",
+    "year": 1984,
+    "label": ""
+  },
+  {
+    "input": "Movie.1984.2020.mkv",
+    "title": "Movie 1984",
+    "year": 2020,
+    "label": ""
+  },
+  {
+    "input": "Documentary - Part 1.mkv",
+    "title": "Documentary - Part 1",
+    "label": ""
+  },
+  {
+    "input": "Concert.Live.HDR.mkv",
+    "title": "Concert Live",
+    "label": ""
+  },
+  {
+    "input": "Title.2010.10bit.mkv",
+    "title": "Title",
+    "year": 2010,
+    "label": ""
+  },
+  {
+    "input": "Title.2010.mpg",
+    "title": "Title",
+    "year": 2010,
+    "label": ""
+  },
+  {
+    "input": "Title.2010.wmv",
+    "title": "Title",
+    "year": 2010,
+    "label": ""
+  }
+]

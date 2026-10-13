@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live TV: recordings, scheduled and channel management (livetv spec §9, §13.3, TV-4). -->
+<resources>
+    <string name="livetv_tabs_scheduled">Scheduled</string>
+    <string name="livetv_tabs_recordings">Recordings</string>
+
+    <string name="livetv_record_title">Recording Options</string>
+    <string name="livetv_record_this_episode">This Episode</string>
+    <string name="livetv_record_whole_series">Whole Series</string>
+    <string name="livetv_record_start_early">Start Early</string>
+    <string name="livetv_record_end_late">End Late</string>
+    <plurals name="livetv_record_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="livetv_record_minutes_zero">On Time</string>
+    <string name="livetv_record_new_only">New Episodes Only</string>
+    <string name="livetv_record_any_channel">On Any Channel</string>
+    <string name="livetv_record_any_time">At Any Time</string>
+    <string name="livetv_record_days">Days</string>
+    <string name="livetv_record_every_day">Every Day</string>
+    <string name="livetv_record_weekdays">Weekdays</string>
+    <string name="livetv_record_weekends">Weekends</string>
+    <string name="livetv_record_skip_in_library">Skip Episodes Already in Library</string>
+    <string name="livetv_record_keep_up_to">Keep</string>
+    <plurals name="livetv_record_keep_up_to_value">
+        <item quantity="one">Latest Episode</item>
+        <item quantity="other">Latest %1$d Episodes</item>
+    </plurals>
+    <string name="livetv_record_keep_up_to_value_zero">All Episodes</string>
+    <string name="livetv_record_keep_until">Keep Until</string>
+    <string name="livetv_record_keep_until_deleted">I Delete It</string>
+    <string name="livetv_record_keep_until_space">Space Is Needed</string>
+    <string name="livetv_record_keep_until_watched">I Watch It</string>
+    <string name="livetv_record_save_default">Use This Padding by Default</string>
+    <string name="livetv_record_schedule">Schedule</string>
+    <string name="livetv_record_apply">Apply</string>
+
+    <string name="livetv_scheduled_upcoming">Upcoming</string>
+    <string name="livetv_scheduled_rules">Series Rules</string>
+    <string name="livetv_scheduled_status_scheduled">Scheduled</string>
+    <string name="livetv_scheduled_status_recording">Recording</string>
+    <string name="livetv_scheduled_status_conflict_ok">Conflict, Will Record</string>
+    <string name="livetv_scheduled_status_wont">Won’t Record</string>
+    <string name="livetv_scheduled_status_error">Error</string>
+    <plurals name="livetv_scheduled_conflicts">
+        <item quantity="one">%1$d recording won’t happen</item>
+        <item quantity="other">%1$d recordings won’t happen</item>
+    </plurals>
+    <plurals name="livetv_scheduled_badge_aria">
+        <item quantity="one">%1$d conflict</item>
+        <item quantity="other">%1$d conflicts</item>
+    </plurals>
+    <string name="livetv_scheduled_empty">No recordings scheduled. Press the red button on a program to record it.</string>
+    <string name="livetv_scheduled_rules_empty">No series rules.</string>
+    <string name="livetv_scheduled_read_only">Your account can see recordings but not schedule them.</string>
+    <string name="livetv_scheduled_recording_now">Recording Now</string>
+    <string name="livetv_scheduled_today">Today</string>
+    <string name="livetv_scheduled_tomorrow">Tomorrow</string>
+    <string name="livetv_scheduled_show">Show</string>
+    <string name="livetv_scheduled_tuners">%1$d of %2$d tuners in use</string>
+    <string name="livetv_scheduled_padding">padding −%1$d / +%2$d min</string>
+    <string name="livetv_scheduled_edit_padding">Edit Padding</string>
+    <string name="livetv_scheduled_skip_episode">Skip This Episode</string>
+    <string name="livetv_scheduled_cancel">Cancel Recording</string>
+    <string name="livetv_scheduled_view_rule">View Rule</string>
+    <plurals name="livetv_scheduled_rule_episodes">
+        <item quantity="one">%1$d episode scheduled</item>
+        <item quantity="other">%1$d episodes scheduled</item>
+    </plurals>
+    <string name="livetv_scheduled_rule_episodes_zero">No episodes scheduled</string>
+    <string name="livetv_scheduled_all_channels">All Channels</string>
+    <string name="livetv_scheduled_edit_rule">Edit Rule</string>
+    <string name="livetv_scheduled_delete_rule">Delete Rule</string>
+    <string name="livetv_scheduled_delete_rule_confirm">Delete the rule “%1$s” and its scheduled recordings?</string>
+    <string name="livetv_scheduled_reorder">Reorder Priorities…</string>
+    <string name="livetv_scheduled_reorder_hint">Press OK to pick up a rule, move it with ↑ and ↓, then press OK again to drop it. The first one wins a conflict.</string>
+
+    <string name="livetv_recordings_empty">No recordings yet. Press the red button on a program to record it.</string>
+    <string name="livetv_recordings_sections_in_progress">In Progress</string>
+    <string name="livetv_recordings_sections_recent">Recently Recorded</string>
+    <string name="livetv_recordings_sections_series">TV Shows</string>
+    <string name="livetv_recordings_sections_movies">Movies</string>
+    <string name="livetv_recordings_sections_sports">Sports</string>
+    <string name="livetv_recordings_sections_other">Other</string>
+    <plurals name="livetv_recordings_episodes">
+        <item quantity="one">%1$d episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+    <string name="livetv_recordings_select">Select</string>
+    <string name="livetv_recordings_select_hint">Press OK to check the recordings to delete.</string>
+    <string name="livetv_recordings_delete">Delete</string>
+    <plurals name="livetv_recordings_delete_many">
+        <item quantity="one">Delete %1$d recording?</item>
+        <item quantity="other">Delete %1$d recordings?</item>
+    </plurals>
+    <string name="livetv_recordings_delete_hint">The files will be removed from the server.</string>
+
+    <string name="livetv_manage_title">Manage Channels</string>
+    <string name="livetv_manage_synced">Synced with your account on %1$s.</string>
+    <string name="livetv_manage_reorder_favorites">Reorder Favorites</string>
+    <string name="livetv_manage_reorder_hint">Press OK to pick up a channel, move it with ↑ and ↓, then press OK again to drop it.</string>
+    <string name="livetv_manage_move_up">Move Up</string>
+    <string name="livetv_manage_move_down">Move Down</string>
+    <string name="livetv_manage_moving">Moving</string>
+    <string name="livetv_manage_hidden">Hidden Channels</string>
+    <plurals name="livetv_manage_hidden_count">
+        <item quantity="one">%1$d hidden channel</item>
+        <item quantity="other">%1$d hidden channels</item>
+    </plurals>
+    <string name="livetv_manage_hidden_hint">A hidden channel can still be tuned by its number.</string>
+    <string name="livetv_channel_unhide">Show Channel</string>
+
+    <string name="livetv_toasts_recording_scheduled">Recording scheduled</string>
+    <string name="livetv_toasts_recording_canceled">Recording canceled</string>
+    <string name="livetv_toasts_series_scheduled">Series scheduled</string>
+    <string name="livetv_toasts_series_canceled">Series canceled</string>
+    <string name="livetv_toasts_already_scheduled">This recording is already scheduled.</string>
+    <string name="livetv_toasts_forbidden">Your account can’t manage recordings.</string>
+    <string name="livetv_toasts_premiere">The server refused to record. Emby requires Emby Premiere for DVR.</string>
+    <string name="livetv_toasts_not_series">This program isn’t a series.</string>
+    <string name="livetv_toasts_rule_updated">Rule updated</string>
+    <string name="livetv_toasts_padding_updated">Padding updated</string>
+    <string name="livetv_toasts_priorities_updated">Priorities updated</string>
+    <plurals name="livetv_toasts_recordings_deleted">
+        <item quantity="one">Recording deleted</item>
+        <item quantity="other">%1$d recordings deleted</item>
+    </plurals>
+</resources>

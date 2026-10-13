@@ -1,0 +1,110 @@
+{
+  "exif": {
+    "camera": "Camera",
+    "exposure": "Exposure",
+    "aperture": "Aperture",
+    "shutter": "Shutter speed",
+    "focal": "Focal length",
+    "iso": "ISO",
+    "dimensions": "Dimensions",
+    "altitude": "Altitude",
+    "location": "Location",
+    "software": "Software",
+    "taken": "Taken",
+    "apertureValue": "ƒ/{value}",
+    "exposureValue": "{value} s",
+    "focalValue": "{value} mm",
+    "isoValue": "ISO {value}",
+    "dimensionsValue": "{w} × {h}",
+    "altitudeValue": "{value} m",
+    "locationValue": "{lat}, {lon}"
+  },
+  "title": "Photos",
+  "tabs": {
+    "timeline": "Timeline",
+    "albums": "Albums",
+    "favorites": "Favourites",
+    "map": "Map",
+    "label": "View"
+  },
+  "empty": "No photos here yet.",
+  "emptyFavorites": "No favourite photos. Press F on a photo or the heart in the viewer.",
+  "count": "{count, plural, one {# item} other {# items}}",
+  "scrubber": {
+    "label": "Scroll by date"
+  },
+  "density": {
+    "label": "Thumbnail size",
+    "smaller": "Smaller thumbnails",
+    "larger": "Larger thumbnails"
+  },
+  "tile": {
+    "photo": "Photo, {date}",
+    "video": "Video, {date}, {duration}"
+  },
+  "error": {
+    "load": "Couldn’t load the photos."
+  },
+  "viewer": {
+    "info": "Info",
+    "close": "Close",
+    "favorite": "Add to favourites",
+    "unfavorite": "Remove from favourites",
+    "previous": "Previous",
+    "next": "Next",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit to screen",
+    "saveOriginal": "Save original",
+    "play": "Play video",
+    "more": "More options",
+    "slideshow": "Slideshow"
+  },
+  "info": {
+    "title": "Info",
+    "noExif": "No capture details",
+    "name": "File"
+  },
+  "albums": {
+    "title": "Albums",
+    "empty": "No albums in this library.",
+    "count": "{count, plural, one {# item} other {# items}}",
+    "back": "All albums"
+  },
+  "slideshow": {
+    "start": "Slideshow",
+    "pause": "Pause",
+    "resume": "Resume",
+    "exit": "Exit slideshow",
+    "interval": "Interval",
+    "intervalValue": "{n} s",
+    "order": "Order",
+    "orderDate": "By date",
+    "orderShuffle": "Shuffle",
+    "kenBurns": "Ken Burns effect"
+  },
+  "save": {
+    "queued": "Saving the original…",
+    "done": "Original saved to Downloads.",
+    "denied": "The server doesn’t let you download this original.",
+    "reveal": "Show"
+  },
+  "memories": {
+    "title": "On This Day",
+    "yearsAgo": "{n, plural, one {# year} other {# years}} ago",
+    "play": "{title}, {count, plural, one {# photo} other {# photos}}"
+  },
+  "map": {
+    "title": "Map",
+    "enableTitle": "Photo map",
+    "enableBody": "The map downloads its tiles from {host}. That service sees the areas where your photos were taken, not the photos.",
+    "enable": "Turn on the map",
+    "tileUrl": "Tile address",
+    "tileUrlHint": "An http(s) template with the z, x and y markers in braces, for example your own tile server. Follow the chosen service’s terms of use.",
+    "tileUrlInvalid": "Address refused: it needs an http(s) template with the z, x and y markers.",
+    "attribution": "Attribution shown",
+    "noLocation": "No geotagged photos here.",
+    "cluster": "{count, plural, one {# photo} other {# photos}}",
+    "loading": "Reading the positions…"
+  }
+}

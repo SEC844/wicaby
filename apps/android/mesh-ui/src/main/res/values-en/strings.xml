@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English. Same keys and format arguments as values/strings.xml (French, the default). -->
+<resources>
+    <!-- Remote Access (built-in Tailscale / NetBird mesh) -->
+    <string name="mesh_title">Remote Access</string>
+    <string name="mesh_intro">Link Wicaby to your Tailscale or NetBird network to reach your server away from home, without installing their app.</string>
+    <string name="mesh_join">Connect %1$s</string>
+    <string name="mesh_advanced">Advanced Options</string>
+    <string name="mesh_advanced_hide">Hide Options</string>
+    <string name="mesh_server_hint">Control server (Headscale, self-hosted NetBird)</string>
+    <string name="mesh_key_hint">Auth or setup key (optional)</string>
+    <string name="mesh_advanced_note">Leave blank for the official service. With a key, no QR code sign-in is needed; the key isn’t stored.</string>
+    <string name="mesh_scope_note">Wicaby joins your network as a device of its own, and only uses it to reach your server.</string>
+    <string name="mesh_unsupported">Requires Android 8.0 or later.</string>
+    <string name="mesh_connecting">Connecting to %1$s…</string>
+    <string name="mesh_cancel">Cancel</string>
+    <string name="mesh_scan">Scan with your phone to connect Wicaby to %1$s.</string>
+    <string name="mesh_code">Confirmation code</string>
+    <string name="mesh_or_open">or open this address:</string>
+    <string name="mesh_connected">Connected to %1$s</string>
+    <string name="mesh_this_device">This device: %1$s</string>
+    <string name="mesh_peers">Devices on Your Network</string>
+    <string name="mesh_no_peers">No other devices visible yet.</string>
+    <plurals name="mesh_more_peers">
+        <item quantity="one">and %1$d more</item>
+        <item quantity="other">and %1$d more</item>
+    </plurals>
+    <string name="mesh_disconnect">Turn Off</string>
+    <string name="mesh_logout">Sign Out of Network</string>
+    <string name="mesh_retry">Retry</string>
+    <string name="mesh_failed">Couldn’t connect to %1$s.</string>
+    <string name="mesh_qr_code">Sign-in QR code</string>
+
+    <!-- Settings > Remote access (onboarding spec 3) -->
+    <string name="mesh_state_connected">Connected</string>
+    <string name="mesh_state_needs_login">Sign-In Required</string>
+    <string name="mesh_state_connecting">Connecting…</string>
+    <string name="mesh_state_off">Off</string>
+    <string name="mesh_state_error">Error</string>
+    <string name="mesh_built_in">%1$s · Built into Wicaby</string>
+    <string name="mesh_status_title">Status</string>
+    <string name="mesh_device_title">This Device</string>
+    <string name="mesh_device_name">Name</string>
+    <string name="mesh_device_address">Address</string>
+    <string name="mesh_peers_title">Devices on Your Network (%1$d)</string>
+    <string name="mesh_peer_offline">Offline</string>
+    <string name="mesh_add_server">Add This Server</string>
+    <string name="mesh_routes_title">Routed Networks</string>
+    <string name="mesh_management">Management Server</string>
+    <string name="mesh_hosted">Official Service</string>
+    <string name="mesh_change">Change…</string>
+    <string name="mesh_save">Save</string>
+    <string name="mesh_switch">Switch to %1$s…</string>
+    <string name="mesh_switch_body">You’ll leave %1$s. Your devices stay registered there.</string>
+    <string name="mesh_diag_title">Diagnostics</string>
+    <string name="mesh_diag_last_error">Last error: %1$s</string>
+    <string name="mesh_diag_none">No recent errors.</string>
+    <string name="mesh_diag_show">Show Diagnostics</string>
+    <string name="mesh_diag_scan">Scan this code to copy the text to your phone. Addresses and keys are hidden.</string>
+    <!-- Mobile Settings > Remote access (OB-M2) -->
+    <string name="mesh_diag_copy">Copy Diagnostics</string>
+    <string name="mesh_diag_copied">Diagnostics copied, with addresses and keys hidden.</string>
+    <string name="mesh_diag_share">Share Diagnostics</string>
+</resources>

@@ -1,0 +1,113 @@
+name: Bug report
+description: Something does not work as expected in Wicaby.
+title: "[Bug]: "
+# `triage` does not exist in a new repository (GitHub drops unknown labels); create it once:
+#   gh label create triage --color FBCA04 --description "Needs a first look"
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please **remove personal data** before posting:
+        server addresses, user names, API keys and tokens, Tailscale/NetBird keys, and file paths you do not want to share.
+
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      multiple: true
+      options:
+        - Windows desktop
+        - Android TV
+        - Android phone / tablet
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Wicaby version
+      description: "Shown in Settings > About."
+      placeholder: e.g. 0.2.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: server
+    attributes:
+      label: Media server
+      options:
+        - Emby
+        - Jellyfin
+        - Not related to the server
+    validations:
+      required: true
+
+  - type: input
+    id: server-version
+    attributes:
+      label: Server version
+      placeholder: e.g. Emby 4.9.1 or Jellyfin 10.11.0
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      description: Windows version, GPU and display (HDR?) for the desktop app; TV or phone model and Android version for Android.
+      placeholder: e.g. Windows 11 24H2, HDR monitor / Android TV 12 (32-bit)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options:
+        - Local network
+        - Remote (direct)
+        - Remote through Tailscale (built in)
+        - Remote through NetBird (built in)
+        - Other VPN or reverse proxy
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Play ...
+        3. See ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Media details (playback issues)
+      description: Container, video codec, HDR / Dolby Vision profile, audio codec and channels, subtitle format, direct play or transcode.
+      placeholder: e.g. MKV, HEVC Main10 HDR10, E-AC3 5.1, PGS subtitles, direct play
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Desktop log file or an Android logcat excerpt. Please redact addresses and tokens.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I removed server addresses, tokens and other personal data from this report.
+          required: true

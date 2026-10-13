@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default locale = French (back-compat). English: values-en/strings.xml. Keys and format
+     arguments must match (core/src/test/.../TranslationsTest, lint MissingTranslation). -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="app_name" translatable="false">Wicaby</string>
+
+    <!-- Serveur -->
+    <string name="welcome">Bienvenue sur Wicaby</string>
+    <string name="welcome_sub">Choisissez un serveur Emby ou Jellyfin sur votre réseau.</string>
+    <string name="searching_lan">Recherche sur le réseau local…</string>
+    <string name="no_server_found">Aucun serveur trouvé sur le réseau.</string>
+    <string name="search_again">Rechercher à nouveau</string>
+    <string name="manual_address">Saisir une adresse</string>
+    <string name="remote_access_setup">Accès à distance (Tailscale / NetBird)</string>
+    <string name="address_hint">Adresse du serveur, ex. 192.168.1.20:8096</string>
+    <string name="public_address_hint">https://media.exemple.fr</string>
+    <string name="connect">Se connecter</string>
+    <string name="connecting">Connexion…</string>
+    <string name="server_unreachable">Serveur injoignable</string>
+    <string name="saved_server">Dernier serveur</string>
+
+    <!-- Utilisateurs -->
+    <string name="who_is_watching">Qui regarde ?</string>
+    <string name="other_user">Autre</string>
+    <string name="username">Nom d’utilisateur</string>
+    <string name="password">Mot de passe</string>
+    <string name="sign_in">Se connecter</string>
+    <string name="wrong_credentials">Identifiants incorrects</string>
+    <string name="password_for">Mot de passe pour %1$s</string>
+    <string name="password_show">Afficher</string>
+    <string name="password_hide">Masquer</string>
+    <string name="password_show_desc">Afficher le mot de passe</string>
+    <string name="password_hide_desc">Masquer le mot de passe</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Accueil</string>
+    <string name="tab_search">Recherche</string>
+    <string name="tab_settings">Réglages</string>
+    <string name="tab_torrents">Torrents</string>
+
+    <!-- Accueil -->
+    <string name="continue_watching">Continuer</string>
+    <string name="next_up">À suivre</string>
+    <string name="latest_in">Ajouts récents · %1$s</string>
+    <string name="play">Lire</string>
+    <string name="resume">Reprendre</string>
+    <string name="more_info">Plus d’infos</string>
+    <string name="empty_home">Rien à afficher pour l’instant.</string>
+    <string name="load_error">Impossible de charger le contenu.</string>
+    <string name="retry">Réessayer</string>
+
+    <!-- Bibliothèque, recherche -->
+    <string name="search_hint">Films, séries, épisodes…</string>
+    <string name="search_empty">Aucun résultat.</string>
+    <string name="search_prompt">Tapez au moins deux lettres.</string>
+    <string name="search_voice_prompt_live">Dites un titre ou une chaîne</string>
+
+    <!-- Détail -->
+    <string name="from_start">Depuis le début</string>
+    <string name="favorite">Favori</string>
+    <string name="watched">Vu</string>
+    <string name="time_left">Reste %1$s</string>
+    <string name="resume_time_left">Reprendre · Reste %1$s</string>
+    <string name="play_episode">Lire · %1$s</string>
+    <string name="badge_stereo">Stéréo</string>
+    <string name="badge_subtitles">ST</string>
+    <string name="season_n">Saison %1$d</string>
+    <string name="episode_short">É%1$d</string>
+    <string name="episode_code">S%1$d, É%2$d</string>
+    <string name="seasons">Saisons</string>
+    <string name="episodes">Épisodes</string>
+    <string name="specials">Bonus</string>
+
+    <!-- Réglages -->
+    <string name="settings_accent">Couleur d’accentuation</string>
+    <string name="settings_theme">Thème</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_theme_oled">OLED (noir pur)</string>
+    <string name="settings_bitrate">Débit maximal en streaming</string>
+    <string name="settings_bitrate_auto">Auto</string>
+    <string name="switch_user">Changer d’utilisateur</string>
+    <string name="switch_server">Changer de serveur</string>
+    <string name="sign_out">Se déconnecter</string>
+    <string name="about">À propos</string>
+    <string name="mbps">%1$d Mb/s</string>
+    <string name="settings_display_mode">Fréquence d’affichage</string>
+    <string name="display_mode_off">Désactivée</string>
+    <string name="display_mode_rate">Adapter la fréquence</string>
+    <string name="display_mode_rate_res">Fréquence et définition</string>
+    <string name="display_mode_hint">Bascule l’écran sur la fréquence d’images de la vidéo (24 Hz pour un film) pendant la lecture.</string>
+    <string name="settings_livetv_match_frame_rate">Adapter la fréquence d’affichage en direct</string>
+    <string name="settings_livetv_pip">Image dans l’image en quittant</string>
+
+    <!-- Lecteur -->
+    <string name="audio">Audio</string>
+    <string name="subtitles">Sous-titres</string>
+    <string name="subtitles_off">Désactivés</string>
+    <string name="tracks_hint_touch">Audio et sous-titres</string>
+    <string name="back_to_exit">Retour pour quitter</string>
+    <string name="track_unknown">Piste %1$d</string>
+    <string name="skip_intro">Passer l’intro</string>
+    <string name="up_next">Épisode suivant</string>
+    <string name="play_now">Lire maintenant</string>
+    <string name="up_next_in">Dans %1$d s</string>
+    <string name="still_watching">Toujours là ?</string>
+    <string name="still_watching_sub">La lecture est en pause.</string>
+    <string name="keep_watching">Continuer</string>
+    <string name="stop_watching">Arrêter</string>
+
+    <!-- Barre du haut, quitter, profil -->
+    <string name="quit_title">Quitter Wicaby ?</string>
+    <string name="quit">Quitter</string>
+    <string name="cancel">Annuler</string>
+    <string name="profile">Profil</string>
+    <string name="resume_title">Reprendre la lecture ?</string>
+    <string name="resume_at">Reprendre à %1$s</string>
+
+    <!-- Réglages : sections -->
+    <string name="section_playback">Lecture</string>
+    <string name="section_interface">Interface</string>
+    <string name="section_accounts">Comptes</string>
+    <string name="section_remote">Accès à distance</string>
+    <string name="section_about">À propos</string>
+
+    <!-- Réglages : Lecture -->
+    <string name="net_ethernet">Ethernet</string>
+    <string name="net_wifi">Wi‑Fi</string>
+    <string name="net_remote">Hors du domicile</string>
+    <string name="bitrate_hint">Le débit choisi s’applique au réseau utilisé au lancement de la lecture. « Hors du domicile » concerne la connexion par l’accès à distance.</string>
+    <string name="group_episodes">Épisodes</string>
+    <string name="autoplay_next">Enchaîner l’épisode suivant</string>
+    <string name="countdown">Compte à rebours</string>
+    <string name="seconds">%1$d s</string>
+    <string name="skip_intro_mode">Générique d’ouverture</string>
+    <string name="skip_ask">Proposer de passer</string>
+    <string name="skip_auto">Passer automatiquement</string>
+    <string name="skip_off">Ne rien proposer</string>
+    <string name="resume_mode">Reprise de la lecture</string>
+    <string name="resume_auto">Reprendre automatiquement</string>
+    <string name="resume_ask">Demander</string>
+    <string name="resume_start">Toujours depuis le début</string>
+    <string name="group_display">Affichage</string>
+    <string name="group_audio">Audio</string>
+    <string name="audio_language">Langue audio préférée</string>
+    <string name="passthrough_hint">Passthrough HDMI : « Auto » suit le téléviseur ou l’ampli branché. « Désactivé » fait décoder le son par Wicaby.</string>
+    <string name="pass_auto">Auto</string>
+    <string name="pass_on">Toujours</string>
+    <string name="pass_off">Désactivé</string>
+    <string name="group_subtitles">Sous-titres</string>
+    <string name="subtitle_language">Langue des sous-titres</string>
+    <string name="subtitle_mode">Affichage des sous-titres</string>
+    <string name="sub_mode_default">Par défaut</string>
+    <string name="sub_mode_smart">Intelligent</string>
+    <string name="sub_mode_forced">Forcés uniquement</string>
+    <string name="sub_mode_always">Toujours</string>
+    <string name="sub_mode_none">Jamais</string>
+    <string name="subtitle_size">Taille du texte</string>
+    <string name="size_small">Petite</string>
+    <string name="size_normal">Normale</string>
+    <string name="size_large">Grande</string>
+    <string name="size_xlarge">Très grande</string>
+    <string name="subtitle_style">Style du texte</string>
+    <string name="style_outline">Contour</string>
+    <string name="style_shadow">Ombre portée</string>
+    <string name="style_box">Fond sombre</string>
+    <string name="subtitle_font">Police</string>
+    <string name="font_system">Système</string>
+    <string name="font_serif">Avec empattements</string>
+    <string name="subtitle_color">Couleur</string>
+    <string name="color_white">Blanc</string>
+    <string name="color_yellow">Jaune</string>
+    <string name="color_light_gray">Gris clair</string>
+    <string name="subtitle_position">Position</string>
+    <string name="sub_pos_bottom">En bas</string>
+    <string name="sub_pos_slightly_raised">Légèrement relevés</string>
+    <string name="sub_pos_raised">Relevés</string>
+    <string name="subtitle_override_ass">Appliquer aux sous-titres ASS</string>
+    <string name="subtitle_hint">Langues et affichage sont enregistrés sur votre compte du serveur. Le style s’applique aux sous-titres texte (SRT, WebVTT) ; les sous-titres ASS gardent leur mise en forme, sauf leur taille avec « Appliquer aux sous-titres ASS ».</string>
+    <string name="server_pref_failed">Le serveur n’a pas accepté la modification.</string>
+    <string name="lang_auto">Automatique</string>
+    <string name="lang_fre">Français</string>
+    <string name="lang_eng">Anglais</string>
+    <string name="lang_jpn">Japonais</string>
+    <string name="lang_ger">Allemand</string>
+    <string name="lang_spa">Espagnol</string>
+    <string name="lang_ita">Italien</string>
+    <string name="lang_kor">Coréen</string>
+    <string name="on">Activé</string>
+    <string name="off">Désactivé</string>
+    <string name="loading">Chargement…</string>
+
+    <!-- Réglages : Interface -->
+    <string name="language">Langue / Language</string>
+    <string name="language_system">Langue du système</string>
+    <string name="language_fr" translatable="false">Français</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="group_appearance">Apparence</string>
+    <string name="show_clock">Horloge</string>
+    <string name="group_home">Accueil</string>
+    <string name="row_hero">À la une</string>
+    <string name="row_latest">Ajouts récents</string>
+    <string name="row_upcoming">À venir</string>
+    <string name="row_because">Parce que vous avez regardé %1$s</string>
+    <string name="row_because_any">Parce que vous avez regardé…</string>
+    <string name="row_live_now">TV en direct</string>
+    <string name="home_rows_hint">OK sur une rangée pour l’afficher ou la masquer, la déplacer, ou choisir entre affiches et vignettes.</string>
+    <string name="home_row_shown">Affichée</string>
+    <string name="home_row_hidden">Masquée</string>
+    <string name="home_row_show">Afficher</string>
+    <string name="home_row_hide">Masquer</string>
+    <string name="home_row_up">Monter</string>
+    <string name="home_row_down">Descendre</string>
+    <string name="home_row_posters">Affiches</string>
+    <string name="home_row_thumbs">Vignettes</string>
+    <string name="home_rows_reset">Rétablir les rangées par défaut</string>
+    <string name="group_screensaver">Économiseur d’écran</string>
+    <string name="screensaver_after">Démarrer après</string>
+    <string name="never">Jamais</string>
+    <string name="minutes">%1$d min</string>
+    <string name="screensaver_hint">Fait défiler les images de vos bibliothèques, ou vos photos, quand la télécommande reste inactive. Une touche le ferme. Certains téléviseurs le proposent aussi comme économiseur d’écran du système (Paramètres Android > Économiseur d’écran) ; Google TV ne permet plus de le choisir.</string>
+
+
+    <!-- Réglages : À propos -->
+    <string name="version_full">Version %1$s (%2$d)</string>
+    <string name="licence_ffmpeg">FFmpeg (décodage audio)</string>
+    <string name="licence_libass">libass (sous-titres ASS)</string>
+    <string name="licence_geist" translatable="false">Geist, Geist Mono</string>
+    <string name="licence_androidx" translatable="false">AndroidX Media3, Compose</string>
+    <string name="licence_coil" translatable="false">Coil, OkHttp</string>
+    <string name="codec_fps">%1$d i/s</string>
+    <string name="codec_10bit">10 bits</string>
+    <string name="group_licences">Licences</string>
+    <string name="group_device">Cet appareil</string>
+    <string name="device_model">Modèle</string>
+    <string name="android_version">Android</string>
+    <string name="video_decoders">Vidéo</string>
+    <string name="audio_decoders">Audio</string>
+    <string name="passthrough">Passthrough HDMI</string>
+    <string name="none">Aucun</string>
+
+    <!-- Torrents (qBittorrent) -->
+    <string name="torrents_intro">Suivez et gérez les téléchargements de qBittorrent depuis la TV.</string>
+    <string name="torrents_setup_hint">Activez l’interface web dans qBittorrent : Outils › Options › Interface web. Laissez le nom d’utilisateur vide si elle n’en demande pas sur le réseau local.</string>
+    <string name="torrents_address">Adresse</string>
+    <string name="torrents_password_unchanged">Inchangé</string>
+    <string name="torrents_forget">Oublier</string>
+    <string name="torrents_unreachable">qBittorrent est injoignable</string>
+    <string name="torrents_edit_connection">Modifier la connexion</string>
+    <string name="torrents_empty_hint">Ajoutez un lien magnet avec le bouton Ajouter.</string>
+    <string name="torrents_offline_line">Hors ligne · %1$s</string>
+    <string name="torrents_free_space">%1$s libres</string>
+    <string name="torrents_alt_speed_on">vitesse réduite</string>
+    <string name="torrents_add">Ajouter</string>
+    <string name="torrents_alt_speed">Vitesse réduite</string>
+    <string name="torrents_full_speed">Pleine vitesse</string>
+    <string name="torrents_filter_count">%1$s  %2$d</string>
+    <string name="torrents_ratio">ratio %1$s</string>
+    <string name="torrents_progress">%1$s sur %2$s</string>
+    <string name="torrents_eta">reste %1$s</string>
+    <string name="torrents_pause">Mettre en pause</string>
+    <string name="torrents_category">Catégorie</string>
+    <string name="torrents_category_value">Catégorie : %1$s</string>
+    <string name="torrents_category_none">Aucune</string>
+    <string name="torrents_recheck">Revérifier</string>
+    <string name="torrents_delete">Supprimer…</string>
+    <string name="torrents_delete_hint">Le torrent est retiré de qBittorrent. Les fichiers téléchargés restent sur le disque, sauf si vous les supprimez aussi.</string>
+    <string name="torrents_remove">Retirer le torrent</string>
+    <string name="torrents_delete_files">Supprimer aussi les fichiers</string>
+    <string name="torrents_add_title">Ajouter un torrent</string>
+    <string name="torrents_add_hint">Lien magnet, URL d’un fichier .torrent ou hash.</string>
+    <string name="torrents_bad_link">Lien non reconnu : collez un lien magnet, une URL .torrent ou un hash.</string>
+    <!-- Comic reader -->
+    <string name="reader_read">Lire</string>
+    <string name="reader_resume_page">Reprendre la lecture (p. %1$d)</string>
+    <string name="reader_loading">Chargement du livre… %1$d %%</string>
+    <string name="reader_back">Retour</string>
+    <string name="reader_page_of">Page %1$s sur %2$d</string>
+    <string name="reader_fit_page">Page entière</string>
+    <string name="reader_fit_width">Largeur</string>
+    <string name="reader_zoom">Zoom ×2</string>
+    <string name="reader_rtl">Sens manga</string>
+    <string name="reader_webtoon">Défilement vertical</string>
+    <string name="pair_with_phone">Utiliser mon téléphone</string>
+    <string name="pair_title">Connexion avec le téléphone</string>
+    <string name="pair_body">Dans Wicaby sur votre téléphone, ouvrez Réglages > Connecter une TV et scannez ce code. Le téléphone doit être sur le même réseau.</string>
+    <string name="pair_no_lan">Ce téléviseur n’est pas connecté à un réseau local.</string>
+    <string name="pair_failed">Le serveur a refusé la connexion. Scannez le nouveau code.</string>
+    <!-- TV en direct (spec livetv §13.3) -->
+    <string name="livetv_tabs_now">En direct</string>
+    <string name="livetv_tabs_guide">Guide</string>
+    <string name="livetv_now_resume">Reprendre %1$s</string>
+    <string name="livetv_now_rows_favorites">Vos chaînes favorites</string>
+    <string name="livetv_now_rows_recents">Récemment regardées</string>
+    <string name="livetv_now_rows_on_now">En ce moment</string>
+    <string name="livetv_now_rows_movies">Films en cours</string>
+    <string name="livetv_now_rows_sports">Sport en direct</string>
+    <string name="livetv_now_rows_news">Infos</string>
+    <string name="livetv_now_rows_kids">Jeunesse</string>
+    <string name="livetv_now_rows_series">Séries</string>
+    <string name="livetv_now_rows_recording">En cours d’enregistrement</string>
+    <string name="livetv_now_rows_all_channels">Toutes les chaînes</string>
+    <string name="livetv_now_until">jusqu’à %1$s</string>
+    <string name="livetv_now_empty">Rien à l’antenne pour l’instant. Le serveur n’a peut-être pas encore chargé le guide.</string>
+    <string name="livetv_now_open_guide">Ouvrir le guide</string>
+    <string name="livetv_channel_logo_alt">Logo de %1$s</string>
+    <string name="livetv_guide_aria_channel">Chaîne %1$s, %2$s</string>
+    <!-- Lecteur en direct (spec livetv §8.4–§8.8, §13.4) -->
+    <string name="player_live_now">Maintenant</string>
+    <string name="player_live_next">Ensuite</string>
+    <string name="player_live_tuning">Réglage…</string>
+    <string name="player_live_lens_position">%1$s · %2$d/%3$d</string>
+    <string name="player_live_no_match">Aucune chaîne</string>
+    <string name="player_live_no_channel">Aucune chaîne %1$s</string>
+    <plurals name="player_live_duplicates">
+        <item quantity="one">%d chaîne</item>
+        <item quantity="many">%d chaînes</item>
+        <item quantity="other">%d chaînes</item>
+    </plurals>
+    <string name="player_live_channel_list">Liste des chaînes</string>
+    <string name="player_live_resume_live">Reprendre le direct</string>
+    <string name="player_live_record">Enregistrer</string>
+    <string name="player_live_recording">Enregistrement en cours</string>
+    <string name="player_live_remind">Me le rappeler</string>
+    <string name="player_live_last_channel">Chaîne précédente</string>
+    <string name="player_live_radio">Radio en direct</string>
+    <string name="player_live_coach_colour_keys">Rouge : enregistrer · Vert : favori · Jaune : filtre · Bleu : rechercher</string>
+    <string name="player_live_recording_scheduled">Enregistrement programmé</string>
+    <string name="player_live_already_scheduled">Cet enregistrement est déjà programmé.</string>
+    <string name="player_live_record_forbidden">Votre compte ne peut pas gérer les enregistrements.</string>
+    <string name="player_live_record_premiere">Le serveur refuse l’enregistrement. Emby demande Emby Premiere pour le DVR.</string>
+    <string name="player_live_record_failed">L’enregistrement n’a pas pu être programmé.</string>
+    <string name="player_live_reminder_set">Rappel programmé</string>
+    <string name="player_live_favorite_added">%1$s ajoutée aux favoris</string>
+    <string name="player_live_favorite_removed">%1$s retirée des favoris</string>
+    <string name="player_live_watch">Regarder</string>
+    <string name="player_live_details">Détails</string>
+    <string name="player_live_watch_from_start">Regarder depuis le début (il y a %1$s)</string>
+    <string name="player_live_watch_live">Regarder en direct</string>
+    <string name="player_live_start_unavailable">L’enregistrement en cours n’est pas disponible.</string>
+    <!-- X-06: player chips and remote control. -->
+    <string name="chip_chapters">Chapitres</string>
+    <string name="chip_speed">Vitesse</string>
+    <!-- X-01: merged Continue Watching -->
+    <string name="settings_merge_continue">Fusionner « Reprendre » et « À suivre »</string>
+    <!-- TP-05: item actions ("…" on the item page) -->
+    <string name="item_more">Plus d’actions</string>
+    <string name="mark_previous_played">Marquer les épisodes précédents comme vus</string>
+    <string name="add_to_playlist">Ajouter à une playlist…</string>
+    <string name="add_to_collection">Ajouter à une collection…</string>
+    <string name="add_to_playlist_title">Ajouter à une playlist</string>
+    <string name="add_to_collection_title">Ajouter à une collection</string>
+    <string name="new_playlist">Nouvelle playlist…</string>
+    <string name="new_collection">Nouvelle collection…</string>
+    <string name="new_playlist_name">Nom de la nouvelle playlist</string>
+    <string name="new_collection_name">Nom de la nouvelle collection</string>
+    <string name="no_playlists">Aucune playlist pour l’instant.</string>
+    <string name="no_collections">Aucune collection pour l’instant.</string>
+    <string name="list_create">Créer</string>
+    <string name="list_added">Ajouté à « %1$s »</string>
+    <string name="marking_progress">Mise à jour %1$d sur %2$d…</string>
+    <plurals name="marked_watched_count">
+        <item quantity="one">%d épisode marqué comme vu</item>
+        <item quantity="many">%d épisodes marqués comme vus</item>
+        <item quantity="other">%d épisodes marqués comme vus</item>
+    </plurals>
+    <!-- TP-06: several servers (Réglages > Comptes). -->
+    <string name="other_servers">Autres serveurs</string>
+    <string name="other_servers_hint">Les titres de tous vos serveurs se retrouvent dans l’accueil et la recherche, une seule fois chacun.</string>
+    <string name="add_server">Ajouter un serveur</string>
+    <string name="remove_server">Retirer ce serveur</string>
+    <string name="server_is_main">Ce serveur est déjà votre serveur principal.</string>
+    <!-- TP-10: profiles and PIN -->
+    <string name="pin_for">Code PIN de %1$s</string>
+    <string name="pin_wrong">Code PIN incorrect</string>
+    <string name="pin_wait">Trop d’essais. Réessayez dans %1$s</string>
+    <string name="pin_new">Nouveau code PIN</string>
+    <string name="pin_confirm">Confirmez le code PIN</string>
+    <string name="pin_mismatch">Les codes ne correspondent pas</string>
+    <string name="pin_delete">Effacer</string>
+    <string name="pin_change">Changer le code PIN</string>
+    <string name="pin_remove">Supprimer le code PIN</string>
+    <string name="profile_pin">Code PIN du profil</string>
+    <string name="profile_skip_single">Passer s’il n’y a qu’un compte</string>
+    <string name="profiles_hint">Au démarrage, Wicaby demande qui regarde. Le code PIN est demandé quand ce compte est choisi sur ce téléviseur.</string>
+    <string name="profile_expired">Session expirée : entrez le mot de passe.</string>
+    <string name="music_albums">Albums</string>
+    <string name="music_artists">Artistes</string>
+    <string name="music_songs">Titres</string>
+
+    <!-- First-run wizard (OB-T1) -->
+    <string name="welcome_continue">Continuer</string>
+    <string name="welcome_back">Retour</string>
+    <string name="welcome_your_servers">Vos serveurs</string>
+    <string name="welcome_media_servers">Serveurs multimédias</string>
+    <!-- Photos (photos spec PH-06/PH-07). -->
+    <string name="photos_month_jump_hint">Page ou chaîne +/−, ou Bas maintenu, pour changer de mois</string>
+    <string name="screensaver_source">Afficher</string>
+    <string name="screensaver_source_backdrops">Images des films et séries</string>
+    <string name="screensaver_source_photos">Photos</string>
+    <string name="screensaver_source_memories">Ce jour-là</string>
+    <string name="photos_back">Retour</string>
+    <string name="screensaver_album">Album</string>
+    <string name="screensaver_album_all">Toutes les photos</string>
+</resources>

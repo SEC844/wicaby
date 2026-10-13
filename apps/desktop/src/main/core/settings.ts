@@ -1,0 +1,433 @@
+import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { app } from 'electron';
+import { ACCENTS, ASPECT_MODES, LIBRARY_SORTS, SUBTITLE_FONTS, type DeepPartial, type HwDec, type Settings } from '../../shared/contract';
+import { isMpvPathShape } from '../../shared/mpv-args';
+import { validateImport } from '../../shared/shortcuts';
+import { t } from '../i18n';
+import { JsonStore } from './json-store';
+
+// Live TV (livetv-spec-final.md §15). Main-side; contract.ts Settings.live types the keys the renderer
+// shows (the reminder rows in Settings).
+export interface LiveSettings {
+  // "Libérer le tuner avant de changer de chaîne": auto learns break-before-make per server.
+  release: 'auto' | 'always' | 'never';
+  // Learned per server (Auto): break-before-make until this epoch (7 days).
+  releaseFirst: Record<string, { until: number }>;
+  // "Mise en pause du direct" (§8.8): the timeshift window in minutes, 0 = off.
+  timeshiftMinutes: 0 | 15 | 30 | 60 | 120;
+  // Reminders (§9.6): minutes before the start, and "Changer de chaîne au rappel".
+  reminderLeadMin: 0 | 1 | 2 | 5 | 10;
+  reminderAutoTune: boolean;
+}
+
+// What the settings file holds: the shared Settings plus the main-only sections.
+// defaultsVersion: the last one-time migration of changed defaults run on this file (see SettingsService).
+export type StoredSettings = Settings & { live: LiveSettings; defaultsVersion: number };
+
+export function defaultSettings(): StoredSettings {
+  return {
+    ui: {
+      theme: 'dark',
+      accent: 'blue',
+      reduceMotion: false,
+      reduceTransparency: false,
+      sidebarCollapsed: false,
+      homeRows: [],
+      startPage: 'home',
+      confirmQuitDuringPlayback: false,
+      density: 'comfortable',
+      posterSize: 100,
+      cardRatings: false,
+      cardAges: false,
+      cardQuality: false,
+      cardTitles: true,
+      heroEnabled: true,
+      heroAutoplay: true,
+      zoom: 100,
+      libraryView: 'poster',
+      librarySort: 'SortName',
+      librarySortDesc: false,
+      fpsMeter: false,
+      language: 'auto',
+      mergeContinue: true,
+      filesOnHome: false,
+      continueHidden: [],
+      shortcuts: {},
+      onboarded: false,
+    },
+    playback: {
+      player: 'auto',
+      mpvPath: '',
+      useMpvConfig: false,
+      hwdec: 'auto-safe',
+      hdrPassthrough: true,
+      hdrAutoSwitch: false,
+      matchRefreshRate: false,
+      audioExclusive: false,
+      spdif: [],
+      maxBitrateMbps: 120,
+      maxResolution: 0,
+      forceTranscode: false,
+      volumeBoost: false,
+      nightMode: false,
+      dialogueBoost: false,
+      subtitleStyle: { size: 100, font: 'Geist', color: '#FFFFFF', border: 'outline', position: 100, overrideAss: false, scaleWithVideo: false },
+      // '' = the server user's preference (B04).
+      preferredAudioLanguage: '',
+      preferredSubtitleLanguage: '',
+      subtitleSearchLanguage: '',
+      subtitleMode: 'foreign',
+      autoPlayNext: true,
+      startFullscreen: true,
+      skipIntro: 'ask',
+      skipCredits: 'ask',
+      skipRecap: 'ask',
+      skipPreview: 'ask',
+      skipCommercial: 'ask',
+      maxBitrateRemoteMbps: 120,
+      defaultSpeed: 1,
+      upNextSeconds: 10,
+      resume: 'resume',
+      seekShortS: 10,
+      seekLongS: 60,
+      pauseOnMinimize: false,
+      playerByType: { movie: 'default', episode: 'default', music: 'default', live: 'default' },
+      audioDevice: 'auto',
+      normalize: false,
+      alwaysForced: true,
+      mpvArgs: '',
+      aspect: 'fit',
+      cinemaMode: false,
+      // B26: subtitle sync belongs to a file; "per series" is a choice, not the default.
+      rememberScopes: { speed: 'global', audioDelay: 'title', subtitleDelay: 'off', aspect: 'title' },
+    },
+    downloads: {
+      // Linux: the XDG videos folder (XDG_VIDEOS_DIR, localised), which may not be ~/Videos.
+      folder: process.platform === 'win32' ? path.join(os.homedir(), 'Videos', 'Wicaby') : path.join(app.getPath('videos'), 'Wicaby'),
+      maxConcurrent: 2,
+    },
+    system: { hardwareAcceleration: true, comicCacheGb: 2, plainTextVault: false },
+    torrents: { url: '', username: '', notifyOnComplete: true, scanOnComplete: true, magnetHandler: false, libraryMap: [] },
+    trakt: { offServers: [] },
+    remote: { allowControl: true },
+    cast: { discovery: true, relay: true, allowHevc: false, dolby: false },
+    window: {},
+    windows: { closeToTray: false, launchAtStartup: false, trayHintShown: false, notifyDownloads: true, notifyNewEpisodes: true, notifyAdmin: true },
+    live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
+    photos: { map: { enabled: false, tileUrl: OSM_TILES, attribution: '© OpenStreetMap contributors' } },
+    defaultsVersion: 1,
+  };
+}
+
+// Version 1 (0.4.2): files written before it still hold the old defaults the user never changed.
+// French audio and subtitles (B04) become the server's preference, and the per-series subtitle delay
+// (B26) becomes off when no remember scope was touched. Values the user picked stay.
+function migrateDefaults(stored: DeepPartial<StoredSettings>, next: StoredSettings): void {
+  if (typeof stored.defaultsVersion === 'number' && stored.defaultsVersion >= 1) return;
+  const p = stored.playback;
+  if (p?.preferredAudioLanguage === 'fre' && p.preferredSubtitleLanguage === 'fre') {
+    next.playback.preferredAudioLanguage = '';
+    next.playback.preferredSubtitleLanguage = '';
+  }
+  const rs = p?.rememberScopes;
+  if (rs?.speed === 'global' && rs.audioDelay === 'title' && rs.subtitleDelay === 'title' && rs.aspect === 'title') next.playback.rememberScopes.subtitleDelay = 'off';
+}
+
+// The only mpv executables Wicaby will run (version probe, device list, playback):
+// absolute, local drive, not UNC, named mpv.exe (Linux: absolute, named mpv), and an existing file.
+export function isSafeMpvPath(p: unknown): p is string {
+  if (!isMpvPathShape(p, process.platform)) return false;
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+// A map tile template main may fetch: http(s), a host, no credentials, {z} {x} {y} each once in the path or query.
+export function isTileTemplate(v: unknown): v is string {
+  if (typeof v !== 'string' || v.length > 300 || /\s/.test(v)) return false;
+  if (!['{z}', '{x}', '{y}'].every((k) => v.split(k).length === 2)) return false;
+  try {
+    const u = new URL(v.replace(/\{([zxy])\}/g, '0'));
+    return (u.protocol === 'https:' || u.protocol === 'http:') && !!u.hostname && !u.username && !u.password;
+  } catch {
+    return false;
+  }
+}
+
+const SPDIF_CODECS = new Set(['ac3', 'eac3', 'dts', 'dts-hd', 'truehd']);
+
+export class SettingsService extends EventEmitter {
+  private store: JsonStore<StoredSettings>;
+
+  constructor(file: string) {
+    super();
+    this.store = new JsonStore<StoredSettings>(file, defaultSettings());
+    // Fill keys added in newer versions and migrate renamed values.
+    const stored = this.store.value as DeepPartial<StoredSettings>;
+    const next = merge(defaultSettings(), stored);
+    // merge() drops keys the defaults do not have: the learned servers are copied as they are (sanitized below).
+    next.live.releaseFirst = (stored.live?.releaseFirst ?? {}) as LiveSettings['releaseFirst'];
+    next.ui.shortcuts = keepShortcuts(stored, next.ui.shortcuts);
+    migrateDefaults(stored, next);
+    // Onboarding spec 4: a file written before the wizard existed is an install that is already set up.
+    if (stored.ui && typeof stored.ui === 'object' && !('onboarded' in stored.ui)) next.ui.onboarded = true;
+    next.defaultsVersion = 1;
+    this.store.set(sanitize(next));
+  }
+
+  get value(): Settings {
+    return this.store.value;
+  }
+
+  get live(): LiveSettings {
+    return this.store.value.live;
+  }
+
+  update(patch: DeepPartial<Settings>): Settings {
+    const before = this.store.value.live.release;
+    const merged = merge(this.store.value, patch as DeepPartial<StoredSettings>);
+    merged.ui.shortcuts = keepShortcuts(patch, merged.ui.shortcuts);
+    const next = sanitize(merged, this.store.value);
+    // Picking Auto again forgets what Auto learned.
+    if (next.live.release === 'auto' && before !== 'auto') next.live.releaseFirst = {};
+    this.store.set(next);
+    this.emit('change', next);
+    return next;
+  }
+
+  // Learned by live-session.ts (a busy tuner in Auto); null forgets it. Not a user change: no event.
+  setReleaseFirst(serverId: string, until: number | null): void {
+    const live = this.store.value.live;
+    const releaseFirst = { ...live.releaseFirst };
+    if (until === null) delete releaseFirst[serverId];
+    else releaseFirst[serverId] = { until };
+    this.store.set({ ...this.store.value, live: { ...live, releaseFirst } });
+  }
+
+  // Import: a whole document, validated like any other; the window placement stays.
+  replace(doc: unknown): Settings {
+    if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error(t('errors.settings.invalidFile'));
+    const merged = merge(defaultSettings(), doc as DeepPartial<StoredSettings>);
+    merged.ui.shortcuts = keepShortcuts(doc, merged.ui.shortcuts);
+    const next = sanitize(merged);
+    next.window = this.store.value.window;
+    // An import or a reset never runs the first-run setup again.
+    next.ui.onboarded = this.store.value.ui.onboarded;
+    // Consent to unencrypted sign-ins is given on this machine, never by a file.
+    next.system.plainTextVault = this.store.value.system.plainTextVault;
+    // What Auto learned belongs to this machine's network, not to the file.
+    next.live.releaseFirst = this.store.value.live.releaseFirst;
+    this.store.set(next);
+    this.emit('change', next);
+    return next;
+  }
+
+  // Back to defaults; the qBittorrent connection is an account, not a preference, and stays.
+  reset(): Settings {
+    return this.replace({ torrents: this.store.value.torrents });
+  }
+
+  flush(): void {
+    this.store.flush();
+  }
+}
+
+// merge() drops keys the defaults lack, and the shortcut map is keyed by action id: a patch that
+// carries it replaces the whole map (sanitize() then validates it).
+function keepShortcuts(patch: unknown, current: Settings['ui']['shortcuts']): Settings['ui']['shortcuts'] {
+  const ui = (patch as { ui?: { shortcuts?: unknown } } | null)?.ui;
+  return ui && 'shortcuts' in ui ? (ui.shortcuts as Settings['ui']['shortcuts']) : current;
+}
+
+function merge<T>(base: T, patch: DeepPartial<T> | undefined): T {
+  if (!patch || typeof patch !== 'object') return base;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(patch)) {
+    // Ignore unknown keys from the renderer; the optional window keys have no default.
+    if (!(key in out) && key !== 'bounds' && key !== 'maximized') continue;
+    const current = out[key];
+    if (value && typeof value === 'object' && !Array.isArray(value) && current && typeof current === 'object' && !Array.isArray(current)) {
+      out[key] = merge(current, value as DeepPartial<typeof current>);
+    } else if (value !== undefined) {
+      out[key] = value;
+    }
+  }
+  return out as T;
+}
+
+function clamp(n: unknown, min: number, max: number, fallback: number): number {
+  return typeof n === 'number' && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+function oneOf<T>(v: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(v as T) ? (v as T) : fallback;
+}
+
+// Fields added with the expanded settings panes.
+function sanitizeExtras(s: Settings, d: Settings): void {
+  const u = s.ui;
+  u.startPage = typeof u.startPage === 'string' && /^(home|favorites|library:[A-Za-z0-9-]{1,64})$/.test(u.startPage) ? u.startPage : 'home';
+  u.density = oneOf(u.density, ['comfortable', 'compact'] as const, 'comfortable');
+  u.posterSize = Math.round(clamp(u.posterSize, 80, 130, d.ui.posterSize));
+  u.zoom = Math.round(clamp(u.zoom, 90, 125, d.ui.zoom));
+  u.libraryView = oneOf(u.libraryView, ['poster', 'thumb'] as const, 'poster');
+  u.librarySort = oneOf(u.librarySort, LIBRARY_SORTS, 'SortName');
+  u.language = oneOf(u.language, ['auto', 'fr', 'en'] as const, 'auto');
+  for (const k of ['confirmQuitDuringPlayback', 'cardRatings', 'cardAges', 'cardQuality', 'librarySortDesc', 'fpsMeter', 'onboarded', 'filesOnHome'] as const) u[k] = u[k] === true;
+  for (const k of ['cardTitles', 'heroEnabled', 'heroAutoplay', 'mergeContinue'] as const) u[k] = u[k] !== false;
+  const short = (v: unknown, max: number): v is string => typeof v === 'string' && v.length <= max;
+  // Capped at 500, the oldest first out (renderer/lib/continue.ts HIDE_CAP).
+  u.continueHidden = (Array.isArray(u.continueHidden) ? u.continueHidden : [])
+    .filter((e) => e && short(e.key, 400) && e.key.length > 0 && short(e.played, 40))
+    .slice(-500)
+    .map(({ key, played }) => ({ key, played }));
+  // X-04: an invalid map (unknown action, bad combo, conflict) is dropped as a whole.
+  u.shortcuts = validateImport(u.shortcuts) ?? {};
+
+  const p = s.playback;
+  const skip = ['ask', 'auto', 'off'] as const;
+  for (const k of ['skipCredits', 'skipRecap', 'skipPreview', 'skipCommercial'] as const) p[k] = oneOf(p[k], skip, 'ask');
+  p.maxBitrateRemoteMbps = clamp(p.maxBitrateRemoteMbps, 1, 400, d.playback.maxBitrateRemoteMbps);
+  p.defaultSpeed = oneOf(p.defaultSpeed, [0.75, 1, 1.1, 1.25, 1.5, 2], 1);
+  p.upNextSeconds = Math.round(clamp(p.upNextSeconds, 5, 30, d.playback.upNextSeconds));
+  p.resume = oneOf(p.resume, ['ask', 'resume', 'start'] as const, 'resume');
+  p.seekShortS = oneOf(p.seekShortS, [5, 10, 15, 20, 30], 10);
+  p.seekLongS = oneOf(p.seekLongS, [30, 60, 120, 300, 600], 60);
+  p.pauseOnMinimize = p.pauseOnMinimize === true;
+  p.normalize = p.normalize === true;
+  p.alwaysForced = p.alwaysForced !== false;
+  const types = ['default', 'mpv', 'html'] as const;
+  const byType = p.playerByType ?? d.playback.playerByType;
+  p.playerByType = {
+    movie: oneOf(byType.movie, types, 'default'),
+    episode: oneOf(byType.episode, types, 'default'),
+    music: oneOf(byType.music, types, 'default'),
+    live: oneOf(byType.live, types, 'default'),
+  };
+  // A device name goes to mpv as one argv entry; it never reaches a shell.
+  p.audioDevice = typeof p.audioDevice === 'string' && p.audioDevice.length <= 300 && !/[\r\n\0]/.test(p.audioDevice) && p.audioDevice ? p.audioDevice : 'auto';
+  p.mpvArgs = typeof p.mpvArgs === 'string' ? p.mpvArgs.replace(/[\r\n\0]+/g, ' ').slice(0, 2000) : '';
+  p.aspect = oneOf(p.aspect, ASPECT_MODES, 'fit');
+  p.cinemaMode = p.cinemaMode === true;
+  const scopes = ['off', 'global', 'library', 'title'] as const;
+  const rs = { ...d.playback.rememberScopes, ...(p.rememberScopes ?? {}) };
+  p.rememberScopes = {
+    speed: oneOf(rs.speed, scopes, 'global'),
+    audioDelay: oneOf(rs.audioDelay, scopes, 'title'),
+    subtitleDelay: oneOf(rs.subtitleDelay, scopes, 'title'),
+    aspect: oneOf(rs.aspect, scopes, 'title'),
+  };
+
+  const sys = (s.system = { ...d.system, ...(s.system ?? {}) });
+  sys.hardwareAcceleration = sys.hardwareAcceleration !== false;
+  sys.comicCacheGb = oneOf(sys.comicCacheGb, [0.5, 1, 2, 5, 10], 2);
+  sys.plainTextVault = sys.plainTextVault === true;
+}
+
+function sanitizeLive(s: StoredSettings): void {
+  const l = (s.live = { ...defaultSettings().live, ...(s.live ?? {}) });
+  l.release = oneOf(l.release, ['auto', 'always', 'never'] as const, 'auto');
+  l.timeshiftMinutes = oneOf(l.timeshiftMinutes, [0, 15, 30, 60, 120] as const, 15);
+  l.reminderLeadMin = oneOf(l.reminderLeadMin, [0, 1, 2, 5, 10] as const, 2);
+  l.reminderAutoTune = l.reminderAutoTune === true;
+  const now = Date.now();
+  const learned: Record<string, { until: number }> = {};
+  const src = l.releaseFirst && typeof l.releaseFirst === 'object' && !Array.isArray(l.releaseFirst) ? l.releaseFirst : {};
+  for (const [id, v] of Object.entries(src).slice(0, 64)) {
+    const until = (v as { until?: unknown })?.until;
+    // Expired entries go; a date further than the 7-day memory is not believed.
+    if (id.length <= 128 && typeof until === 'number' && until > now && until <= now + 7 * 86_400_000 + 60_000) learned[id] = { until };
+  }
+  l.releaseFirst = learned;
+}
+
+// keep: the values a refused edit falls back to (the current ones on an update, else the defaults).
+function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
+  const d = defaultSettings();
+  s.ui.theme = s.ui.theme === 'oled' ? 'oled' : 'dark';
+  s.ui.accent = ACCENTS.includes(s.ui.accent) ? s.ui.accent : 'blue';
+  const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length <= 80).slice(0, 64) : []);
+  s.ui.homeRows = (Array.isArray(s.ui.homeRows) ? s.ui.homeRows : [])
+    .filter((p) => p && typeof p.user === 'string' && p.user.length <= 160)
+    .slice(-16)
+    .map((p) => ({ user: p.user, order: ids(p.order), hidden: ids(p.hidden) }));
+  s.playback.player = (['auto', 'mpv', 'html'] as const).includes(s.playback.player) ? s.playback.player : 'auto';
+  // Only the values this platform's picker offers; an imported value from the other OS goes back to Auto.
+  const hwdecs = process.platform === 'win32' ? (['auto-safe', 'd3d11va', 'nvdec', 'no'] as const) : (['auto-safe', 'nvdec', 'vaapi', 'vulkan', 'no'] as const);
+  s.playback.hwdec = oneOf<HwDec>(s.playback.hwdec, hwdecs, 'auto-safe');
+  // Older builds had "only forced" and "never": both became Manuel, which shows forced tracks only.
+  const mode = s.playback.subtitleMode as string;
+  s.playback.subtitleMode = (['manual', 'foreign', 'always', 'default'] as const).includes(s.playback.subtitleMode)
+    ? s.playback.subtitleMode
+    : mode === 'only-forced' || mode === 'none'
+      ? 'manual'
+      : d.playback.subtitleMode;
+  s.playback.maxResolution = [0, 720, 1080, 1440, 2160].includes(s.playback.maxResolution) ? s.playback.maxResolution : 0;
+  for (const k of ['forceTranscode', 'volumeBoost', 'nightMode', 'dialogueBoost'] as const) s.playback[k] = s.playback[k] === true;
+  const st = s.playback.subtitleStyle;
+  const ds = d.playback.subtitleStyle;
+  s.playback.subtitleStyle = {
+    size: Math.round(clamp(st?.size, 50, 200, ds.size)),
+    font: SUBTITLE_FONTS.includes(st?.font as (typeof SUBTITLE_FONTS)[number]) ? st.font : ds.font,
+    color: typeof st?.color === 'string' && /^#[0-9a-f]{6}$/i.test(st.color) ? st.color.toUpperCase() : ds.color,
+    border: (['outline', 'shadow', 'box'] as const).includes(st?.border) ? st.border : ds.border,
+    position: Math.round(clamp(st?.position, 50, 100, ds.position)),
+    overrideAss: st?.overrideAss === true,
+    scaleWithVideo: st?.scaleWithVideo === true,
+  };
+  s.playback.hdrAutoSwitch = s.playback.hdrAutoSwitch === true;
+  s.playback.skipIntro = (['ask', 'auto', 'off'] as const).includes(s.playback.skipIntro) ? s.playback.skipIntro : 'ask';
+  s.playback.spdif = Array.isArray(s.playback.spdif) ? s.playback.spdif.filter((c) => SPDIF_CODECS.has(c)) : [];
+  s.playback.maxBitrateMbps = clamp(s.playback.maxBitrateMbps, 1, 400, d.playback.maxBitrateMbps);
+  // Wicaby runs this file: an mpv.exe on a local drive (Linux: an absolute .../mpv), or nothing. Existence is checked
+  // where it is run (isSafeMpvPath), so a drive that is not mounted yet does not wipe it.
+  s.playback.mpvPath = isMpvPathShape(s.playback.mpvPath, process.platform) ? s.playback.mpvPath : '';
+  s.playback.preferredAudioLanguage = String(s.playback.preferredAudioLanguage ?? '').slice(0, 8);
+  s.playback.preferredSubtitleLanguage = String(s.playback.preferredSubtitleLanguage ?? '').slice(0, 8);
+  s.playback.subtitleSearchLanguage = String(s.playback.subtitleSearchLanguage ?? '').slice(0, 8);
+  s.downloads.maxConcurrent = Math.round(clamp(s.downloads.maxConcurrent, 1, 6, d.downloads.maxConcurrent));
+  // Downloads must land on a local absolute folder: a UNC or drive-relative path would let a
+  // compromised renderer send files (and NTLM credentials) to a remote share.
+  s.downloads.folder = isLocalAbsoluteFolder(s.downloads.folder) ? s.downloads.folder : d.downloads.folder;
+  sanitizeExtras(s, d);
+  sanitizeLive(s);
+  s.windows = { ...d.windows, ...(s.windows ?? {}) };
+  for (const k of ['closeToTray', 'launchAtStartup', 'trayHintShown'] as const) s.windows[k] = s.windows[k] === true;
+  for (const k of ['notifyDownloads', 'notifyNewEpisodes', 'notifyAdmin'] as const) s.windows[k] = s.windows[k] !== false;
+  const t = (s.torrents = { ...d.torrents, ...(s.torrents ?? {}) });
+  t.url = typeof t.url === 'string' && t.url.length <= 512 && /^https?:\/\/[^\s/]+/i.test(t.url) ? t.url.replace(/\/+$/, '') : '';
+  t.username = typeof t.username === 'string' ? t.username.slice(0, 256) : '';
+  for (const k of ['notifyOnComplete', 'scanOnComplete', 'magnetHandler'] as const) t[k] = typeof t[k] === 'boolean' ? t[k] : d.torrents[k];
+  const short = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max;
+  t.libraryMap = (Array.isArray(t.libraryMap) ? t.libraryMap : [])
+    .filter((l) => l && short(l.category, 200) && short(l.serverId, 128) && short(l.libraryId, 128) && short(l.libraryName, 200))
+    .slice(0, 64)
+    .map(({ category, serverId, libraryId, libraryName }) => ({ category, serverId, libraryId, libraryName }));
+  s.trakt = { offServers: ids(s.trakt?.offServers) };
+  s.remote = { allowControl: s.remote?.allowControl !== false };
+  s.cast = { discovery: s.cast?.discovery !== false, relay: s.cast?.relay !== false, allowHevc: s.cast?.allowHevc === true, dolby: s.cast?.dolby === true };
+  const m = s.photos?.map;
+  s.photos = {
+    map: {
+      enabled: m?.enabled === true,
+      // A mistyped edit keeps the server in use rather than switching to tile.openstreetmap.org.
+      tileUrl: isTileTemplate(m?.tileUrl) ? m.tileUrl : (keep?.photos?.map?.tileUrl ?? OSM_TILES),
+      attribution: typeof m?.attribution === 'string' && m.attribution.trim() && m.attribution.length <= 200 ? m.attribution.trim() : d.photos.map.attribution,
+    },
+  };
+  return s;
+}
+
+export function isLocalAbsoluteFolder(p: unknown, platform: string = process.platform): p is string {
+  if (typeof p !== 'string' || !p || p.length > 260 || /[\u0000-\u001f?*"<>|]/.test(p)) return false;
+  // Drive-absolute only (D:\Media or D:/Media): UNC (\\server\share, \\?\, //host) is refused, see the call site.
+  if (platform === 'win32') return /^[A-Za-z]:[\\/]/.test(p);
+  return path.posix.isAbsolute(p);
+}

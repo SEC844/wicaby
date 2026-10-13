@@ -1,0 +1,90 @@
+{
+  "playback": {
+    "mpvMissing": "mpv wasn’t found. Playing with the built-in player.",
+    "mpvHung": "mpv stopped responding. Resuming in the built-in player.",
+    "delayMpvOnly": "Offsets can only be adjusted with mpv",
+    "trackFallback": "Track {index}"
+  },
+  "tray": {
+    "open": "Open Wicaby",
+    "nowPlaying": "Now Playing",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "stop": "Stop",
+    "quit": "Quit",
+    "paused": "Paused",
+    "continue": "Continue Watching"
+  },
+  "thumbar": {
+    "previous": "Previous",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next"
+  },
+  "jumpList": {
+    "home": "Home",
+    "homeDesc": "Open Home",
+    "search": "Search",
+    "searchDesc": "Search your library",
+    "downloads": "Downloads",
+    "downloadsDesc": "Content available offline",
+    "settings": "Settings",
+    "settingsDesc": "Wicaby settings",
+    "continue": "Continue Watching",
+    "continueDesc": "Pick up where you left off"
+  },
+  "notify": {
+    "trayHintTitle": "Wicaby is still running",
+    "trayHintBody": "The window is in the notification area and playback continues. To quit, right-click the Wicaby icon.",
+    "trayHintBodyLinux": "The window is in the system tray and playback continues. To quit, right-click the Wicaby icon.",
+    "downloadDone": "Download complete",
+    "downloadsDone": "{count, plural, one {# download complete} other {# downloads complete}}",
+    "availableOffline": "Available offline.",
+    "newEpisode": "New episode available",
+    "newEpisodes": "{count, plural, one {# new episode available} other {# new episodes available}}",
+    "newEpisodesAny": "New episodes available",
+    "episodeLabel": "Season {season}, Episode {episode} · {name}",
+    "play": "Play",
+    "markWatched": "Mark as Watched",
+    "admin": {
+      "taskFailed": "Scheduled Task Failed",
+      "restartTitle": "Server Restart Required",
+      "restartBody": "{server} needs a restart to apply changes.",
+      "updateTitle": "Server Update Available",
+      "updateBody": "A new version is available for {server}."
+    },
+    "reminderTitle": "{title} Is Starting",
+    "reminderBody": "On {channel} at {time}",
+    "channelNotFound": "Channel not found: {channel}",
+    "reminderAction": "Watch"
+  },
+  "dialog": {
+    "quitPlayback": {
+      "message": "Something is playing",
+      "detail": "Quitting Wicaby stops playback."
+    },
+    "settingsExportName": "wicaby-settings.json"
+  },
+  "torrents": {
+    "completedTitle": "Torrent complete",
+    "completedAddedTo": "{name}\nAdded to {library}"
+  },
+  "downloads": {
+    "folders": {
+      "movies": "Movies",
+      "series": "TV Shows",
+      "season": "Season {number}",
+      "music": "Music",
+      "books": "Books",
+      "untitled": "Untitled",
+      "artist": "Unknown Artist",
+      "album": "Unknown Album",
+      "show": "TV Show",
+      "photos": "Photos"
+    }
+  },
+  "vault": {
+    "memoryOnly": "No system keyring found: sign-ins are kept only until Wicaby closes. See Settings > Privacy & Storage."
+  }
+}

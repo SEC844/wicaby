@@ -1,0 +1,43 @@
+{
+  "button": "Diffuser",
+  "picker": {
+    "title": "Lire sur…",
+    "thisDevice": "Cet ordinateur",
+    "section": {
+      "apps": "Applications",
+      "dlna": "Téléviseurs et lecteurs (DLNA/UPnP)",
+      "chromecast": "Chromecast et Google TV"
+    },
+    "searching": "Recherche d’appareils…",
+    "empty": "Aucun appareil trouvé sur ce réseau",
+    "emptyHint": "Vérifiez que l’appareil est allumé et sur le même réseau.",
+    "viaServer": "via {server}",
+    "firewall": "Le pare-feu bloque la recherche des téléviseurs"
+  },
+  "bar": {
+    "castingTo": "Lecture sur {device}"
+  },
+  "remote": {
+    "stop": "Arrêter la diffusion",
+    "playHere": "Reprendre ici",
+    "volume": "Volume",
+    "audio": "Audio",
+    "subtitles": "Sous-titres",
+    "unavailable": "Non pris en charge par cet appareil"
+  },
+  "toast": {
+    "started": "Lecture lancée sur {device}"
+  },
+  "error": {
+    "unreachable": "{device} ne répond pas",
+    "rejected": "{device} a refusé ce média",
+    "lost": "Connexion à {device} perdue",
+    "lanOnly": "{device} ne peut pas joindre le serveur sur le réseau local",
+    "relayBlocked": "{device} ne peut pas joindre cet ordinateur. Autorisez Wicaby dans le pare-feu ou désactivez « Faire passer le flux par cet ordinateur »."
+  },
+  "quit": {
+    "title": "Arrêter la diffusion ?",
+    "body": "La lecture sur {device} s’arrêtera.",
+    "confirm": "Arrêter et quitter"
+  }
+}

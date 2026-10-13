@@ -1,0 +1,1371 @@
+{
+  "about": "Request builders (§5) for every op on emby and jellyfin: {method, path, query, body?}; null = the server has no such op. fn = the op name; args = [kind, op args]. Times in args are epoch ms; query dates are ISO UTC with milliseconds.",
+  "cases": [
+    {
+      "name": "emby info",
+      "fn": "info",
+      "args": ["emby",{}],
+      "out": {"method":"GET","path":"/LiveTv/Info","query":{}}
+    },
+    {
+      "name": "emby guideInfo",
+      "fn": "guideInfo",
+      "args": ["emby",{}],
+      "out": {"method":"GET","path":"/LiveTv/GuideInfo","query":{}}
+    },
+    {
+      "name": "emby channelsPage {\"userId\":\"u1\",\"startIndex\":0,\"limit\":500}",
+      "fn": "channelsPage",
+      "args": ["emby",{"userId":"u1","startIndex":0,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "StartIndex": "0",
+          "Limit": "500",
+          "EnableTotalRecordCount": "true",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": "1",
+          "EnableUserData": "true",
+          "AddCurrentProgram": "false",
+          "Fields": "Tags"
+        }
+      }
+    },
+    {
+      "name": "emby channelsPage {\"userId\":\"u1\",\"startIndex\":500,\"limit\":500}",
+      "fn": "channelsPage",
+      "args": ["emby",{"userId":"u1","startIndex":500,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "StartIndex": "500",
+          "Limit": "500",
+          "EnableTotalRecordCount": "false",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": "1",
+          "EnableUserData": "true",
+          "AddCurrentProgram": "false",
+          "Fields": "Tags"
+        }
+      }
+    },
+    {
+      "name": "emby channelCategorySet {\"userId\":\"u1\",\"category\":\"movies\"}",
+      "fn": "channelCategorySet",
+      "args": ["emby",{"userId":"u1","category":"movies"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {"UserId":"u1","IsMovie":"true","EnableImages":"false","EnableUserData":"false","Limit":"5000"}
+      }
+    },
+    {
+      "name": "emby channelCategorySet {\"userId\":\"u1\",\"category\":\"kids\"}",
+      "fn": "channelCategorySet",
+      "args": ["emby",{"userId":"u1","category":"kids"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {"UserId":"u1","IsKids":"true","EnableImages":"false","EnableUserData":"false","Limit":"5000"}
+      }
+    },
+    {
+      "name": "emby channelCategorySet {\"userId\":\"u1\",\"category\":\"new\"}",
+      "fn": "channelCategorySet",
+      "args": ["emby",{"userId":"u1","category":"new"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "IsNewOrPremiere": "true",
+          "EnableImages": "false",
+          "EnableUserData": "false",
+          "Limit": "5000"
+        }
+      }
+    },
+    {
+      "name": "emby channelTags {\"userId\":\"u1\"}",
+      "fn": "channelTags",
+      "args": ["emby",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/LiveTv/ChannelTags","query":{"UserId":"u1"}}
+    },
+    {
+      "name": "emby programsTile {\"userId\":\"u1\",\"channelIds\":[\"c1\",\"c2\",\"c3\"],\"from\":17926920",
+      "fn": "programsTile",
+      "args": ["emby",{"userId":"u1","channelIds":["c1","c2","c3"],"from":1792692000000,"to":1792735200000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1,c2,c3",
+          "MinEndDate": "2026-10-22T18:00:00.000Z",
+          "MaxStartDate": "2026-10-23T06:00:00.000Z",
+          "SortBy": "StartDate",
+          "EnableImages": "false",
+          "EnableUserData": "false",
+          "EnableTotalRecordCount": "false"
+        }
+      }
+    },
+    {
+      "name": "emby programsTile {\"userId\":\"u1\",\"channelIds\":[\"c1\"],\"from\":1792692000000,\"to\"",
+      "fn": "programsTile",
+      "args": ["emby",{"userId":"u1","channelIds":["c1"],"from":1792692000000,"to":1792702800000,"genres":true}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1",
+          "MinEndDate": "2026-10-22T18:00:00.000Z",
+          "MaxStartDate": "2026-10-22T21:00:00.000Z",
+          "SortBy": "StartDate",
+          "EnableImages": "false",
+          "EnableUserData": "false",
+          "EnableTotalRecordCount": "false",
+          "Fields": "Genres"
+        }
+      }
+    },
+    {
+      "name": "emby programNowNext {\"userId\":\"u1\",\"channelId\":\"c1\",\"now\":1792696320000}",
+      "fn": "programNowNext",
+      "args": ["emby",{"userId":"u1","channelId":"c1","now":1792696320000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1",
+          "MinEndDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-23T03:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "4",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "emby programDetail {\"userId\":\"u1\",\"id\":\"p 1\"}",
+      "fn": "programDetail",
+      "args": ["emby",{"userId":"u1","id":"p 1"}],
+      "out": {"method":"GET","path":"/LiveTv/Programs/p%201","query":{"UserId":"u1"}}
+    },
+    {
+      "name": "emby onNow {\"userId\":\"u1\",\"now\":1792696320000}",
+      "fn": "onNow",
+      "args": ["emby",{"userId":"u1","now":1792696320000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs/Recommended",
+        "query": {
+          "UserId": "u1",
+          "IsAiring": "true",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres"
+        }
+      }
+    },
+    {
+      "name": "emby onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"sports\"}",
+      "fn": "onNow",
+      "args": ["emby",{"userId":"u1","now":1792696320000,"category":"sports"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs/Recommended",
+        "query": {
+          "UserId": "u1",
+          "IsAiring": "true",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres",
+          "IsSports": "true"
+        }
+      }
+    },
+    {
+      "name": "emby onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"movies\",\"sour",
+      "fn": "onNow",
+      "args": ["emby",{"userId":"u1","now":1792696320000,"category":"movies","source":"window"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "MinEndDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-22T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres",
+          "IsMovie": "true"
+        }
+      }
+    },
+    {
+      "name": "emby onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"new\"}",
+      "fn": "onNow",
+      "args": ["emby",{"userId":"u1","now":1792696320000,"category":"new"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs/Recommended",
+        "query": {
+          "UserId": "u1",
+          "IsAiring": "true",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres",
+          "IsNewOrPremiere": "true"
+        }
+      }
+    },
+    {
+      "name": "emby onLater {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"movies\"}",
+      "fn": "onLater",
+      "args": ["emby",{"userId":"u1","now":1792696320000,"category":"movies"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "IsMovie": "true",
+          "MinStartDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "24"
+        }
+      }
+    },
+    {
+      "name": "emby searchPrograms {\"userId\":\"u1\",\"query\":\"Néon\",\"now\":1792696320000,\"guideEnd\"",
+      "fn": "searchPrograms",
+      "args": ["emby",{"userId":"u1","query":"Néon","now":1792696320000,"guideEnd":1793301120000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SearchTerm": "Néon",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-29T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "30",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "emby otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000}",
+      "fn": "otherAirings",
+      "args": ["emby",{"userId":"u1","name":"Grand Format","now":1792696320000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SearchTerm": "Grand Format",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "50",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "emby otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000,\"li",
+      "fn": "otherAirings",
+      "args": ["emby",{"userId":"u1","name":"Grand Format","now":1792696320000,"librarySeriesId":"ls1"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SearchTerm": "Grand Format",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "50",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "emby otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000,\"se",
+      "fn": "otherAirings",
+      "args": ["emby",{"userId":"u1","name":"Grand Format","now":1792696320000,"seriesTimerId":"st1"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SearchTerm": "Grand Format",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "50",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "emby timers",
+      "fn": "timers",
+      "args": ["emby",{}],
+      "out": {"method":"GET","path":"/LiveTv/Timers","query":{}}
+    },
+    {
+      "name": "emby timersOfRule {\"id\":\"st1\"}",
+      "fn": "timersOfRule",
+      "args": ["emby",{"id":"st1"}],
+      "out": {"method":"GET","path":"/LiveTv/Timers","query":{"SeriesTimerId":"st1"}}
+    },
+    {
+      "name": "emby seriesTimers",
+      "fn": "seriesTimers",
+      "args": ["emby",{}],
+      "out": {"method":"GET","path":"/LiveTv/SeriesTimers","query":{}}
+    },
+    {
+      "name": "emby seriesTimer {\"id\":\"st1\"}",
+      "fn": "seriesTimer",
+      "args": ["emby",{"id":"st1"}],
+      "out": {"method":"GET","path":"/LiveTv/SeriesTimers/st1","query":{}}
+    },
+    {
+      "name": "emby timerDefaults {\"programId\":\"p1\"}",
+      "fn": "timerDefaults",
+      "args": ["emby",{"programId":"p1"}],
+      "out": {"method":"GET","path":"/LiveTv/Timers/Defaults","query":{"ProgramId":"p1"}}
+    },
+    {
+      "name": "emby recordingOptions {\"userId\":\"u1\"}",
+      "fn": "recordingOptions",
+      "args": ["emby",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/LiveTv/AvailableRecordingOptions","query":{}}
+    },
+    {
+      "name": "emby recordings {\"userId\":\"u1\",\"startIndex\":0,\"limit\":500}",
+      "fn": "recordings",
+      "args": ["emby",{"userId":"u1","startIndex":0,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Recordings",
+        "query": {
+          "UserId": "u1",
+          "Fields": "Overview,PrimaryImageAspectRatio,DateCreated",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "StartIndex": "0",
+          "Limit": "500"
+        }
+      }
+    },
+    {
+      "name": "emby recordings {\"userId\":\"u1\",\"inProgress\":true}",
+      "fn": "recordings",
+      "args": ["emby",{"userId":"u1","inProgress":true}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Recordings",
+        "query": {
+          "UserId": "u1",
+          "Fields": "Overview,PrimaryImageAspectRatio,DateCreated",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "StartIndex": "0",
+          "Limit": "500",
+          "IsInProgress": "true"
+        }
+      }
+    },
+    {
+      "name": "emby displayPrefs {\"userId\":\"u1\"}",
+      "fn": "displayPrefs",
+      "args": ["emby",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/DisplayPreferences/wicaby-livetv","query":{"UserId":"u1","Client":"wicaby"}}
+    },
+    {
+      "name": "emby setFavorite {\"userId\":\"u1\",\"id\":\"c1\",\"favorite\":true}",
+      "fn": "setFavorite",
+      "args": ["emby",{"userId":"u1","id":"c1","favorite":true}],
+      "out": {"method":"POST","path":"/Users/u1/FavoriteItems/c1","query":{}}
+    },
+    {
+      "name": "emby setFavorite {\"userId\":\"u1\",\"id\":\"c1\",\"favorite\":false}",
+      "fn": "setFavorite",
+      "args": ["emby",{"userId":"u1","id":"c1","favorite":false}],
+      "out": {"method":"DELETE","path":"/Users/u1/FavoriteItems/c1","query":{}}
+    },
+    {
+      "name": "emby createTimer {\"body\":{\"ProgramId\":\"p1\",\"PrePaddingSeconds\":0}}",
+      "fn": "createTimer",
+      "args": ["emby",{"body":{"ProgramId":"p1","PrePaddingSeconds":0}}],
+      "out": {"method":"POST","path":"/LiveTv/Timers","query":{},"body":{"ProgramId":"p1","PrePaddingSeconds":0}}
+    },
+    {
+      "name": "emby updateTimer {\"id\":\"t1\",\"body\":{\"Id\":\"t1\",\"PostPaddingSeconds\":1800}}",
+      "fn": "updateTimer",
+      "args": ["emby",{"id":"t1","body":{"Id":"t1","PostPaddingSeconds":1800}}],
+      "out": {"method":"POST","path":"/LiveTv/Timers/t1","query":{},"body":{"Id":"t1","PostPaddingSeconds":1800}}
+    },
+    {
+      "name": "emby cancelTimer {\"id\":\"t1\"}",
+      "fn": "cancelTimer",
+      "args": ["emby",{"id":"t1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/Timers/t1","query":{}}
+    },
+    {
+      "name": "emby createSeriesTimer {\"body\":{\"ProgramId\":\"p1\",\"RecordNewOnly\":true}}",
+      "fn": "createSeriesTimer",
+      "args": ["emby",{"body":{"ProgramId":"p1","RecordNewOnly":true}}],
+      "out": {
+        "method": "POST",
+        "path": "/LiveTv/SeriesTimers",
+        "query": {},
+        "body": {"ProgramId":"p1","RecordNewOnly":true}
+      }
+    },
+    {
+      "name": "emby updateSeriesTimer {\"id\":\"st1\",\"body\":{\"Id\":\"st1\",\"KeepUpTo\":5}}",
+      "fn": "updateSeriesTimer",
+      "args": ["emby",{"id":"st1","body":{"Id":"st1","KeepUpTo":5}}],
+      "out": {"method":"POST","path":"/LiveTv/SeriesTimers/st1","query":{},"body":{"Id":"st1","KeepUpTo":5}}
+    },
+    {
+      "name": "emby deleteSeriesTimer {\"id\":\"st1\"}",
+      "fn": "deleteSeriesTimer",
+      "args": ["emby",{"id":"st1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/SeriesTimers/st1","query":{}}
+    },
+    {
+      "name": "emby deleteRecording {\"id\":\"r1\"}",
+      "fn": "deleteRecording",
+      "args": ["emby",{"id":"r1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/Recordings/r1","query":{}}
+    },
+    {
+      "name": "emby deleteItem {\"id\":\"r1\"}",
+      "fn": "deleteItem",
+      "args": ["emby",{"id":"r1"}],
+      "out": {"method":"DELETE","path":"/Items/r1","query":{}}
+    },
+    {
+      "name": "emby saveDisplayPrefs {\"userId\":\"u1\",\"body\":{\"Id\":\"x\",\"Client\":\"emby\",\"SortBy\":\"So",
+      "fn": "saveDisplayPrefs",
+      "args": [
+        "emby",
+        {"userId":"u1","body":{"Id":"x","Client":"emby","SortBy":"SortName","CustomPrefs":{"lt.v":"1"}}}
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/DisplayPreferences/wicaby-livetv",
+        "query": {"UserId":"u1","Client":"wicaby"},
+        "body": {"Id":"wicaby-livetv","Client":"wicaby","SortBy":"SortName","CustomPrefs":{"lt.v":"1"}}
+      }
+    },
+    {
+      "name": "emby tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":120000000,\"rung",
+      "fn": "tune",
+      "args": [
+        "emby",
+        {"userId":"u1","channelId":"c1","maxBitrate":120000000,"rung":0,"deviceProfile":{"Name":"Wicaby"}}
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "120000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {
+          "DeviceProfile": {"Name":"Wicaby"},
+          "EnableDirectPlay": true,
+          "EnableDirectStream": true,
+          "EnableTranscoding": true
+        }
+      }
+    },
+    {
+      "name": "emby tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["emby",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":1}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {"DeviceProfile":{},"EnableDirectPlay":false,"EnableDirectStream":true,"EnableTranscoding":true}
+      }
+    },
+    {
+      "name": "emby tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["emby",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":2}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {
+          "DeviceProfile": {},
+          "EnableDirectPlay": false,
+          "EnableDirectStream": true,
+          "EnableTranscoding": true,
+          "AllowVideoStreamCopy": false,
+          "AllowAudioStreamCopy": false
+        }
+      }
+    },
+    {
+      "name": "emby tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["emby",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":0,"autoOpen":false}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "false",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {"DeviceProfile":{},"EnableDirectPlay":true,"EnableDirectStream":true,"EnableTranscoding":true}
+      }
+    },
+    {
+      "name": "emby open {\"userId\":\"u1\",\"itemId\":\"c1\",\"playSessionId\":\"ps1\",\"maxBitra",
+      "fn": "open",
+      "args": ["emby",{"userId":"u1","itemId":"c1","playSessionId":"ps1","maxBitrate":20000000,"openToken":"tok"}],
+      "out": {
+        "method": "POST",
+        "path": "/LiveStreams/Open",
+        "query": {"UserId":"u1","ItemId":"c1","PlaySessionId":"ps1","MaxStreamingBitrate":"20000000","OpenToken":"tok"},
+        "body": {
+          "OpenToken": "tok",
+          "DeviceProfile": {},
+          "UserId": "u1",
+          "ItemId": "c1",
+          "PlaySessionId": "ps1",
+          "MaxStreamingBitrate": 20000000
+        }
+      }
+    },
+    {
+      "name": "emby close {\"liveStreamId\":\"ls1\",\"playSessionId\":\"ps1\"}",
+      "fn": "close",
+      "args": ["emby",{"liveStreamId":"ls1","playSessionId":"ps1"}],
+      "out": {"method":"POST","path":"/LiveStreams/Close","query":{"LiveStreamId":"ls1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "emby killEncodes {\"deviceId\":\"dev1\",\"playSessionId\":\"ps1\"}",
+      "fn": "killEncodes",
+      "args": ["emby",{"deviceId":"dev1","playSessionId":"ps1"}],
+      "out": {"method":"DELETE","path":"/Videos/ActiveEncodings","query":{"DeviceId":"dev1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "emby staticStream {\"itemId\":\"c1\",\"container\":\"ts\",\"mediaSourceId\":\"ms1\",\"liveS",
+      "fn": "staticStream",
+      "args": [
+        "emby",
+        {
+          "itemId": "c1",
+          "container": "ts",
+          "mediaSourceId": "ms1",
+          "liveStreamId": "ls1",
+          "deviceId": "dev1",
+          "playSessionId": "ps1"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/Videos/c1/stream.ts",
+        "query": {"Static":"true","MediaSourceId":"ms1","LiveStreamId":"ls1","DeviceId":"dev1","PlaySessionId":"ps1"}
+      }
+    },
+    {
+      "name": "emby reportPlaying {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportPlaying",
+      "args": [
+        "emby",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "DirectStream"
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "DirectStream",
+          "IsPaused": false,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "emby reportProgress {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportProgress",
+      "args": [
+        "emby",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "Transcode",
+          "isPaused": true
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing/Progress",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "Transcode",
+          "IsPaused": true,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "emby reportStopped {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportStopped",
+      "args": [
+        "emby",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "DirectPlay"
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing/Stopped",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "DirectPlay",
+          "IsPaused": false,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "jellyfin info",
+      "fn": "info",
+      "args": ["jellyfin",{}],
+      "out": {"method":"GET","path":"/LiveTv/Info","query":{}}
+    },
+    {
+      "name": "jellyfin guideInfo",
+      "fn": "guideInfo",
+      "args": ["jellyfin",{}],
+      "out": {"method":"GET","path":"/LiveTv/GuideInfo","query":{}}
+    },
+    {
+      "name": "jellyfin channelsPage {\"userId\":\"u1\",\"startIndex\":0,\"limit\":500}",
+      "fn": "channelsPage",
+      "args": ["jellyfin",{"userId":"u1","startIndex":0,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "StartIndex": "0",
+          "Limit": "500",
+          "EnableTotalRecordCount": "true",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": "1",
+          "EnableUserData": "true",
+          "AddCurrentProgram": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin channelsPage {\"userId\":\"u1\",\"startIndex\":500,\"limit\":500}",
+      "fn": "channelsPage",
+      "args": ["jellyfin",{"userId":"u1","startIndex":500,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {
+          "UserId": "u1",
+          "StartIndex": "500",
+          "Limit": "500",
+          "EnableTotalRecordCount": "false",
+          "EnableImageTypes": "Primary",
+          "ImageTypeLimit": "1",
+          "EnableUserData": "true",
+          "AddCurrentProgram": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin channelCategorySet {\"userId\":\"u1\",\"category\":\"movies\"}",
+      "fn": "channelCategorySet",
+      "args": ["jellyfin",{"userId":"u1","category":"movies"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {"UserId":"u1","IsMovie":"true","EnableImages":"false","EnableUserData":"false","Limit":"5000"}
+      }
+    },
+    {
+      "name": "jellyfin channelCategorySet {\"userId\":\"u1\",\"category\":\"kids\"}",
+      "fn": "channelCategorySet",
+      "args": ["jellyfin",{"userId":"u1","category":"kids"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Channels",
+        "query": {"UserId":"u1","IsKids":"true","EnableImages":"false","EnableUserData":"false","Limit":"5000"}
+      }
+    },
+    {
+      "name": "jellyfin channelCategorySet {\"userId\":\"u1\",\"category\":\"new\"}",
+      "fn": "channelCategorySet",
+      "args": ["jellyfin",{"userId":"u1","category":"new"}],
+      "out": null
+    },
+    {
+      "name": "jellyfin channelTags {\"userId\":\"u1\"}",
+      "fn": "channelTags",
+      "args": ["jellyfin",{"userId":"u1"}],
+      "out": null
+    },
+    {
+      "name": "jellyfin programsTile {\"userId\":\"u1\",\"channelIds\":[\"c1\",\"c2\",\"c3\"],\"from\":17926920",
+      "fn": "programsTile",
+      "args": ["jellyfin",{"userId":"u1","channelIds":["c1","c2","c3"],"from":1792692000000,"to":1792735200000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1,c2,c3",
+          "MinEndDate": "2026-10-22T18:00:00.000Z",
+          "MaxStartDate": "2026-10-23T06:00:00.000Z",
+          "SortBy": "StartDate",
+          "EnableImages": "false",
+          "EnableUserData": "false",
+          "EnableTotalRecordCount": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin programsTile {\"userId\":\"u1\",\"channelIds\":[\"c1\"],\"from\":1792692000000,\"to\"",
+      "fn": "programsTile",
+      "args": ["jellyfin",{"userId":"u1","channelIds":["c1"],"from":1792692000000,"to":1792702800000,"genres":true}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1",
+          "MinEndDate": "2026-10-22T18:00:00.000Z",
+          "MaxStartDate": "2026-10-22T21:00:00.000Z",
+          "SortBy": "StartDate",
+          "EnableImages": "false",
+          "EnableUserData": "false",
+          "EnableTotalRecordCount": "false",
+          "Fields": "Genres"
+        }
+      }
+    },
+    {
+      "name": "jellyfin programNowNext {\"userId\":\"u1\",\"channelId\":\"c1\",\"now\":1792696320000}",
+      "fn": "programNowNext",
+      "args": ["jellyfin",{"userId":"u1","channelId":"c1","now":1792696320000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "ChannelIds": "c1",
+          "MinEndDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-23T03:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "4",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin programDetail {\"userId\":\"u1\",\"id\":\"p 1\"}",
+      "fn": "programDetail",
+      "args": ["jellyfin",{"userId":"u1","id":"p 1"}],
+      "out": {"method":"GET","path":"/LiveTv/Programs/p%201","query":{"userId":"u1"}}
+    },
+    {
+      "name": "jellyfin onNow {\"userId\":\"u1\",\"now\":1792696320000}",
+      "fn": "onNow",
+      "args": ["jellyfin",{"userId":"u1","now":1792696320000}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs/Recommended",
+        "query": {
+          "UserId": "u1",
+          "IsAiring": "true",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres"
+        }
+      }
+    },
+    {
+      "name": "jellyfin onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"sports\"}",
+      "fn": "onNow",
+      "args": ["jellyfin",{"userId":"u1","now":1792696320000,"category":"sports"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs/Recommended",
+        "query": {
+          "UserId": "u1",
+          "IsAiring": "true",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres",
+          "IsSports": "true"
+        }
+      }
+    },
+    {
+      "name": "jellyfin onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"movies\",\"sour",
+      "fn": "onNow",
+      "args": ["jellyfin",{"userId":"u1","now":1792696320000,"category":"movies","source":"window"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "MinEndDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-22T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "24",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "Fields": "Genres",
+          "IsMovie": "true"
+        }
+      }
+    },
+    {
+      "name": "jellyfin onNow {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"new\"}",
+      "fn": "onNow",
+      "args": ["jellyfin",{"userId":"u1","now":1792696320000,"category":"new"}],
+      "out": null
+    },
+    {
+      "name": "jellyfin onLater {\"userId\":\"u1\",\"now\":1792696320000,\"category\":\"movies\"}",
+      "fn": "onLater",
+      "args": ["jellyfin",{"userId":"u1","now":1792696320000,"category":"movies"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "IsMovie": "true",
+          "MinStartDate": "2026-10-22T19:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "24"
+        }
+      }
+    },
+    {
+      "name": "jellyfin searchPrograms {\"userId\":\"u1\",\"query\":\"Néon\",\"now\":1792696320000,\"guideEnd\"",
+      "fn": "searchPrograms",
+      "args": ["jellyfin",{"userId":"u1","query":"Néon","now":1792696320000,"guideEnd":1793301120000}],
+      "out": {
+        "method": "GET",
+        "path": "/Items",
+        "query": {
+          "UserId": "u1",
+          "IncludeItemTypes": "LiveTvProgram",
+          "Recursive": "true",
+          "SearchTerm": "Néon",
+          "Limit": "30",
+          "Fields": "ChannelInfo"
+        }
+      }
+    },
+    {
+      "name": "jellyfin otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000}",
+      "fn": "otherAirings",
+      "args": ["jellyfin",{"userId":"u1","name":"Grand Format","now":1792696320000}],
+      "out": null
+    },
+    {
+      "name": "jellyfin otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000,\"li",
+      "fn": "otherAirings",
+      "args": ["jellyfin",{"userId":"u1","name":"Grand Format","now":1792696320000,"librarySeriesId":"ls1"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "LibrarySeriesId": "ls1",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "50",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin otherAirings {\"userId\":\"u1\",\"name\":\"Grand Format\",\"now\":1792696320000,\"se",
+      "fn": "otherAirings",
+      "args": ["jellyfin",{"userId":"u1","name":"Grand Format","now":1792696320000,"seriesTimerId":"st1"}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Programs",
+        "query": {
+          "UserId": "u1",
+          "SeriesTimerId": "st1",
+          "MinEndDate": "2026-10-22T18:12:00.000Z",
+          "MaxStartDate": "2026-10-24T19:12:00.000Z",
+          "SortBy": "StartDate",
+          "Limit": "50",
+          "EnableImages": "false"
+        }
+      }
+    },
+    {
+      "name": "jellyfin timers",
+      "fn": "timers",
+      "args": ["jellyfin",{}],
+      "out": {"method":"GET","path":"/LiveTv/Timers","query":{}}
+    },
+    {
+      "name": "jellyfin timersOfRule {\"id\":\"st1\"}",
+      "fn": "timersOfRule",
+      "args": ["jellyfin",{"id":"st1"}],
+      "out": {"method":"GET","path":"/LiveTv/Timers","query":{"SeriesTimerId":"st1"}}
+    },
+    {
+      "name": "jellyfin seriesTimers",
+      "fn": "seriesTimers",
+      "args": ["jellyfin",{}],
+      "out": {"method":"GET","path":"/LiveTv/SeriesTimers","query":{}}
+    },
+    {
+      "name": "jellyfin seriesTimer {\"id\":\"st1\"}",
+      "fn": "seriesTimer",
+      "args": ["jellyfin",{"id":"st1"}],
+      "out": {"method":"GET","path":"/LiveTv/SeriesTimers/st1","query":{}}
+    },
+    {
+      "name": "jellyfin timerDefaults {\"programId\":\"p1\"}",
+      "fn": "timerDefaults",
+      "args": ["jellyfin",{"programId":"p1"}],
+      "out": {"method":"GET","path":"/LiveTv/Timers/Defaults","query":{"ProgramId":"p1"}}
+    },
+    {
+      "name": "jellyfin recordingOptions {\"userId\":\"u1\"}",
+      "fn": "recordingOptions",
+      "args": ["jellyfin",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/LiveTv/Recordings/Folders","query":{"userId":"u1"}}
+    },
+    {
+      "name": "jellyfin recordings {\"userId\":\"u1\",\"startIndex\":0,\"limit\":500}",
+      "fn": "recordings",
+      "args": ["jellyfin",{"userId":"u1","startIndex":0,"limit":500}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Recordings",
+        "query": {
+          "UserId": "u1",
+          "Fields": "Overview,PrimaryImageAspectRatio,DateCreated",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "StartIndex": "0",
+          "Limit": "500"
+        }
+      }
+    },
+    {
+      "name": "jellyfin recordings {\"userId\":\"u1\",\"inProgress\":true}",
+      "fn": "recordings",
+      "args": ["jellyfin",{"userId":"u1","inProgress":true}],
+      "out": {
+        "method": "GET",
+        "path": "/LiveTv/Recordings",
+        "query": {
+          "UserId": "u1",
+          "Fields": "Overview,PrimaryImageAspectRatio,DateCreated",
+          "EnableImageTypes": "Primary,Thumb",
+          "ImageTypeLimit": "1",
+          "StartIndex": "0",
+          "Limit": "500",
+          "IsInProgress": "true"
+        }
+      }
+    },
+    {
+      "name": "jellyfin displayPrefs {\"userId\":\"u1\"}",
+      "fn": "displayPrefs",
+      "args": ["jellyfin",{"userId":"u1"}],
+      "out": {"method":"GET","path":"/DisplayPreferences/wicaby-livetv","query":{"userId":"u1","client":"wicaby"}}
+    },
+    {
+      "name": "jellyfin setFavorite {\"userId\":\"u1\",\"id\":\"c1\",\"favorite\":true}",
+      "fn": "setFavorite",
+      "args": ["jellyfin",{"userId":"u1","id":"c1","favorite":true}],
+      "out": {"method":"POST","path":"/UserFavoriteItems/c1","query":{"userId":"u1"}}
+    },
+    {
+      "name": "jellyfin setFavorite {\"userId\":\"u1\",\"id\":\"c1\",\"favorite\":false}",
+      "fn": "setFavorite",
+      "args": ["jellyfin",{"userId":"u1","id":"c1","favorite":false}],
+      "out": {"method":"DELETE","path":"/UserFavoriteItems/c1","query":{"userId":"u1"}}
+    },
+    {
+      "name": "jellyfin createTimer {\"body\":{\"ProgramId\":\"p1\",\"PrePaddingSeconds\":0}}",
+      "fn": "createTimer",
+      "args": ["jellyfin",{"body":{"ProgramId":"p1","PrePaddingSeconds":0}}],
+      "out": {"method":"POST","path":"/LiveTv/Timers","query":{},"body":{"ProgramId":"p1","PrePaddingSeconds":0}}
+    },
+    {
+      "name": "jellyfin updateTimer {\"id\":\"t1\",\"body\":{\"Id\":\"t1\",\"PostPaddingSeconds\":1800}}",
+      "fn": "updateTimer",
+      "args": ["jellyfin",{"id":"t1","body":{"Id":"t1","PostPaddingSeconds":1800}}],
+      "out": {"method":"POST","path":"/LiveTv/Timers/t1","query":{},"body":{"Id":"t1","PostPaddingSeconds":1800}}
+    },
+    {
+      "name": "jellyfin cancelTimer {\"id\":\"t1\"}",
+      "fn": "cancelTimer",
+      "args": ["jellyfin",{"id":"t1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/Timers/t1","query":{}}
+    },
+    {
+      "name": "jellyfin createSeriesTimer {\"body\":{\"ProgramId\":\"p1\",\"RecordNewOnly\":true}}",
+      "fn": "createSeriesTimer",
+      "args": ["jellyfin",{"body":{"ProgramId":"p1","RecordNewOnly":true}}],
+      "out": {
+        "method": "POST",
+        "path": "/LiveTv/SeriesTimers",
+        "query": {},
+        "body": {"ProgramId":"p1","RecordNewOnly":true}
+      }
+    },
+    {
+      "name": "jellyfin updateSeriesTimer {\"id\":\"st1\",\"body\":{\"Id\":\"st1\",\"KeepUpTo\":5}}",
+      "fn": "updateSeriesTimer",
+      "args": ["jellyfin",{"id":"st1","body":{"Id":"st1","KeepUpTo":5}}],
+      "out": {"method":"POST","path":"/LiveTv/SeriesTimers/st1","query":{},"body":{"Id":"st1","KeepUpTo":5}}
+    },
+    {
+      "name": "jellyfin deleteSeriesTimer {\"id\":\"st1\"}",
+      "fn": "deleteSeriesTimer",
+      "args": ["jellyfin",{"id":"st1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/SeriesTimers/st1","query":{}}
+    },
+    {
+      "name": "jellyfin deleteRecording {\"id\":\"r1\"}",
+      "fn": "deleteRecording",
+      "args": ["jellyfin",{"id":"r1"}],
+      "out": {"method":"DELETE","path":"/LiveTv/Recordings/r1","query":{}}
+    },
+    {
+      "name": "jellyfin deleteItem {\"id\":\"r1\"}",
+      "fn": "deleteItem",
+      "args": ["jellyfin",{"id":"r1"}],
+      "out": {"method":"DELETE","path":"/Items/r1","query":{}}
+    },
+    {
+      "name": "jellyfin saveDisplayPrefs {\"userId\":\"u1\",\"body\":{\"Id\":\"x\",\"Client\":\"emby\",\"SortBy\":\"So",
+      "fn": "saveDisplayPrefs",
+      "args": [
+        "jellyfin",
+        {"userId":"u1","body":{"Id":"x","Client":"emby","SortBy":"SortName","CustomPrefs":{"lt.v":"1"}}}
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/DisplayPreferences/wicaby-livetv",
+        "query": {"userId":"u1","client":"wicaby"},
+        "body": {"Id":"wicaby-livetv","Client":"wicaby","SortBy":"SortName","CustomPrefs":{"lt.v":"1"}}
+      }
+    },
+    {
+      "name": "jellyfin tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":120000000,\"rung",
+      "fn": "tune",
+      "args": [
+        "jellyfin",
+        {"userId":"u1","channelId":"c1","maxBitrate":120000000,"rung":0,"deviceProfile":{"Name":"Wicaby"}}
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "120000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {
+          "DeviceProfile": {"Name":"Wicaby"},
+          "EnableDirectPlay": true,
+          "EnableDirectStream": true,
+          "EnableTranscoding": true
+        }
+      }
+    },
+    {
+      "name": "jellyfin tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["jellyfin",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":1}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {"DeviceProfile":{},"EnableDirectPlay":false,"EnableDirectStream":true,"EnableTranscoding":true}
+      }
+    },
+    {
+      "name": "jellyfin tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["jellyfin",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":2}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "true",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {
+          "DeviceProfile": {},
+          "EnableDirectPlay": false,
+          "EnableDirectStream": true,
+          "EnableTranscoding": true,
+          "AllowVideoStreamCopy": false,
+          "AllowAudioStreamCopy": false
+        }
+      }
+    },
+    {
+      "name": "jellyfin tune {\"userId\":\"u1\",\"channelId\":\"c1\",\"maxBitrate\":20000000,\"rung\"",
+      "fn": "tune",
+      "args": ["jellyfin",{"userId":"u1","channelId":"c1","maxBitrate":20000000,"rung":0,"autoOpen":false}],
+      "out": {
+        "method": "POST",
+        "path": "/Items/c1/PlaybackInfo",
+        "query": {
+          "UserId": "u1",
+          "IsPlayback": "true",
+          "AutoOpenLiveStream": "false",
+          "MaxStreamingBitrate": "20000000",
+          "StartTimeTicks": "0"
+        },
+        "body": {"DeviceProfile":{},"EnableDirectPlay":true,"EnableDirectStream":true,"EnableTranscoding":true}
+      }
+    },
+    {
+      "name": "jellyfin open {\"userId\":\"u1\",\"itemId\":\"c1\",\"playSessionId\":\"ps1\",\"maxBitra",
+      "fn": "open",
+      "args": ["jellyfin",{"userId":"u1","itemId":"c1","playSessionId":"ps1","maxBitrate":20000000,"openToken":"tok"}],
+      "out": {
+        "method": "POST",
+        "path": "/LiveStreams/Open",
+        "query": {"UserId":"u1","ItemId":"c1","PlaySessionId":"ps1","MaxStreamingBitrate":"20000000","OpenToken":"tok"},
+        "body": {
+          "OpenToken": "tok",
+          "DeviceProfile": {},
+          "UserId": "u1",
+          "ItemId": "c1",
+          "PlaySessionId": "ps1",
+          "MaxStreamingBitrate": 20000000
+        }
+      }
+    },
+    {
+      "name": "jellyfin close {\"liveStreamId\":\"ls1\",\"playSessionId\":\"ps1\"}",
+      "fn": "close",
+      "args": ["jellyfin",{"liveStreamId":"ls1","playSessionId":"ps1"}],
+      "out": {"method":"POST","path":"/LiveStreams/Close","query":{"LiveStreamId":"ls1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "jellyfin killEncodes {\"deviceId\":\"dev1\",\"playSessionId\":\"ps1\"}",
+      "fn": "killEncodes",
+      "args": ["jellyfin",{"deviceId":"dev1","playSessionId":"ps1"}],
+      "out": {"method":"DELETE","path":"/Videos/ActiveEncodings","query":{"DeviceId":"dev1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "jellyfin staticStream {\"itemId\":\"c1\",\"container\":\"ts\",\"mediaSourceId\":\"ms1\",\"liveS",
+      "fn": "staticStream",
+      "args": [
+        "jellyfin",
+        {
+          "itemId": "c1",
+          "container": "ts",
+          "mediaSourceId": "ms1",
+          "liveStreamId": "ls1",
+          "deviceId": "dev1",
+          "playSessionId": "ps1"
+        }
+      ],
+      "out": {
+        "method": "GET",
+        "path": "/Videos/c1/stream.ts",
+        "query": {"Static":"true","MediaSourceId":"ms1","LiveStreamId":"ls1","DeviceId":"dev1","PlaySessionId":"ps1"}
+      }
+    },
+    {
+      "name": "jellyfin reportPlaying {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportPlaying",
+      "args": [
+        "jellyfin",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "DirectStream"
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "DirectStream",
+          "IsPaused": false,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "jellyfin reportProgress {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportProgress",
+      "args": [
+        "jellyfin",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "Transcode",
+          "isPaused": true
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing/Progress",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "Transcode",
+          "IsPaused": true,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "jellyfin reportStopped {\"itemId\":\"c1\",\"mediaSourceId\":\"ms1\",\"playSessionId\":\"ps1\",\"",
+      "fn": "reportStopped",
+      "args": [
+        "jellyfin",
+        {
+          "itemId": "c1",
+          "mediaSourceId": "ms1",
+          "playSessionId": "ps1",
+          "liveStreamId": "ls1",
+          "playMethod": "DirectPlay"
+        }
+      ],
+      "out": {
+        "method": "POST",
+        "path": "/Sessions/Playing/Stopped",
+        "query": {},
+        "body": {
+          "ItemId": "c1",
+          "MediaSourceId": "ms1",
+          "PlaySessionId": "ps1",
+          "PlayMethod": "DirectPlay",
+          "IsPaused": false,
+          "LiveStreamId": "ls1"
+        }
+      }
+    },
+    {
+      "name": "pinned: Close carries both ids in the query and no body (emby)",
+      "fn": "close",
+      "args": ["emby",{"liveStreamId":"ls1","playSessionId":"ps1"}],
+      "out": {"method":"POST","path":"/LiveStreams/Close","query":{"LiveStreamId":"ls1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "pinned: Close (jellyfin) same shape",
+      "fn": "close",
+      "args": ["jellyfin",{"liveStreamId":"ls1","playSessionId":"ps1"}],
+      "out": {"method":"POST","path":"/LiveStreams/Close","query":{"LiveStreamId":"ls1","PlaySessionId":"ps1"}}
+    },
+    {
+      "name": "pinned: Emby DisplayPreferences POST body carries Id and Client wicaby",
+      "fn": "saveDisplayPrefs",
+      "args": ["emby",{"userId":"u1","body":{"CustomPrefs":{}}}],
+      "out": {
+        "method": "POST",
+        "path": "/DisplayPreferences/wicaby-livetv",
+        "query": {"UserId":"u1","Client":"wicaby"},
+        "body": {"CustomPrefs":{},"Id":"wicaby-livetv","Client":"wicaby"}
+      }
+    }
+  ]
+}

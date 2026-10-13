@@ -1,0 +1,52 @@
+{
+  "title": "Téléchargements",
+  "tabs": {
+    "label": "Type de téléchargements",
+    "offline": "Hors ligne",
+    "torrents": "Torrents"
+  },
+  "openFolder": "Ouvrir le dossier",
+  "offline": {
+    "title": "Hors ligne",
+    "body": "{server} est injoignable. Vos téléchargements restent lisibles, et votre progression sera synchronisée au retour de la connexion.",
+    "bodyUnnamed": "Le serveur est injoignable. Vos téléchargements restent lisibles, et votre progression sera synchronisée au retour de la connexion.",
+    "connecting": "Connexion…",
+    "stillUnreachable": "Serveur toujours injoignable"
+  },
+  "empty": {
+    "title": "Rien hors ligne pour l’instant",
+    "body": "Ouvrez un film, une saison ou une série et choisissez Télécharger. Wicaby en garde une copie lisible sans connexion et reprend les téléchargements interrompus.",
+    "browse": "Parcourir la bibliothèque"
+  },
+  "storage": {
+    "title": "Stockage",
+    "summary": "{size} utilisés · {items} hors ligne",
+    "meter": "Répartition de l’espace utilisé",
+    "movies": "Films",
+    "episodes": "Épisodes",
+    "other": "Autres",
+    "inProgress": "En cours"
+  },
+  "sections": {
+    "active": "En cours",
+    "done": "Disponibles hors ligne"
+  },
+  "status": {
+    "queued": "En attente",
+    "paused": "En pause",
+    "failed": "Échec du téléchargement",
+    "progress": "{received} sur {total}"
+  },
+  "eta": {
+    "seconds": "{count} s"
+  },
+  "actions": {
+    "keep": "Garder",
+    "cancelDownload": "Annuler le téléchargement",
+    "deleteFile": "Supprimer le fichier",
+    "pause": "Mettre en pause",
+    "pauseProgress": "Mettre en pause, {percent}",
+    "reveal": "Afficher dans l’Explorateur",
+    "playItem": "Lire {name}"
+  }
+}

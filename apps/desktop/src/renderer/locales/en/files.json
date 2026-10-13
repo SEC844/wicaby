@@ -1,0 +1,103 @@
+{
+  "kind": "Files",
+  "section": "Files",
+  "sources": "File sources",
+  "add": {
+    "title": "Add a file source",
+    "open": "Add a file source",
+    "blurb": "A folder on this computer, a WebDAV folder or an SMB share, browsed as is, with no scan.",
+    "protocol": {
+      "local": "Folder on this computer",
+      "webdav": "WebDAV",
+      "smb": "SMB share"
+    },
+    "pick": "Choose a folder…",
+    "noFolder": "No folder chosen",
+    "url": "Address",
+    "urlWebdav": "https://dav.example/media",
+    "urlSmb": "\\\\STORAGE\\media",
+    "smbHint": "Windows uses your session credentials for this share. For other credentials, save them in Windows Credential Manager first.",
+    "smbLinux": "SMB shares are not supported on Linux yet.",
+    "name": "Name",
+    "namePlaceholder": "Name shown in the sidebar",
+    "user": "User name",
+    "pass": "Password",
+    "insecure": "I understand the password travels unencrypted (http)",
+    "test": "Test",
+    "testing": "Testing…",
+    "save": "Add",
+    "cancel": "Cancel",
+    "added": "Source added",
+    "ok": "Connected: {count, plural, one {# item} other {# items}} at the root."
+  },
+  "tls": {
+    "title": "Unrecognised certificate",
+    "body": "The server presents a certificate that no authority vouches for. Only trust it if you recognise the fingerprint below.",
+    "changedTitle": "The certificate changed",
+    "changedBody": "This server’s certificate is no longer the one you trusted. It may have been renewed, or someone may be in the middle.",
+    "subject": "Subject",
+    "issuer": "Issuer",
+    "validity": "Valid",
+    "fingerprint": "SHA-256 fingerprint",
+    "previous": "Trusted fingerprint",
+    "trust": "Trust this certificate for this source only",
+    "trustNew": "Trust the new certificate"
+  },
+  "sort": {
+    "label": "Sort by",
+    "name": "Name",
+    "modified": "Date modified",
+    "size": "Size"
+  },
+  "view": {
+    "grid": "Grid",
+    "list": "List"
+  },
+  "refresh": "Refresh",
+  "continue": "Continue watching",
+  "home": {
+    "label": "Show file sources on Home",
+    "desc": "Adds files in progress to Home’s Continue Watching row."
+  },
+  "list": {
+    "empty": "This folder is empty.",
+    "truncated": "Only the first 10,000 items are shown."
+  },
+  "mdns": {
+    "find": "Find on this network",
+    "searching": "Searching…",
+    "none": "Nothing found on this network.",
+    "windows": "Windows file servers usually do not announce themselves: type \\\\HOST\\share."
+  },
+  "manage": {
+    "rename": "Rename",
+    "remove": "Remove",
+    "removeConfirm": "Remove “{name}”? Its playback progress will be deleted.",
+    "removed": "Source removed",
+    "credentials": "Credentials",
+    "none": "No file sources yet.",
+    "offline": "Offline",
+    "pending": "Not connected",
+    "connect": "Connect",
+    "connectDesc": "Imported from a settings file. Nothing contacts {display} until you press Connect.",
+    "save": "Save"
+  },
+  "resume": {
+    "changed": "This file changed since you last watched it: playing from the start."
+  },
+  "error": {
+    "auth": "Credentials refused: check the user name and password.",
+    "notFound": "Folder or file not found.",
+    "certUntrusted": "Certificate not trusted by this system.",
+    "certChanged": "The server’s certificate changed.",
+    "digestOnly": "This server only accepts Digest authentication, which is not supported.",
+    "smb1": "This server only speaks SMB1, which is not supported.",
+    "offline": "The source cannot be reached right now.",
+    "insecure": "Unencrypted http address: tick the box to accept it.",
+    "invalid": "Invalid address or folder.",
+    "unsupported": "This kind of source is not supported here yet.",
+    "tooLarge": "File too large.",
+    "cannotDecode": "This file cannot play on this device, and file sources cannot convert it.",
+    "needsMpv": "This file needs the mpv player."
+  }
+}

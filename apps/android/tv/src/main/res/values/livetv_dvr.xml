@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV en direct : enregistrements, programmés et gestion des chaînes (spec livetv §9, §13.3, TV-4). -->
+<resources>
+    <string name="livetv_tabs_scheduled">Programmés</string>
+    <string name="livetv_tabs_recordings">Enregistrements</string>
+
+    <string name="livetv_record_title">Options d’enregistrement</string>
+    <string name="livetv_record_this_episode">Cet épisode</string>
+    <string name="livetv_record_whole_series">Toute la série</string>
+    <string name="livetv_record_start_early">Commencer plus tôt</string>
+    <string name="livetv_record_end_late">Finir plus tard</string>
+    <plurals name="livetv_record_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="many">%1$d minutes</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="livetv_record_minutes_zero">À l’heure</string>
+    <string name="livetv_record_new_only">Nouveaux épisodes seulement</string>
+    <string name="livetv_record_any_channel">Sur toutes les chaînes</string>
+    <string name="livetv_record_any_time">À n’importe quelle heure</string>
+    <string name="livetv_record_days">Jours</string>
+    <string name="livetv_record_every_day">Tous les jours</string>
+    <string name="livetv_record_weekdays">En semaine</string>
+    <string name="livetv_record_weekends">Le week-end</string>
+    <string name="livetv_record_skip_in_library">Ignorer les épisodes déjà dans la bibliothèque</string>
+    <string name="livetv_record_keep_up_to">Conserver</string>
+    <plurals name="livetv_record_keep_up_to_value">
+        <item quantity="one">Le dernier épisode</item>
+        <item quantity="many">Les %1$d derniers épisodes</item>
+        <item quantity="other">Les %1$d derniers épisodes</item>
+    </plurals>
+    <string name="livetv_record_keep_up_to_value_zero">Tous les épisodes</string>
+    <string name="livetv_record_keep_until">Conserver jusqu’à</string>
+    <string name="livetv_record_keep_until_deleted">Suppression manuelle</string>
+    <string name="livetv_record_keep_until_space">Besoin d’espace</string>
+    <string name="livetv_record_keep_until_watched">Visionnage</string>
+    <string name="livetv_record_save_default">Utiliser ces marges par défaut</string>
+    <string name="livetv_record_schedule">Programmer</string>
+    <string name="livetv_record_apply">Appliquer</string>
+
+    <string name="livetv_scheduled_upcoming">À venir</string>
+    <string name="livetv_scheduled_rules">Règles de série</string>
+    <string name="livetv_scheduled_status_scheduled">Programmé</string>
+    <string name="livetv_scheduled_status_recording">En cours</string>
+    <string name="livetv_scheduled_status_conflict_ok">Conflit, sera enregistré</string>
+    <string name="livetv_scheduled_status_wont">Ne sera pas enregistré</string>
+    <string name="livetv_scheduled_status_error">Erreur</string>
+    <plurals name="livetv_scheduled_conflicts">
+        <item quantity="one">%1$d enregistrement ne sera pas fait</item>
+        <item quantity="many">%1$d enregistrements ne seront pas faits</item>
+        <item quantity="other">%1$d enregistrements ne seront pas faits</item>
+    </plurals>
+    <plurals name="livetv_scheduled_badge_aria">
+        <item quantity="one">%1$d conflit</item>
+        <item quantity="many">%1$d conflits</item>
+        <item quantity="other">%1$d conflits</item>
+    </plurals>
+    <string name="livetv_scheduled_empty">Aucun enregistrement programmé. Appuyez sur la touche rouge sur un programme pour l’enregistrer.</string>
+    <string name="livetv_scheduled_rules_empty">Aucune règle de série.</string>
+    <string name="livetv_scheduled_read_only">Votre compte peut voir les enregistrements mais pas les programmer.</string>
+    <string name="livetv_scheduled_recording_now">En cours d’enregistrement</string>
+    <string name="livetv_scheduled_today">Aujourd’hui</string>
+    <string name="livetv_scheduled_tomorrow">Demain</string>
+    <string name="livetv_scheduled_show">Afficher</string>
+    <string name="livetv_scheduled_tuners">%1$d sur %2$d tuners utilisés</string>
+    <string name="livetv_scheduled_padding">marges −%1$d / +%2$d min</string>
+    <string name="livetv_scheduled_edit_padding">Modifier les marges</string>
+    <string name="livetv_scheduled_skip_episode">Ne pas enregistrer cet épisode</string>
+    <string name="livetv_scheduled_cancel">Annuler l’enregistrement</string>
+    <string name="livetv_scheduled_view_rule">Voir la règle</string>
+    <plurals name="livetv_scheduled_rule_episodes">
+        <item quantity="one">%1$d épisode programmé</item>
+        <item quantity="many">%1$d épisodes programmés</item>
+        <item quantity="other">%1$d épisodes programmés</item>
+    </plurals>
+    <string name="livetv_scheduled_rule_episodes_zero">Aucun épisode programmé</string>
+    <string name="livetv_scheduled_all_channels">Toutes les chaînes</string>
+    <string name="livetv_scheduled_edit_rule">Modifier la règle</string>
+    <string name="livetv_scheduled_delete_rule">Supprimer la règle</string>
+    <string name="livetv_scheduled_delete_rule_confirm">Supprimer la règle « %1$s » et ses enregistrements programmés ?</string>
+    <string name="livetv_scheduled_reorder">Réorganiser les priorités…</string>
+    <string name="livetv_scheduled_reorder_hint">Appuyez sur OK pour saisir une règle, déplacez-la avec ↑ et ↓, puis appuyez de nouveau sur OK pour la poser. La première l’emporte en cas de conflit.</string>
+
+    <string name="livetv_recordings_empty">Aucun enregistrement pour l’instant. Appuyez sur la touche rouge sur un programme pour l’enregistrer.</string>
+    <string name="livetv_recordings_sections_in_progress">En cours</string>
+    <string name="livetv_recordings_sections_recent">Récemment enregistrés</string>
+    <string name="livetv_recordings_sections_series">Séries</string>
+    <string name="livetv_recordings_sections_movies">Films</string>
+    <string name="livetv_recordings_sections_sports">Sport</string>
+    <string name="livetv_recordings_sections_other">Autres</string>
+    <plurals name="livetv_recordings_episodes">
+        <item quantity="one">%1$d épisode</item>
+        <item quantity="many">%1$d épisodes</item>
+        <item quantity="other">%1$d épisodes</item>
+    </plurals>
+    <string name="livetv_recordings_select">Sélectionner</string>
+    <string name="livetv_recordings_select_hint">Appuyez sur OK pour cocher les enregistrements à supprimer.</string>
+    <string name="livetv_recordings_delete">Supprimer</string>
+    <plurals name="livetv_recordings_delete_many">
+        <item quantity="one">Supprimer %1$d enregistrement ?</item>
+        <item quantity="many">Supprimer %1$d enregistrements ?</item>
+        <item quantity="other">Supprimer %1$d enregistrements ?</item>
+    </plurals>
+    <string name="livetv_recordings_delete_hint">Les fichiers seront effacés du serveur.</string>
+
+    <string name="livetv_manage_title">Gérer les chaînes</string>
+    <string name="livetv_manage_synced">Synchronisé avec votre compte sur %1$s.</string>
+    <string name="livetv_manage_reorder_favorites">Réorganiser les favoris</string>
+    <string name="livetv_manage_reorder_hint">Appuyez sur OK pour saisir une chaîne, déplacez-la avec ↑ et ↓, puis appuyez de nouveau sur OK pour la poser.</string>
+    <string name="livetv_manage_move_up">Monter</string>
+    <string name="livetv_manage_move_down">Descendre</string>
+    <string name="livetv_manage_moving">En cours de déplacement</string>
+    <string name="livetv_manage_hidden">Chaînes masquées</string>
+    <plurals name="livetv_manage_hidden_count">
+        <item quantity="one">%1$d chaîne masquée</item>
+        <item quantity="many">%1$d chaînes masquées</item>
+        <item quantity="other">%1$d chaînes masquées</item>
+    </plurals>
+    <string name="livetv_manage_hidden_hint">Une chaîne masquée reste accessible par son numéro.</string>
+    <string name="livetv_channel_unhide">Afficher la chaîne</string>
+
+    <string name="livetv_toasts_recording_scheduled">Enregistrement programmé</string>
+    <string name="livetv_toasts_recording_canceled">Enregistrement annulé</string>
+    <string name="livetv_toasts_series_scheduled">Série programmée</string>
+    <string name="livetv_toasts_series_canceled">Série annulée</string>
+    <string name="livetv_toasts_already_scheduled">Cet enregistrement est déjà programmé.</string>
+    <string name="livetv_toasts_forbidden">Votre compte ne peut pas gérer les enregistrements.</string>
+    <string name="livetv_toasts_premiere">Le serveur refuse l’enregistrement. Emby demande Emby Premiere pour le DVR.</string>
+    <string name="livetv_toasts_not_series">Ce programme n’est pas une série.</string>
+    <string name="livetv_toasts_rule_updated">Règle mise à jour</string>
+    <string name="livetv_toasts_padding_updated">Marges mises à jour</string>
+    <string name="livetv_toasts_priorities_updated">Priorités mises à jour</string>
+    <plurals name="livetv_toasts_recordings_deleted">
+        <item quantity="one">Enregistrement supprimé</item>
+        <item quantity="many">%1$d enregistrements supprimés</item>
+        <item quantity="other">%1$d enregistrements supprimés</item>
+    </plurals>
+</resources>

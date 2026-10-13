@@ -1,0 +1,488 @@
+name: Release
+
+# Pushing a tag v* builds the Windows installer + portable exe, the Linux AppImage, deb and
+# tar.gz, and the signed Android APKs,
+# writes update.json, and publishes everything as a GitHub Release on the PUBLIC
+# WicaebethTheo/wicaby-releases repo (this code repo stays private). The manifest is served at
+# https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json.
+# REQUIREMENT, not done yet: the Android apps must default to that URL. At the time of writing
+# Prefs.kt has `updateUrl: String = ""` (updates off until the user types the URL), so this
+# update.json is only read by users who entered it by hand. Tracked as a separate code task.
+#
+# Secrets (Settings > Secrets and variables > Actions):
+#   KEYSTORE_BASE64    base64 of the release keystore (base64 -w0 wicaby-release.jks)
+#   KEYSTORE_PASSWORD  store password
+#   KEY_ALIAS          key alias
+#   KEY_PASSWORD       key password
+#   RELEASES_TOKEN     fine-grained PAT with "Contents: read and write" on WicaebethTheo/wicaby-releases only
+# Variable (Settings > Secrets and variables > Actions > Variables):
+#   APK_CERT_SHA256    SHA-256 of the release signing certificate (64 hex digits, colons allowed);
+#                      every APK must be signed by exactly that certificate. Print it with
+#                      keytool -list -v -keystore wicaby-release.jks -alias <alias>  (SHA256 line)
+# WicaebethTheo/wicaby-releases needs at least one commit (e.g. a README): release tags are
+# created on its default branch.
+#
+# Versions: the desktop build takes its version from the tag (vX.Y.Z -> X.Y.Z). The Android
+# apps keep their own versionName/versionCode from apps/android/{tv,mobile}/build.gradle.kts,
+# and their APK names carry that versionName (what make-update-manifest.mjs expects, so it
+# must stay numeric: 0.5.0, not 0.5.0-beta).
+#
+# The preflight job fails in seconds, before the two long build jobs start, when the tag is not
+# vX.Y.Z[-pre], the tagged commit is not on main, the latest CI run of that commit is not green
+# (still running counts as not green: re-run this workflow once CI has passed), RELEASES_REPO is
+# still a placeholder, or a secret or APK_CERT_SHA256 is missing.
+#
+# mpv: the Windows build is pinned (tag, commit, SHA-256) in apps/desktop/scripts/fetch-mpv.ps1;
+# the publish job reads the tag and commit there for the release notes and the mpv source archive.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RELEASES_REPO: WicaebethTheo/wicaby-releases
+
+jobs:
+  preflight:
+    name: Preflight (tag, branch, CI, settings)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # the CI runs of the tagged commit
+    steps:
+      # Full history: the ancestry check below needs origin/main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag, the branch, RELEASES_REPO and the secrets
+        env:
+          TAG: ${{ github.ref_name }}
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          APK_CERT_SHA256: ${{ vars.APK_CERT_SHA256 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail=0
+          # npm version (desktop) and the prerelease rule (a '-' in the tag) both expect this shape.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::tag '$TAG' is not vX.Y.Z or vX.Y.Z-<prerelease>"; fail=1
+          fi
+          if [[ "$RELEASES_REPO" == *'<'* || ! "$RELEASES_REPO" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::RELEASES_REPO '$RELEASES_REPO' is not owner/repo (check RELEASES_REPO in release.yml)"; fail=1
+          fi
+          for v in RELEASES_TOKEN KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::secret $v is not set"; fail=1; fi
+          done
+          if ! [[ "${APK_CERT_SHA256//:/}" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+            echo "::error::repository variable APK_CERT_SHA256 is not the 64-hex SHA-256 of the signing certificate"; fail=1
+          fi
+          # The newest CI (ci.yml) run of this exact commit must have finished green.
+          ci="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=1" \
+            --jq '.workflow_runs[0] // {} | "\(.status) \(.conclusion) \(.html_url)"')"
+          if [[ "$ci" != "completed success "* ]]; then
+            echo "::error::CI of $GITHUB_SHA is not green ($ci); wait for it to pass, then re-run this workflow"; fail=1
+          fi
+          # Only commits already on main are released (a tag on another branch is refused).
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG ($GITHUB_SHA) is not on main; tag a commit of main whose CI is green"; fail=1
+          fi
+          exit "$fail"
+
+  windows:
+    name: Windows (NSIS + portable)
+    needs: preflight
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      - name: Install
+        run: npm ci
+
+      - name: Stamp the desktop version from the tag
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          npm version "$version" --no-git-tag-version --allow-same-version --workspace apps/desktop
+
+      # vendor/mpv from the shinchiro build pinned in fetch-mpv.ps1 (direct download, SHA-256
+      # checked, no API call). System32 first so tar.exe is Windows' bsdtar (reads .7z), not
+      # Git's GNU tar. Windows 11's bsdtar extracts the pinned archive; the runner image's has
+      # not been tried yet.
+      - name: Fetch mpv
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:SystemRoot\System32;$env:PATH"
+          npm run fetch-mpv
+
+      # vendor/vpn-helper/wicaby-mesh.exe + THIRD_PARTY_LICENSES.txt (runs the AGPL guard).
+      - name: Build mesh helper
+        run: npm run build:mesh
+
+      # apps/desktop `dist` = `npm run build && electron-builder --win` (NSIS and portable targets
+      # from apps/desktop/electron-builder.yml); npm appends `--publish never` to electron-builder,
+      # and && stops before packaging if the build fails. The publish job below uploads.
+      - name: Build installer + portable
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist -w apps/desktop -- --publish never
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows
+          path: release/Wicaby-*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  # mpv is not bundled on Linux (system mpv; the deb depends on mpv >= 0.37), so no mpv source
+  # archive is needed for these files.
+  linux:
+    name: Linux (AppImage + deb + tar.gz)
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      - name: Install
+        run: npm ci
+
+      - name: Stamp the desktop version from the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          npm version "$version" --no-git-tag-version --allow-same-version --workspace apps/desktop
+
+      # vendor/vpn-helper/wicaby-mesh + THIRD_PARTY_LICENSES.txt (runs go test and the AGPL guard).
+      - name: Build mesh helper
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: npm run build:mesh
+
+      # apps/desktop `dist:linux` = `npm run build && electron-builder --linux` (AppImage, deb and
+      # tar.gz from electron-builder.yml). The deb's Homepage is the public releases repo.
+      - name: Build AppImage + deb + tar.gz
+        run: npm run dist:linux -w apps/desktop -- --publish never "-c.extraMetadata.homepage=https://github.com/$RELEASES_REPO"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  android:
+    name: Android (signed APKs)
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/mesh/go.mod
+          cache-dependency-path: packages/mesh/go.sum
+
+      # No `gomobile init`: `gomobile bind` only needs gobind on PATH, and init would replace the
+      # pinned gobind with gobind@latest (x/mobile cmd/gomobile/init.go), which
+      # build-mesh-aar.sh then refuses.
+      - name: Install gomobile
+        working-directory: packages/mesh
+        run: |
+          set -euo pipefail
+          v="$(go list -m -f '{{.Version}}' golang.org/x/mobile)"
+          go install "golang.org/x/mobile/cmd/gomobile@$v" "golang.org/x/mobile/cmd/gobind@$v"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # Always rebuilt for a release (no cache): arm64-v8a + armeabi-v7a, patched NetBird, AGPL guard.
+      - name: Build mesh AAR
+        run: bash packages/mesh/scripts/build-mesh-aar.sh
+
+      - name: Write signing config
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: apps/android
+        run: |
+          set -euo pipefail
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::secret $v is not set; refusing to build unsigned release APKs"; exit 1; fi
+          done
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/wicaby-release.jks
+          # java.util.Properties: backslashes must be escaped. storeFile is relative to apps/android.
+          esc() { printf '%s' "${1//\\/\\\\}"; }
+          {
+            echo "storeFile=keystore/wicaby-release.jks"
+            echo "storePassword=$(esc "$KEYSTORE_PASSWORD")"
+            echo "keyAlias=$(esc "$KEY_ALIAS")"
+            echo "keyPassword=$(esc "$KEY_PASSWORD")"
+          } > keystore.properties
+          chmod 600 keystore.properties keystore/wicaby-release.jks
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: true
+
+      - name: Assemble release APKs
+        working-directory: apps/android
+        run: |
+          chmod +x gradlew
+          # Mobile in both flavours (cast spec CA-10): foss (FFmpeg, no Google code) and gplay (Google Cast).
+          ./gradlew --stacktrace :tv:assembleRelease :mobile:assembleFossRelease :mobile:assembleGplayRelease
+
+      - name: Remove signing material
+        if: always()
+        working-directory: apps/android
+        run: rm -rf keystore keystore.properties
+
+      # tv-armeabi-v7a-release.apk -> dist/tv/Wicaby-TV-<versionName>-armv7.apk; mobile-foss-arm64-v8a-release.apk
+      # -> dist/mobile/Wicaby-Mobile-<versionName>-arm64.apk (foss keeps the 0.2.0 names and the "mobile" update
+      # channel); mobile-gplay-arm64-v8a-release.apk -> dist/mobile-gplay/Wicaby-Mobile-Cast-<versionName>-arm64.apk.
+      - name: Verify signatures and rename
+        env:
+          APK_CERT_SHA256: ${{ vars.APK_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          expected="$(printf '%s' "$APK_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)"
+          aapt2="${bt}aapt2"; apksigner="${bt}apksigner"
+          collect() { # <module> <flavour or ""> <dist dir> <label> <abi-split:suffix>...
+            local module="$1" flavour="$2" out="$3" label="$4"; shift 4
+            local dir="apps/android/$module/build/outputs/apk/${flavour:+$flavour/}release"
+            if ls "$dir"/*-unsigned.apk >/dev/null 2>&1; then echo "::error::$module $flavour produced unsigned APKs"; exit 1; fi
+            mkdir -p "dist/$out"
+            for pair in "$@"; do
+              local split="${pair%%:*}" suffix="${pair##*:}"
+              local apk="$dir/$module-${flavour:+$flavour-}$split-release.apk"
+              [ -f "$apk" ] || { echo "::error::missing $apk"; ls -la "$dir"; exit 1; }
+              "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/certs.txt"
+              # Every signer must be the release certificate (APK_CERT_SHA256, checked by preflight).
+              local certs
+              certs="$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$RUNNER_TEMP/certs.txt" | sort -u)"
+              if [ "$certs" != "$expected" ]; then
+                echo "::error::$apk is signed by '$certs', expected $expected"; exit 1
+              fi
+              local ver
+              ver="$("$aapt2" dump badging "$apk" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -n 1)"
+              [ -n "$ver" ] || { echo "::error::no versionName in $apk"; exit 1; }
+              # make-update-manifest.mjs only reads numeric versionNames; any other one would
+              # silently leave this app out of update.json.
+              [[ "$ver" =~ ^[0-9]+(\.[0-9]+)*$ ]] || { echo "::error::$module versionName '$ver' is not numeric (X.Y.Z)"; exit 1; }
+              cp "$apk" "dist/$out/Wicaby-$label-$ver-$suffix.apk"
+            done
+          }
+          collect tv "" tv TV armeabi-v7a:armv7 arm64-v8a:arm64 universal:universal
+          collect mobile foss mobile Mobile armeabi-v7a:armv7 arm64-v8a:arm64
+          collect mobile gplay mobile-gplay Mobile-Cast armeabi-v7a:armv7 arm64-v8a:arm64
+          # Licence texts of every Go module linked into the mesh AAR (written by build-mesh-aar.sh).
+          cp vendor/android/wicaby-mesh-THIRD_PARTY_LICENSES.txt dist/
+          ls -la dist dist/tv dist/mobile dist/mobile-gplay
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android
+          path: |
+            dist/tv/*.apk
+            dist/mobile/*.apk
+            dist/mobile-gplay/*.apk
+            dist/wicaby-mesh-THIRD_PARTY_LICENSES.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish to wicaby-releases
+    needs: [windows, linux, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # For tools/release/make-update-manifest.mjs, CHANGELOG.md, the build.gradle.kts fallback
+      # and the source archive.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # make-update-manifest.mjs reads release/{tv,mobile,mobile-gplay}/*.apk; the mesh
+      # licence file lands in release/.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android
+          path: release
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows
+          path: release/windows
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: linux
+          path: release/linux
+
+      # The matching "## [X.Y.Z]" section of CHANGELOG.md (Keep a Changelog), if any. Used both
+      # as the in-app changelog (update.json notes.en) and as the GitHub release body.
+      - name: Changelog section
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          : > release-notes.md
+          if [ -f CHANGELOG.md ]; then
+            # Skips the "[x.y.z]: https://..." link definitions that follow the last section.
+            awk -v v="$version" 'index($0, "## [" v "]") == 1 { f = 1; next } f && /^## / { exit } f && /^\[[^]]+\]: / { next } f' CHANGELOG.md > release-notes.md
+          fi
+          # Trim leading/trailing blank lines.
+          sed -i -e '/./,$!d' release-notes.md
+          sed -i -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' release-notes.md
+          if [ -s release-notes.md ]; then cat release-notes.md; else echo "::warning::no CHANGELOG.md section for $version; update.json notes stay empty"; fi
+
+      - name: Write update.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Keeps the notes of the current release for an unchanged versionCode (the script
+          # merges them); absent on the very first release.
+          curl -fsSL "https://github.com/$RELEASES_REPO/releases/latest/download/update.json" -o release/update.json \
+            || rm -f release/update.json
+          # --flat: the APKs sit next to update.json as release assets, not in tv/, mobile/ and mobile-gplay/.
+          # --notes-en: the CHANGELOG section, for both apps (release/<app>/NOTES.en.txt would
+          # override it per app). CHANGELOG.md is English only; a French UI falls back
+          # to notes.en (UpdateLogic.notes).
+          # aapt2 (versionCode) comes from the runner's $ANDROID_HOME/build-tools.
+          notes=()
+          [ -s release-notes.md ] && notes=(--notes-en "$(cat release-notes.md)")
+          node tools/release/make-update-manifest.mjs "https://github.com/$RELEASES_REPO/releases/download/$TAG/" --flat "${notes[@]}"
+          cat release/update.json
+
+      # GPL-3.0 section 6: the complete corresponding source of the tagged commit, published next
+      # to the binaries (the code repo is private), with the licence texts.
+      - name: Source archive and licence texts
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          git archive --format=tar.gz --prefix="wicaby-$version/" -o "release/wicaby-$version-source.tar.gz" "$GITHUB_SHA"
+          cp LICENSE release/LICENSE.txt
+          # The GPL section 7 permission the gplay APKs (Wicaby-Mobile-Cast-*) are conveyed under.
+          cp LICENSE-EXCEPTION.md release/LICENSE-EXCEPTION.md
+          cp THIRD_PARTY_NOTICES.md release/THIRD_PARTY_NOTICES.md
+          ls -la release
+
+      # GPL source of the bundled mpv, pinned in fetch-mpv.ps1: shinchiro's build recipes at the
+      # tag and mpv itself at the commit, in one archive.
+      - name: mpv source archive
+        id: mpv
+        run: |
+          set -euo pipefail
+          ps1=apps/desktop/scripts/fetch-mpv.ps1
+          tag="$(awk -F"'" '/^\$MpvTag = / { print $2 }' "$ps1")"
+          commit="$(awk -F"'" '/^\$MpvCommit = / { print $2 }' "$ps1")"
+          [[ "$tag" =~ ^[0-9]{8}$ && "$commit" =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::no MpvTag/MpvCommit in $ps1"; exit 1; }
+          src="mpv-winbuild-$tag-source"
+          mkdir -p "$RUNNER_TEMP/$src"
+          curl -fsSL "https://github.com/shinchiro/mpv-winbuild-cmake/archive/refs/tags/$tag.tar.gz" -o "$RUNNER_TEMP/$src/mpv-winbuild-cmake-$tag.tar.gz"
+          curl -fsSL "https://github.com/mpv-player/mpv/archive/$commit.tar.gz" -o "$RUNNER_TEMP/$src/mpv-$commit.tar.gz"
+          tar -czf "release/$src.tar.gz" -C "$RUNNER_TEMP" "$src"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: Release notes and checksums
+        id: notes
+        env:
+          TAG: ${{ github.ref_name }}
+          MPV_TAG: ${{ steps.mpv.outputs.tag }}
+          MPV_COMMIT: ${{ steps.mpv.outputs.commit }}
+        run: |
+          set -euo pipefail
+          cp release-notes.md notes.md
+          [ -s notes.md ] || echo "Wicaby $TAG" > notes.md
+          {
+            echo
+            echo '**Android TV:** most TVs need `armv7`; 64-bit boxes take `arm64`; `universal` runs on both but is larger.'
+            echo '**Android phones and tablets:** `arm64` for almost every recent phone, `armv7` for older 32-bit devices.'
+            echo '`Wicaby-Mobile-*` is the free build (no Google code, FFmpeg audio decoding). `Wicaby-Mobile-Cast-*` adds Chromecast and Google TV through Google Play services (proprietary; see `LICENSE-EXCEPTION.md`) and has no FFmpeg decoder: the server converts those audio formats. Both install over each other and keep your data; each one only updates to its own kind.'
+            echo '**Windows:** the `-x64.exe` is the installer, the `-portable.exe` runs without installing.'
+            echo '**Linux (x64, X11 or XWayland):** the `.deb` for Debian and Ubuntu (installs mpv 0.37 or later as a dependency); the `.AppImage` and the `.tar.gz` run anywhere but need `mpv` 0.37 or later from your distribution.'
+            echo "**Source code:** \`wicaby-${TAG#v}-source.tar.gz\` is the complete source of this release (GPL-3.0-or-later); see \`THIRD_PARTY_NOTICES.md\`."
+            echo "**mpv (Windows):** [shinchiro/mpv-winbuild-cmake \`$MPV_TAG\`](https://github.com/shinchiro/mpv-winbuild-cmake/releases/tag/$MPV_TAG), mpv \`git-$MPV_COMMIT\`; its source is \`mpv-winbuild-$MPV_TAG-source.tar.gz\`."
+          } >> notes.md
+          (cd release && sha256sum windows/*.exe linux/* tv/*.apk mobile/*.apk mobile-gplay/*.apk update.json wicaby-*-source.tar.gz mpv-winbuild-*-source.tar.gz LICENSE.txt LICENSE-EXCEPTION.md THIRD_PARTY_NOTICES.md wicaby-mesh-THIRD_PARTY_LICENSES.txt | sed 's#  [^ ]*/#  #' > SHA256SUMS.txt)
+          cat release/SHA256SUMS.txt
+          if [[ "$TAG" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          name: Wicaby ${{ github.ref_name }}
+          body_path: notes.md
+          prerelease: ${{ steps.notes.outputs.prerelease }}
+          # releases/latest/download/update.json must only ever point at a stable release.
+          make_latest: ${{ steps.notes.outputs.prerelease == 'true' && 'false' || 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            release/windows/Wicaby-*.exe
+            release/linux/*.AppImage
+            release/linux/*.deb
+            release/linux/*.tar.gz
+            release/tv/Wicaby-TV-*.apk
+            release/mobile/Wicaby-Mobile-*.apk
+            release/mobile-gplay/Wicaby-Mobile-Cast-*.apk
+            release/update.json
+            release/wicaby-*-source.tar.gz
+            release/mpv-winbuild-*-source.tar.gz
+            release/LICENSE.txt
+            release/LICENSE-EXCEPTION.md
+            release/THIRD_PARTY_NOTICES.md
+            release/wicaby-mesh-THIRD_PARTY_LICENSES.txt
+            release/SHA256SUMS.txt

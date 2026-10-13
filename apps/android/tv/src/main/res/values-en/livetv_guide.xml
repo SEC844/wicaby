@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live TV: the guide grid, its search and the number jump (spec livetv §6, §12, §13.3, §21.7, TV-2). -->
+<resources>
+    <string name="livetv_guide_today">Today</string>
+    <string name="livetv_guide_tomorrow">Tomorrow</string>
+    <string name="livetv_guide_day">Day</string>
+    <string name="livetv_guide_dayparts_now">Now</string>
+    <string name="livetv_guide_dayparts_morning">Morning</string>
+    <string name="livetv_guide_dayparts_afternoon">Afternoon</string>
+    <string name="livetv_guide_dayparts_evening">Evening</string>
+    <string name="livetv_guide_dayparts_tonight">Tonight</string>
+    <string name="livetv_guide_dayparts_night">Night</string>
+    <string name="livetv_guide_detail">Program Details</string>
+    <string name="livetv_guide_jump_to">Go to %1$s</string>
+    <string name="livetv_guide_aria_grid">Program Guide</string>
+    <string name="livetv_guide_aria_cell">%1$s, %2$s, %3$s to %4$s</string>
+    <string name="livetv_guide_aria_filler">%1$s, no program information</string>
+    <string name="livetv_guide_aria_on_now">on now, %1$d%% elapsed</string>
+    <string name="livetv_marks_timer">Recording Scheduled</string>
+    <string name="livetv_marks_series">Series Recording</string>
+    <string name="livetv_marks_recording">Recording</string>
+    <string name="livetv_marks_wont_record">Won’t Record</string>
+    <string name="livetv_marks_conflict_ok">Conflict, Will Record</string>
+    <string name="livetv_marks_error">Recording Error</string>
+    <string name="livetv_marks_rule_skips">The series rule skips this airing.</string>
+    <string name="livetv_marks_reminder">Reminder Set</string>
+    <string name="livetv_actions_search">Search</string>
+    <string name="livetv_actions_record">Record</string>
+    <string name="livetv_actions_cancel_recording">Cancel Recording</string>
+    <string name="livetv_sheet_watch_channel">Watch Channel</string>
+    <string name="livetv_sheet_remind_me">Remind Me</string>
+    <string name="livetv_sheet_cancel_reminder">Cancel Reminder</string>
+    <string name="livetv_search_placeholder">Channel, Number, or Program</string>
+    <string name="livetv_search_channels">Channels</string>
+    <string name="livetv_search_programs">Programs</string>
+    <string name="livetv_search_empty">No results for “%1$s”</string>
+    <string name="livetv_search_min_chars">Type at least two characters.</string>
+    <string name="livetv_search_voice">Voice Search</string>
+    <string name="livetv_guide_record_failed">The recording couldn’t be changed.</string>
+    <string name="livetv_guide_record_forbidden">Your account can’t manage recordings.</string>
+</resources>

@@ -1,0 +1,103 @@
+{
+  "menu": {
+    "playNext": "Play Next",
+    "addToQueue": "Add to Queue",
+    "addToPlaylist": "Add to Playlist…",
+    "addToCollection": "Add to Collection…",
+    "more": "More Options",
+    "removeFromContinue": "Remove from Continue Watching"
+  },
+  "errors": {
+    "nothingToPlay": "Nothing to play",
+    "queueOtherServer": "Something is playing from another server"
+  },
+  "toast": {
+    "markedWatched": "Marked as watched",
+    "markedUnwatched": "Marked as unwatched",
+    "marking": "Updating {done} of {total}…",
+    "markedWatchedCount": "{count, plural, one {# episode marked as watched} other {# episodes marked as watched}}",
+    "markedUnwatchedCount": "{count, plural, one {# episode marked as unwatched} other {# episodes marked as unwatched}}",
+    "downloadAdded": "Added to Downloads",
+    "downloadAddedNamed": "“{name}” added to Downloads",
+    "playingNext": "“{name}” will play next",
+    "addedToQueue": "“{name}” added to the queue",
+    "removedFromContinue": "Removed from Continue Watching"
+  },
+  "streams": {
+    "track": "Track {index}",
+    "version": "Version",
+    "subtitlesOff": "Subtitles Off",
+    "subtitlesNone": "Off",
+    "forced": "{label} (Forced)"
+  },
+  "people": {
+    "director": "Director"
+  },
+  "play": {
+    "resumeReading": "Resume Reading (p. {page})",
+    "read": "Read",
+    "resume": "Resume",
+    "episode": "Play {code}",
+    "play": "Play"
+  },
+  "facts": {
+    "genres": "Genres",
+    "released": "Released",
+    "runtime": "Runtime",
+    "ageRating": "Rated",
+    "studio": "Studio",
+    "directors": "Directed By",
+    "audio": "Audio",
+    "subtitles": "Subtitles",
+    "tracks": "{count, plural, one {# track} other {# tracks}}",
+    "dynamicRange": "Dynamic Range",
+    "dvProfile": "{format}, Profile {profile}"
+  },
+  "notFound": "Not Found",
+  "meta": {
+    "criticRating": "{value}%"
+  },
+  "actions": {
+    "fromStart": "Start Over",
+    "trailer": "Trailer",
+    "addFavorite": "Add to Favorites",
+    "removeFavorite": "Remove from Favorites",
+    "markPlayed": "{kind, select, book {Mark as Read} other {Mark as Watched}}",
+    "markUnplayed": "{kind, select, book {Mark as Unread} other {Mark as Unwatched}}",
+    "availableOffline": "Available Offline",
+    "downloading": "Downloading",
+    "markPreviousPlayed": "Mark Previous Episodes as Watched",
+    "markSeasonPlayed": "Mark Season as Watched",
+    "markSeasonUnplayed": "Mark Season as Unwatched"
+  },
+  "overview": {
+    "more": "More",
+    "less": "Less"
+  },
+  "copies": {
+    "availableOn": "{count, plural, one {Available on # server} other {Available on # servers}}"
+  },
+  "goToShow": "Go to Show",
+  "episodes": {
+    "seasons": "Seasons",
+    "title": "Episodes",
+    "play": "Play {name}",
+    "nextUp": "Up Next",
+    "number": "Episode {number}",
+    "episode": "Episode"
+  },
+  "sections": {
+    "contents": "Contents",
+    "discography": "Discography",
+    "filmography": "Filmography",
+    "moreEpisodes": "More Episodes",
+    "castCrew": "Cast & Crew",
+    "similar": "More Like This",
+    "bonus": "Extras",
+    "about": "Information"
+  },
+  "trailer": {
+    "title": "Trailer: {name}",
+    "openBrowser": "Open in Browser"
+  }
+}

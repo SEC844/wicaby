@@ -1,0 +1,31 @@
+{
+  "name": "wicaby-monorepo",
+  "version": "0.6.0",
+  "description": "Wicaby: media clients for Emby and Jellyfin (Windows and Linux desktop, Android TV, Android mobile)",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/desktop"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/desktop --",
+    "build": "npm run build -w apps/desktop",
+    "start": "npm start -w apps/desktop",
+    "check": "npm run check -w apps/desktop",
+    "checks": "node tools/checks/run-all.mjs",
+    "dist": "npm run dist -w apps/desktop",
+    "dist:portable": "npm run dist:portable -w apps/desktop",
+    "dist:linux": "npm run dist:linux -w apps/desktop",
+    "fetch-mpv": "npm run fetch-mpv -w apps/desktop",
+    "icon": "node brand/scripts/make-icon.mjs",
+    "build:mesh": "node packages/mesh/scripts/build-vpn-helper.mjs",
+    "build:mesh-aar": "powershell -NoProfile -ExecutionPolicy Bypass -File packages/mesh/scripts/build-mesh-aar.ps1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "global-agent": "^4.1.3"
+  }
+}

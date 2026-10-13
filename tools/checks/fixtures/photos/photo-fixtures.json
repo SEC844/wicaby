@@ -1,0 +1,3210 @@
+{
+ "comment": "Photos spec PH-01 parity vectors: desktop tools/checks/photos-check.mjs, Android core PhotoFixturesTest. Numbers in rows are rounded to 6 decimals; compare within 1e-6.",
+ "templates": {
+  "fr": {
+   "aperture": "ƒ/{value}",
+   "exposure": "{value} s",
+   "focal": "{value} mm",
+   "iso": "ISO {value}",
+   "dimensions": "{w} × {h}",
+   "altitude": "{value} m",
+   "location": "{lat} ; {lon}"
+  },
+  "en": {
+   "aperture": "ƒ/{value}",
+   "exposure": "{value} s",
+   "focal": "{value} mm",
+   "iso": "ISO {value}",
+   "dimensions": "{w} × {h}",
+   "altitude": "{value} m",
+   "location": "{lat}, {lon}"
+  }
+ },
+ "takenAt": [
+  {
+   "name": "emby premiere with Z",
+   "premiereDate": "2024-05-01T14:30:00.0000000Z",
+   "dateCreated": "2024-05-01T12:30:00.0000000Z",
+   "offsetMin": 120,
+   "expected": "2024-05-01T14:30:00"
+  },
+  {
+   "name": "jellyfin premiere without Z (wall-clock)",
+   "premiereDate": "2024-05-01T14:30:00.0000000",
+   "dateCreated": "2024-05-01T12:30:00.0000000Z",
+   "offsetMin": 120,
+   "expected": "2024-05-01T14:30:00"
+  },
+  {
+   "name": "premiere with an offset keeps its fields",
+   "premiereDate": "2024-05-01T14:30:00+09:00",
+   "dateCreated": null,
+   "offsetMin": 0,
+   "expected": "2024-05-01T14:30:00"
+  },
+  {
+   "name": "no premiere: DateCreated in local time (UTC+2)",
+   "premiereDate": null,
+   "dateCreated": "2024-05-01T12:30:15.1234567Z",
+   "offsetMin": 120,
+   "expected": "2024-05-01T14:30:15"
+  },
+  {
+   "name": "no premiere: DateCreated west of UTC",
+   "premiereDate": null,
+   "dateCreated": "2024-05-01T02:30:00Z",
+   "offsetMin": -300,
+   "expected": "2024-04-30T21:30:00"
+  },
+  {
+   "name": "midnight: premiere stays on Dec 31 whatever the zone",
+   "premiereDate": "2023-12-31T23:30:00Z",
+   "dateCreated": "2023-12-31T22:30:00Z",
+   "offsetMin": 120,
+   "expected": "2023-12-31T23:30:00"
+  },
+  {
+   "name": "midnight: DateCreated crosses into the new year",
+   "premiereDate": null,
+   "dateCreated": "2023-12-31T23:30:00Z",
+   "offsetMin": 120,
+   "expected": "2024-01-01T01:30:00"
+  },
+  {
+   "name": "zoneless DateCreated is UTC",
+   "premiereDate": null,
+   "dateCreated": "2024-07-14T23:59:59",
+   "offsetMin": 60,
+   "expected": "2024-07-15T00:59:59"
+  },
+  {
+   "name": "placeholder premiere year falls back",
+   "premiereDate": "0001-01-01T00:00:00.0000000Z",
+   "dateCreated": "2020-02-29T10:00:00Z",
+   "offsetMin": 0,
+   "expected": "2020-02-29T10:00:00"
+  },
+  {
+   "name": "date-only premiere",
+   "premiereDate": "2019-08-15",
+   "dateCreated": "2019-08-16T10:00:00Z",
+   "offsetMin": 0,
+   "expected": "2019-08-15T00:00:00"
+  },
+  {
+   "name": "nothing",
+   "premiereDate": null,
+   "dateCreated": null,
+   "offsetMin": 0,
+   "expected": null
+  }
+ ],
+ "toAsset": [
+  {
+   "name": "emby photo, favourite, sideways",
+   "item": {
+    "Id": "p1",
+    "ServerId": "s1",
+    "Type": "Photo",
+    "MediaType": "Photo",
+    "PremiereDate": "2022-06-01T09:00:00.0000000Z",
+    "DateCreated": "2022-06-01T07:00:00.0000000Z",
+    "Width": 4032,
+    "Height": 3024,
+    "ImageOrientation": "RightTop",
+    "ImageTags": {
+     "Primary": "t1"
+    },
+    "UserData": {
+     "IsFavorite": true
+    },
+    "Latitude": 48.85,
+    "Longitude": 2.29
+   },
+   "offsetMin": 60,
+   "withLocation": false,
+   "expected": {
+    "id": "p1",
+    "serverId": "s1",
+    "kind": "photo",
+    "takenAt": "2022-06-01T09:00:00",
+    "aspect": 0.75,
+    "rotate": 0,
+    "favorite": true,
+    "thumbTag": "t1"
+   }
+  },
+  {
+   "name": "jellyfin photo with blurhash and location",
+   "item": {
+    "Id": "p2",
+    "ServerId": "s2",
+    "Type": "Photo",
+    "PremiereDate": "2021-01-02T03:04:05",
+    "DateCreated": "2021-01-02T02:04:05.0000000Z",
+    "Width": 6000,
+    "Height": 4000,
+    "ImageOrientation": "TopLeft",
+    "ImageTags": {
+     "Primary": "t2"
+    },
+    "ImageBlurHashes": {
+     "Primary": {
+      "t2": "LEHV6nWB2yk8pyo0adR*.7kCMdnj"
+     }
+    },
+    "Latitude": 64.14,
+    "Longitude": -21.92
+   },
+   "offsetMin": 60,
+   "withLocation": true,
+   "expected": {
+    "id": "p2",
+    "serverId": "s2",
+    "kind": "photo",
+    "takenAt": "2021-01-02T03:04:05",
+    "aspect": 1.5,
+    "rotate": 0,
+    "favorite": false,
+    "thumbTag": "t2",
+    "blurHash": "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+    "lat": 64.14,
+    "lon": -21.92
+   }
+  },
+  {
+   "name": "video clip, no size: server aspect",
+   "item": {
+    "Id": "v1",
+    "ServerId": "s1",
+    "Type": "Video",
+    "MediaType": "Video",
+    "DateCreated": "2020-03-01T23:30:00.0000000Z",
+    "RunTimeTicks": 123456789,
+    "PrimaryImageAspectRatio": 1.7777777777777777
+   },
+   "offsetMin": 60,
+   "withLocation": false,
+   "expected": {
+    "id": "v1",
+    "serverId": "s1",
+    "kind": "video",
+    "takenAt": "2020-03-02T00:30:00",
+    "aspect": 1.7777777777777777,
+    "rotate": 0,
+    "favorite": false,
+    "durationMs": 12345
+   }
+  },
+  {
+   "name": "nothing known: 3:2",
+   "item": {
+    "Id": "p3",
+    "Type": "Photo"
+   },
+   "offsetMin": 60,
+   "withLocation": false,
+   "expected": {
+    "id": "p3",
+    "serverId": "",
+    "kind": "photo",
+    "takenAt": "0001-01-01T00:00:00",
+    "aspect": 1.5,
+    "rotate": 0,
+    "favorite": false
+   }
+  }
+ ],
+ "orientation": [
+  {
+   "name": "no orientation",
+   "orientation": null,
+   "width": 6000,
+   "height": 4000,
+   "decodedW": 300,
+   "decodedH": 200,
+   "aspect": 1.5,
+   "rotate": 0,
+   "relayout": false
+  },
+  {
+   "name": "quarter turn, pixels as stored: the client turns them",
+   "orientation": "RightTop",
+   "width": 4032,
+   "height": 3024,
+   "decodedW": 320,
+   "decodedH": 240,
+   "aspect": 0.75,
+   "rotate": 90,
+   "relayout": false
+  },
+  {
+   "name": "quarter turn, pixels already turned: nothing to do",
+   "orientation": "RightTop",
+   "width": 4032,
+   "height": 3024,
+   "decodedW": 240,
+   "decodedH": 320,
+   "aspect": 0.75,
+   "rotate": 0,
+   "relayout": false
+  },
+  {
+   "name": "other quarter turn, pixels as stored",
+   "orientation": "LeftBottom",
+   "width": 4032,
+   "height": 3024,
+   "decodedW": 320,
+   "decodedH": 240,
+   "aspect": 0.75,
+   "rotate": 270,
+   "relayout": false
+  },
+  {
+   "name": "quarter turn, not decoded yet",
+   "orientation": "LeftTop",
+   "width": 4032,
+   "height": 3024,
+   "decodedW": 0,
+   "decodedH": 0,
+   "aspect": 0.75,
+   "rotate": 0,
+   "relayout": false
+  },
+  {
+   "name": "upside down: no quarter turn",
+   "orientation": "BottomRight",
+   "width": 4000,
+   "height": 3000,
+   "decodedW": 400,
+   "decodedH": 300,
+   "aspect": 1.3333333333333333,
+   "rotate": 0,
+   "relayout": false
+  },
+  {
+   "name": "decoded shape far from the prediction: re-layout",
+   "orientation": null,
+   "width": 4000,
+   "height": 3000,
+   "decodedW": 300,
+   "decodedH": 300,
+   "aspect": 1.3333333333333333,
+   "rotate": 0,
+   "relayout": true
+  }
+ ],
+ "justify": [
+  {
+   "name": "mix at 360 px, 120 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 360,
+   "targetH": 120,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 100.571429,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 150.857143
+      },
+      {
+       "index": 1,
+       "x": 154.857143,
+       "w": 67.050971
+      },
+      {
+       "index": 2,
+       "x": 225.908114,
+       "w": 134.091886
+      }
+     ]
+    },
+    {
+     "top": 104.571429,
+     "height": 140.833927,
+     "items": [
+      {
+       "index": 3,
+       "x": 0,
+       "w": 105.625445
+      },
+      {
+       "index": 4,
+       "x": 109.625445,
+       "w": 250.374555
+      }
+     ]
+    },
+    {
+     "top": 249.405355,
+     "height": 120,
+     "items": [
+      {
+       "index": 5,
+       "x": 0,
+       "w": 120
+      }
+     ]
+    },
+    {
+     "top": 373.405355,
+     "height": 90,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 467.405355,
+     "height": 118.666667,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 178
+      },
+      {
+       "index": 8,
+       "x": 182,
+       "w": 178
+      }
+     ]
+    },
+    {
+     "top": 590.072022,
+     "height": 170.882734,
+     "items": [
+      {
+       "index": 9,
+       "x": 0,
+       "w": 128.162051
+      },
+      {
+       "index": 10,
+       "x": 132.162051,
+       "w": 227.837949
+      }
+     ]
+    },
+    {
+     "top": 764.954756,
+     "height": 116.244898,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 290.612245
+      },
+      {
+       "index": 12,
+       "x": 294.612245,
+       "w": 65.387755
+      }
+     ]
+    },
+    {
+     "top": 885.199654,
+     "height": 120,
+     "items": [
+      {
+       "index": 13,
+       "x": 0,
+       "w": 120
+      },
+      {
+       "index": 14,
+       "x": 124,
+       "w": 180
+      }
+     ]
+    },
+    {
+     "top": 1009.199654,
+     "height": 112.5,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1125.699654,
+     "height": 120,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 180
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 360 px, 180 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 360,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 164.305165,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 246.457747
+      },
+      {
+       "index": 1,
+       "x": 250.457747,
+       "w": 109.542253
+      }
+     ]
+    },
+    {
+     "top": 168.305165,
+     "height": 170.882734,
+     "items": [
+      {
+       "index": 2,
+       "x": 0,
+       "w": 227.837949
+      },
+      {
+       "index": 3,
+       "x": 231.837949,
+       "w": 128.162051
+      }
+     ]
+    },
+    {
+     "top": 343.187899,
+     "height": 202.497469,
+     "items": [
+      {
+       "index": 4,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 549.685367,
+     "height": 180,
+     "items": [
+      {
+       "index": 5,
+       "x": 0,
+       "w": 180
+      }
+     ]
+    },
+    {
+     "top": 733.685367,
+     "height": 90,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 827.685367,
+     "height": 240,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1071.685367,
+     "height": 158.222222,
+     "items": [
+      {
+       "index": 8,
+       "x": 0,
+       "w": 237.333333
+      },
+      {
+       "index": 9,
+       "x": 241.333333,
+       "w": 118.666667
+      }
+     ]
+    },
+    {
+     "top": 1233.90759,
+     "height": 270.00675,
+     "items": [
+      {
+       "index": 10,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1507.91434,
+     "height": 144,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1655.91434,
+     "height": 227.84,
+     "items": [
+      {
+       "index": 12,
+       "x": 0,
+       "w": 128.16
+      },
+      {
+       "index": 13,
+       "x": 132.16,
+       "w": 227.84
+      }
+     ]
+    },
+    {
+     "top": 1887.75434,
+     "height": 180,
+     "items": [
+      {
+       "index": 14,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 2071.75434,
+     "height": 112.5,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 2188.25434,
+     "height": 180,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 360 px, 270 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 360,
+   "targetH": 270,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 240,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 244,
+     "height": 178,
+     "items": [
+      {
+       "index": 1,
+       "x": 0,
+       "w": 118.6726
+      },
+      {
+       "index": 2,
+       "x": 122.6726,
+       "w": 237.3274
+      }
+     ]
+    },
+    {
+     "top": 426,
+     "height": 140.833927,
+     "items": [
+      {
+       "index": 3,
+       "x": 0,
+       "w": 105.625445
+      },
+      {
+       "index": 4,
+       "x": 109.625445,
+       "w": 250.374555
+      }
+     ]
+    },
+    {
+     "top": 570.833927,
+     "height": 270,
+     "items": [
+      {
+       "index": 5,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 844.833927,
+     "height": 90,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 938.833927,
+     "height": 240,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1182.833927,
+     "height": 240,
+     "items": [
+      {
+       "index": 8,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1426.833927,
+     "height": 170.882734,
+     "items": [
+      {
+       "index": 9,
+       "x": 0,
+       "w": 128.162051
+      },
+      {
+       "index": 10,
+       "x": 132.162051,
+       "w": 227.837949
+      }
+     ]
+    },
+    {
+     "top": 1601.716661,
+     "height": 144,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 1749.716661,
+     "height": 227.84,
+     "items": [
+      {
+       "index": 12,
+       "x": 0,
+       "w": 128.16
+      },
+      {
+       "index": 13,
+       "x": 132.16,
+       "w": 227.84
+      }
+     ]
+    },
+    {
+     "top": 1981.556661,
+     "height": 240,
+     "items": [
+      {
+       "index": 14,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 2225.556661,
+     "height": 112.5,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    },
+    {
+     "top": 2342.056661,
+     "height": 240,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 800 px, 120 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 800,
+   "targetH": 120,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 110.987791,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 166.481687
+      },
+      {
+       "index": 1,
+       "x": 170.481687,
+       "w": 73.99556
+      },
+      {
+       "index": 2,
+       "x": 248.477248,
+       "w": 147.980022
+      },
+      {
+       "index": 3,
+       "x": 400.45727,
+       "w": 83.240844
+      },
+      {
+       "index": 4,
+       "x": 487.698113,
+       "w": 197.314095
+      },
+      {
+       "index": 5,
+       "x": 689.012209,
+       "w": 110.987791
+      }
+     ]
+    },
+    {
+     "top": 114.987791,
+     "height": 192,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 768
+      }
+     ]
+    },
+    {
+     "top": 310.987791,
+     "height": 103.38507,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 155.077605
+      },
+      {
+       "index": 8,
+       "x": 159.077605,
+       "w": 155.077605
+      },
+      {
+       "index": 9,
+       "x": 318.155209,
+       "w": 77.538802
+      },
+      {
+       "index": 10,
+       "x": 399.694012,
+       "w": 137.843314
+      },
+      {
+       "index": 11,
+       "x": 541.537325,
+       "w": 258.462675
+      }
+     ]
+    },
+    {
+     "top": 418.372861,
+     "height": 120,
+     "items": [
+      {
+       "index": 12,
+       "x": 0,
+       "w": 67.5
+      },
+      {
+       "index": 13,
+       "x": 71.5,
+       "w": 120
+      },
+      {
+       "index": 14,
+       "x": 195.5,
+       "w": 180
+      }
+     ]
+    },
+    {
+     "top": 542.372861,
+     "height": 192,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 614.4
+      }
+     ]
+    },
+    {
+     "top": 738.372861,
+     "height": 120,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 180
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 800 px, 180 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 800,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 185.411765,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 278.117647
+      },
+      {
+       "index": 1,
+       "x": 282.117647,
+       "w": 123.614024
+      },
+      {
+       "index": 2,
+       "x": 409.731671,
+       "w": 247.209506
+      },
+      {
+       "index": 3,
+       "x": 660.941176,
+       "w": 139.058824
+      }
+     ]
+    },
+    {
+     "top": 189.411765,
+     "height": 180,
+     "items": [
+      {
+       "index": 4,
+       "x": 0,
+       "w": 320.004
+      },
+      {
+       "index": 5,
+       "x": 324.004,
+       "w": 180
+      }
+     ]
+    },
+    {
+     "top": 373.411765,
+     "height": 200,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 800
+      }
+     ]
+    },
+    {
+     "top": 577.411765,
+     "height": 155.01741,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 232.526115
+      },
+      {
+       "index": 8,
+       "x": 236.526115,
+       "w": 232.526115
+      },
+      {
+       "index": 9,
+       "x": 473.05223,
+       "w": 116.263057
+      },
+      {
+       "index": 10,
+       "x": 593.315287,
+       "w": 206.684713
+      }
+     ]
+    },
+    {
+     "top": 736.429175,
+     "height": 194.953846,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 487.384615
+      },
+      {
+       "index": 12,
+       "x": 491.384615,
+       "w": 109.661538
+      },
+      {
+       "index": 13,
+       "x": 605.046154,
+       "w": 194.953846
+      }
+     ]
+    },
+    {
+     "top": 935.383021,
+     "height": 180,
+     "items": [
+      {
+       "index": 14,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 1119.383021,
+     "height": 250,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 800
+      }
+     ]
+    },
+    {
+     "top": 1373.383021,
+     "height": 180,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 800 px, 270 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 800,
+   "targetH": 270,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 226.285714,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 339.428571
+      },
+      {
+       "index": 1,
+       "x": 343.428571,
+       "w": 150.864686
+      },
+      {
+       "index": 2,
+       "x": 498.293257,
+       "w": 301.706743
+      }
+     ]
+    },
+    {
+     "top": 230.285714,
+     "height": 314.898331,
+     "items": [
+      {
+       "index": 3,
+       "x": 0,
+       "w": 236.173748
+      },
+      {
+       "index": 4,
+       "x": 240.173748,
+       "w": 559.826252
+      }
+     ]
+    },
+    {
+     "top": 549.184045,
+     "height": 270,
+     "items": [
+      {
+       "index": 5,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 823.184045,
+     "height": 200,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 800
+      }
+     ]
+    },
+    {
+     "top": 1027.184045,
+     "height": 265.333333,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 398
+      },
+      {
+       "index": 8,
+       "x": 402,
+       "w": 398
+      }
+     ]
+    },
+    {
+     "top": 1296.517378,
+     "height": 382.086113,
+     "items": [
+      {
+       "index": 9,
+       "x": 0,
+       "w": 286.564585
+      },
+      {
+       "index": 10,
+       "x": 290.564585,
+       "w": 509.435415
+      }
+     ]
+    },
+    {
+     "top": 1682.603492,
+     "height": 259.918367,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 649.795918
+      },
+      {
+       "index": 12,
+       "x": 653.795918,
+       "w": 146.204082
+      }
+     ]
+    },
+    {
+     "top": 1946.521859,
+     "height": 270,
+     "items": [
+      {
+       "index": 13,
+       "x": 0,
+       "w": 270
+      },
+      {
+       "index": 14,
+       "x": 274,
+       "w": 405
+      }
+     ]
+    },
+    {
+     "top": 2220.521859,
+     "height": 250,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 800
+      }
+     ]
+    },
+    {
+     "top": 2474.521859,
+     "height": 270,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 405
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 1280 px, 120 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 1280,
+   "targetH": 120,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 120,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 180
+      },
+      {
+       "index": 1,
+       "x": 184,
+       "w": 80.004
+      },
+      {
+       "index": 2,
+       "x": 268.004,
+       "w": 159.996
+      },
+      {
+       "index": 3,
+       "x": 432,
+       "w": 90
+      },
+      {
+       "index": 4,
+       "x": 526,
+       "w": 213.336
+      },
+      {
+       "index": 5,
+       "x": 743.336,
+       "w": 120
+      }
+     ]
+    },
+    {
+     "top": 124,
+     "height": 192,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 768
+      }
+     ]
+    },
+    {
+     "top": 320,
+     "height": 117.605065,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 176.407597
+      },
+      {
+       "index": 8,
+       "x": 180.407597,
+       "w": 176.407597
+      },
+      {
+       "index": 9,
+       "x": 360.815195,
+       "w": 88.203799
+      },
+      {
+       "index": 10,
+       "x": 453.018993,
+       "w": 156.802833
+      },
+      {
+       "index": 11,
+       "x": 613.821826,
+       "w": 294.012662
+      },
+      {
+       "index": 12,
+       "x": 911.834489,
+       "w": 66.152849
+      },
+      {
+       "index": 13,
+       "x": 981.987338,
+       "w": 117.605065
+      },
+      {
+       "index": 14,
+       "x": 1103.592403,
+       "w": 176.407597
+      }
+     ]
+    },
+    {
+     "top": 441.605065,
+     "height": 192,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 614.4
+      }
+     ]
+    },
+    {
+     "top": 637.605065,
+     "height": 120,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 180
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 1280 px, 180 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 1280,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 179.287971,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 268.931956
+      },
+      {
+       "index": 1,
+       "x": 272.931956,
+       "w": 119.53129
+      },
+      {
+       "index": 2,
+       "x": 396.463246,
+       "w": 239.044651
+      },
+      {
+       "index": 3,
+       "x": 639.507897,
+       "w": 134.465978
+      },
+      {
+       "index": 4,
+       "x": 777.973875,
+       "w": 318.738154
+      },
+      {
+       "index": 5,
+       "x": 1100.712029,
+       "w": 179.287971
+      }
+     ]
+    },
+    {
+     "top": 183.287971,
+     "height": 288,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 1152
+      }
+     ]
+    },
+    {
+     "top": 475.287971,
+     "height": 166.682051,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 250.023077
+      },
+      {
+       "index": 8,
+       "x": 254.023077,
+       "w": 250.023077
+      },
+      {
+       "index": 9,
+       "x": 508.046154,
+       "w": 125.011539
+      },
+      {
+       "index": 10,
+       "x": 637.057693,
+       "w": 222.237179
+      },
+      {
+       "index": 11,
+       "x": 863.294872,
+       "w": 416.705128
+      }
+     ]
+    },
+    {
+     "top": 645.970022,
+     "height": 180,
+     "items": [
+      {
+       "index": 12,
+       "x": 0,
+       "w": 101.25
+      },
+      {
+       "index": 13,
+       "x": 105.25,
+       "w": 180
+      },
+      {
+       "index": 14,
+       "x": 289.25,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 829.970022,
+     "height": 288,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 921.6
+      }
+     ]
+    },
+    {
+     "top": 1121.970022,
+     "height": 180,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "mix at 1280 px, 270 px rows",
+   "aspects": [
+    1.5,
+    0.6667,
+    1.3333,
+    0.75,
+    1.7778,
+    1,
+    4,
+    1.5,
+    1.5,
+    0.75,
+    1.3333,
+    2.5,
+    0.5625,
+    1,
+    1.5,
+    3.2,
+    1.5
+   ],
+   "width": 1280,
+   "targetH": 270,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 298.352941,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 447.529412
+      },
+      {
+       "index": 1,
+       "x": 451.529412,
+       "w": 198.911906
+      },
+      {
+       "index": 2,
+       "x": 654.441318,
+       "w": 397.793976
+      },
+      {
+       "index": 3,
+       "x": 1056.235294,
+       "w": 223.764706
+      }
+     ]
+    },
+    {
+     "top": 302.352941,
+     "height": 270,
+     "items": [
+      {
+       "index": 4,
+       "x": 0,
+       "w": 480.006
+      },
+      {
+       "index": 5,
+       "x": 484.006,
+       "w": 270
+      }
+     ]
+    },
+    {
+     "top": 576.352941,
+     "height": 320,
+     "items": [
+      {
+       "index": 6,
+       "x": 0,
+       "w": 1280
+      }
+     ]
+    },
+    {
+     "top": 900.352941,
+     "height": 249.444259,
+     "items": [
+      {
+       "index": 7,
+       "x": 0,
+       "w": 374.166388
+      },
+      {
+       "index": 8,
+       "x": 378.166388,
+       "w": 374.166388
+      },
+      {
+       "index": 9,
+       "x": 756.332776,
+       "w": 187.083194
+      },
+      {
+       "index": 10,
+       "x": 947.41597,
+       "w": 332.58403
+      }
+     ]
+    },
+    {
+     "top": 1153.7972,
+     "height": 313.107692,
+     "items": [
+      {
+       "index": 11,
+       "x": 0,
+       "w": 782.769231
+      },
+      {
+       "index": 12,
+       "x": 786.769231,
+       "w": 176.123077
+      },
+      {
+       "index": 13,
+       "x": 966.892308,
+       "w": 313.107692
+      }
+     ]
+    },
+    {
+     "top": 1470.904892,
+     "height": 270,
+     "items": [
+      {
+       "index": 14,
+       "x": 0,
+       "w": 405
+      }
+     ]
+    },
+    {
+     "top": 1744.904892,
+     "height": 400,
+     "items": [
+      {
+       "index": 15,
+       "x": 0,
+       "w": 1280
+      }
+     ]
+    },
+    {
+     "top": 2148.904892,
+     "height": 270,
+     "items": [
+      {
+       "index": 16,
+       "x": 0,
+       "w": 405
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "single item",
+   "aspects": [
+    1.5
+   ],
+   "width": 800,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 180,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 270
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "empty list",
+   "aspects": [],
+   "width": 800,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": []
+  },
+  {
+   "name": "single panorama, narrow",
+   "aspects": [
+    4
+   ],
+   "width": 360,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 90,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 360
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bad aspects count as 1",
+   "aspects": [
+    0,
+    -1,
+    1.5
+   ],
+   "width": 800,
+   "targetH": 180,
+   "gap": 4,
+   "maxScale": 1.6,
+   "rows": [
+    {
+     "top": 0,
+     "height": 180,
+     "items": [
+      {
+       "index": 0,
+       "x": 0,
+       "w": 180
+      },
+      {
+       "index": 1,
+       "x": 184,
+       "w": 180
+      },
+      {
+       "index": 2,
+       "x": 368,
+       "w": 270
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "sort": [
+  {
+   "name": "a DateCreated page re-sorted by takenAt",
+   "assets": [
+    {
+     "id": "a",
+     "takenAt": "2024-01-01T00:10:00"
+    },
+    {
+     "id": "b",
+     "takenAt": "2023-12-31T23:50:00"
+    },
+    {
+     "id": "c",
+     "takenAt": "2024-01-01T08:00:00"
+    },
+    {
+     "id": "d",
+     "takenAt": "2023-12-31T23:50:00"
+    },
+    {
+     "id": "e",
+     "takenAt": "2023-11-05T12:00:00"
+    },
+    {
+     "id": "f",
+     "takenAt": "2022-12-31T10:00:00"
+    }
+   ],
+   "expected": [
+    "c",
+    "a",
+    "b",
+    "d",
+    "e",
+    "f"
+   ]
+  }
+ ],
+ "buckets": [
+  {
+   "name": "grouped by day",
+   "takenAt": [
+    "2024-01-01T08:00:00",
+    "2024-01-01T00:10:00",
+    "2023-12-31T23:50:00",
+    "2023-12-31T23:50:00",
+    "2023-11-05T12:00:00",
+    "2022-12-31T10:00:00"
+   ],
+   "unit": "day",
+   "expected": [
+    {
+     "key": "2024-01-01",
+     "count": 2,
+     "firstIndex": 0
+    },
+    {
+     "key": "2023-12-31",
+     "count": 2,
+     "firstIndex": 2
+    },
+    {
+     "key": "2023-11-05",
+     "count": 1,
+     "firstIndex": 4
+    },
+    {
+     "key": "2022-12-31",
+     "count": 1,
+     "firstIndex": 5
+    }
+   ]
+  },
+  {
+   "name": "grouped by month",
+   "takenAt": [
+    "2024-01-01T08:00:00",
+    "2024-01-01T00:10:00",
+    "2023-12-31T23:50:00",
+    "2023-12-31T23:50:00",
+    "2023-11-05T12:00:00",
+    "2022-12-31T10:00:00"
+   ],
+   "unit": "month",
+   "expected": [
+    {
+     "key": "2024-01",
+     "count": 2,
+     "firstIndex": 0
+    },
+    {
+     "key": "2023-12",
+     "count": 2,
+     "firstIndex": 2
+    },
+    {
+     "key": "2023-11",
+     "count": 1,
+     "firstIndex": 4
+    },
+    {
+     "key": "2022-12",
+     "count": 1,
+     "firstIndex": 5
+    }
+   ]
+  },
+  {
+   "name": "grouped by year",
+   "takenAt": [
+    "2024-01-01T08:00:00",
+    "2024-01-01T00:10:00",
+    "2023-12-31T23:50:00",
+    "2023-12-31T23:50:00",
+    "2023-11-05T12:00:00",
+    "2022-12-31T10:00:00"
+   ],
+   "unit": "year",
+   "expected": [
+    {
+     "key": "2024",
+     "count": 2,
+     "firstIndex": 0
+    },
+    {
+     "key": "2023",
+     "count": 3,
+     "firstIndex": 2
+    },
+    {
+     "key": "2022",
+     "count": 1,
+     "firstIndex": 5
+    }
+   ]
+  },
+  {
+   "name": "empty",
+   "takenAt": [],
+   "unit": "month",
+   "expected": []
+  }
+ ],
+ "layoutTimeline": [
+  {
+   "name": "three months at 800 px",
+   "buckets": [
+    {
+     "key": "2024-05",
+     "count": 4,
+     "firstIndex": 0
+    },
+    {
+     "key": "2024-04",
+     "count": 1,
+     "firstIndex": 4
+    },
+    {
+     "key": "2023-12",
+     "count": 5,
+     "firstIndex": 5
+    }
+   ],
+   "aspects": [
+    1.5,
+    0.75,
+    1.3333,
+    4,
+    1,
+    1.5,
+    0.6667,
+    1.7778,
+    1.5,
+    1
+   ],
+   "width": 800,
+   "targetH": 180,
+   "gap": 4,
+   "headerH": 48,
+   "expected": [
+    {
+     "key": "2024-05",
+     "top": 0,
+     "height": 432,
+     "rows": 2,
+     "first": 0
+    },
+    {
+     "key": "2024-04",
+     "top": 436,
+     "height": 228,
+     "rows": 1,
+     "first": 4
+    },
+    {
+     "key": "2023-12",
+     "top": 668,
+     "height": 432.785904,
+     "rows": 2,
+     "first": 5
+    }
+   ]
+  },
+  {
+   "name": "three months at 360 px",
+   "buckets": [
+    {
+     "key": "2024-05",
+     "count": 4,
+     "firstIndex": 0
+    },
+    {
+     "key": "2024-04",
+     "count": 1,
+     "firstIndex": 4
+    },
+    {
+     "key": "2023-12",
+     "count": 5,
+     "firstIndex": 5
+    }
+   ],
+   "aspects": [
+    1.5,
+    0.75,
+    1.3333,
+    4,
+    1,
+    1.5,
+    0.6667,
+    1.7778,
+    1.5,
+    1
+   ],
+   "width": 360,
+   "targetH": 120,
+   "gap": 2,
+   "headerH": 40,
+   "expected": [
+    {
+     "key": "2024-05",
+     "top": 0,
+     "height": 231.349761,
+     "rows": 2,
+     "first": 0
+    },
+    {
+     "key": "2024-04",
+     "top": 233.349761,
+     "height": 160,
+     "rows": 1,
+     "first": 4
+    },
+    {
+     "key": "2023-12",
+     "top": 395.349761,
+     "height": 252.25225,
+     "rows": 2,
+     "first": 5
+    }
+   ]
+  }
+ ],
+ "memories": [
+  {
+   "name": "Feb 28 in a common year shows Feb 29 too",
+   "today": "2026-02-28",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": [
+    {
+     "yearsAgo": 1,
+     "indexes": [
+      4
+     ]
+    },
+    {
+     "yearsAgo": 2,
+     "indexes": [
+      1
+     ]
+    },
+    {
+     "yearsAgo": 3,
+     "indexes": [
+      2
+     ]
+    },
+    {
+     "yearsAgo": 6,
+     "indexes": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Mar 1 in a common year: Mar 1 only",
+   "today": "2026-03-01",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": [
+    {
+     "yearsAgo": 1,
+     "indexes": [
+      0
+     ]
+    },
+    {
+     "yearsAgo": 7,
+     "indexes": [
+      5
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Feb 28 in a leap year: Feb 28 only",
+   "today": "2028-02-28",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": [
+    {
+     "yearsAgo": 2,
+     "indexes": [
+      6
+     ]
+    },
+    {
+     "yearsAgo": 3,
+     "indexes": [
+      4
+     ]
+    },
+    {
+     "yearsAgo": 5,
+     "indexes": [
+      2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Feb 29 in a leap year",
+   "today": "2028-02-29",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": [
+    {
+     "yearsAgo": 4,
+     "indexes": [
+      1
+     ]
+    },
+    {
+     "yearsAgo": 8,
+     "indexes": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "midnight edges, nearest year first",
+   "today": "2026-10-12",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": [
+    {
+     "yearsAgo": 1,
+     "indexes": [
+      7
+     ]
+    },
+    {
+     "yearsAgo": 8,
+     "indexes": [
+      8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "nothing on this day",
+   "today": "2026-06-01",
+   "takenAt": [
+    "2025-03-01T10:00:00",
+    "2024-02-29T09:00:00",
+    "2023-02-28T18:00:00",
+    "2020-02-29T12:00:00",
+    "2025-02-28T07:00:00",
+    "2019-03-01T23:59:59",
+    "2026-02-28T08:00:00",
+    "2025-10-12T00:00:00",
+    "2018-10-12T23:59:00",
+    "2025-10-11T23:59:59"
+   ],
+   "expected": []
+  }
+ ],
+ "exif": [
+  {
+   "name": "full EXIF, sideways (fr, aperture hidden)",
+   "item": {
+    "CameraMake": "Wicaby Test",
+    "CameraModel": "Model A",
+    "Software": "Wicaby Mock 1.0",
+    "ExposureTime": 0.004,
+    "FocalLength": 35,
+    "Aperture": 2.970854,
+    "IsoSpeedRating": 200,
+    "Latitude": 48.85837,
+    "Longitude": 2.294481,
+    "Altitude": 35.4,
+    "Width": 4032,
+    "Height": 3024,
+    "ImageOrientation": "RightTop"
+   },
+   "lang": "fr",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "camera",
+     "Wicaby Test Model A"
+    ],
+    [
+     "exposure",
+     "1/250 s"
+    ],
+    [
+     "focal",
+     "35 mm"
+    ],
+    [
+     "iso",
+     "ISO 200"
+    ],
+    [
+     "dimensions",
+     "3024 × 4032"
+    ],
+    [
+     "altitude",
+     "35 m"
+    ],
+    [
+     "location",
+     "48,8584 ; 2,2945"
+    ],
+    [
+     "software",
+     "Wicaby Mock 1.0"
+    ]
+   ]
+  },
+  {
+   "name": "full EXIF, sideways (fr, aperture apex)",
+   "item": {
+    "CameraMake": "Wicaby Test",
+    "CameraModel": "Model A",
+    "Software": "Wicaby Mock 1.0",
+    "ExposureTime": 0.004,
+    "FocalLength": 35,
+    "Aperture": 2.970854,
+    "IsoSpeedRating": 200,
+    "Latitude": 48.85837,
+    "Longitude": 2.294481,
+    "Altitude": 35.4,
+    "Width": 4032,
+    "Height": 3024,
+    "ImageOrientation": "RightTop"
+   },
+   "lang": "fr",
+   "aperture": "apex",
+   "expected": [
+    [
+     "camera",
+     "Wicaby Test Model A"
+    ],
+    [
+     "exposure",
+     "1/250 s"
+    ],
+    [
+     "aperture",
+     "ƒ/2,8"
+    ],
+    [
+     "focal",
+     "35 mm"
+    ],
+    [
+     "iso",
+     "ISO 200"
+    ],
+    [
+     "dimensions",
+     "3024 × 4032"
+    ],
+    [
+     "altitude",
+     "35 m"
+    ],
+    [
+     "location",
+     "48,8584 ; 2,2945"
+    ],
+    [
+     "software",
+     "Wicaby Mock 1.0"
+    ]
+   ]
+  },
+  {
+   "name": "full EXIF, sideways (en, aperture hidden)",
+   "item": {
+    "CameraMake": "Wicaby Test",
+    "CameraModel": "Model A",
+    "Software": "Wicaby Mock 1.0",
+    "ExposureTime": 0.004,
+    "FocalLength": 35,
+    "Aperture": 2.970854,
+    "IsoSpeedRating": 200,
+    "Latitude": 48.85837,
+    "Longitude": 2.294481,
+    "Altitude": 35.4,
+    "Width": 4032,
+    "Height": 3024,
+    "ImageOrientation": "RightTop"
+   },
+   "lang": "en",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "camera",
+     "Wicaby Test Model A"
+    ],
+    [
+     "exposure",
+     "1/250 s"
+    ],
+    [
+     "focal",
+     "35 mm"
+    ],
+    [
+     "iso",
+     "ISO 200"
+    ],
+    [
+     "dimensions",
+     "3024 × 4032"
+    ],
+    [
+     "altitude",
+     "35 m"
+    ],
+    [
+     "location",
+     "48.8584, 2.2945"
+    ],
+    [
+     "software",
+     "Wicaby Mock 1.0"
+    ]
+   ]
+  },
+  {
+   "name": "full EXIF, sideways (en, aperture apex)",
+   "item": {
+    "CameraMake": "Wicaby Test",
+    "CameraModel": "Model A",
+    "Software": "Wicaby Mock 1.0",
+    "ExposureTime": 0.004,
+    "FocalLength": 35,
+    "Aperture": 2.970854,
+    "IsoSpeedRating": 200,
+    "Latitude": 48.85837,
+    "Longitude": 2.294481,
+    "Altitude": 35.4,
+    "Width": 4032,
+    "Height": 3024,
+    "ImageOrientation": "RightTop"
+   },
+   "lang": "en",
+   "aperture": "apex",
+   "expected": [
+    [
+     "camera",
+     "Wicaby Test Model A"
+    ],
+    [
+     "exposure",
+     "1/250 s"
+    ],
+    [
+     "aperture",
+     "ƒ/2.8"
+    ],
+    [
+     "focal",
+     "35 mm"
+    ],
+    [
+     "iso",
+     "ISO 200"
+    ],
+    [
+     "dimensions",
+     "3024 × 4032"
+    ],
+    [
+     "altitude",
+     "35 m"
+    ],
+    [
+     "location",
+     "48.8584, 2.2945"
+    ],
+    [
+     "software",
+     "Wicaby Mock 1.0"
+    ]
+   ]
+  },
+  {
+   "name": "long exposure, west and south (fr, aperture fnumber)",
+   "item": {
+    "CameraMake": "Canon",
+    "CameraModel": "Canon EOS R5",
+    "ExposureTime": 2,
+    "FocalLength": 4.25,
+    "Aperture": 5.6,
+    "IsoSpeedRating": 6400,
+    "Latitude": -33.85678,
+    "Longitude": -151.21529,
+    "Altitude": 0,
+    "Width": 6000,
+    "Height": 4000
+   },
+   "lang": "fr",
+   "aperture": "fnumber",
+   "expected": [
+    [
+     "camera",
+     "Canon EOS R5"
+    ],
+    [
+     "exposure",
+     "2 s"
+    ],
+    [
+     "aperture",
+     "ƒ/5,6"
+    ],
+    [
+     "focal",
+     "4,3 mm"
+    ],
+    [
+     "iso",
+     "ISO 6400"
+    ],
+    [
+     "dimensions",
+     "6000 × 4000"
+    ],
+    [
+     "altitude",
+     "0 m"
+    ],
+    [
+     "location",
+     "-33,8568 ; -151,2153"
+    ]
+   ]
+  },
+  {
+   "name": "long exposure, west and south (en, aperture fnumber)",
+   "item": {
+    "CameraMake": "Canon",
+    "CameraModel": "Canon EOS R5",
+    "ExposureTime": 2,
+    "FocalLength": 4.25,
+    "Aperture": 5.6,
+    "IsoSpeedRating": 6400,
+    "Latitude": -33.85678,
+    "Longitude": -151.21529,
+    "Altitude": 0,
+    "Width": 6000,
+    "Height": 4000
+   },
+   "lang": "en",
+   "aperture": "fnumber",
+   "expected": [
+    [
+     "camera",
+     "Canon EOS R5"
+    ],
+    [
+     "exposure",
+     "2 s"
+    ],
+    [
+     "aperture",
+     "ƒ/5.6"
+    ],
+    [
+     "focal",
+     "4.3 mm"
+    ],
+    [
+     "iso",
+     "ISO 6400"
+    ],
+    [
+     "dimensions",
+     "6000 × 4000"
+    ],
+    [
+     "altitude",
+     "0 m"
+    ],
+    [
+     "location",
+     "-33.8568, -151.2153"
+    ]
+   ]
+  },
+  {
+   "name": "half a second and a third (fr, aperture hidden)",
+   "item": {
+    "CameraModel": "Phone X",
+    "ExposureTime": 0.5,
+    "Width": 3000,
+    "Height": 3000
+   },
+   "lang": "fr",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "camera",
+     "Phone X"
+    ],
+    [
+     "exposure",
+     "0,5 s"
+    ],
+    [
+     "dimensions",
+     "3000 × 3000"
+    ]
+   ]
+  },
+  {
+   "name": "half a second and a third (en, aperture hidden)",
+   "item": {
+    "CameraModel": "Phone X",
+    "ExposureTime": 0.5,
+    "Width": 3000,
+    "Height": 3000
+   },
+   "lang": "en",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "camera",
+     "Phone X"
+    ],
+    [
+     "exposure",
+     "0.5 s"
+    ],
+    [
+     "dimensions",
+     "3000 × 3000"
+    ]
+   ]
+  },
+  {
+   "name": "short exposure (fr, aperture hidden)",
+   "item": {
+    "ExposureTime": 0.3333333333333333
+   },
+   "lang": "fr",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "exposure",
+     "1/3 s"
+    ]
+   ]
+  },
+  {
+   "name": "short exposure (en, aperture hidden)",
+   "item": {
+    "ExposureTime": 0.3333333333333333
+   },
+   "lang": "en",
+   "aperture": "hidden",
+   "expected": [
+    [
+     "exposure",
+     "1/3 s"
+    ]
+   ]
+  },
+  {
+   "name": "nothing (fr, aperture hidden)",
+   "item": {},
+   "lang": "fr",
+   "aperture": "hidden",
+   "expected": []
+  },
+  {
+   "name": "nothing (en, aperture hidden)",
+   "item": {},
+   "lang": "en",
+   "aperture": "hidden",
+   "expected": []
+  }
+ ],
+ "skeleton": [
+  {
+   "name": "three DateCreated pages, each re-sorted by takenAt",
+   "pageSize": 5,
+   "offsetMin": 60,
+   "pages": [
+    {
+     "Items": [
+      {
+       "Id": "k1",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-03-02T10:00:00.0000000Z",
+       "PremiereDate": "2024-03-02T11:00:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k1"
+       }
+      },
+      {
+       "Id": "k2",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-03-01T23:30:00.0000000Z",
+       "PremiereDate": "2024-03-01T18:30:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k2"
+       }
+      },
+      {
+       "Id": "k3",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-03-01T22:00:00.0000000Z",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k3"
+       }
+      },
+      {
+       "Id": "k4",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-02-29T23:10:00.0000000Z",
+       "PremiereDate": "2024-03-01T00:10:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k4"
+       }
+      },
+      {
+       "Id": "k5",
+       "ServerId": "s1",
+       "Type": "Video",
+       "MediaType": "Video",
+       "DateCreated": "2024-02-29T22:50:00.0000000Z",
+       "PremiereDate": "2024-02-29T23:50:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k5"
+       },
+       "RunTimeTicks": 120000000
+      }
+     ],
+     "TotalRecordCount": 12,
+     "StartIndex": 0
+    },
+    {
+     "Items": [
+      {
+       "Id": "k6",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-02-10T08:00:00.0000000Z",
+       "PremiereDate": "2024-02-10T09:00:00.0000000Z",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k6"
+       }
+      },
+      {
+       "Id": "k7",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-01-31T23:30:00.0000000Z",
+       "PremiereDate": "2024-02-01T00:30:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k7"
+       }
+      },
+      {
+       "Id": "k8",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-01-31T22:00:00.0000000Z",
+       "PremiereDate": "2024-02-01T03:00:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k8"
+       }
+      },
+      {
+       "Id": "k9",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2024-01-05T12:00:00.0000000Z",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k9"
+       }
+      },
+      {
+       "Id": "k10",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2023-12-31T23:40:00.0000000Z",
+       "PremiereDate": "2024-01-01T00:40:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k10"
+       }
+      }
+     ],
+     "TotalRecordCount": 12,
+     "StartIndex": 5
+    },
+    {
+     "Items": [
+      {
+       "Id": "k11",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2023-12-31T20:00:00.0000000Z",
+       "PremiereDate": "2023-12-31T21:00:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k11"
+       },
+       "UserData": {
+        "IsFavorite": true
+       }
+      },
+      {
+       "Id": "k12",
+       "ServerId": "s1",
+       "Type": "Photo",
+       "MediaType": "Photo",
+       "DateCreated": "2023-11-30T23:59:00.0000000Z",
+       "PremiereDate": "2023-12-01T00:59:00",
+       "Width": 6000,
+       "Height": 4000,
+       "ImageTags": {
+        "Primary": "t-k12"
+       }
+      }
+     ],
+     "TotalRecordCount": 12,
+     "StartIndex": 10
+    }
+   ],
+   "expected": {
+    "ids": [
+     "k1",
+     "k3",
+     "k2",
+     "k4",
+     "k5",
+     "k6",
+     "k8",
+     "k7",
+     "k9",
+     "k10",
+     "k11",
+     "k12"
+    ],
+    "takenAt": [
+     "2024-03-02T11:00:00",
+     "2024-03-01T23:00:00",
+     "2024-03-01T18:30:00",
+     "2024-03-01T00:10:00",
+     "2024-02-29T23:50:00",
+     "2024-02-10T09:00:00",
+     "2024-02-01T03:00:00",
+     "2024-02-01T00:30:00",
+     "2024-01-05T13:00:00",
+     "2024-01-01T00:40:00",
+     "2023-12-31T21:00:00",
+     "2023-12-01T00:59:00"
+    ],
+    "buckets": [
+     {
+      "key": "2024-03",
+      "count": 4,
+      "firstIndex": 0
+     },
+     {
+      "key": "2024-02",
+      "count": 4,
+      "firstIndex": 4
+     },
+     {
+      "key": "2024-01",
+      "count": 2,
+      "firstIndex": 8
+     },
+     {
+      "key": "2023-12",
+      "count": 2,
+      "firstIndex": 10
+     }
+    ]
+   }
+  }
+ ],
+ "cluster": [
+  {
+   "name": "empty",
+   "z": 3,
+   "points": [],
+   "expected": []
+  },
+  {
+   "name": "one landmark: one cluster at z3, the newest point its cover",
+   "z": 3,
+   "points": [
+    {
+     "lat": 48.8584,
+     "lon": 2.2945,
+     "takenAt": "2020-01-01T10:00:00"
+    },
+    {
+     "lat": 48.86,
+     "lon": 2.35,
+     "takenAt": "2021-05-01T10:00:00"
+    },
+    {
+     "lat": 48.85,
+     "lon": 2.3,
+     "takenAt": "2019-12-31T23:59:59"
+    }
+   ],
+   "expected": [
+    {
+     "count": 3,
+     "newest": 1,
+     "indexes": [
+      0,
+      1,
+      2
+     ],
+     "lat": 48.856133,
+     "lon": 2.314833
+    }
+   ]
+  },
+  {
+   "name": "one landmark: apart at z14",
+   "z": 14,
+   "points": [
+    {
+     "lat": 48.8584,
+     "lon": 2.2945,
+     "takenAt": "2020-01-01T10:00:00"
+    },
+    {
+     "lat": 48.86,
+     "lon": 2.35,
+     "takenAt": "2021-05-01T10:00:00"
+    },
+    {
+     "lat": 48.85,
+     "lon": 2.3,
+     "takenAt": "2019-12-31T23:59:59"
+    }
+   ],
+   "expected": [
+    {
+     "count": 1,
+     "newest": 0,
+     "indexes": [
+      0
+     ],
+     "lat": 48.8584,
+     "lon": 2.2945
+    },
+    {
+     "count": 1,
+     "newest": 1,
+     "indexes": [
+      1
+     ],
+     "lat": 48.86,
+     "lon": 2.35
+    },
+    {
+     "count": 1,
+     "newest": 2,
+     "indexes": [
+      2
+     ],
+     "lat": 48.85,
+     "lon": 2.3
+    }
+   ]
+  },
+  {
+   "name": "Lyon and Mont Blanc: one at z3",
+   "z": 3,
+   "points": [
+    {
+     "lat": 45.7623,
+     "lon": 4.8227,
+     "takenAt": "2018-06-01T08:00:00"
+    },
+    {
+     "lat": 45.8326,
+     "lon": 6.8652,
+     "takenAt": "2022-02-01T08:00:00"
+    }
+   ],
+   "expected": [
+    {
+     "count": 2,
+     "newest": 1,
+     "indexes": [
+      0,
+      1
+     ],
+     "lat": 45.79745,
+     "lon": 5.84395
+    }
+   ]
+  },
+  {
+   "name": "Lyon and Mont Blanc: two at z6",
+   "z": 6,
+   "points": [
+    {
+     "lat": 45.7623,
+     "lon": 4.8227,
+     "takenAt": "2018-06-01T08:00:00"
+    },
+    {
+     "lat": 45.8326,
+     "lon": 6.8652,
+     "takenAt": "2022-02-01T08:00:00"
+    }
+   ],
+   "expected": [
+    {
+     "count": 1,
+     "newest": 0,
+     "indexes": [
+      0
+     ],
+     "lat": 45.7623,
+     "lon": 4.8227
+    },
+    {
+     "count": 1,
+     "newest": 1,
+     "indexes": [
+      1
+     ],
+     "lat": 45.8326,
+     "lon": 6.8652
+    }
+   ]
+  },
+  {
+   "name": "antimeridian: no wrap",
+   "z": 2,
+   "points": [
+    {
+     "lat": 0,
+     "lon": 179.99,
+     "takenAt": "2020-01-01T00:00:00"
+    },
+    {
+     "lat": 0,
+     "lon": -179.99,
+     "takenAt": "2020-01-02T00:00:00"
+    }
+   ],
+   "expected": [
+    {
+     "count": 1,
+     "newest": 0,
+     "indexes": [
+      0
+     ],
+     "lat": 0,
+     "lon": 179.99
+    },
+    {
+     "count": 1,
+     "newest": 1,
+     "indexes": [
+      1
+     ],
+     "lat": 0,
+     "lon": -179.99
+    }
+   ]
+  },
+  {
+   "name": "beyond 85.05 degrees: clamped to the top row",
+   "z": 1,
+   "points": [
+    {
+     "lat": 89.9,
+     "lon": 0,
+     "takenAt": "2020-01-01T00:00:00"
+    },
+    {
+     "lat": 85.06,
+     "lon": 0,
+     "takenAt": "2020-01-02T00:00:00"
+    }
+   ],
+   "expected": [
+    {
+     "count": 2,
+     "newest": 1,
+     "indexes": [
+      0,
+      1
+     ],
+     "lat": 87.48,
+     "lon": 0
+    }
+   ]
+  }
+ ]
+}

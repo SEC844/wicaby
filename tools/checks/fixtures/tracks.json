@@ -1,0 +1,59 @@
+{
+  "_": "Default audio and subtitle of a MediaSource with no client-side preference: the server's DefaultAudioStreamIndex / DefaultSubtitleStreamIndex, which already apply the user's language, subtitle mode and forced rules. Read by tools/checks/parity-check.mjs (track-selection.ts, mode 'default') and the Android JVM test ParityFixturesTest (Versions.defaultAudioStream / defaultSubtitleIndex). subtitle null = off.",
+  "cases": [
+    {
+      "name": "no server subtitle: a forced track in another language is not picked",
+      "source": { "MediaStreams": [
+        { "Index": 0, "Type": "Video" },
+        { "Index": 1, "Type": "Audio", "Language": "eng" },
+        { "Index": 2, "Type": "Subtitle", "Language": "fre", "IsForced": true }
+      ] },
+      "audio": 1, "subtitle": null
+    },
+    {
+      "name": "server default subtitle wins",
+      "source": { "DefaultSubtitleStreamIndex": 3, "MediaStreams": [
+        { "Index": 1, "Type": "Audio", "Language": "jpn", "IsDefault": true },
+        { "Index": 2, "Type": "Subtitle", "Language": "eng", "IsForced": true },
+        { "Index": 3, "Type": "Subtitle", "Language": "fre" }
+      ] },
+      "audio": 1, "subtitle": 3
+    },
+    {
+      "name": "server forced pick in the audio's language",
+      "source": { "DefaultAudioStreamIndex": 2, "DefaultSubtitleStreamIndex": 4, "MediaStreams": [
+        { "Index": 1, "Type": "Audio", "Language": "eng", "IsDefault": true },
+        { "Index": 2, "Type": "Audio", "Language": "fre" },
+        { "Index": 3, "Type": "Subtitle", "Language": "eng", "IsForced": true },
+        { "Index": 4, "Type": "Subtitle", "Language": "fre", "IsForced": true }
+      ] },
+      "audio": 2, "subtitle": 4
+    },
+    {
+      "name": "server says none",
+      "source": { "DefaultSubtitleStreamIndex": -1, "MediaStreams": [
+        { "Index": 1, "Type": "Audio", "Language": "fre" },
+        { "Index": 2, "Type": "Subtitle", "Language": "fre", "IsForced": true, "IsDefault": true }
+      ] },
+      "audio": 1, "subtitle": null
+    },
+    {
+      "name": "stale server indexes are ignored",
+      "source": { "DefaultAudioStreamIndex": 9, "DefaultSubtitleStreamIndex": 99, "MediaStreams": [
+        { "Index": 1, "Type": "Audio", "Language": "fre" },
+        { "Index": 2, "Type": "Audio", "Language": "eng", "IsDefault": true },
+        { "Index": 3, "Type": "Subtitle", "Language": "fre" }
+      ] },
+      "audio": 2, "subtitle": null
+    },
+    {
+      "name": "no subtitles, first audio",
+      "source": { "MediaStreams": [
+        { "Index": 0, "Type": "Video" },
+        { "Index": 1, "Type": "Audio", "Language": "ger" },
+        { "Index": 2, "Type": "Audio", "Language": "eng" }
+      ] },
+      "audio": 1, "subtitle": null
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and below (android:fullBackupContent); same exclusions as data_extraction_rules.xml.
+     android:allowBackup is false anyway: this only matters if it is ever turned on. -->
+<full-backup-content>
+    <exclude domain="file" path="mesh" />
+    <exclude domain="file" path="datastore" />
+</full-backup-content>

@@ -1,0 +1,31 @@
+{
+  "error": {
+    "title": "Can’t Open Book"
+  },
+  "opening": "Opening book…",
+  "back": "Back",
+  "backHint": "Back (Esc)",
+  "page": "Page {page}",
+  "pageOf": "Page {page} of {count}",
+  "seriesNumber": "{series} #{number}",
+  "display": "View Options",
+  "layout": {
+    "label": "Pages",
+    "auto": "Auto",
+    "single": "Single",
+    "double": "Two-Page",
+    "strip": "Vertical"
+  },
+  "fit": {
+    "label": "Fit",
+    "height": "Height",
+    "width": "Width",
+    "original": "Original"
+  },
+  "manga": {
+    "label": "Right to Left",
+    "caption": "Manga reading order",
+    "aria": "Right to Left (Manga)"
+  },
+  "hint": "Ctrl + scroll to zoom, drag to pan · F for full screen"
+}
