@@ -28,7 +28,14 @@
     "save": "Add",
     "cancel": "Cancel",
     "added": "Source added",
-    "ok": "Connected: {count, plural, one {# item} other {# items}} at the root."
+    "ok": "Connected: {count, plural, one {# item} other {# items}} at the root.",
+    "protocolShort": {
+      "local": "Folder",
+      "webdav": "WebDAV",
+      "smb": "SMB"
+    },
+    "folder": "Folder",
+    "urlRequired": "Enter the address of the share."
   },
   "tls": {
     "title": "Unrecognised certificate",

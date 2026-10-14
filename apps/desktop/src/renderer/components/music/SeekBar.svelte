@@ -10,6 +10,25 @@
   let dragging = $state<number | null>(null);
   const shown = $derived(dragging ?? positionMs);
   const pct = $derived(durationMs > 0 ? Math.min(100, (shown / durationMs) * 100) : 0);
+
+  // A click on the duration shows the time left instead (music spec C8), remembered on this device.
+  const KEY = 'wicaby.music.remaining';
+  let remaining = $state(read());
+  function read(): boolean {
+    try {
+      return localStorage.getItem(KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+  function toggle(): void {
+    remaining = !remaining;
+    try {
+      localStorage.setItem(KEY, remaining ? '1' : '0');
+    } catch {
+      // Best effort: the choice lasts this session.
+    }
+  }
 </script>
 
 <div class="seek">
@@ -29,7 +48,9 @@
       dragging = null;
     }}
   />
-  <span class="time mono">{formatDuration(durationMs)}</span>
+  <button class="time mono end" title={t('music.barExtra.timeToggle')} aria-label={t('music.barExtra.timeToggle')} aria-pressed={remaining} data-time-toggle onclick={toggle}>
+    {remaining ? `−${formatDuration(Math.max(0, durationMs - shown))}` : formatDuration(durationMs)}
+  </button>
 </div>
 
 <style>
@@ -39,6 +60,14 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+  }
+  .end {
+    padding: 0;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .end:hover {
+    color: var(--label);
   }
   .time {
     font-size: var(--fs-caption);

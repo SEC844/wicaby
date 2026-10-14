@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -27,18 +28,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.ItemsResult
 import com.wika.wicaby.core.data.TICKS_PER_MS
-import com.wika.wicaby.core.data.poster
+import com.wika.wicaby.core.data.posterArt
+import com.wika.wicaby.core.music.MusicArt
+import com.wika.wicaby.core.music.MusicSession
 import com.wika.wicaby.mobile.R
 import com.wika.wicaby.mobile.ui.G
 import com.wika.wicaby.mobile.ui.Ic
@@ -111,13 +122,41 @@ class Pages(private val load: suspend (start: Int) -> ItemsResult) {
     }
 }
 
+// The music cover (music spec §4.A): own art, a borrowed one (an album's first track, an artist's first album), else the
+// initials on a colour from the name. Keyed on the item, not its id: the album page's stand-in item (no image tags)
+// is replaced by the loaded one, which must recompute the URL (the header race, MU-A1).
 @Composable
 fun Art(api: Api, item: Item, size: Dp, modifier: Modifier = Modifier, round: Boolean = false) {
     val px = dpPx(size)
-    val url = remember(item.id) { api.poster(item, px) }
+    val art = remember(item, px) { api.posterArt(item, px) }
+    var failed by remember(art) { mutableStateOf(false) }
     Box(modifier.size(size).clip(if (round) CircleShape else RoundedCornerShape(if (size < 64.dp) Radius.xs else Radius.md)).background(G.elevated2), contentAlignment = Alignment.Center) {
-        if (url != null) AsyncImage(url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        else Icon(Ic.Music, null, tint = G.label3, modifier = Modifier.size(size / 2.5f))
+        if (art == null || failed) ArtPlaceholder(item.name, size)
+        if (art != null && !failed) AsyncImage(art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().testTag("music-art"), onError = { failed = true })
+    }
+}
+
+/** The full-screen player's art cap (MU-A5: raised from 380 dp, tablets and landscape). */
+val NOW_PLAYING_ART = 520.dp
+
+/** The next track's covers at the mini player's and the player's sizes, fetched ahead so both switch without a gap (MU-A5). */
+@Composable
+fun PrefetchNextArt(s: MusicSession) {
+    val context = LocalContext.current
+    val sizes = listOf(dpPx(44.dp), dpPx(minOf(LocalConfiguration.current.screenWidthDp.dp - 48.dp, NOW_PLAYING_ART)))
+    val next = s.queue.nextId?.let { s.known[it] }
+    LaunchedEffect(next?.id) {
+        val n = next ?: return@LaunchedEffect
+        val loader = SingletonImageLoader.get(context)
+        for (px in sizes) s.api.posterArt(n, px)?.let { loader.enqueue(ImageRequest.Builder(context).data(it).build()) }
+    }
+}
+
+/** Initials on a colour from the name (MU-A4, core MusicArt). */
+@Composable
+fun ArtPlaceholder(name: String, size: Dp) {
+    Box(Modifier.fillMaxSize().background(Color(0xFF000000 or MusicArt.tileRgb(MusicArt.hue(name)).toLong())).testTag("music-art-placeholder"), contentAlignment = Alignment.Center) {
+        Text(MusicArt.initials(name), color = Color.White.copy(alpha = 0.92f), fontSize = (size.value * 0.36f).sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -127,9 +166,13 @@ fun Art(api: Api, item: Item, size: Dp, modifier: Modifier = Modifier, round: Bo
 fun TrackRow(
     api: Api, item: Item, onClick: () -> Unit, modifier: Modifier = Modifier, number: Int? = null, playing: Boolean = false,
     onMenu: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null,
+    // The album page's multi-select (music spec C3): a long press selects instead of opening the menu ("⋯" still does).
+    onLongClick: (() -> Unit)? = onMenu, selected: Boolean = false,
 ) {
     Row(
-        modifier.fillMaxWidth().height(56.dp).combinedClickable(role = Role.Button, onLongClick = onMenu, onClick = onClick).padding(horizontal = 20.dp),
+        modifier.fillMaxWidth().height(56.dp)
+            .background(if (selected) LocalAccent.current.copy(alpha = 0.18f) else Color.Transparent)
+            .combinedClickable(role = Role.Button, onLongClick = onLongClick, onClick = onClick).padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

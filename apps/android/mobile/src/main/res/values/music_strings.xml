@@ -72,4 +72,17 @@
         <item quantity="many">%1$d titres</item>
         <item quantity="other">%1$d titres</item>
     </plurals>
+    <!-- Feishin-inspired library UI (music-feishin-navidrome spec C4, C7). -->
+    <string name="music_release_album">Album</string>
+    <string name="music_release_ep">EP</string>
+    <string name="music_release_single">Single</string>
+    <string name="music_release_compilation">Compilation</string>
+    <string name="music_more_from">Plus de %1$s</string>
+    <string name="music_similar_artists">Artistes similaires</string>
+    <string name="music_clear_selection">Désélectionner</string>
+    <plurals name="music_selected">
+        <item quantity="one">%1$d titre sélectionné</item>
+        <item quantity="many">%1$d titres sélectionnés</item>
+        <item quantity="other">%1$d titres sélectionnés</item>
+    </plurals>
 </resources>

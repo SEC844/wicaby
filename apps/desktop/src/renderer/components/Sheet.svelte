@@ -21,8 +21,20 @@
     onclose,
     label,
     width = 520,
+    align = 'center',
+    onback,
     children,
-  }: { open: boolean; onclose: () => void; label: string; width?: number; children: Snippet } = $props();
+  }: {
+    open: boolean;
+    onclose: () => void;
+    label: string;
+    width?: number;
+    // 'top' pins the top edge, for a sheet whose height changes from step to step.
+    align?: 'center' | 'top';
+    // Back (gamepad B, BrowserBack, Backspace) goes one step back when given; Escape always closes.
+    onback?: () => void;
+    children: Snippet;
+  } = $props();
 
   let panel = $state<HTMLDivElement>();
   let layer: HTMLElement | null = null;
@@ -50,10 +62,11 @@
     const key = (e: KeyboardEvent) => {
       if (stack.at(-1) !== layer) return;
       const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
-      if (e.key === 'Escape' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing)) {
+      const back = e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing);
+      if (e.key === 'Escape' || back) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        onclose();
+        (back && onback ? onback : onclose)();
       }
     };
     window.addEventListener('keydown', key, true);
@@ -62,7 +75,7 @@
 </script>
 
 {#if open}
-  <div class="layer" use:portal>
+  <div class="layer" class:top={align === 'top'} use:portal>
     <div class="scrim" role="presentation" onclick={onclose}></div>
     <div class="sheet material" role="dialog" aria-modal="true" aria-label={label} bind:this={panel} style:--w="{width}px">
       {@render children()}
@@ -80,6 +93,10 @@
     display: grid;
     place-items: center;
     padding: 56px 24px 24px;
+  }
+  .layer.top {
+    place-items: start center;
+    padding-top: max(56px, 12vh);
   }
   .scrim {
     position: absolute;

@@ -1,15 +1,20 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
+  import { audioBadge } from '../../shared/music-ui';
   import Icon from '../components/Icon.svelte';
   import LyricsPane from '../components/music/LyricsPane.svelte';
   import QueuePanel from '../components/music/QueuePanel.svelte';
+  import SimilarPane from '../components/music/SimilarPane.svelte';
   import SeekBar from '../components/music/SeekBar.svelte';
   import Transport from '../components/music/Transport.svelte';
   import Segmented from '../components/Segmented.svelte';
   import TitleBar from '../components/TitleBar.svelte';
-  import { itemPath } from '../lib/api';
-  import { t } from '../lib/i18n.svelte';
+  import { apiFor, itemPath } from '../lib/api';
+  import { fmt, t } from '../lib/i18n.svelte';
   import { imageUrl } from '../lib/images';
+  import { artColour, fullArtPx, initials, placeholderBg } from '../lib/music-art';
   import { ensureItems, known, musicActive, toggleFavorite } from '../lib/music-ui.svelte';
+  import { reducedMotion } from '../lib/motion';
   import { back, navigate, router } from '../lib/router.svelte';
   import { playback } from '../lib/stores.svelte';
 
@@ -22,8 +27,46 @@
   const track = $derived(it ? known[it.id] : undefined);
   const fav = $derived(Boolean(track?.UserData?.IsFavorite));
   const art = (h: number) => (it?.imageItemId ? imageUrl(it.imageItemId, 'Primary', { tag: it.imageTag, maxHeight: h, server: it.serverId }) : '');
+  // Up to 75 % of the window height, from the size buckets the bar's prefetch also asks for (music spec MU-A5).
+  const big = $derived(it?.imageItemId ? imageUrl(it.imageItemId, 'Primary', { tag: it.imageTag, px: fullArtPx(), server: it.serverId }) : '');
+  // The cover's dominant colour under the blurred art: the art fades in over a colour, not grey (MU-A3).
+  let tint = $state<string | null>(null);
+  $effect(() => {
+    const small = art(64);
+    tint = null;
+    if (!small) return;
+    let live = true;
+    void artColour(small).then((c) => live && (tint = c));
+    return () => (live = false);
+  });
   const artist = $derived(track?.ArtistItems?.[0] ?? track?.AlbumArtists?.[0]);
-  const tab = $derived((router.route.query.get('tab') === 'queue' ? 'queue' : 'lyrics') as 'lyrics' | 'queue');
+  const TABS = ['lyrics', 'queue', 'similar'] as const;
+  const tab = $derived(TABS.find((x) => x === router.route.query.get('tab')) ?? 'lyrics');
+  // Clicking the active tab hides the panel and centres the art (C6); any tab shows it again.
+  let panelClosed = $state(false);
+  function pickTab(v: (typeof TABS)[number]): void {
+    panelClosed = v === tab && !panelClosed;
+    if (v !== tab) navigate(`/now-playing?tab=${v}`, { replace: true });
+  }
+  // Track changes crossfade the art and the background (music spec C6); none under reduced motion.
+  const xfade = $derived({ duration: reducedMotion() ? 0 : 450 });
+
+  // The quality badge (C6): codec, bit depth / sample rate, bitrate, from the track's audio stream.
+  let badge = $state('');
+  $effect(() => {
+    const cur = it;
+    badge = '';
+    if (!cur?.id) return;
+    let live = true;
+    apiFor(cur.serverId)
+      .item(cur.id)
+      .then((full) => {
+        const streams = full.MediaSources?.[0]?.MediaStreams ?? full.MediaStreams ?? [];
+        if (live) badge = audioBadge(streams.find((x) => x.Type === 'Audio'), (n) => fmt.number(n));
+      })
+      .catch(() => undefined);
+    return () => (live = false);
+  });
 
   $effect(() => {
     if (it?.id) void ensureItems([it.id], it.serverId);
@@ -48,17 +91,18 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="np" role="dialog" aria-modal="true" aria-label={t('music.bar.label')} data-now-playing>
-  <div class="bg" aria-hidden="true">
-    {#if art(64)}<img src={art(64)} alt="" />{/if}
+  <div class="bg" aria-hidden="true" style:background={tint}>
+    {#if art(64)}{#key art(64)}<img src={art(64)} alt="" transition:fade={xfade} />{/key}{/if}
   </div>
   <div class="scrim" aria-hidden="true"></div>
   <TitleBar minimal />
   <button class="btn ghost icon close" title={t('music.bar.close')} aria-label={t('music.bar.close')} onclick={() => back()}><Icon name="chevronDown" size={20} /></button>
   {#if it && s}
-    <div class="body">
+    <div class="body" data-panel={panelClosed ? 'closed' : 'open'}>
       <section class="left">
         <div class="art" style:view-transition-name="np-art">
-          {#if art(480)}<img src={art(480)} alt="" decoding="async" />{:else}<Icon name="music" size={64} />{/if}
+          {#if big}{#key big}<img src={big} alt="" decoding="async" transition:fade={xfade} />{/key}{/if}
+          {#if !big}<span class="ph-initials" style:background={placeholderBg(it.album ?? it.name)}>{initials(it.album ?? it.name)}</span>{/if}
         </div>
         <div class="meta">
           <div class="names">
@@ -77,6 +121,7 @@
             </button>
           {/if}
         </div>
+        {#if badge}<p class="badge caption mono" data-badge>{badge}</p>{/if}
         <SeekBar positionMs={s.positionMs} durationMs={s.durationMs} />
         <Transport large />
       </section>
@@ -87,11 +132,12 @@
           options={[
             { value: 'lyrics', label: t('music.lyrics.title') },
             { value: 'queue', label: t('music.bar.queue') },
+            { value: 'similar', label: t('music.similar.title') },
           ]}
-          onchange={(v) => navigate(`/now-playing?tab=${v}`, { replace: true })}
+          onchange={pickTab}
         />
-        <div class="pane-body">
-          {#if tab === 'lyrics'}<LyricsPane item={it} positionMs={s.positionMs} />{:else}<QueuePanel embedded />{/if}
+        <div class="pane-body" hidden={panelClosed}>
+          {#if tab === 'lyrics'}<LyricsPane item={it} positionMs={s.positionMs} />{:else if tab === 'similar'}<SimilarPane id={it.id} serverId={it.serverId} />{:else}<QueuePanel embedded />{/if}
         </div>
       </section>
     </div>
@@ -125,6 +171,8 @@
     inset: -80px;
   }
   .bg img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -150,7 +198,7 @@
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(280px, 480px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, min(75vh, 50vw, 100vh - 320px)) minmax(0, 1fr);
     gap: clamp(32px, 5vw, 88px);
     padding: calc(var(--titlebar) + 48px) clamp(32px, 6vw, 96px) 40px;
   }
@@ -162,7 +210,7 @@
   }
   .art {
     width: 100%;
-    max-width: 480px;
+    max-width: min(75vh, 50vw, 100vh - 320px);
     aspect-ratio: 1;
     display: grid;
     place-items: center;
@@ -172,10 +220,29 @@
     overflow: hidden;
     color: var(--label-3);
   }
+  .art img,
+  .art .ph-initials {
+    grid-area: 1 / 1;
+  }
   .art img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .badge {
+    margin: -8px 0 0;
+    color: var(--label-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .art .ph-initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    font-size: clamp(64px, 9vw, 160px);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: rgb(255 255 255 / 0.92);
   }
   .meta {
     display: flex;
@@ -219,5 +286,14 @@
     flex: 1;
     width: 100%;
     min-height: 0;
+  }
+  .body[data-panel='closed'] {
+    grid-template-columns: minmax(280px, min(75vh, 50vw, 100vh - 320px));
+    justify-content: center;
+  }
+  .body[data-panel='closed'] .right {
+    position: absolute;
+    top: calc(var(--titlebar) + 48px);
+    right: clamp(32px, 6vw, 96px);
   }
 </style>

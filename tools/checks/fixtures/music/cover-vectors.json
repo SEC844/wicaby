@@ -1,0 +1,510 @@
+{
+ "about": "Music covers (music-feishin-navidrome spec §4.A): run by tools/checks/music-art-check.mjs (shared/music-art.ts) and core MusicArtTest.kt (music/MusicArt.kt). colour.runs: [r, g, b, a, count] runs of a 16 x 16 RGBA image.",
+ "art": [
+  {
+   "name": "album with its own cover",
+   "item": {
+    "Id": "al1",
+    "Type": "MusicAlbum",
+    "ImageTags": {
+     "Primary": "a"
+    }
+   },
+   "expect": {
+    "ref": {
+     "id": "al1",
+     "tag": "a"
+    }
+   }
+  },
+  {
+   "name": "album without a Primary: its first track (the field bug)",
+   "item": {
+    "Id": "al2",
+    "Type": "MusicAlbum",
+    "ImageTags": {}
+   },
+   "expect": {
+    "lookup": "firstTrack"
+   }
+  },
+  {
+   "name": "album with an empty Primary tag",
+   "item": {
+    "Id": "al3",
+    "Type": "MusicAlbum",
+    "ImageTags": {
+     "Primary": ""
+    }
+   },
+   "expect": {
+    "lookup": "firstTrack"
+   }
+  },
+  {
+   "name": "album without ImageTags at all",
+   "item": {
+    "Id": "al4",
+    "Type": "MusicAlbum"
+   },
+   "expect": {
+    "lookup": "firstTrack"
+   }
+  },
+  {
+   "name": "track with its own art (embedded, extracted)",
+   "item": {
+    "Id": "t1",
+    "Type": "Audio",
+    "ImageTags": {
+     "Primary": "t"
+    },
+    "AlbumId": "al1",
+    "AlbumPrimaryImageTag": "a"
+   },
+   "expect": {
+    "ref": {
+     "id": "t1",
+     "tag": "t"
+    }
+   }
+  },
+  {
+   "name": "track without art: its album",
+   "item": {
+    "Id": "t2",
+    "Type": "Audio",
+    "ImageTags": {},
+    "AlbumId": "al1",
+    "AlbumPrimaryImageTag": "a"
+   },
+   "expect": {
+    "ref": {
+     "id": "al1",
+     "tag": "a"
+    }
+   }
+  },
+  {
+   "name": "track without art, album without art",
+   "item": {
+    "Id": "t3",
+    "Type": "Audio",
+    "ImageTags": {},
+    "AlbumId": "al2"
+   },
+   "expect": null
+  },
+  {
+   "name": "track with an album tag but no album id",
+   "item": {
+    "Id": "t4",
+    "Type": "Audio",
+    "AlbumPrimaryImageTag": "a"
+   },
+   "expect": null
+  },
+  {
+   "name": "artist with an image",
+   "item": {
+    "Id": "ar1",
+    "Type": "MusicArtist",
+    "ImageTags": {
+     "Primary": "r"
+    }
+   },
+   "expect": {
+    "ref": {
+     "id": "ar1",
+     "tag": "r"
+    }
+   }
+  },
+  {
+   "name": "artist without an image: its first album",
+   "item": {
+    "Id": "ar2",
+    "Type": "MusicArtist",
+    "ImageTags": {}
+   },
+   "expect": {
+    "lookup": "firstAlbum"
+   }
+  },
+  {
+   "name": "playlist without art",
+   "item": {
+    "Id": "pl1",
+    "Type": "Playlist",
+    "ImageTags": {}
+   },
+   "expect": null
+  },
+  {
+   "name": "playlist with art",
+   "item": {
+    "Id": "pl2",
+    "Type": "Playlist",
+    "ImageTags": {
+     "Primary": "p"
+    }
+   },
+   "expect": {
+    "ref": {
+     "id": "pl2",
+     "tag": "p"
+    }
+   }
+  },
+  {
+   "name": "genre without art",
+   "item": {
+    "Id": "g1",
+    "Type": "MusicGenre",
+    "ImageTags": {}
+   },
+   "expect": null
+  },
+  {
+   "name": "a film is not looked up",
+   "item": {
+    "Id": "m1",
+    "Type": "Movie"
+   },
+   "expect": null
+  }
+ ],
+ "queries": [
+  {
+   "kind": "firstTrack",
+   "id": "al2",
+   "emby": true,
+   "query": {
+    "ParentId": "al2",
+    "IncludeItemTypes": "Audio",
+    "ImageTypes": "Primary",
+    "SortBy": "ParentIndexNumber,IndexNumber,SortName",
+    "Recursive": "true",
+    "Limit": "1",
+    "EnableImageTypes": "Primary",
+    "ImageTypeLimit": "1",
+    "EnableUserData": "false",
+    "Fields": "PrimaryImageAspectRatio"
+   }
+  },
+  {
+   "kind": "firstTrack",
+   "id": "al2",
+   "emby": false,
+   "query": {
+    "ParentId": "al2",
+    "IncludeItemTypes": "Audio",
+    "ImageTypes": "Primary",
+    "SortBy": "ParentIndexNumber,IndexNumber,SortName",
+    "Recursive": "true",
+    "Limit": "1",
+    "EnableImageTypes": "Primary",
+    "ImageTypeLimit": "1",
+    "EnableUserData": "false",
+    "Fields": "PrimaryImageAspectRatio"
+   }
+  },
+  {
+   "kind": "firstAlbum",
+   "id": "ar2",
+   "emby": true,
+   "query": {
+    "ArtistIds": "ar2",
+    "ArtistType": "AlbumArtist",
+    "IncludeItemTypes": "MusicAlbum",
+    "SortBy": "ProductionYear,SortName",
+    "SortOrder": "Descending",
+    "Recursive": "true",
+    "Limit": "1",
+    "EnableImageTypes": "Primary",
+    "ImageTypeLimit": "1",
+    "EnableUserData": "false",
+    "Fields": "PrimaryImageAspectRatio"
+   }
+  },
+  {
+   "kind": "firstAlbum",
+   "id": "ar2",
+   "emby": false,
+   "query": {
+    "AlbumArtistIds": "ar2",
+    "IncludeItemTypes": "MusicAlbum",
+    "SortBy": "ProductionYear,SortName",
+    "SortOrder": "Descending",
+    "Recursive": "true",
+    "Limit": "1",
+    "EnableImageTypes": "Primary",
+    "ImageTypeLimit": "1",
+    "EnableUserData": "false",
+    "Fields": "PrimaryImageAspectRatio"
+   }
+  }
+ ],
+ "placeholder": [
+  {
+   "name": "The Beatles",
+   "initials": "TB",
+   "hue": 256
+  },
+  {
+   "name": "Émile",
+   "initials": "É",
+   "hue": 81
+  },
+  {
+   "name": "Émile Zola",
+   "initials": "ÉZ",
+   "hue": 134
+  },
+  {
+   "name": "東京事変",
+   "initials": "東",
+   "hue": 336
+  },
+  {
+   "name": "🎵 Mix",
+   "initials": "M",
+   "hue": 0
+  },
+  {
+   "name": "🎵",
+   "initials": "",
+   "hue": 178
+  },
+  {
+   "name": "",
+   "initials": "",
+   "hue": 61
+  },
+  {
+   "name": "  ",
+   "initials": "",
+   "hue": 213
+  },
+  {
+   "name": "2 Many DJs",
+   "initials": "2D",
+   "hue": 187
+  },
+  {
+   "name": "Les Ondes Calmes",
+   "initials": "LC",
+   "hue": 7
+  },
+  {
+   "name": "(Live) at Home",
+   "initials": "AH",
+   "hue": 192
+  },
+  {
+   "name": "night arcade",
+   "initials": "NA",
+   "hue": 223
+  },
+  {
+   "name": "Zéphyr Trio",
+   "initials": "ZT",
+   "hue": 67
+  },
+  {
+   "name": "Ensemble Quartz",
+   "initials": "EQ",
+   "hue": 229
+  }
+ ],
+ "tile": [
+  {
+   "hue": 0,
+   "rgb": [
+    110,
+    53,
+    53
+   ]
+  },
+  {
+   "hue": 60,
+   "rgb": [
+    110,
+    110,
+    53
+   ]
+  },
+  {
+   "hue": 120,
+   "rgb": [
+    53,
+    110,
+    53
+   ]
+  },
+  {
+   "hue": 200,
+   "rgb": [
+    53,
+    91,
+    110
+   ]
+  },
+  {
+   "hue": 300,
+   "rgb": [
+    110,
+    53,
+    110
+   ]
+  }
+ ],
+ "size": [
+  {
+   "css": 173,
+   "dpr": 2,
+   "px": 480
+  },
+  {
+   "css": 48,
+   "dpr": 1.25,
+   "px": 80
+  },
+  {
+   "css": 48,
+   "dpr": 1,
+   "px": 80
+  },
+  {
+   "css": 44,
+   "dpr": 3,
+   "px": 160
+  },
+  {
+   "css": 330,
+   "dpr": 1,
+   "px": 480
+  },
+  {
+   "css": 330,
+   "dpr": 2,
+   "px": 720
+  },
+  {
+   "css": 675,
+   "dpr": 1,
+   "px": 720
+  },
+  {
+   "css": 2000,
+   "dpr": 1,
+   "px": 1200
+  },
+  {
+   "css": 0,
+   "dpr": 1,
+   "px": 80
+  }
+ ],
+ "colour": [
+  {
+   "name": "solid red",
+   "runs": [
+    [
+     255,
+     0,
+     0,
+     255,
+     256
+    ]
+   ],
+   "colour": "#ff0000"
+  },
+  {
+   "name": "red on white",
+   "runs": [
+    [
+     255,
+     0,
+     0,
+     255,
+     64
+    ],
+    [
+     255,
+     255,
+     255,
+     255,
+     192
+    ]
+   ],
+   "colour": "#ff0000"
+  },
+  {
+   "name": "mostly black with blue",
+   "runs": [
+    [
+     0,
+     0,
+     0,
+     255,
+     200
+    ],
+    [
+     0,
+     0,
+     255,
+     255,
+     56
+    ]
+   ],
+   "colour": "#0000ff"
+  },
+  {
+   "name": "grey only (plain average)",
+   "runs": [
+    [
+     128,
+     128,
+     128,
+     255,
+     256
+    ]
+   ],
+   "colour": "#808080"
+  },
+  {
+   "name": "transparent",
+   "runs": [
+    [
+     255,
+     0,
+     0,
+     0,
+     256
+    ]
+   ],
+   "colour": null
+  },
+  {
+   "name": "more green than red",
+   "runs": [
+    [
+     255,
+     0,
+     0,
+     255,
+     100
+    ],
+    [
+     0,
+     200,
+     0,
+     255,
+     156
+    ]
+   ],
+   "colour": "#00c800"
+  }
+ ]
+}

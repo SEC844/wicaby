@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { AudioDevice } from '../../../shared/contract';
+  import { albumJump } from '../../../shared/music-ui';
   import { applyOverrides, resolve } from '../../../shared/shortcuts';
   import { itemPath } from '../../lib/api';
   import { w } from '../../lib/bridge';
   import { t } from '../../lib/i18n.svelte';
   import { imageUrl } from '../../lib/images';
-  import { command, ensureItems, known, musicActive, musicUi, toggleFavorite } from '../../lib/music-ui.svelte';
+  import { initials, placeholderBg, prefetchTrackArt } from '../../lib/music-art';
+  import { command, ensureItems, known, musicActive, musicUi, openTrackMenu, toggleFavorite } from '../../lib/music-ui.svelte';
   import { back, navigate, router } from '../../lib/router.svelte';
   import { linux } from '../../lib/platform';
   import { playback, settings } from '../../lib/stores.svelte';
@@ -29,6 +31,12 @@
   $effect(() => {
     if (it?.id) void ensureItems([it.id], it.serverId);
   });
+  // The next track's covers, fetched ahead so the bar and the player switch without a gap (music spec MU-A5).
+  const nextId = $derived(s?.music?.queue.ids[s.music.queue.index + 1]);
+  $effect(() => {
+    if (nextId) void ensureItems([nextId], it?.serverId);
+  });
+  $effect(() => prefetchTrackArt(nextId ? known[nextId] : undefined));
   $effect(() => {
     if (!active) musicUi.queue = false;
   });
@@ -121,7 +129,44 @@
         return void w.window.mini('toggle');
       case 'music.close':
         return back();
+      case 'music.showPlaying':
+        return void showPlaying();
+      case 'music.nextAlbum':
+      case 'music.previousAlbum':
+        return void jumpAlbum(id === 'music.nextAlbum' ? 1 : -1);
     }
+  }
+
+  // Ctrl+L (music spec C9): the playing track's album page, its row scrolled into view and focused.
+  async function showPlaying(): Promise<void> {
+    const cur = playback.value?.item;
+    if (!cur?.albumId) return;
+    navigate(itemPath({ Id: cur.albumId, ServerId: cur.serverId }));
+    for (let n = 0; n < 40; n++) {
+      const row = document.querySelector<HTMLElement>(`.tracks [data-id="${CSS.escape(cur.id)}"]`);
+      if (row) {
+        row.scrollIntoView({ block: 'center' });
+        return row.focus({ preventScroll: true });
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+  // Ctrl+Alt+→/← (C9): the first track of the next album in the queue, or of the previous one.
+  async function jumpAlbum(dir: 1 | -1): Promise<void> {
+    const q = playback.value?.music?.queue;
+    if (!q) return;
+    const ids = [...q.ids];
+    await ensureItems(ids, playback.value?.item?.serverId);
+    const to = albumJump(ids.map((x) => known[x]?.AlbumId), q.index, dir);
+    if (to !== null) command({ type: 'queue-jump', index: to });
+  }
+
+  // Mouse wheel on the volume (C8): ±5 per notch.
+  function wheelVolume(e: WheelEvent): void {
+    const st = playback.value;
+    if (!st || !e.deltaY) return;
+    e.preventDefault();
+    command({ type: 'volume', value: Math.max(0, Math.min(100, st.volume + (e.deltaY < 0 ? 5 : -5))) });
   }
 </script>
 
@@ -132,17 +177,24 @@
   <div class="bar material" role="region" aria-label={t('music.bar.label')} data-now-playing-bar>
     <div class="left">
       <button class="art" style:view-transition-name={router.route.name === 'now-playing' ? undefined : 'np-art'} aria-label={t('music.bar.art')} onclick={fullScreen}>
-        {#if art}<img src={art} alt="" decoding="async" />{:else}<Icon name="music" size={20} />{/if}
+        {#if art}<img src={art} alt="" decoding="async" />{:else}<span class="ph-initials" style:background={placeholderBg(it.album ?? it.name)}>{initials(it.album ?? it.name)}</span>{/if}
       </button>
-      <div class="txt">
+      <div class="txt" role="presentation" oncontextmenu={(e) => track && openTrackMenu(track, e, e.currentTarget.parentElement?.querySelector('.bar-more') ?? null)}>
         <span class="title headline" data-title>{it.name}</span>
         <span class="sub callout">
           {#if artist}<a href={`#${itemPath({ Id: artist.Id, ServerId: it.serverId })}`} data-artist>{(it.artists ?? []).join(', ') || it.albumArtist}</a>{:else}<span data-artist>{(it.artists ?? []).join(', ') || (it.albumArtist ?? '')}</span>{/if}
+          {#if it.album}
+            <span class="sep" aria-hidden="true">·</span>
+            {#if it.albumId}<a href={`#${itemPath({ Id: it.albumId, ServerId: it.serverId })}`} data-album>{it.album}</a>{:else}<span data-album>{it.album}</span>{/if}
+          {/if}
         </span>
       </div>
       {#if track}
         <button class="icon-btn" data-fav class:on={fav} aria-pressed={fav} title={t(fav ? 'music.favorite.remove' : 'music.favorite.add')} aria-label={t(fav ? 'music.favorite.remove' : 'music.favorite.add')} onclick={() => toggleFavorite(track)}>
           <Icon name="heart" size={16} fill={fav} stroke={fav ? 0 : 1.9} />
+        </button>
+        <button class="icon-btn bar-more" aria-haspopup="menu" title={t('music.actions.more', { name: it.name })} aria-label={t('music.actions.more', { name: it.name })} onclick={(e) => openTrackMenu(track, e, e.currentTarget)}>
+          <Icon name="ellipsis" size={16} />
         </button>
       {/if}
     </div>
@@ -153,10 +205,10 @@
     <div class="right">
       <button class="icon-btn" data-open-lyrics title={t('music.bar.lyrics')} aria-label={t('music.bar.lyrics')} onclick={() => navigate('/now-playing?tab=lyrics')}><Icon name="lyrics" size={17} /></button>
       <button class="icon-btn" data-queue class:on={musicUi.queue} aria-pressed={musicUi.queue} title={t('music.bar.queue')} aria-label={t('music.bar.queue')} onclick={() => (musicUi.queue = !musicUi.queue)}><Icon name="queue" size={17} /></button>
-      <button class="icon-btn" title={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} aria-label={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} onclick={() => command({ type: 'mute', value: !s.muted })}>
+      <button class="icon-btn" title={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} aria-label={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} onclick={() => command({ type: 'mute', value: !s.muted })} onwheel={wheelVolume}>
         <Icon name={s.muted || s.volume === 0 ? 'mute' : 'volume'} size={17} />
       </button>
-      <input class="volume" type="range" min="0" max="100" step="1" value={s.volume} style:--pct="{s.muted ? 0 : s.volume}%" aria-label={t('music.bar.volume')} oninput={(e) => command({ type: 'volume', value: Number(e.currentTarget.value) })} />
+      <input class="volume" type="range" min="0" max="100" step="1" value={s.volume} style:--pct="{s.muted ? 0 : s.volume}%" aria-label={t('music.bar.volume')} oninput={(e) => command({ type: 'volume', value: Number(e.currentTarget.value) })} onwheel={wheelVolume} />
       <BrowseMenu label={t('music.bar.output')} icon="speaker" compact up align="end" options={outputs} onselect={(v) => v !== device && void setSettings({ playback: { audioDevice: v } })} />
       <button class="icon-btn" data-open-mini title={t('music.mini.open')} aria-label={t('music.mini.open')} onclick={() => w.window.mini('open')}><Icon name="pip" size={16} /></button>
       <button class="icon-btn" title={t('music.bar.fullScreen')} aria-label={t('music.bar.fullScreen')} onclick={fullScreen}><Icon name="fullscreen" size={16} /></button>
@@ -208,6 +260,15 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .art .ph-initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    font-weight: 650;
+    color: rgb(255 255 255 / 0.92);
   }
   .txt {
     display: grid;

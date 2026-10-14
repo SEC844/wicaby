@@ -53,3 +53,19 @@ export async function queue(item: BaseItem, mode: QueueMode): Promise<void> {
     toast('error', errorMessage(err));
   }
 }
+
+// Tracks by id (a multi-selection, a drop on the queue): next or last in the queue playing, else played now.
+// false when it failed (toasted).
+export async function queueIds(ids: string[], serverId: string | undefined, mode: 'next' | 'last', name: string): Promise<boolean> {
+  try {
+    const active = playback.value?.active;
+    if (active && playback.value?.item?.serverId !== serverId) throw new Error(t('item.errors.queueOtherServer'));
+    if (ids.length === 0) throw new Error(t('item.errors.nothingToPlay'));
+    await w.playback.play({ itemIds: ids, serverId, command: mode === 'next' ? 'PlayNext' : 'PlayLast' });
+    if (active) toast('success', t(mode === 'next' ? 'item.toast.playingNext' : 'item.toast.addedToQueue', { name }));
+    return true;
+  } catch (err) {
+    toast('error', errorMessage(err));
+    return false;
+  }
+}

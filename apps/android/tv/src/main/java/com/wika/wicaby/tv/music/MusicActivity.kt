@@ -52,6 +52,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -67,12 +68,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.core.data.clock
 import com.wika.wicaby.core.data.poster
+import com.wika.wicaby.core.data.posterArt
 import com.wika.wicaby.core.music.MusicSession
 import com.wika.wicaby.core.music.Repeat
 import com.wika.wicaby.tv.R
@@ -132,7 +135,10 @@ fun NowPlaying(session: MusicSession) {
     val api = session.api
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val art = remember(item?.id) { item?.let { Servers.forItem(it, api).poster(it, 720) } }
+    val art = remember(item) { item?.let { Servers.forItem(it, api).posterArt(it, 720) } }
+    // The cover's dominant colour tints the gradient (music spec MU-A3); the next track's cover is fetched ahead (MU-A5).
+    val tint by rememberArtColour(art)
+    PrefetchNextArt(session, 720)
     var showLyrics by remember { mutableStateOf(false) }
     var ambient by remember { mutableStateOf(false) }
     var pokes by remember { mutableIntStateOf(0) }
@@ -178,14 +184,14 @@ fun NowPlaying(session: MusicSession) {
         if (art != null) {
             AsyncImage(art, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().blur(48.dp).graphicsLayer { alpha = 0.5f })
         }
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Black.copy(alpha = 0.8f)))))
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(tint?.let { lerp(Color.Black, it, 0.35f).copy(alpha = 0.6f) } ?: Color.Black.copy(alpha = 0.25f), Color.Black.copy(alpha = 0.8f)))))
         Column(Modifier.fillMaxSize().padding(start = 64.dp, end = 64.dp, top = 40.dp, bottom = 24.dp)) {
             Row(Modifier.weight(1f).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 // With the lyrics the art steps aside (it stays behind, blurred): the controls keep their width.
                 if (!showLyrics) {
                     Box(Modifier.size(280.dp).clip(RoundedCornerShape(Radius.lg)).background(C.elevated2), contentAlignment = Alignment.Center) {
                         if (art != null) AsyncImage(art, item?.album ?: item?.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else Icon(Ic.Play, null, tint = C.label3, modifier = Modifier.size(64.dp))
+                        else CoverPlaceholder(item?.album ?: item?.name.orEmpty(), 96.sp)
                     }
                     Spacer(Modifier.width(48.dp))
                 }

@@ -1,0 +1,27 @@
+{
+  "release": [
+    { "name": "one short track", "tracks": 1, "ms": 210000, "expect": "single" },
+    { "name": "three tracks", "tracks": 3, "ms": 720000, "expect": "single" },
+    { "name": "four tracks", "tracks": 4, "ms": 960000, "expect": "ep" },
+    { "name": "six tracks", "tracks": 6, "ms": 1500000, "expect": "ep" },
+    { "name": "seven tracks", "tracks": 7, "ms": 1500000, "expect": "album" },
+    { "name": "two long tracks", "tracks": 2, "ms": 2400000, "expect": "album" },
+    { "name": "unknown length", "tracks": 2, "ms": 0, "expect": "single" },
+    { "name": "no tracks yet", "tracks": 0, "ms": 0, "expect": "album" },
+    { "name": "various artists", "tracks": 20, "ms": 4000000, "artist": "Various Artists", "expect": "compilation" },
+    { "name": "artistes divers", "tracks": 3, "ms": 600000, "artist": " Artistes divers ", "expect": "compilation" },
+    { "name": "VA", "tracks": 12, "ms": 3000000, "artist": "va", "expect": "compilation" },
+    { "name": "a band named Various Something", "tracks": 12, "ms": 3000000, "artist": "Various Cruelties", "expect": "album" }
+  ],
+  "albumJump": [
+    { "name": "next from the first track", "albums": ["a", "a", "b", "b", "c"], "index": 0, "dir": 1, "expect": 2 },
+    { "name": "next from mid-album", "albums": ["a", "a", "b", "b", "c"], "index": 3, "dir": 1, "expect": 4 },
+    { "name": "next from the last album", "albums": ["a", "a", "b"], "index": 2, "dir": 1, "expect": null },
+    { "name": "previous from mid-album", "albums": ["a", "a", "b", "b", "c"], "index": 3, "dir": -1, "expect": 0 },
+    { "name": "previous from an album start", "albums": ["a", "a", "b", "b", "c"], "index": 4, "dir": -1, "expect": 2 },
+    { "name": "previous from the first album", "albums": ["a", "a", "b"], "index": 1, "dir": -1, "expect": null },
+    { "name": "tracks without album are albums of one", "albums": [null, null, "b"], "index": 0, "dir": 1, "expect": 1 },
+    { "name": "the same album twice", "albums": ["a", "b", "a"], "index": 0, "dir": 1, "expect": 1 },
+    { "name": "out of range", "albums": ["a"], "index": 3, "dir": 1, "expect": null }
+  ]
+}

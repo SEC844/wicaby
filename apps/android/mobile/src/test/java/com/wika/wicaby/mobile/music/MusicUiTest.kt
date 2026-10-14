@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +23,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.fetch.Fetcher
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.Server
@@ -34,6 +38,8 @@ import com.wika.wicaby.mobile.ui.LibrariesRoute
 import com.wika.wicaby.mobile.ui.LibrariesScreen
 import com.wika.wicaby.mobile.ui.WicabyTheme
 import com.wika.wicaby.mobile.ui.contentDestinations
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,6 +50,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.util.Collections
 
 // Music spec MU-08 AC1-AC6 under Robolectric: a canned server (FakeApi, nothing is contacted) and a real ExoPlayer that
 // is never prepared, so nothing decodes and nothing sounds.
@@ -55,7 +62,7 @@ class MusicUiTest {
     val rule = createComposeRule()
 
     // The music fixture's shape (tools/mock-server/music-fixture.mjs): invented names only.
-    private class FakeApi : Api(Server("srv", "Mock", "http://127.0.0.1:9", "jellyfin"), "dev", "tok", "u1") {
+    private open class FakeApi : Api(Server("srv", "Mock", "http://127.0.0.1:9", "jellyfin"), "dev", "tok", "u1") {
         val asked = mutableListOf<String>()
 
         private fun track(n: Int, disc: Int) =
@@ -108,6 +115,31 @@ class MusicUiTest {
         rule.onNodeWithText("Musique").performClick()
         for (tab in listOf("Albums", "Artists", "Songs", "Genres", "Playlists")) rule.waitUntilAtLeastOneExists(hasText(tab), 5_000)
         rule.waitUntilAtLeastOneExists(hasText("Deux disques"), 5_000)
+    }
+
+    // Music spec MU-A1: the album page shows a stand-in item (no image tags) until /Items/{id} answers; when the tracks
+    // arrive first, the header used to keep the stand-in's null art for good. Its cover must be asked for once the item lands.
+    @Test
+    fun theAlbumHeaderArtSurvivesTheItemArrivingAfterItsTracks() {
+        val urls = Collections.synchronizedList(mutableListOf<String>())
+        SingletonImageLoader.setUnsafe(
+            ImageLoader.Builder(RuntimeEnvironment.getApplication()).components {
+                add(Fetcher.Factory<coil3.Uri> { data, _, _ -> Fetcher { urls += data.toString(); awaitCancellation() } })
+            }.build(),
+        )
+        val slow = object : FakeApi() {
+            override suspend fun raw(method: String, path: String, body: String?, vararg query: Pair<String, Any?>): String {
+                if (path != "/Items/albR") return super.raw(method, path, body, *query)
+                delay(300)
+                return """{"Id":"albR","Name":"Lente","Type":"MusicAlbum","IsFolder":true,"ImageTags":{"Primary":"p"}}"""
+            }
+        }
+        try {
+            rule.setContent { WicabyTheme(Accents[0]) { MusicItemScreen(slow, MusicRoute("albR", "MusicAlbum", "Lente"), rememberNavController()) } }
+            rule.waitUntil(5_000) { synchronized(urls) { urls.any { "/Items/albR/Images/Primary" in it } } }
+        } finally {
+            SingletonImageLoader.reset()
+        }
     }
 
     @Test
@@ -164,6 +196,23 @@ class MusicUiTest {
         rule.onNodeWithText("Line 2").assertIsSelected()
         rule.onNodeWithText("Line 1").assertIsNotSelected()
         rule.onNodeWithText("Line 3").assertIsNotSelected()
+    }
+
+    // Music spec C3, C4: the release type over the title; a long press starts a selection, a tap then adds to it, and
+    // its bar counts the tracks until "Deselect".
+    @Test
+    fun longPressSelectsTracksAndTheHeaderNamesTheReleaseType() {
+        rule.setContent { WicabyTheme(Accents[0]) { MusicItemScreen(api, MusicRoute("alb2", "MusicAlbum", "Deux disques"), rememberNavController()) } }
+        rule.waitUntilAtLeastOneExists(hasText("EP"), 5_000)
+        // The list is lazy: each row is scrolled to before it is touched.
+        val list = rule.onNode(hasScrollToNodeAction())
+        list.performScrollToNode(hasText("Piste 1.1"))
+        rule.onNodeWithText("Piste 1.1").performTouchInput { longClick() }
+        list.performScrollToNode(hasText("Piste 1.2"))
+        rule.onNodeWithText("Piste 1.2").performClick()
+        rule.onNodeWithText("2 songs selected").assertExists()
+        rule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Deselect"))).performClick()
+        rule.onNodeWithText("2 songs selected").assertDoesNotExist()
     }
 
     @Test

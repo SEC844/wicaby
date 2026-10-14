@@ -1,0 +1,91 @@
+{
+  "title": "Sources",
+  "blurb": "Your servers and folders, in one library.",
+  "add": {
+    "button": "Add Source",
+    "orType": "Add Manually",
+    "types": {
+      "server": {
+        "title": "Emby or Jellyfin",
+        "body": "By address or with Emby Connect"
+      },
+      "plex": {
+        "title": "Plex",
+        "body": "Link your account with a code"
+      },
+      "files": {
+        "title": "Folder or Share",
+        "body": "This computer, SMB or WebDAV"
+      },
+      "photos": {
+        "title": "Photos",
+        "body": "Immich, or a photo folder"
+      },
+      "remote": {
+        "title": "Remote Device",
+        "body": "Through Tailscale or NetBird"
+      }
+    },
+    "plex": {
+      "getCode": "Get a Code"
+    },
+    "photos": {
+      "folder": {
+        "title": "Photo Folder"
+      },
+      "immich": {
+        "body": "Connects with an API key, in Settings"
+      }
+    },
+    "remote": {
+      "lead": "Devices on {name}",
+      "off": "Remote access is off. Sign in with Tailscale or NetBird to reach servers on other networks.",
+      "setUp": "Set Up Remote Access",
+      "settings": "Remote Access Settings",
+      "unavailable": "Unavailable"
+    }
+  },
+  "empty": {
+    "title": "Add your first source",
+    "body": "Emby, Jellyfin, Plex, or a folder on this computer or your network."
+  },
+  "nearby": {
+    "none": "No servers found",
+    "found": "{count, plural, one {# server found on this network} other {# servers found on this network}}"
+  },
+  "address": {
+    "howTried": "Address Formats",
+    "required": "Enter the server’s address.",
+    "submit": "Connect",
+    "segment": "Address"
+  },
+  "connect": {
+    "required": "Enter your Emby Connect username and password."
+  },
+  "status": {
+    "signedInAs": "Signed in as {user}",
+    "needsLogin": "Sign-in required",
+    "offlineSince": "Offline · last seen {since}"
+  },
+  "offline": {
+    "downloads": "Downloads",
+    "connectMesh": "Connect {name}"
+  },
+  "plex": {
+    "account": "Plex account",
+    "hidden": "{count, plural, one {# server hidden} other {# servers hidden}}",
+    "manage": "Plex Account…",
+    "unlink": "Unlink…",
+    "unlinkConfirm": "Unlink the Plex account “{name}”? Its servers leave this list."
+  },
+  "remote": {
+    "row": "Remote Access"
+  },
+  "row": {
+    "menuAria": "More Options for {name}"
+  },
+  "immich": {
+    "removeConfirm": "Remove the Immich server “{name}”? Its photos leave Wicaby; nothing is deleted on the server.",
+    "removed": "Immich server removed."
+  }
+}

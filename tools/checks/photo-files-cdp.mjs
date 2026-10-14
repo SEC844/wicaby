@@ -150,7 +150,7 @@ async function run() {
   ok('Photo sources offers a folder, an SMB share and WebDAV', adds.length === 3, adds.join(' | '));
   await ev(`(document.querySelector('[data-photo-sources] [data-add="local"]').click(), true)`);
   await until('add sheet', () => ev(`!!document.querySelector('.sheet .choices')`), 5000);
-  const sheet = await ev(`({ title: document.querySelector('.sheet .title').textContent.trim(), on: document.querySelector('.sheet .choice.on')?.textContent.trim() })`);
+  const sheet = await ev(`({ title: document.querySelector('.sheet .title-3').textContent.trim(), on: document.querySelector('.sheet .choices button.on')?.textContent.trim() })`);
   ok('the sheet opens on the folder choice, titled for photos', /photos/i.test(sheet.title) && /dossier/i.test(sheet.on ?? ''), js(sheet));
   await ev(`([...document.querySelectorAll('.sheet .form .btn')].find((b) => b.querySelector('svg')).click(), true)`);
   await until('folder picked', () => ev(`document.querySelector('.sheet .path')?.textContent.includes('Photos de famille')`), 5000);

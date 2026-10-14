@@ -1,14 +1,15 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { TICKS_PER_MS } from '../../../shared/contract';
-  import type { BaseItem } from '../../../shared/models';
   import { formatDuration } from '../../../shared/music';
   import { fmt, t } from '../../lib/i18n.svelte';
-  import { imageUrl, posterUrl } from '../../lib/images';
   import { saveQueueAsPlaylist } from '../../lib/music';
-  import { command, ensureItems, known, musicUi } from '../../lib/music-ui.svelte';
+  import { carriesTracks, command, droppedTracks, ensureItems, known, musicUi } from '../../lib/music-ui.svelte';
+  import { queueIds } from '../../lib/queue.svelte';
+  import { w } from '../../lib/bridge';
   import { errorMessage, playback, toast } from '../../lib/stores.svelte';
   import Icon from '../Icon.svelte';
+  import MusicArt from './MusicArt.svelte';
 
   // The queue (music-spec §4.3): the current track, then what follows. Drag a row by its grip (pointer events),
   // Alt+↑/↓ moves the focused row, Delete removes it, a double click (or Enter) plays it. It follows the current
@@ -118,23 +119,46 @@
       toast('error', errorMessage(err));
     }
   }
+  // Tracks dragged from a list (music spec C3) land where they are dropped among the upcoming rows: before the row
+  // under the pointer (after it in its lower half), at the end off the rows.
+  let over = $state(false);
+  let overAt = $state(-1);
+  function dropIndex(e: DragEvent): number {
+    const r = (e.target as Element | null)?.closest<HTMLElement>('.row[data-index]');
+    if (!r) return ids.length;
+    const b = r.getBoundingClientRect();
+    return Math.max(index + 1, Number(r.dataset.index) + (e.clientY > b.top + b.height / 2 ? 1 : 0));
+  }
+  async function drop(e: DragEvent): Promise<void> {
+    over = false;
+    overAt = -1;
+    const d = droppedTracks(e);
+    if (!d) return;
+    e.preventDefault();
+    const at = dropIndex(e);
+    const end = ids.length;
+    if (!(await queueIds(d.ids, d.serverId, 'last', t('music.selection.count', { count: d.ids.length }))) || !end || at >= end) return;
+    // shortcut: appended then moved one by one (main has no insert-at queue op); add one to MusicQueue if drops grow big.
+    try {
+      for (let k = 0; k < d.ids.length; k++) await w.playback.command({ type: 'queue-move', from: end + k, to: at + k });
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  }
+
   function startNaming(): void {
     name = t('music.queue.defaultName', { date: fmt.date(new Date(), { dateStyle: 'medium' }) });
     naming = true;
   }
-
-  const art = (it: BaseItem | undefined) =>
-    !it ? null : it.AlbumId && it.AlbumPrimaryImageTag ? imageUrl(it.AlbumId, 'Primary', { tag: it.AlbumPrimaryImageTag, maxHeight: 44, server: it.ServerId }) : posterUrl(it, 44);
 </script>
 
 {#snippet row(i: number)}
   {@const it = known[ids[i]]}
-  {@const src = art(it)}
   <div
     class="row"
     class:current={i === index}
     class:dragging={drag?.from === i}
-    class:drop-before={dropAt === i && drag && drag.from > i}
+    class:drop-before={(dropAt === i && drag && drag.from > i) || overAt === i}
     class:drop-after={dropAt === i && drag && drag.from < i}
     style:transform={drag?.from === i ? `translateY(${drag.dy}px)` : undefined}
     data-index={i}
@@ -153,7 +177,7 @@
       onclick={(e) => e.detail === 0 && i !== index && command({ type: 'queue-jump', index: i })}
       onkeydown={(e) => onRowKey(e, i)}
     >
-      <span class="art">{#if src}<img src={src} alt="" loading="lazy" decoding="async" draggable="false" />{/if}</span>
+      <span class="art">{#if it}<MusicArt item={it} size={40} />{/if}</span>
       <span class="txt"><span class="t">{it?.Name ?? ''}</span><span class="a">{(it?.Artists ?? []).join(', ')}</span></span>
       <span class="rt mono">{it?.RunTimeTicks ? formatDuration(it.RunTimeTicks / TICKS_PER_MS) : ''}</span>
     </button>
@@ -163,7 +187,18 @@
   </div>
 {/snippet}
 
-<aside class="queue" class:panel={!embedded} class:material={!embedded} aria-label={t('music.bar.queue')} data-queue-panel>
+<aside
+  class="queue"
+  class:panel={!embedded}
+  class:material={!embedded}
+  class:over
+  aria-label={t('music.bar.queue')}
+  data-queue-panel
+  title={over ? t('music.drop.queue') : undefined}
+  ondragover={(e) => carriesTracks(e) && (e.preventDefault(), (over = true), (overAt = dropIndex(e)))}
+  ondragleave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && ((over = false), (overAt = -1))}
+  ondrop={drop}
+>
   {#if !embedded}
     <header class="top">
       <h2 class="title-3">{t('music.bar.queue')}</h2>
@@ -320,11 +355,6 @@
     background: var(--fill-2);
     overflow: hidden;
   }
-  .art img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
   .txt {
     display: grid;
     min-width: 0;
@@ -394,5 +424,8 @@
   .name .field {
     flex: 1;
     min-width: 0;
+  }
+  .queue.over {
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 </style>

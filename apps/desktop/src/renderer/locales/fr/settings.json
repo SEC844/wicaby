@@ -99,7 +99,10 @@
         "musicQueue": "File d’attente",
         "musicFavorite": "Favori",
         "musicClose": "Fermer le lecteur",
-        "musicMini": "Mini-lecteur"
+        "musicMini": "Mini-lecteur",
+        "musicShowPlaying": "Afficher le titre en cours",
+        "musicNextAlbum": "Album suivant",
+        "musicPreviousAlbum": "Album précédent"
       },
       "context": {
         "music": "Musique"

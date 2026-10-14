@@ -18,12 +18,14 @@
   import { fmt, t } from '../lib/i18n.svelte';
   import { backdropUrl, imageUrl, logoUrl, posterUrl, thumbUrl } from '../lib/images';
   import { morphFrom, morphName, peek, peekSrc, remember, reveal, scrollMemory, takeMorph } from '../lib/motion';
+  import { artColour, initials as musicInitials, isMusicItem, musicArtLater, needsLookup, placeholderBg } from '../lib/music-art';
   import { playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue, queueModes } from '../lib/queue.svelte';
   import { resumeAt } from '../lib/resume.svelte';
   import { navigate } from '../lib/router.svelte';
   import { dataVersion, downloads, errorMessage, multiServer, serverName, sessionFor, toast } from '../lib/stores.svelte';
   import { caps } from '../../shared/server-caps';
+  import { releaseType } from '../../shared/music-ui';
 
   // server: the item's server (absent in older links: the primary one).
   let { id, server }: { id: string; server?: string } = $props();
@@ -59,6 +61,19 @@
   const singles = $derived(own.filter(isSingle));
   const appearsOn = $derived(item?.Type === 'MusicArtist' ? filmography.filter((a) => !own.includes(a)) : []);
   let similar = $state<BaseItem[]>([]);
+  // Album page (music spec C4): the release type from its tracks, more albums by its artist, the cover full size.
+  let moreFrom = $state<BaseItem[]>([]);
+  const albumArtist = $derived(item?.Type === 'MusicAlbum' ? item.AlbumArtists?.[0] : undefined);
+  const release = $derived(
+    item?.Type === 'MusicAlbum' && tracks.length ? releaseType(tracks.length, tracks.reduce((n, tr) => n + (tr.RunTimeTicks ?? 0), 0) / TICKS_PER_MS, item.AlbumArtist) : null,
+  );
+  let zoom = $state<HTMLDialogElement>();
+  let zoomSrc = $state('');
+  async function openZoom(): Promise<void> {
+    if (!item) return;
+    zoomSrc = posterUrl(item, 1200) ?? (await musicArtLater(item, 1200)) ?? poster ?? '';
+    if (zoomSrc) zoom?.showModal();
+  }
   let siblings = $state<BaseItem[]>([]);
   let nextUpId = $state<string | null>(null);
   let busy = $state(false);
@@ -93,11 +108,29 @@
 
   const backdrop = $derived(item ? backdropUrl(item, 1920) : null);
   const logo = $derived(item ? logoUrl(item, 720) : null);
-  const poster = $derived(item ? posterUrl(item, 330) : null);
+  // Music (music spec §4.A): an album or artist without art borrows its first track's or album's cover, else its
+  // initials; the hero is tinted with the cover's dominant colour (never text or controls).
+  const music = $derived(item ? isMusicItem(item) : false);
+  let latePoster = $state<{ id: string; src: string | null } | null>(null);
+  $effect(() => {
+    const it = item;
+    if (!it || !isMusicItem(it) || posterUrl(it, 330) || !needsLookup(it)) return;
+    void musicArtLater(it, 330).then((s) => (latePoster = { id: it.Id, src: s }));
+  });
+  const poster = $derived(item ? (posterUrl(item, 330) ?? (latePoster?.id === item.Id ? latePoster.src : null)) : null);
+  let tint = $state<string | null>(null);
+  $effect(() => {
+    const p = music ? poster : null;
+    tint = null;
+    if (!p) return;
+    let live = true;
+    void artColour(p).then((c) => live && (tint = c));
+    return () => (live = false);
+  });
   const round = $derived(item?.Type === 'Person' || item?.Type === 'MusicArtist');
   const squarePoster = $derived(item ? ['MusicAlbum', 'Audio', 'Playlist'].includes(item.Type) : false);
   // Apple TV layout: full-bleed backdrop when there is one, a poster beside the text otherwise.
-  const showPoster = $derived(Boolean(poster) && (!backdrop || round || squarePoster));
+  const showPoster = $derived((Boolean(poster) || music) && (!backdrop || round || squarePoster));
   const ambient = $derived(cardSrc ?? (item ? (thumbUrl(item, 400) ?? poster) : null));
   const displayTitle = $derived(item ? (item.Type === 'Episode' || item.Type === 'Season' ? (item.SeriesName ?? item.Name) : item.Name) : '');
   // Emby can credit one person twice in the same role: one card (a repeated {#each} key throws).
@@ -150,7 +183,18 @@
     // A server without the route (or extras) just shows no row.
     if (first && ['Movie', 'Series', 'Season', 'Episode', 'MusicVideo'].includes(it.Type))
       tasks.push(api.specialFeatures(it.Id).then((r) => (bonus = Array.isArray(r) ? r : [])).catch(() => (bonus = [])));
-    if (['Movie', 'Series', 'Episode', 'MusicAlbum', 'BoxSet'].includes(it.Type) && first) {
+    if (it.Type === 'MusicAlbum' && first && it.AlbumArtists?.[0]) {
+      moreFrom = [];
+      // Emby's AlbumArtistIds is unverified on 4.8+ (music spec §3.2): same branch as lookupQuery.
+      tasks.push(
+        api
+          .items({ ...(sessionFor(sid)?.server.kind !== 'jellyfin' ? { ArtistIds: it.AlbumArtists[0].Id, ArtistType: 'AlbumArtist' } : { AlbumArtistIds: it.AlbumArtists[0].Id }), Recursive: true, IncludeItemTypes: 'MusicAlbum', SortBy: 'ProductionYear,SortName', SortOrder: 'Descending', Limit: 25 })
+          .then((r) => (moreFrom = r.Items.filter((x) => x.Id !== it.Id)))
+          .catch(() => (moreFrom = [])),
+      );
+    }
+    // Artists too (C7): /Items/{id}/Similar answers similar artists on both servers.
+    if (['Movie', 'Series', 'Episode', 'MusicAlbum', 'MusicArtist', 'BoxSet'].includes(it.Type) && first) {
       const simId = it.Type === 'Episode' && it.SeriesId ? it.SeriesId : it.Id;
       tasks.push(api.similar(simId).then((r) => (similar = r.Items)).catch(() => (similar = [])));
     }
@@ -444,7 +488,7 @@
 {:else}
   <article class="item" data-type={item.Type}>
     <!-- Sticky stage: stays put while the page scrolls over it, dimming and blurring as it goes. -->
-    <div class="stage" class:bare={!backdrop} style:view-transition-name={morphing && !showPoster ? morphName(key) : null} style:view-transition-class={morphing && !showPoster ? 'morph' : null}>
+    <div class="stage" class:bare={!backdrop} class:tinted={Boolean(tint)} style:--tint={tint} style:view-transition-name={morphing && !showPoster ? morphName(key) : null} style:view-transition-class={morphing && !showPoster ? 'morph' : null}>
       {#if ambient}<img class="ambient" src={ambient} alt="" decoding="async" />{/if}
       {#if backdrop}
         <div class="sharp"><img class="reveal" use:reveal src={backdrop} alt="" decoding="async" fetchpriority="high" /></div>
@@ -462,13 +506,16 @@
           style:view-transition-name={morphing ? morphName(key) : null}
           style:view-transition-class={morphing ? 'morph' : null}
         >
-          <img class="reveal" use:reveal src={poster} alt="" decoding="async" />
+          {#if poster && music}
+            <button class="zoom" title={t('music.albumPage.enlarge')} aria-label={t('music.albumPage.enlarge')} data-zoom onclick={openZoom}><img class="reveal" use:reveal src={poster} alt="" decoding="async" /></button>
+          {:else if poster}<img class="reveal" use:reveal src={poster} alt="" decoding="async" />
+          {:else}<span class="ph-initials" style:background={placeholderBg(item.Name ?? '')} aria-hidden="true">{musicInitials(item.Name ?? '')}</span>{/if}
         </div>
       {/if}
 
       <div class="info">
         <div class="eyebrow">
-          {typeLabel(item.Type)}{#if item.Genres?.length}<span class="dot">·</span>{item.Genres.slice(0, 2).join(', ')}{/if}
+          <span data-release={release ?? undefined}>{release ? t(`music.release.${release}`) : typeLabel(item.Type)}</span>{#if item.Genres?.length}<span class="dot">·</span>{item.Genres.slice(0, 2).join(', ')}{/if}
         </div>
 
         {#if logo && !round}
@@ -816,8 +863,16 @@
         </Row>
       {/if}
 
+      {#if moreFrom.length > 0 && albumArtist}
+        <Row title={t('music.albumPage.moreFrom', { name: albumArtist.Name })} items={moreFrom} variant="square" />
+      {/if}
+
       {#if similar.length > 0}
-        <Row title={t('item.sections.similar')} items={similar} variant={item.Type === 'MusicAlbum' ? 'square' : 'poster'} />
+        <Row
+          title={item.Type === 'MusicArtist' ? t('music.artistPage.similar') : t('item.sections.similar')}
+          items={similar}
+          variant={item.Type === 'MusicAlbum' || item.Type === 'MusicArtist' ? 'square' : 'poster'}
+        />
       {/if}
 
       {#if facts.length > 0 || fileInfo}
@@ -832,6 +887,12 @@
         </section>
       {/if}
     </div>
+    {#if music}
+      <!-- The cover full size (C4): a modal dialog, Escape or a click closes it. -->
+      <dialog class="zoom-view" bind:this={zoom} aria-label={t('music.albumPage.enlarge')} onclick={() => zoom?.close()}>
+        {#if zoomSrc}<img src={zoomSrc} alt={item.Name} decoding="async" />{/if}
+      </dialog>
+    {/if}
   </article>
 {/if}
 
@@ -934,6 +995,13 @@
     overflow: clip;
     background: var(--bg);
     pointer-events: none;
+  }
+  /* A music album or artist: its cover's dominant colour fades into the canvas behind the hero (MU-A3). */
+  .stage.tinted {
+    background: linear-gradient(to bottom, color-mix(in oklab, var(--tint) 35%, var(--bg)), var(--bg));
+  }
+  :global(html[data-reduce-transparency]) .stage.tinted {
+    background: var(--bg);
   }
   .stage img {
     position: absolute;
@@ -1043,6 +1111,44 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .zoom {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    cursor: zoom-in;
+  }
+  .zoom-view {
+    max-width: min(92vw, 1200px);
+    max-height: 92vh;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-lg);
+    background: transparent;
+    box-shadow: var(--shadow-3);
+    overflow: hidden;
+  }
+  .zoom-view::backdrop {
+    background: rgb(0 0 0 / 0.75);
+  }
+  .zoom-view img {
+    display: block;
+    max-width: min(92vw, 1200px);
+    max-height: 92vh;
+    object-fit: contain;
+    cursor: zoom-out;
+  }
+  .poster .ph-initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    font-size: clamp(56px, 6vw, 96px);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: rgb(255 255 255 / 0.92);
+    user-select: none;
   }
   .info {
     min-width: 0;

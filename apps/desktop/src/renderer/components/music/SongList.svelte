@@ -3,11 +3,12 @@
   import { TICKS_PER_MS, type Query } from '../../../shared/contract';
   import type { BaseItem } from '../../../shared/models';
   import { formatDuration } from '../../../shared/music';
-  import { t } from '../../lib/i18n.svelte';
+  import { fmt, t } from '../../lib/i18n.svelte';
   import { songs } from '../../lib/music';
-  import { openTrackMenu, playTracks, toggleFavorite } from '../../lib/music-ui.svelte';
+  import { dragTracks, openTrackMenu, playTracks, selection, selectRow, toggleFavorite } from '../../lib/music-ui.svelte';
   import { errorMessage, playback, toast } from '../../lib/stores.svelte';
   import Icon from '../Icon.svelte';
+  import MusicArt from './MusicArt.svelte';
 
   // The Songs tab (music-spec §4.3): a windowed list, 44 px text-only rows (no art to decode while scrolling), only the rows near the viewport in the DOM and
   // only their pages fetched (100 at a time), so a 100,000-song library scrolls like a 40-row one.
@@ -27,13 +28,36 @@
   let generation = 0;
   const playingId = $derived(playback.value?.active && playback.value.music ? playback.value.item?.id : undefined);
 
+  // Optional 32 px covers (music spec C10), remembered on this device; plays and date added show on wide windows.
+  const ART_KEY = 'wicaby.music.songsArt';
+  let withArt = $state(readArt());
+  function readArt(): boolean {
+    try {
+      return localStorage.getItem(ART_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+  function toggleArt(): void {
+    withArt = !withArt;
+    try {
+      localStorage.setItem(ART_KEY, withArt ? '1' : '0');
+    } catch {
+      // Best effort: the choice lasts this session.
+    }
+  }
+  // Multi-select and drag (music spec C3) over the loaded rows, in list order.
+  const listKey = $derived(`songs:${parentId}:${JSON.stringify(query)}`);
+  const selected = $derived(new Set(selection.list === listKey ? selection.items.map((x) => x.Id) : []));
+  const loaded = () => [...rows.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]);
+
   async function page(n: number): Promise<void> {
     if (pages.has(n)) return;
     pages.add(n);
     const gen = generation;
     try {
       // Only what a row shows (no overviews, provider ids…): lighter pages for big libraries.
-      const r = await songs(parentId, { Fields: 'ParentId', EnableImageTypes: 'Primary', ImageTypeLimit: 1, ...query, StartIndex: n * PAGE, Limit: PAGE }, serverId);
+      const r = await songs(parentId, { Fields: 'ParentId,DateCreated', EnableImageTypes: 'Primary', ImageTypeLimit: 1, ...query, StartIndex: n * PAGE, Limit: PAGE }, serverId);
       if (gen !== generation) return;
       r.Items.forEach((it, i) => rows.set(n * PAGE + i, it));
       version++;
@@ -93,28 +117,46 @@
   }
 </script>
 
-<div class="head caption" aria-hidden="true">
-  <span class="c-num">{t('music.columns.number')}</span>
-  <span>{t('music.columns.title')}</span>
-  <span>{t('music.columns.album')}</span>
-  <span class="c-rt">{t('music.columns.duration')}</span>
-  <span></span>
+<div class="head caption">
+  <span class="c-num" aria-hidden="true">{t('music.columns.number')}</span>
+  <span aria-hidden="true">{t('music.columns.title')}</span>
+  <span aria-hidden="true">{t('music.columns.album')}</span>
+  <span class="c-wide" aria-hidden="true">{t('music.songs.plays')}</span>
+  <span class="c-wide" aria-hidden="true">{t('music.songs.added')}</span>
+  <span class="c-rt" aria-hidden="true">{t('music.columns.duration')}</span>
+  <button class="icon-btn art-toggle" class:on={withArt} aria-pressed={withArt} title={t('music.songs.withArt')} aria-label={t('music.songs.withArt')} data-songs-art onclick={toggleArt}>
+    <Icon name="image" size={15} />
+  </button>
 </div>
 {#if total === 0}
   <p class="empty footnote">{t('music.empty.tab')}</p>
 {/if}
-<div class="list" role="list" bind:this={host} style:height="{Math.max(total, 0) * ROW}px" data-total={total}>
+<div class="list" role="grid" aria-multiselectable="true" bind:this={host} style:height="{Math.max(total, 0) * ROW}px" data-total={total}>
   {#each visible as i (i)}
     {@const it = (void version, rows.get(i))}
-    <div class="row" role="listitem" class:playing={it && playingId === it.Id} style:transform="translateY({i * ROW}px)" oncontextmenu={(e) => it && openTrackMenu(it, e, e.currentTarget.querySelector('.more'))}>
+    <div
+      class="row"
+      role="row"
+      tabindex="-1"
+      aria-selected={it ? selected.has(it.Id) : undefined}
+      class:playing={it && playingId === it.Id}
+      class:selected={it && selected.has(it.Id)}
+      style:transform="translateY({i * ROW}px)"
+      draggable={it ? 'true' : undefined}
+      ondragstart={(e) => it && dragTracks(e, listKey, it)}
+      oncontextmenu={(e) => it && openTrackMenu(it, e, e.currentTarget.querySelector('.more'))}
+    >
       {#if it}
         {@const fav = Boolean(it.UserData?.IsFavorite)}
-        <button class="main" data-id={it.Id} onclick={() => play(i)}>
+        <button class="main" data-id={it.Id} aria-current={playingId === it.Id ? 'true' : undefined} onclick={(e) => selectRow(listKey, loaded(), it, e) || play(i)} onkeydown={(e) => e.key === ' ' && selectRow(listKey, loaded(), it, e)}>
           <span class="c-num">{#if playingId === it.Id}<Icon name="equalizer" size={14} stroke={2.2} />{:else}{i + 1}{/if}</span>
           <span class="name">
+            {#if withArt}<span class="thumb"><MusicArt item={it} size={32} /></span>{/if}
             <span class="txt"><span class="t">{it.Name}</span><span class="a">{(it.Artists ?? []).join(', ')}</span></span>
           </span>
           <span class="album">{it.Album ?? ''}</span>
+          <span class="c-wide">{it.UserData?.PlayCount || ''}</span>
+          <span class="c-wide">{it.DateCreated ? fmt.date(it.DateCreated, { dateStyle: 'medium' }) : ''}</span>
           <span class="c-rt">{it.RunTimeTicks ? formatDuration(it.RunTimeTicks / TICKS_PER_MS) : ''}</span>
         </button>
         <button class="icon-btn" class:on={fav} aria-pressed={fav} aria-label={t(fav ? 'music.favorite.remove' : 'music.favorite.add')} onclick={() => toggleFavorite(it)}>
@@ -138,11 +180,49 @@
     align-items: center;
     gap: 12px;
   }
+  .c-wide {
+    display: none;
+  }
+  @media (min-width: 1280px) {
+    .head,
+    .main {
+      grid-template-columns: 44px minmax(0, 2fr) minmax(0, 1.2fr) 64px 110px 64px;
+    }
+    .c-wide {
+      display: block;
+      font-size: var(--fs-footnote);
+      color: var(--label-3);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
   .head {
+    position: relative;
     margin: 0 var(--gutter);
     padding: 0 82px 6px 8px;
     color: var(--label-3);
     border-bottom: 1px solid var(--separator);
+  }
+  .art-toggle {
+    position: absolute;
+    right: 6px;
+    bottom: 2px;
+    width: 28px;
+    height: 28px;
+  }
+  .thumb {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: 5px;
+    display: grid;
+  }
+  .row.selected,
+  .row.selected:hover {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
   }
   .list {
     position: relative;

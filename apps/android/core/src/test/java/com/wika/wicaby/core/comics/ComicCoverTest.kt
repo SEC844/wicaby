@@ -41,6 +41,7 @@ class ComicCoverTest {
     private val served = AtomicLong()
     private val requests = mutableListOf<String?>()
     private var honourRange = true
+    private var embySuffix = false // Emby answers "bytes=-N" with the first N bytes (seen on a real server)
     private val server = MockWebServer()
     private val http = OkHttpClient()
 
@@ -75,8 +76,9 @@ class ComicCoverTest {
                     return MockResponse.Builder().body(Buffer().write(archive)).build()
                 }
                 val (a, b) = m.destructured
-                val start = if (a.isEmpty()) maxOf(0, archive.size - b.toInt()) else a.toInt()
-                val end = if (a.isNotEmpty() && b.isNotEmpty()) minOf(b.toInt(), archive.size - 1) else archive.size - 1
+                val start = if (a.isEmpty()) (if (embySuffix) 0 else maxOf(0, archive.size - b.toInt())) else a.toInt()
+                val end = if (a.isEmpty() && embySuffix) minOf(b.toInt(), archive.size - 1)
+                else if (a.isNotEmpty() && b.isNotEmpty()) minOf(b.toInt(), archive.size - 1) else archive.size - 1
                 val body = archive.copyOfRange(start, end + 1)
                 served.addAndGet(body.size.toLong())
                 return MockResponse.Builder().code(206).addHeader("Content-Range", "bytes $start-$end/${archive.size}").body(Buffer().write(body)).build()
@@ -100,6 +102,14 @@ class ComicCoverTest {
         assertEquals("p/000.jpg", ComicCovers.entry(listOf("p/001.jpg", "p/000.jpg", "p/002.jpg")))
         assertEquals("p/01.jpg", ComicCovers.entry(listOf("p/01.jpg", "p/coverage.jpg")))
         assertNull(ComicCovers.entry(listOf("ComicInfo.xml")))
+    }
+
+    @Test
+    fun aSuffixRangeAnsweredWithTheFileStartFallsBackToAnOffsetRange() = runBlocking {
+        embySuffix = true
+        val bytes = ComicCovers.firstPage(http, url())
+        assertArrayEquals(page1, bytes)
+        assertTrue("served ${served.get()} of ${archive.size}", served.get() < archive.size / 2)
     }
 
     @Test

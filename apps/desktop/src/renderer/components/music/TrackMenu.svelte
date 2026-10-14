@@ -80,7 +80,7 @@
     {/each}
   </div>
 {/if}
-{#if musicUi.addTo}<AddToSheet kind="playlist" item={musicUi.addTo} onclose={() => (musicUi.addTo = null)} />{/if}
+{#if musicUi.addTo}<AddToSheet kind="playlist" item={musicUi.addTo} ids={musicUi.addIds ?? undefined} onclose={() => ((musicUi.addTo = null), (musicUi.addIds = null))} />{/if}
 
 <style>
   /* The card menu's material, at the pointer. */

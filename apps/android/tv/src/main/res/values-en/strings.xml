@@ -446,4 +446,11 @@
     <string name="plex_tv_refresh">Refresh metadata</string>
     <string name="plex_tv_refreshed">Refresh requested from the server.</string>
     <string name="plex_tv_not_affiliated">Plex is a trademark of Plex, Inc. Wicaby is an unofficial client, not affiliated with or endorsed by Plex.</string>
+    <!-- Feishin-inspired library UI (music-feishin-navidrome spec C4, C7). -->
+    <string name="music_release_album">Album</string>
+    <string name="music_release_ep">EP</string>
+    <string name="music_release_single">Single</string>
+    <string name="music_release_compilation">Compilation</string>
+    <string name="music_more_from">More by %1$s</string>
+    <string name="music_similar_artists">Similar artists</string>
 </resources>

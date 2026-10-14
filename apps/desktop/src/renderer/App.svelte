@@ -6,6 +6,7 @@
   import LogoLoader from './components/LogoLoader.svelte';
   import MusicHost from './components/music/MusicHost.svelte';
   import NowPlayingBar from './components/music/NowPlayingBar.svelte';
+  import SelectionBar from './components/music/SelectionBar.svelte';
   import TrackMenu from './components/music/TrackMenu.svelte';
   import { musicActive } from './lib/music-ui.svelte';
   import NowPlaying from './routes/NowPlaying.svelte';
@@ -192,7 +193,7 @@
 
 <!-- Main is hidden while mpv plays: the OSD shows the toasts then (admin messages, errors). -->
 <Toasts />
-{#if !isOsd && !isMini}<ResumePrompt /><QueueMenu /><TrackMenu /><CastPicker /><MusicHost />{/if}
+{#if !isOsd && !isMini}<ResumePrompt /><QueueMenu /><TrackMenu /><SelectionBar /><CastPicker /><MusicHost />{/if}
 {#if !isOsd && !isMini && lonePhoto.assets}<PhotoViewer assets={lonePhoto.assets} start={0} onclose={() => (lonePhoto.assets = null)} />{/if}
 {#if settings.value?.ui.fpsMeter}<FpsMeter />{/if}
 

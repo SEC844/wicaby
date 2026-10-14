@@ -38,7 +38,10 @@
     "mixFromTrack": "Mix from this song",
     "goToArtist": "Go to artist",
     "goToAlbum": "Go to album",
-    "more": "More actions for {name}"
+    "more": "More actions for {name}",
+    "playNextNamed": "Play {name} next",
+    "addToQueueNamed": "Add {name} to the queue",
+    "playDisc": "Play disc {n}"
   },
   "album": {
     "disc": "Disc {n}",
@@ -147,5 +150,46 @@
     "band": "{freq} band",
     "value": "{db} dB",
     "htmlNote": "The built-in player doesn’t apply the equalizer."
+  },
+  "selection": {
+    "label": "Selected tracks",
+    "count": "{count, plural, one {# track selected} other {# tracks selected}}",
+    "clear": "Deselect"
+  },
+  "release": {
+    "album": "Album",
+    "ep": "EP",
+    "single": "Single",
+    "compilation": "Compilation"
+  },
+  "albumPage": {
+    "moreFrom": "More by {name}",
+    "enlarge": "Enlarge cover"
+  },
+  "artistPage": {
+    "similar": "Similar artists"
+  },
+  "barExtra": {
+    "timeToggle": "Show remaining time or duration",
+    "album": "Album"
+  },
+  "similar": {
+    "title": "Similar",
+    "empty": "No similar tracks."
+  },
+  "songs": {
+    "withArt": "Show covers",
+    "plays": "Plays",
+    "added": "Added"
+  },
+  "sidebar": {
+    "title": "Playlists",
+    "all": "All playlists",
+    "show": "Show playlists",
+    "hide": "Hide playlists"
+  },
+  "drop": {
+    "queue": "Drop to add to the queue",
+    "added": "{count, plural, one {# track} other {# tracks}} added to “{name}”"
   }
 }

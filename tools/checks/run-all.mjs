@@ -57,6 +57,10 @@ const checks = [
   ['access-schedule-mock-check.mjs'],
   ['music-mock-check.mjs'],
   ['music-check.mjs'],
+  // Music covers: fallbacks for missing album and artist art, placeholder, sizes, dominant colour (music spec §4.A).
+  ['music-art-check.mjs'],
+  // Feishin-inspired library UI: release type, album jump, multi-select, quality badge, tint rule (music spec §4.C).
+  ['music-ui-check.mjs'],
   ['music-wave5-check.mjs'],
   ['photos-mock-check.mjs'],
   ['photos-check.mjs'],

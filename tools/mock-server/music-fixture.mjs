@@ -9,10 +9,13 @@
 const TICKS_S = 10_000_000;
 
 // seconds: track length (the first three artists keep their 0.4.1 stopgap lengths, 20 s + 5 s per track).
+// Missing art, as on a real Emby (music-feishin-navidrome spec §4.A): noArt, an artist without an image (no MusicBrainz
+// id); art 'tracks', an album without a Primary whose tracks carry their embedded cover (the owner's field bug: the cover
+// only shows once a track plays); art 'none', an album with no image anywhere (the placeholder).
 export const MUSIC = [
-  { artist: 'Les Ondes Calmes', genre: 'Chanson', albums: [{ name: 'Marée basse', year: 2021, tracks: ['Écume', 'Phare', 'Sable mouillé'] }, { name: 'Brume', year: 2023, tracks: ['Aube grise', 'Côte'] }] },
-  { artist: 'Night Arcade', genre: 'Électro', albums: [{ name: 'Neon Avenue', year: 2022, tracks: ['Insert Coin', 'High Score', 'Continue?', 'Game Over'] }] },
-  { artist: 'Zéphyr Trio', genre: 'Classique', albums: [{ name: 'Trois vents', year: 2020, tracks: ['Mistral', 'Tramontane', 'Sirocco'] }] },
+  { artist: 'Les Ondes Calmes', noArt: true, genre: 'Chanson', albums: [{ name: 'Marée basse', year: 2021, tracks: ['Écume', 'Phare', 'Sable mouillé'] }, { name: 'Brume', year: 2023, art: 'tracks', tracks: ['Aube grise', 'Côte'] }] },
+  { artist: 'Night Arcade', noArt: true, genre: 'Électro', albums: [{ name: 'Neon Avenue', year: 2022, tracks: ['Insert Coin', 'High Score', 'Continue?', 'Game Over'] }] },
+  { artist: 'Zéphyr Trio', noArt: true, genre: 'Classique', albums: [{ name: 'Trois vents', year: 2020, art: 'none', tracks: ['Mistral', 'Tramontane', 'Sirocco'] }] },
   {
     artist: 'Nora Vale',
     genre: 'Chanson',
@@ -65,7 +68,7 @@ export function addMusic({ add, makeList, ud }) {
     if (!artistIds.has(name)) {
       const id = `artist-${artistIds.size}`;
       artistIds.set(name, id);
-      add({ Id: id, Name: name, Type: 'MusicArtist', IsFolder: true, ImageTags: { Primary: 'p' } });
+      add({ Id: id, Name: name, Type: 'MusicArtist', IsFolder: true, ImageTags: MUSIC.some((a) => a.artist === name && a.noArt) ? {} : { Primary: 'p' } });
     }
     return { Id: artistIds.get(name), Name: name };
   };
@@ -84,7 +87,7 @@ export function addMusic({ add, makeList, ud }) {
       add({
         Id: albumId, Name: al.name, Type: 'MusicAlbum', IsFolder: true, ParentId: 'lib-music', ProductionYear: al.year, Genres: [a.genre], GenreItems: [genre],
         AlbumArtist: a.artist, AlbumArtists: [albumArtist], ArtistItems: al.guests ? credited : [albumArtist], Artists: (al.guests ? credited : [albumArtist]).map((x) => x.Name),
-        ImageTags: { Primary: 'p' }, ChildCount: al.tracks.length, DateCreated: new Date(Date.UTC(al.year, 0, 1 + ai)).toISOString(),
+        ImageTags: al.art ? {} : { Primary: 'p' }, ChildCount: al.tracks.length, DateCreated: new Date(Date.UTC(al.year, 0, 1 + ai)).toISOString(),
       });
       al.tracks.forEach((t, ti) => {
         const id = `track-${ai}-${bi}-${ti}`;
@@ -96,7 +99,7 @@ export function addMusic({ add, makeList, ud }) {
         if (al.lyrics === 'plain') LYRICS.set(id, { synced: false, text: 'Première ligne sans temps\nDeuxième ligne\n\nRefrain sans temps\n' });
         add({
           Id: id, Name: t, Type: 'Audio', MediaType: 'Audio', ParentId: albumId, IndexNumber: (ti % perDisc) + 1, ParentIndexNumber: Math.floor(ti / perDisc) + 1,
-          Album: al.name, AlbumId: albumId, AlbumPrimaryImageTag: 'p', AlbumArtist: a.artist, AlbumArtists: [albumArtist], ArtistItems: [by], Artists: [by.Name],
+          Album: al.name, AlbumId: albumId, ...(al.art ? {} : { AlbumPrimaryImageTag: 'p' }), ...(al.art === 'tracks' ? { ImageTags: { Primary: 't' } } : {}), AlbumArtist: a.artist, AlbumArtists: [albumArtist], ArtistItems: [by], Artists: [by.Name],
           Genres: [a.genre], GenreItems: [genre], RunTimeTicks: seconds * TICKS_S, ProductionYear: al.year, Container: al.flac ? 'flac' : 'wav',
           ...(al.flac ? { _replayGain: { track: -4.5 - ti, album: -6.25 } } : {}),
           // Emby (unverified, spec §3.5): lyrics as an external subtitle stream of codec lrc on the audio item.
@@ -311,6 +314,9 @@ export function musicFilters(arr, q, ud) {
   if (genres) arr = arr.filter((x) => has(x.GenreItems, genres));
   const albums = ids('AlbumIds');
   if (albums) arr = arr.filter((x) => albums.includes(x.AlbumId));
+  // ImageTypes: only the items that have each of these images (both servers).
+  const images = ids('ImageTypes');
+  if (images) arr = arr.filter((x) => images.every((t) => (t === 'Backdrop' ? x.BackdropImageTags?.length : x.ImageTags?.[t])));
   const sort = q1(q, 'SortBy') ?? '';
   if (sort.startsWith('PlayCount')) arr.sort((a, b) => (ud(a.Id).PlayCount ?? 0) - (ud(b.Id).PlayCount ?? 0));
   // Random: a fixed shuffle (by a hash of the id), so a check can count on it.

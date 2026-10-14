@@ -36,25 +36,26 @@ export function entries(playlistId: string, serverId?: string) {
   );
 }
 
-export async function create(kind: Kind, name: string, item: BaseItem): Promise<string | undefined> {
+// ids: several items of the same server at once (a multi-selection, music spec C3); item names the server and type.
+export async function create(kind: Kind, name: string, item: BaseItem, ids: string[] = [item.Id]): Promise<string | undefined> {
   const sid = item.ServerId;
   const res =
     kind === 'playlist'
       ? await w.api.post<{ Id?: string }>(
           '/Playlists',
-          { Name: name, Ids: item.Id, UserId: uid(sid), MediaType: mediaTypeOf(item) },
-          { Name: name, Ids: [item.Id], UserId: uid(sid), MediaType: mediaTypeOf(item) },
+          { Name: name, Ids: ids.join(','), UserId: uid(sid), MediaType: mediaTypeOf(item) },
+          { Name: name, Ids: ids, UserId: uid(sid), MediaType: mediaTypeOf(item) },
           sid,
         )
-      : await w.api.post<{ Id?: string }>('/Collections', { Name: name, Ids: item.Id }, undefined, sid);
+      : await w.api.post<{ Id?: string }>('/Collections', { Name: name, Ids: ids.join(',') }, undefined, sid);
   invalidateApiCache();
   return res?.Id;
 }
 
-export async function addTo(kind: Kind, targetId: string, item: BaseItem): Promise<void> {
+export async function addTo(kind: Kind, targetId: string, item: Pick<BaseItem, 'Id' | 'ServerId'>, ids: string[] = [item.Id]): Promise<void> {
   const sid = item.ServerId;
-  if (kind === 'playlist') await w.api.post(`/Playlists/${targetId}/Items`, { Ids: item.Id, UserId: uid(sid) }, undefined, sid);
-  else await w.api.post(`/Collections/${targetId}/Items`, { Ids: item.Id }, undefined, sid);
+  if (kind === 'playlist') await w.api.post(`/Playlists/${targetId}/Items`, { Ids: ids.join(','), UserId: uid(sid) }, undefined, sid);
+  else await w.api.post(`/Collections/${targetId}/Items`, { Ids: ids.join(',') }, undefined, sid);
   invalidateApiCache();
 }
 

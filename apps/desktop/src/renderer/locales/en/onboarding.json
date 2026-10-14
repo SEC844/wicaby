@@ -4,27 +4,15 @@
     "password": "Password"
   },
   "servers": {
-    "welcome": {
-      "title": "Welcome to Wicaby",
-      "body": "Sign in to your Emby or Jellyfin server to get to your movies, TV shows, and music."
-    },
-    "yours": {
-      "title": "Your Servers",
-      "body": "Add more Emby or Jellyfin servers. Their libraries show up together."
-    },
     "unreachable": {
       "title": "{name} isn’t responding",
-      "body": "It may be asleep or outside your network.",
       "wake": "Wake"
     },
     "row": {
-      "signOut": "Sign Out",
-      "signOutAria": "Sign Out of {name}",
-      "removeAria": "Remove {name}"
+      "signOut": "Sign Out"
     },
     "status": {
       "connected": "Connected",
-      "connectedAs": "Connected · {user}",
       "connecting": "Connecting…"
     },
     "since": {
@@ -37,12 +25,7 @@
     "nearby": {
       "title": "On This Network",
       "searchingShort": "Searching…",
-      "searching": "Looking for servers on your local network…",
-      "allSaved": "All the servers found are already in your list.",
-      "none": "No servers found. Enter the address below."
-    },
-    "remote": {
-      "title": "Remote Access"
+      "allSaved": "All the servers found are already in your list."
     },
     "method": {
       "aria": "Connection Method",
@@ -50,7 +33,6 @@
     },
     "address": {
       "placeholder": "192.168.1.10 or emby.example.com",
-      "aria": "Emby or Jellyfin server address",
       "hint": "Without a protocol, Wicaby tries {https}, then {http}. A path ({path}) or a custom port is kept."
     },
     "connect": {
@@ -65,8 +47,7 @@
       "signedOut": "Signed out of {name}",
       "wakeNoAddress": "No Wake-on-LAN address is known for this server",
       "wakeSent": "Wake signal sent. Retrying in {seconds} s…"
-    },
-    "footer": "Emby and Jellyfin · HDR playback with mpv · Offline downloads"
+    }
   },
   "login": {
     "server": "Server",

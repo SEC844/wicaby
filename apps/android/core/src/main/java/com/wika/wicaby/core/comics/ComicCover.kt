@@ -102,7 +102,7 @@ object ComicCovers {
     // The cover page's bytes (decompressed). /File first, as the reader; /Download when it is refused.
     suspend fun firstPage(http: OkHttpClient, fileUrl: String, steps: MutableList<String> = mutableListOf()): ByteArray = withContext(Dispatchers.IO) {
         var url = fileUrl
-        val tail = try {
+        val first = try {
             range(http, url, "bytes=-$TAIL", TAIL, steps)
         } catch (e: Refused) {
             if (e.code != 401 && e.code != 403 && e.code != 404) throw e
@@ -110,6 +110,9 @@ object ComicCovers {
             url = u.newBuilder().setPathSegment(u.pathSize - 1, "Download").build().toString()
             range(http, url, "bytes=-$TAIL", TAIL, steps)
         }
+        // Emby answers the suffix range "bytes=-N" with the file's FIRST N bytes: ask for the end by offset then.
+        val tail = if (first.start + first.bytes.size >= first.total) first
+        else range(http, url, "bytes=${maxOf(0, first.total - TAIL)}-${first.total - 1}", TAIL, steps)
         val read: suspend (Long, Int) -> ByteArray = { pos, len ->
             val at = pos - tail.start
             if (at >= 0 && at + len <= tail.bytes.size) tail.bytes.copyOfRange(at.toInt(), at.toInt() + len)

@@ -8,8 +8,12 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -104,11 +108,17 @@ class MusicTvTest {
                     path.startsWith("/Items/t") -> json(path.removePrefix("/Items/t").toInt())
                     path == "/Items/v1" -> """{"Id":"v1","Name":"Film test","Type":"Movie","MediaType":"Video"}"""
                     else -> when (path) {
-                    "/Items/alb" -> """{"Id":"alb","Name":"Album test","Type":"MusicAlbum","IsFolder":true,"AlbumArtist":"Groupe test","ProductionYear":2020}"""
+                    "/Items/alb" -> """{"Id":"alb","Name":"Album test","Type":"MusicAlbum","IsFolder":true,"AlbumArtist":"Groupe test","AlbumArtists":[{"Id":"ar1","Name":"Groupe test"}],"ProductionYear":2020}"""
+                    "/Items/ar1" -> """{"Id":"ar1","Name":"Groupe test","Type":"MusicArtist"}"""
+                    "/Items/ar1/Similar" -> list("""{"Id":"ar2","Name":"Voisin un","Type":"MusicArtist"}""", """{"Id":"ar3","Name":"Voisin deux","Type":"MusicArtist"}""")
                     "/Artists/AlbumArtists" -> list("""{"Id":"ar1","Name":"Groupe test","Type":"MusicArtist"}""")
                     "/Genres" -> list("""{"Id":"g1","Name":"Genre test","Type":"MusicGenre"}""")
                     "/Items" -> when (url.queryParameter("IncludeItemTypes")) {
-                        "MusicAlbum" -> list("""{"Id":"alb","Name":"Album test","Type":"MusicAlbum","IsFolder":true}""")
+                        "MusicAlbum" -> list(
+                            """{"Id":"alb","Name":"Album test","Type":"MusicAlbum","IsFolder":true}""",
+                            """{"Id":"alb2","Name":"Autre album","Type":"MusicAlbum","IsFolder":true}""",
+                            """{"Id":"alb3","Name":"Dernier album","Type":"MusicAlbum","IsFolder":true}""",
+                        )
                         "Playlist" -> list(
                             """{"Id":"pl1","Name":"Liste test","Type":"Playlist","MediaType":"Audio","IsFolder":true}""",
                             """{"Id":"pl2","Name":"Liste video","Type":"Playlist","MediaType":"Video","IsFolder":true}""",
@@ -171,6 +181,9 @@ class MusicTvTest {
         }
     }
 
+    // The focused card's left edge: which card of a row has the focus.
+    private fun focusedLeft() = rule.onNode(isFocused()).fetchSemanticsNode().boundsInRoot.left
+
     private fun shown(text: String) = rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
 
     @Test
@@ -232,6 +245,63 @@ class MusicTvTest {
         assertEquals("t3", s.queue.id)
     }
 
+    // Music spec C4/C7 rows on the D-pad: ↓ past the last track reaches "More from", which remembers its card when
+    // focus leaves up and comes back; the artist page's "Similar artists" row the same, below the albums.
+    @Test
+    fun theMoreFromRowIsReachedBelowTheTracksAndKeepsItsCard() {
+        val nav = Nav(mutableStateListOf(Route.Main, Route.MusicAlbum("alb", "Album test")))
+        rule.setContent {
+            WicabyTheme(Accents[0]) { CompositionLocalProvider(LocalNav provides nav) { AlbumScreen(api, "alb", "Album test") } }
+        }
+        waitFor { shown("Titre 5") && shown("Dernier album") }
+        rule.mainClock.advanceTimeBy(300)
+        rule.onNodeWithTag("music-album-play").assertIsFocused()
+        repeat(5) { press(Key.DirectionDown) }
+        rule.onNodeWithTag("music-track-4").assertIsFocused()
+        press(Key.DirectionDown)
+        rule.onNodeWithTag("music-album-more-from").assert(hasAnyDescendant(isFocused()))
+        // The current album is not in it.
+        rule.onNodeWithTag("music-album-more-from").assert(hasAnyDescendant(hasText("Album test")).not())
+        // The first card (Left stops at the row's start), then the second.
+        press(Key.DirectionLeft)
+        val first = focusedLeft()
+        press(Key.DirectionRight)
+        val second = focusedLeft()
+        assertTrue(second > first)
+        press(Key.DirectionUp)
+        rule.onNodeWithTag("music-track-4").assertIsFocused()
+        press(Key.DirectionDown)
+        assertEquals(second, focusedLeft())
+    }
+
+    @Test
+    fun theSimilarArtistsRowIsReachedBelowTheAlbumsAndKeepsItsCard() {
+        val nav = Nav(mutableStateListOf(Route.Main, Route.MusicArtist("ar1", "Groupe test")))
+        rule.setContent {
+            WicabyTheme(Accents[0]) { CompositionLocalProvider(LocalNav provides nav) { ArtistScreen(api, "ar1", "Groupe test") } }
+        }
+        waitFor { shown("Dernier album") && shown("Voisin deux") }
+        rule.mainClock.advanceTimeBy(300)
+        rule.onNodeWithTag("music-artist-play").assertIsFocused()
+        press(Key.DirectionDown)
+        rule.onNodeWithTag("music-artist-albums").assert(hasAnyDescendant(isFocused()))
+        press(Key.DirectionDown)
+        rule.onNodeWithTag("music-artist-similar").assert(hasAnyDescendant(isFocused()))
+        // The first card (Left stops at the row's start), then the second.
+        press(Key.DirectionLeft)
+        val first = focusedLeft()
+        press(Key.DirectionRight)
+        val second = focusedLeft()
+        assertTrue(second > first)
+        press(Key.DirectionUp)
+        rule.onNodeWithTag("music-artist-albums").assert(hasAnyDescendant(isFocused()))
+        press(Key.DirectionDown)
+        assertEquals(second, focusedLeft())
+        // OK opens the similar artist's page.
+        press(Key.DirectionCenter)
+        assertEquals(Route.MusicArtist("ar3", "Voisin deux"), nav.top)
+    }
+
     @Test
     fun backFromNowPlayingKeepsPlayingAndNeverHoldsTheScreenOn() {
         Music.start(app, api, tracks, 2, player = ExoPlayer.Builder(app).build())
@@ -249,6 +319,16 @@ class MusicTvTest {
         assertFalse(s.released)
         assertTrue(s.player.playWhenReady)
         assertEquals("t3", s.queue.id)
+    }
+
+    // At 960x540dp (a 1080p TV) the art leaves the controls row its full width: no squashed button.
+    @Test
+    fun controlsKeepTheirSizeNextToTheArt() {
+        val s = Music.start(app, api, tracks, 0, player = ExoPlayer.Builder(app).build())
+        rule.setContent { WicabyTheme(Accents[0]) { NowPlaying(s) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("music-play").assertWidthIsEqualTo(56.dp)
+        rule.onNodeWithTag("music-lyrics-toggle").assertWidthIsEqualTo(44.dp).assertHeightIsEqualTo(44.dp)
     }
 
     @Test

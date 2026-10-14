@@ -19,14 +19,18 @@ const ID = /^[A-Za-z0-9-]{1,64}$/;
 export const validId = (id: unknown): id is string => typeof id === 'string' && (ID.test(id) || isFilesId(id));
 
 // opts.server: the item's server (BaseItem.ServerId); the primary one when absent.
-// '' (no image) when an id is not a plain id.
-export function imageUrl(itemId: string, type: ImageType, opts: { tag?: string; maxWidth?: number; maxHeight?: number; index?: number; server?: string } = {}): string {
+// '' (no image) when an id is not a plain id. opts.px: a square box in device pixels (music art, already bucketed).
+export function imageUrl(itemId: string, type: ImageType, opts: { tag?: string; maxWidth?: number; maxHeight?: number; px?: number; index?: number; server?: string } = {}): string {
   if (!validId(itemId) || (opts.server && !validId(opts.server))) return '';
   if (opts.index !== undefined && !(Number.isInteger(opts.index) && opts.index >= 0)) return '';
   const q = new URLSearchParams({ quality: '90' });
   if (opts.tag) q.set('tag', opts.tag);
   if (opts.maxWidth) q.set('maxWidth', String(Math.round(opts.maxWidth * dpr())));
   if (opts.maxHeight) q.set('maxHeight', String(Math.round(opts.maxHeight * dpr())));
+  if (opts.px) {
+    q.set('maxWidth', String(opts.px));
+    q.set('maxHeight', String(opts.px));
+  }
   const idx = opts.index !== undefined ? `/${opts.index}` : '';
   return `${MEDIA_SCHEME}://api${opts.server ? `/${opts.server}` : ''}/Items/${itemId}/Images/${type}${idx}?${q}`;
 }
@@ -73,6 +77,8 @@ export function posterUrl(item: BaseItem, maxHeight = 360): string | null {
   const server = item.ServerId;
   if (item.ImageTags?.Primary) return imageUrl(item.Id, 'Primary', { tag: item.ImageTags.Primary, maxHeight, server }) || null;
   if (item.SeriesId && item.SeriesPrimaryImageTag) return imageUrl(item.SeriesId, 'Primary', { tag: item.SeriesPrimaryImageTag, maxHeight, server }) || null;
+  // A track without art of its own: its album's (music spec MU-A1).
+  if (item.AlbumId && item.AlbumPrimaryImageTag) return imageUrl(item.AlbumId, 'Primary', { tag: item.AlbumPrimaryImageTag, maxHeight, server }) || null;
   return comicCoverUrl(item);
 }
 

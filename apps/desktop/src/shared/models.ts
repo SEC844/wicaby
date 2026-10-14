@@ -29,6 +29,9 @@ export interface MediaStream {
   RealFrameRate?: number;
   AverageFrameRate?: number;
   BitRate?: number;
+  // Audio: the quality badge of the full-screen player (music spec C6).
+  SampleRate?: number;
+  BitDepth?: number;
   VideoRange?: string;
   VideoRangeType?: string;
   ExtendedVideoType?: string;

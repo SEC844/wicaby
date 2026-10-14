@@ -7,9 +7,10 @@
   import { fmt, t } from '../lib/i18n.svelte';
   import { posterUrl, thumbUrl } from '../lib/images';
   import { morphFrom, prefetch, remember, reveal } from '../lib/motion';
+  import { initials, isMusicItem, musicArtLater, musicArtNow, needsLookup, placeholderBg, whenVisible } from '../lib/music-art';
   import { asset, lonePhoto } from '../lib/photos/source.svelte';
   import { navigate } from '../lib/router.svelte';
-  import { cardMenu, queueModes } from '../lib/queue.svelte';
+  import { cardMenu, queue, queueModes } from '../lib/queue.svelte';
   import { resumeAt } from '../lib/resume.svelte';
   import { errorMessage, serverName, settings, toast } from '../lib/stores.svelte';
   import Icon from './Icon.svelte';
@@ -26,7 +27,13 @@
   const server = $derived(showServer ? serverName(item.ServerId) : '');
 
   // Sizes match the largest rendered card (Row/Library clamp() widths) so one fetch serves every layout.
-  const src = $derived(variant === 'thumb' ? thumbUrl(item, 400) : posterUrl(item, 330));
+  // Music (music spec §4.A): the cover rule, sizes from buckets; an album or artist without art borrows its first
+  // track's or album's once the card is near the viewport, else its initials on a colour from its name.
+  const music = $derived(variant !== 'thumb' && isMusicItem(item));
+  let late = $state<{ id: string; src: string | null } | null>(null);
+  const src = $derived(
+    variant === 'thumb' ? thumbUrl(item, 400) : music ? (musicArtNow(item, 330) ?? (late?.id === item.Id ? late.src : null)) : posterUrl(item, 330),
+  );
   const hash = $derived(blurhashOf(item, variant === 'thumb' && item.Type !== 'Episode' ? 'Thumb' : 'Primary'));
   const pct = $derived(progress(item));
   const played = $derived(Boolean(item.UserData?.Played));
@@ -66,6 +73,11 @@
   });
 
   let cover: HTMLAnchorElement | undefined = $state();
+  $effect(() => {
+    const it = item;
+    if (!music || !cover || musicArtNow(it, 330) || !needsLookup(it)) return;
+    return whenVisible(cover, () => void musicArtLater(it, 330).then((s) => (late = { id: it.Id, src: s })));
+  });
   let lift: HTMLDivElement | undefined = $state();
   let busy = $state(false);
 
@@ -110,6 +122,14 @@
     intent = setTimeout(() => prefetch(item), 120);
   };
 
+  // Music cards (music spec C2): "play next" and "add to queue" beside play on hover; keyboard users have the menu.
+  const quick = $derived(music && queueModes(item).includes('next'));
+  function enqueue(e: MouseEvent, mode: 'next' | 'last'): void {
+    e.preventDefault();
+    e.stopPropagation();
+    void queue(item, mode);
+  }
+
   const playable = $derived(!['Person', 'MusicArtist', 'CollectionFolder', 'UserView', 'Folder', 'Photo', 'PhotoAlbum'].includes(item.Type) && item.LocationType !== 'Virtual');
 
   // Right click, or the menu key on the focused card (no pointer position: under the artwork).
@@ -138,9 +158,10 @@
       onclick={open}
       aria-label={[item.Name, sub, server, played ? t('browse.card.watchedAria') : ''].filter(Boolean).join(', ')}
     >
-      <div class="ph">
+      <div class="ph" style:background={music && !hash ? placeholderBg(item.Name ?? '') : undefined}>
         {#if hash}<canvas use:blurhash={hash} aria-hidden="true"></canvas>{/if}
-        {#if !src || !hash}<span class="ph-name">{item.Name}</span>{/if}
+        {#if music && !hash}<span class="ph-initials" aria-hidden="true">{initials(item.Name ?? '')}</span>
+        {:else if !src || !hash}<span class="ph-name">{item.Name}</span>{/if}
       </div>
       {#if src}
         <img class="reveal" use:reveal {src} alt="" loading="lazy" decoding="async" draggable="false" />
@@ -171,6 +192,14 @@
           {#if item.Type === 'Book'}<Icon name="book" size={16} stroke={2} />{:else}<Icon name="play" size={variant === 'thumb' ? 18 : 16} fill stroke={0} />{/if}
         {/if}
       </button>
+      {#if quick}
+        <button class="play quick q-next" data-quick="next" onclick={(e) => enqueue(e, 'next')} title={t('music.actions.playNext')} aria-label={t('music.actions.playNextNamed', { name: item.Name })} tabindex="-1">
+          <Icon name="playNext" size={15} />
+        </button>
+        <button class="play quick q-last" data-quick="last" onclick={(e) => enqueue(e, 'last')} title={t('music.actions.addToQueue')} aria-label={t('music.actions.addToQueueNamed', { name: item.Name })} tabindex="-1">
+          <Icon name="queue" size={15} />
+        </button>
+      {/if}
     {/if}
   </div>
 
@@ -241,6 +270,7 @@
   .ph {
     position: absolute;
     inset: 0;
+    container-type: size;
     display: grid;
     place-items: center;
     padding: 12px;
@@ -264,6 +294,14 @@
     line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  .ph-initials {
+    position: relative;
+    font-size: 30cqmin;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: rgb(255 255 255 / 0.92);
+    user-select: none;
   }
   img {
     position: absolute;
@@ -378,6 +416,20 @@
   }
   .play:active {
     transform: scale(0.92);
+  }
+  .play.quick {
+    width: 30px;
+    height: 30px;
+    bottom: 14px;
+  }
+  .play.quick :global(svg) {
+    margin-left: 0;
+  }
+  .q-next {
+    right: 54px;
+  }
+  .q-last {
+    right: 90px;
   }
   .thumb .play {
     width: 44px;

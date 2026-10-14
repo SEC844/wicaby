@@ -432,6 +432,9 @@ fun PosterCard(
             var failed by remember(item.id) { mutableStateOf(false) }
             if (url != null && !failed) {
                 AsyncImage(url, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(), onError = { failed = true })
+            } else if (com.wika.wicaby.core.music.MusicArt.isMusic(item)) {
+                // Music without art (music spec MU-A4): initials on a colour from the name.
+                com.wika.wicaby.tv.music.CoverPlaceholder(item.name, (((width ?: 120.dp).value) * 0.3f).sp)
             } else {
                 Text(item.name, style = Type.callout, color = C.label2, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center).padding(12.dp))
             }

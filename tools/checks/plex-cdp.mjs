@@ -143,7 +143,8 @@ async function run() {
 
   // ---- Link with a code ----
   await ev(`location.hash = '#/servers'`);
-  await until('servers page', () => click('button', 'Link with a code'), 20000);
+  // The empty Sources page lists the types inline; Plex opens the add sheet on its step, which asks for the code.
+  await until('servers page', () => click('[data-type="plex"]'), 20000);
   const code = await until('the code', () => ev(`document.querySelector('.plex-link .code')?.textContent.trim() ?? null`), 15000);
   const qr = await ev(`(() => { const p = document.querySelector('.plex-link svg.qr path'); return p ? p.getAttribute('d').length : 0; })()`);
   ok('link with a code: the code and its QR code', /^[A-Z0-9]{4}$/.test(code) && qr > 500, `${code}, QR path ${qr} chars`);
@@ -239,13 +240,16 @@ async function run() {
 
   // ---- Servers: the Plex card, the hide toggle (D-10) ----
   await ev(`location.hash = '#/servers'`);
+  // A Plex server row's menu opens its account's sheet (the servers and their Show toggles).
+  await until('plex row menu', () => ev(`(() => { const li = [...document.querySelectorAll('.sources > li')].find((l) => l.querySelector('.kind')?.textContent.trim() === 'Plex'); li?.querySelector('.more')?.click(); return !!li; })()`), 15000);
+  await until('plex account item', () => click('.menu [role="menuitem"]', 'Plex Account'), 5000);
   await until('plex card', () => ev(`document.querySelectorAll('[data-plex-server]').length === 2`), 15000);
-  await ev(`document.querySelector('.plex').scrollIntoView({ block: 'center' })`);
+  await ev(`document.querySelector('.sheet').scrollIntoView({ block: 'center' })`);
   await shot(main, 'plex-servers.png');
   await ev(`document.querySelector('[data-plex-server="${SECOND_ID}"] .toggle').click()`);
   const hidden = await until('hidden', () => ev(`wicaby.servers.list().then((l) => l.find((s) => s.id === ${js(SECOND_ID)})?.plex?.hidden === true)`), 10000).catch(() => false);
   ok('the shared server can be hidden', hidden);
-  await ev(`document.querySelector('.plex').scrollIntoView({ block: 'center' })`);
+  await ev(`document.querySelector('.sheet').scrollIntoView({ block: 'center' })`);
   await shot(main, 'plex-servers-hidden.png');
 
   const bad = plex.state.tags.filter((t) => ['UNMAPPED', 'TOKEN-IN-URL', 'ACCOUNT-TOKEN-ON-PMS', 'NO-CLIENT-ID'].includes(t));

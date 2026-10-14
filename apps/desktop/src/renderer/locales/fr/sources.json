@@ -1,0 +1,91 @@
+{
+  "title": "Sources",
+  "blurb": "Vos serveurs et vos dossiers, dans une seule bibliothèque.",
+  "add": {
+    "button": "Ajouter une source",
+    "orType": "Ajouter manuellement",
+    "types": {
+      "server": {
+        "title": "Emby ou Jellyfin",
+        "body": "Par adresse ou avec Emby Connect"
+      },
+      "plex": {
+        "title": "Plex",
+        "body": "Liez votre compte avec un code"
+      },
+      "files": {
+        "title": "Dossier ou partage",
+        "body": "Cet ordinateur, SMB ou WebDAV"
+      },
+      "photos": {
+        "title": "Photos",
+        "body": "Immich, ou un dossier de photos"
+      },
+      "remote": {
+        "title": "Appareil distant",
+        "body": "Via Tailscale ou NetBird"
+      }
+    },
+    "plex": {
+      "getCode": "Obtenir un code"
+    },
+    "photos": {
+      "folder": {
+        "title": "Dossier de photos"
+      },
+      "immich": {
+        "body": "Se connecte avec une clé d’API, dans les réglages"
+      }
+    },
+    "remote": {
+      "lead": "Appareils sur {name}",
+      "off": "L’accès à distance est désactivé. Connectez-vous avec Tailscale ou NetBird pour joindre les serveurs d’autres réseaux.",
+      "setUp": "Configurer l’accès à distance",
+      "settings": "Réglages de l’accès à distance",
+      "unavailable": "Indisponible"
+    }
+  },
+  "empty": {
+    "title": "Ajoutez votre première source",
+    "body": "Emby, Jellyfin, Plex, ou un dossier sur cet ordinateur ou votre réseau."
+  },
+  "nearby": {
+    "none": "Aucun serveur trouvé",
+    "found": "{count, plural, one {# serveur trouvé sur ce réseau} other {# serveurs trouvés sur ce réseau}}"
+  },
+  "address": {
+    "howTried": "Formats d’adresse",
+    "required": "Saisissez l’adresse du serveur.",
+    "submit": "Se connecter",
+    "segment": "Adresse"
+  },
+  "connect": {
+    "required": "Saisissez votre identifiant et votre mot de passe Emby Connect."
+  },
+  "status": {
+    "signedInAs": "Connecté en tant que {user}",
+    "needsLogin": "Connexion requise",
+    "offlineSince": "Hors ligne · dernière connexion {since}"
+  },
+  "offline": {
+    "downloads": "Téléchargements",
+    "connectMesh": "Connecter {name}"
+  },
+  "plex": {
+    "account": "Compte Plex",
+    "hidden": "{count, plural, one {# serveur masqué} other {# serveurs masqués}}",
+    "manage": "Compte Plex…",
+    "unlink": "Délier…",
+    "unlinkConfirm": "Délier le compte Plex « {name} » ? Ses serveurs quittent cette liste."
+  },
+  "remote": {
+    "row": "Accès à distance"
+  },
+  "row": {
+    "menuAria": "Plus d’options pour {name}"
+  },
+  "immich": {
+    "removeConfirm": "Retirer le serveur Immich « {name} » ? Ses photos quittent Wicaby ; rien n’est supprimé sur le serveur.",
+    "removed": "Serveur Immich retiré."
+  }
+}

@@ -4,27 +4,15 @@
     "password": "Mot de passe"
   },
   "servers": {
-    "welcome": {
-      "title": "Bienvenue dans Wicaby",
-      "body": "Connectez-vous à votre serveur Emby ou Jellyfin pour retrouver vos films, séries et musique."
-    },
-    "yours": {
-      "title": "Vos serveurs",
-      "body": "Ajoutez d’autres serveurs Emby ou Jellyfin : leurs bibliothèques s’affichent ensemble."
-    },
     "unreachable": {
       "title": "{name} ne répond pas",
-      "body": "Il est peut-être en veille ou hors de votre réseau.",
       "wake": "Réveiller"
     },
     "row": {
-      "signOut": "Se déconnecter",
-      "signOutAria": "Se déconnecter de {name}",
-      "removeAria": "Retirer {name}"
+      "signOut": "Se déconnecter"
     },
     "status": {
       "connected": "Connecté",
-      "connectedAs": "Connecté · {user}",
       "connecting": "Connexion…"
     },
     "since": {
@@ -37,12 +25,7 @@
     "nearby": {
       "title": "Sur ce réseau",
       "searchingShort": "Recherche…",
-      "searching": "Recherche de serveurs sur votre réseau local…",
-      "allSaved": "Tous les serveurs détectés sont déjà dans votre liste.",
-      "none": "Aucun serveur détecté. Saisissez son adresse ci-dessous."
-    },
-    "remote": {
-      "title": "Accès à distance"
+      "allSaved": "Tous les serveurs détectés sont déjà dans votre liste."
     },
     "method": {
       "aria": "Méthode de connexion",
@@ -50,7 +33,6 @@
     },
     "address": {
       "placeholder": "192.168.1.10 ou emby.exemple.fr",
-      "aria": "Adresse du serveur Emby ou Jellyfin",
       "hint": "Sans protocole, Wicaby essaie {https} puis {http}. Un chemin ({path}) ou un port personnalisé est conservé."
     },
     "connect": {
@@ -65,8 +47,7 @@
       "signedOut": "Déconnecté de {name}",
       "wakeNoAddress": "Aucune adresse Wake-on-LAN connue pour ce serveur",
       "wakeSent": "Signal de réveil envoyé. Nouvelle tentative dans {seconds} s…"
-    },
-    "footer": "Emby et Jellyfin · Lecture HDR avec mpv · Téléchargements hors ligne"
+    }
   },
   "login": {
     "server": "Serveur",

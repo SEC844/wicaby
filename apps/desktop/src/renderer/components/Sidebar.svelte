@@ -3,7 +3,9 @@
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath } from '../lib/api';
   import { navigate, router } from '../lib/router.svelte';
-  import { downloads, fileSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, updateSettings } from '../lib/stores.svelte';
+  import { carriesTracks, droppedTracks } from '../lib/music-ui.svelte';
+  import { addTo, list as listPlaylists } from '../lib/playlists';
+  import { dataVersion, downloads, errorMessage, fileSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, toast, updateSettings } from '../lib/stores.svelte';
   import Icon, { type IconName } from './Icon.svelte';
   import { t } from '../lib/i18n.svelte';
   import Logo from './Logo.svelte';
@@ -71,6 +73,53 @@
   function toggle() {
     void updateSettings({ ui: { sidebarCollapsed: !collapsed } });
   }
+
+  // Audio playlists of the first music library's server (music spec C5): up to 20, then "All playlists"; each takes
+  // tracks dropped on it (C3). Folded or not is remembered on this device.
+  const MAX_PLAYLISTS = 20;
+  const FOLD_KEY = 'wicaby.sidebar.playlistsFolded';
+  const musicLib = $derived(libs.find((l) => l.CollectionType === 'music'));
+  let playlists = $state<BaseItem[]>([]);
+  let folded = $state(readFolded());
+  let dropOn = $state('');
+  function readFolded(): boolean {
+    try {
+      return localStorage.getItem(FOLD_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+  function fold(): void {
+    folded = !folded;
+    try {
+      localStorage.setItem(FOLD_KEY, folded ? '1' : '0');
+    } catch {
+      // Best effort: the choice lasts this session.
+    }
+  }
+  $effect(() => {
+    const sid = musicLib?.ServerId;
+    void dataVersion.library;
+    if (!sid || offline) return void (playlists = []);
+    let live = true;
+    listPlaylists('playlist', sid)
+      .then((r) => live && (playlists = r.Items.filter((p) => p.MediaType === 'Audio')))
+      .catch(() => live && (playlists = []));
+    return () => (live = false);
+  });
+  async function dropTracks(e: DragEvent, p: BaseItem): Promise<void> {
+    dropOn = '';
+    const d = droppedTracks(e);
+    if (!d) return;
+    e.preventDefault();
+    try {
+      if (d.serverId && d.serverId !== p.ServerId) throw new Error(t('item.errors.queueOtherServer'));
+      await addTo('playlist', p.Id, { Id: d.ids[0], ServerId: p.ServerId }, d.ids);
+      toast('success', t('music.drop.added', { count: d.ids.length, name: p.Name }));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  }
 </script>
 
 <nav class="sidebar" class:collapsed aria-label={t('shell.nav.aria')}>
@@ -126,6 +175,42 @@
           {/if}
         </ul>
         {/each}
+      {/if}
+
+      {#if playlists.length > 0 && musicLib}
+        <button class="section fold fades" aria-expanded={!folded} title={t(folded ? 'music.sidebar.show' : 'music.sidebar.hide')} onclick={fold} data-playlists-fold>
+          {t('music.sidebar.title')}<Icon name={folded ? 'chevronRight' : 'chevronDown'} size={12} />
+        </button>
+        {#if !folded}
+          <ul class="group" data-sidebar-playlists>
+            {#each playlists.slice(0, MAX_PLAYLISTS) as p, i (p.Id)}
+              <li style:--i={Math.min(i, 12)}>
+                <button
+                  class="link"
+                  class:active={route.name === 'item' && route.params.id === p.Id}
+                  class:drop={dropOn === p.Id}
+                  data-playlist={p.Id}
+                  onclick={() => navigate(itemPath(p))}
+                  ondragover={(e) => carriesTracks(e) && (e.preventDefault(), (dropOn = p.Id))}
+                  ondragleave={() => dropOn === p.Id && (dropOn = '')}
+                  ondrop={(e) => dropTracks(e, p)}
+                  title={collapsed ? p.Name : undefined}
+                >
+                  <span class="glyph"><Icon name="list" size={18} /></span>
+                  <span class="label fades">{p.Name}</span>
+                </button>
+              </li>
+            {/each}
+            {#if playlists.length > MAX_PLAYLISTS}
+              <li>
+                <button class="link" onclick={() => musicLib && navigate(`${itemPath(musicLib, 'library')}?tab=playlists`)} title={collapsed ? t('music.sidebar.all') : undefined}>
+                  <span class="glyph"><Icon name="ellipsis" size={18} /></span>
+                  <span class="label fades">{t('music.sidebar.all')}</span>
+                </button>
+              </li>
+            {/if}
+          </ul>
+        {/if}
       {/if}
 
       {#if sources.length > 0}
@@ -309,6 +394,19 @@
   .kind {
     margin-left: 6px;
     font-weight: 400;
+  }
+  .fold {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    text-align: left;
+  }
+  .fold:is(:hover, :focus-visible) {
+    color: var(--label-2);
+  }
+  .link.drop {
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   .link {

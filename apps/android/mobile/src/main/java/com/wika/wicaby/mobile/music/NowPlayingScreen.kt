@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -68,11 +69,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.poster
 import com.wika.wicaby.core.music.Lyrics
+import com.wika.wicaby.core.music.MusicArt
 import com.wika.wicaby.core.music.MusicSession
 import com.wika.wicaby.core.music.Repeat
 import com.wika.wicaby.core.music.lyrics
@@ -118,6 +121,10 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
         // Content first (docs/design.md): the art is the only colour. blur() needs API 31; below, the scrim alone.
         if (item != null) {
             val bg = remember(item.id) { api.poster(item, 256) }
+            // The cover's dominant colour under the blurred art: it fades in over a colour, not grey (music spec MU-A3).
+            val context = LocalContext.current
+            val tint by produceState<Color?>(null, bg) { value = bg?.let { MusicArt.colour(SingletonImageLoader.get(context), context, it) }?.let { Color(0xFF000000 or it.toLong()) } }
+            tint?.let { Box(Modifier.fillMaxSize().background(lerp(G.bg, it, 0.35f))) }
             AsyncImage(bg, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(if (Build.VERSION.SDK_INT >= 31) 0.55f else 0.25f).blur(60.dp))
         }
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
@@ -128,7 +135,7 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
                 IconBtn(Ic.More, stringResource(R.string.music_options), { menu = item })
             }
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                if (item != null) Art(api, item, minOf(maxWidth, maxHeight, 380.dp))
+                if (item != null) Art(api, item, minOf(maxWidth, maxHeight, NOW_PLAYING_ART))
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
                 Column(Modifier.weight(1f)) {

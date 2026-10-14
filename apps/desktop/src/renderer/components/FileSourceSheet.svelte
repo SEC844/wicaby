@@ -10,10 +10,24 @@
   import { navigate } from '../lib/router.svelte';
   import { errorMessage, toast } from '../lib/stores.svelte';
   import FileCertCard from './FileCertCard.svelte';
-  import Icon, { type IconName } from './Icon.svelte';
+  import Icon from './Icon.svelte';
+  import Segmented from './Segmented.svelte';
   import Sheet from './Sheet.svelte';
 
-  let { open, onclose, photos = false, initial = 'local' }: { open: boolean; onclose: () => void; photos?: boolean; initial?: FileProtocol } = $props();
+  let {
+    open,
+    onclose,
+    photos = false,
+    initial = 'local',
+    onback,
+  }: {
+    open: boolean;
+    onclose: () => void;
+    photos?: boolean;
+    initial?: FileProtocol;
+    // Opened from a step of another sheet (Sources › Add): a back chevron returns to it.
+    onback?: () => void;
+  } = $props();
 
   let protocol = $state<FileProtocol>('local');
   let folder = $state('');
@@ -28,11 +42,9 @@
   let found = $state<FileDiscovered[] | null>(null);
   let finding = $state(false);
 
-  const CHOICES: { id: FileProtocol; icon: IconName }[] = [
-    { id: 'local', icon: 'folder' },
-    { id: 'webdav', icon: 'globe' },
-    { id: 'smb', icon: 'server' },
-  ];
+  const CHOICES: FileProtocol[] = ['local', 'webdav', 'smb'];
+  // What is missing, under the form: Add stays live and says why instead of greying out.
+  let error = $state('');
   const plainHttp = $derived(protocol === 'webdav' && /^(http|dav|webdav):\/\//i.test(url.trim()));
   const ready = $derived(protocol === 'local' ? Boolean(folder) : Boolean(url.trim()) && !(protocol === 'smb' && linux));
 
@@ -52,6 +64,7 @@
   function changed(): void {
     result = null;
     pin = '';
+    error = '';
   }
 
   function pick(p: FileProtocol): void {
@@ -70,7 +83,7 @@
     changed();
   }
 
-  async function test(): Promise<void> {
+  async function test(): Promise<FileTestResult | null> {
     busy = 'test';
     try {
       result = await w.files.test(input());
@@ -79,6 +92,7 @@
     } finally {
       busy = null;
     }
+    return result;
   }
 
   function trust(): void {
@@ -88,6 +102,12 @@
   }
 
   async function add(): Promise<void> {
+    if (!ready) {
+      error = t(protocol === 'local' ? 'files.add.noFolder' : protocol === 'smb' && linux ? 'files.add.smbLinux' : 'files.add.urlRequired');
+      return;
+    }
+    // Add tests first when nothing was tested yet; a failed test shows its answer and stops here.
+    if (result?.code !== 'ok' && (await test())?.code !== 'ok') return;
     busy = 'add';
     try {
       const info = await w.files.add(input());
@@ -128,7 +148,14 @@
     folder = url = name = user = pass = pin = '';
     insecure = false;
     result = null;
+    error = '';
     onclose();
+  }
+
+  // Back to the sheet this one was opened from (Sources › Add).
+  function back(): void {
+    close();
+    onback?.();
   }
 
   const message = $derived(
@@ -136,36 +163,51 @@
   );
 </script>
 
-<Sheet {open} onclose={close} label={t(photos ? 'photos.sources.addTitle' : 'files.add.title')} width={560}>
+<Sheet {open} onclose={close} label={t(photos ? 'photos.sources.addTitle' : 'files.add.title')} width={560} align="top" onback={onback && back}>
   <div class="body">
-    <h2 class="title">{t(photos ? 'photos.sources.addTitle' : 'files.add.title')}</h2>
+    <header class="sheet-head">
+      {#if onback}
+        <button type="button" class="icon-btn" onclick={back} aria-label={t('common.actions.back')} title={t('common.actions.back')}>
+          <Icon name="chevronLeft" size={18} />
+        </button>
+      {/if}
+      <h2 class="title-3">{t(photos ? 'photos.sources.addTitle' : 'files.add.title')}</h2>
+    </header>
     <p class="blurb">{t(photos ? 'photos.sources.addBlurb' : 'files.add.blurb')}</p>
 
-    <div class="choices" role="radiogroup" aria-label={t('files.add.title')}>
-      {#each CHOICES as c (c.id)}
-        <button type="button" role="radio" class="choice" class:on={protocol === c.id} aria-checked={protocol === c.id} onclick={() => pick(c.id)}>
-          <Icon name={c.icon} size={20} />
-          <span>{t(`files.add.protocol.${c.id}`)}</span>
-        </button>
-      {/each}
+    <div class="choices">
+      <Segmented value={protocol} options={CHOICES.map((id) => ({ value: id, label: t(`files.add.protocolShort.${id}`) }))} onchange={pick} label={t('files.add.title')} />
     </div>
 
     <div class="form">
       {#if protocol === 'local'}
+        <span class="field-label">{t('files.add.folder')}</span>
         <div class="line">
           <span class="path" class:none={!folder}>{folder || t('files.add.noFolder')}</span>
           <button type="button" class="btn" data-autofocus onclick={chooseFolder}><Icon name="folderOpen" size={15} /> {t('files.add.pick')}</button>
         </div>
+        {#if error}<p class="error" id="file-error" role="alert">{error}</p>{/if}
       {:else}
-        <label class="fieldrow">
-          <span class="lbl">{t('files.add.url')}</span>
-          <input class="field" type="text" spellcheck="false" autocomplete="off" placeholder={t(protocol === 'smb' ? 'files.add.urlSmb' : 'files.add.urlWebdav')} bind:value={url} oninput={changed} />
-        </label>
+        <label class="field-label" for="file-url">{t('files.add.url')}</label>
+        <input
+          id="file-url"
+          class="field"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder={t(protocol === 'smb' ? 'files.add.urlSmb' : 'files.add.urlWebdav')}
+          bind:value={url}
+          oninput={changed}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? 'file-error' : undefined}
+          data-autofocus
+        />
+        {#if error}<p class="error" id="file-error" role="alert">{error}</p>{/if}
         <div class="find" data-files-find>
           <button type="button" class="btn ghost" disabled={finding} onclick={find}><Icon name="search" size={14} /> {t(finding ? 'files.mdns.searching' : 'files.mdns.find')}</button>
           {#if found}
             {#each found as s (s.url)}
-              <button type="button" class="chip" title={s.url} onclick={() => use(s)}><Icon name={s.protocol === 'smb' ? 'server' : 'globe'} size={13} /> {s.name}</button>
+              <button type="button" class="chip" title={s.url} onclick={() => use(s)}>{s.name}</button>
             {:else}
               <span class="hint">{t('files.mdns.none')}</span>
             {/each}
@@ -173,14 +215,10 @@
         </div>
         {#if found && protocol === 'smb'}<p class="hint">{t('files.mdns.windows')}</p>{/if}
         {#if protocol === 'webdav'}
-          <label class="fieldrow">
-            <span class="lbl">{t('files.add.user')}</span>
-            <input class="field" type="text" spellcheck="false" autocomplete="off" bind:value={user} oninput={changed} />
-          </label>
-          <label class="fieldrow">
-            <span class="lbl">{t('files.add.pass')}</span>
-            <input class="field" type="password" autocomplete="off" bind:value={pass} oninput={changed} />
-          </label>
+          <label class="field-label" for="file-user">{t('files.add.user')}</label>
+          <input id="file-user" class="field" type="text" spellcheck="false" autocomplete="off" bind:value={user} oninput={changed} />
+          <label class="field-label" for="file-pass">{t('files.add.pass')}</label>
+          <input id="file-pass" class="field" type="password" autocomplete="off" bind:value={pass} oninput={changed} />
           {#if plainHttp}
             <label class="check"><input type="checkbox" bind:checked={insecure} onchange={changed} /> {t('files.add.insecure')}</label>
           {/if}
@@ -188,10 +226,8 @@
           <p class="hint">{t(linux ? 'files.add.smbLinux' : 'files.add.smbHint')}</p>
         {/if}
       {/if}
-      <label class="fieldrow">
-        <span class="lbl">{t('files.add.name')}</span>
-        <input class="field" type="text" autocomplete="off" placeholder={t('files.add.namePlaceholder')} bind:value={name} />
-      </label>
+      <label class="field-label" for="file-name">{t('files.add.name')}</label>
+      <input id="file-name" class="field" type="text" autocomplete="off" placeholder={t('files.add.namePlaceholder')} bind:value={name} />
     </div>
 
     {#if result}
@@ -206,65 +242,90 @@
     {/if}
 
     <div class="actions">
-      <button type="button" class="btn ghost" onclick={close}>{t('files.add.cancel')}</button>
-      <div class="spacer"></div>
       <button type="button" class="btn" disabled={!ready || busy !== null} onclick={test}>{busy === 'test' ? t('files.add.testing') : t('files.add.test')}</button>
-      <button type="button" class="btn primary" disabled={!ready || busy !== null || result?.code !== 'ok'} onclick={add}>{t('files.add.save')}</button>
+      <button type="button" class="btn primary" disabled={busy !== null} onclick={add}>{t('files.add.save')}</button>
     </div>
   </div>
 </Sheet>
 
 <style>
+  /* The Sources sheets' anatomy (routes/Servers.svelte): title level with the close button, labels above fields. */
   .body {
-    padding: 26px 26px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 13px 24px 24px;
   }
-  .title {
-    margin: 0 40px 4px 0;
-    font-size: var(--fs-headline);
-    font-weight: 650;
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding-right: 40px;
+  }
+  .sheet-head .title-3 {
+    margin: 0;
+  }
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin-left: -8px;
+    flex: none;
+    border-radius: 50%;
+    color: var(--label-2);
+    transition:
+      background-color var(--t-fast) var(--ease),
+      color var(--t-fast) var(--ease);
+  }
+  .icon-btn:hover,
+  .icon-btn:focus-visible {
+    background: var(--fill-2);
+    color: var(--label);
   }
   .blurb {
-    margin: 0 0 18px;
+    margin: -8px 0 0;
     color: var(--label-2);
     font-size: var(--fs-callout);
-    line-height: 1.45;
+    line-height: 1.5;
   }
+  /* One accent per view: the selected segment is neutral, the primary keeps the accent. */
   .choices {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    display: flex;
   }
-  .choice {
-    display: grid;
-    justify-items: center;
-    gap: 8px;
-    padding: 14px 8px;
-    border-radius: var(--r-md);
-    background: var(--fill-1);
-    color: var(--label-2);
-    font-size: var(--fs-footnote);
-    font-weight: 560;
-    text-align: center;
-    box-shadow: inset 0 0 0 1px var(--separator);
-    transition: background-color var(--t-fast) var(--ease);
-  }
-  .choice:hover {
-    background: var(--fill-2);
-  }
-  .choice.on {
-    color: var(--label);
+  .choices :global(.seg .thumb) {
     background: var(--fill-3);
-    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .choices :global(.seg button.on) {
+    color: var(--label);
   }
   .form {
-    display: grid;
-    gap: 10px;
-    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .field-label {
+    font-size: var(--fs-footnote);
+    font-weight: 600;
+    color: var(--label-2);
+  }
+  .field-label:not(:first-child) {
+    margin-top: 8px;
+  }
+  .field[aria-invalid='true'] {
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  }
+  .error {
+    margin: 0;
+    font-size: var(--fs-footnote);
+    color: var(--danger);
   }
   .line {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-height: 40px;
   }
   .path {
     flex: 1;
@@ -275,22 +336,7 @@
     font-size: var(--fs-callout);
   }
   .path.none {
-    color: var(--label-3);
-  }
-  .fieldrow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .fieldrow .lbl {
-    width: 120px;
-    flex: none;
-    font-size: var(--fs-callout);
     color: var(--label-2);
-  }
-  .fieldrow .field {
-    flex: 1;
-    height: 34px;
   }
   .check {
     display: flex;
@@ -303,15 +349,22 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
+  }
+  .find .btn {
+    height: 28px;
+    margin-left: -12px;
+    padding: 0 12px;
+    color: var(--label-2);
+    font-size: var(--fs-footnote);
+  }
+  .find .btn:is(:hover, :focus-visible) {
+    color: var(--label);
   }
   .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     max-width: 100%;
-    padding: 4px 10px;
+    height: 28px;
+    padding: 0 12px;
     border-radius: 999px;
     background: var(--fill-2);
     color: var(--label);
@@ -322,35 +375,31 @@
   }
   .chip:hover,
   .chip:focus-visible {
-    background: var(--fill-1);
+    background: var(--fill-3);
   }
   .hint {
     margin: 0;
     font-size: var(--fs-footnote);
-    color: var(--label-3);
-    line-height: 1.45;
+    color: var(--label-2);
+    line-height: 1.5;
   }
   .result {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 16px;
-    padding: 10px 12px;
-    border-radius: var(--r-sm);
-    background: var(--fill-1);
-    color: var(--label-2);
     font-size: var(--fs-callout);
+    color: var(--label-2);
   }
   .result.ok {
     color: var(--label);
   }
   .actions {
     display: flex;
-    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
-    margin-top: 22px;
+    margin-top: 8px;
   }
-  .spacer {
-    flex: 1;
+  .actions .btn {
+    min-width: 96px;
   }
 </style>

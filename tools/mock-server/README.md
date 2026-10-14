@@ -75,6 +75,9 @@ covers it (part of `npm run checks`).
   (unverified on a real Emby, music spec §3.5). Genres: Emby `/MusicGenres`, Jellyfin `/Genres?IncludeItemTypes=MusicAlbum`
   (its `/MusicGenres` answers, tagged `DEPRECATED`). Instant mix on `/Items/{id}/InstantMix` and the per-type routes each
   server has (`/Artists/InstantMix` is a 404 on the Jellyfin 12.2 mock).
+- **Missing art, as on a real Emby:** "Brume" has no Primary but its tracks have their own (embedded) art, the owner's
+  field bug; "Trois vents" has no image anywhere; three album artists have no image. `/Items` honours `ImageTypes=`.
+  `node tools/checks/music-art-check.mjs` checks the cover fallbacks against it (music-feishin-navidrome spec §4.A).
 - **Test knobs:** `MOCK_MUSIC_SCALE=big` adds 1,000 metadata-only songs (scroll checks); `MOCK_LYRICS_FAIL=<track id>` makes
   that track's Jellyfin lyrics answer 500 (the desktop's "no lyrics, no toast" check, `tools/checks/music-ui-cdp.mjs`).
 - **`GET /Mock/State`** gains `music: { streams, instantMix, reports }` (the reports of tracks, in arrival order).

@@ -28,7 +28,14 @@
     "save": "Ajouter",
     "cancel": "Annuler",
     "added": "Source ajoutée",
-    "ok": "Connexion réussie : {count, plural, one {# élément} other {# éléments}} à la racine."
+    "ok": "Connexion réussie : {count, plural, one {# élément} other {# éléments}} à la racine.",
+    "protocolShort": {
+      "local": "Dossier",
+      "webdav": "WebDAV",
+      "smb": "SMB"
+    },
+    "folder": "Dossier",
+    "urlRequired": "Saisissez l’adresse du partage."
   },
   "tls": {
     "title": "Certificat non reconnu",

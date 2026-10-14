@@ -2,6 +2,7 @@
 // the full-screen player (music-spec MU-03 to MU-06). Main owns the queue (PlaybackState.music); this file only
 // keeps what the pages show: the queue's items by id, the open panel and the track menu.
 import type { BaseItem } from '../../shared/models';
+import { selectIds } from '../../shared/music-ui';
 import { apiFor, LIST_FIELDS } from './api';
 import { w } from './bridge';
 import { t } from './i18n.svelte';
@@ -12,7 +13,55 @@ export const musicUi = $state<{
   queue: boolean;
   menu: { item: BaseItem; x: number; y: number; from: HTMLElement | null } | null;
   addTo: BaseItem | null;
-}>({ queue: false, menu: null, addTo: null });
+  // With addTo: a multi-selection's ids, all of addTo's server.
+  addIds: string[] | null;
+}>({ queue: false, menu: null, addTo: null, addIds: null });
+
+// ---- Multi-select of track rows (music spec C3): Ctrl-click toggles, Shift-click takes a range, in one list at a
+// time (list: the page's key); a plain click plays and clears it, as do Escape and a new page (SelectionBar).
+export const selection = $state<{ list: string; items: BaseItem[]; anchor: string | null }>({ list: '', items: [], anchor: null });
+export const clearSelection = (): void => {
+  selection.items = [];
+  selection.anchor = null;
+};
+// true when the click selected (the row must not play). Space on a row toggles it like Ctrl-click (Shift+Space: a range).
+export function selectRow(list: string, order: BaseItem[], item: BaseItem, e: MouseEvent | KeyboardEvent): boolean {
+  if (!(e.ctrlKey || e.metaKey || e.shiftKey || ('key' in e && e.key === ' '))) {
+    clearSelection();
+    return false;
+  }
+  e.preventDefault();
+  if (selection.list !== list) {
+    clearSelection();
+    selection.list = list;
+  }
+  const byId = new Map(order.map((x) => [x.Id, x]));
+  const ids = selectIds(selection.items.map((x) => x.Id), order.map((x) => x.Id), item.Id, selection.anchor, e.shiftKey);
+  selection.items = ids.map((id) => byId.get(id)).filter((x): x is BaseItem => Boolean(x));
+  if (!e.shiftKey || !selection.anchor) selection.anchor = item.Id;
+  return true;
+}
+
+// ---- Drag tracks onto the queue or a sidebar playlist (C3, C5): the selection when the row is in it, else the row.
+const MIME = 'application/x-wicaby-tracks';
+export function dragTracks(e: DragEvent, list: string, item: BaseItem): void {
+  if (!e.dataTransfer) return;
+  const items = selection.list === list && selection.items.some((x) => x.Id === item.Id) ? selection.items : [item];
+  e.dataTransfer.setData(MIME, JSON.stringify({ ids: items.map((x) => x.Id), serverId: item.ServerId }));
+  e.dataTransfer.setData('text/plain', items.map((x) => x.Name).join('\n'));
+  e.dataTransfer.effectAllowed = 'copy';
+}
+export const carriesTracks = (e: DragEvent): boolean => Boolean(e.dataTransfer?.types.includes(MIME));
+// What a drop carries, checked: only a list of ids from this app's rows.
+export function droppedTracks(e: DragEvent): { ids: string[]; serverId?: string } | null {
+  try {
+    const v = JSON.parse(e.dataTransfer?.getData(MIME) || 'null') as { ids?: unknown; serverId?: unknown } | null;
+    if (!Array.isArray(v?.ids) || !v.ids.length || !v.ids.every((x) => typeof x === 'string')) return null;
+    return { ids: v.ids as string[], serverId: typeof v.serverId === 'string' ? v.serverId : undefined };
+  } catch {
+    return null;
+  }
+}
 
 // The current track is music (the bar, the panel and the shortcuts show only then).
 export const musicActive = () => Boolean(playback.value?.active && playback.value.music && playback.value.item);

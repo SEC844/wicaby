@@ -16,8 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,7 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Icon
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Api
@@ -37,7 +39,7 @@ import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.SafeNames
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.core.data.backdrop
-import com.wika.wicaby.core.data.poster
+import com.wika.wicaby.core.data.posterArt
 import com.wika.wicaby.core.player.PlayQueue
 import com.wika.wicaby.tv.LocalNav
 import com.wika.wicaby.tv.R
@@ -82,6 +84,8 @@ fun ArtistScreen(api: Api, id: String, name: String) {
         val albums = api.items("ArtistIds" to id, "IncludeItemTypes" to "MusicAlbum", "Recursive" to true, "SortBy" to "ProductionYear,SortName", "SortOrder" to "Descending")
         Artist(api.item(id), discography(id, albums.items.filter { SafeNames.isValidId(it.id) }))
     }
+    // Similar artists (music spec C7), when the server knows some: a last row.
+    val similar by rememberLoad("music-artist-similar-$id") { api.similar(id).filter { SafeNames.isValidId(it.id) } }
     val artist = loaded.value
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(artist != null) { if (artist != null) runCatching { playFocus.requestFocus() } }
@@ -101,11 +105,13 @@ fun ArtistScreen(api: Api, id: String, name: String) {
             artist == null -> Centered { Spinner() }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 48.dp, bottom = 56.dp)) {
                 val item = artist.item
-                val art = remember(item.id) { Servers.forItem(item, api).poster(item, 480) }
+                // An artist without an image shows its first album's cover (music spec MU-A1), else its initials.
+                val art = remember(item) { Servers.forItem(item, api).posterArt(item, 480) }
+                var failed by remember(art) { mutableStateOf(false) }
                 Row(Modifier.padding(horizontal = 64.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(200.dp).clip(CircleShape).background(C.elevated2), contentAlignment = Alignment.Center) {
-                        if (art != null) AsyncImage(art, item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else Icon(Ic.Person, null, tint = C.label3, modifier = Modifier.size(64.dp))
+                        if (art != null && !failed) AsyncImage(art, item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(), onError = { failed = true })
+                        else CoverPlaceholder(item.name.ifEmpty { name }, 64.sp)
                     }
                     Column(Modifier.padding(start = 40.dp)) {
                         Text(item.name.ifEmpty { name }, style = Type.largeTitle, color = C.label, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -128,6 +134,12 @@ fun ArtistScreen(api: Api, id: String, name: String) {
                             onClick = { nav.push(it.route()) }, modifier = Modifier.testTag("music-artist-$key"),
                         )
                     }
+                }
+                similar.value?.takeIf { it.isNotEmpty() }?.let { others ->
+                    MediaRow(
+                        stringResource(R.string.music_similar_artists), others, api, memory, "artist-similar", wide = false, onFocusItem = {}, square = true,
+                        onClick = { nav.push(it.route()) }, modifier = Modifier.testTag("music-artist-similar"),
+                    )
                 }
             }
         }

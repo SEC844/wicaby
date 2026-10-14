@@ -1,6 +1,8 @@
 package com.wika.wicaby.core.data
 
 import com.wika.wicaby.core.comics.ComicCovers
+import com.wika.wicaby.core.music.MusicArt
+import com.wika.wicaby.core.music.musicArt
 
 // Artwork URLs, with the fallbacks Emby web uses (series art for episodes, parent backdrops).
 
@@ -12,8 +14,10 @@ fun Api.poster(item: Item, maxHeight: Int): String? {
     return null
 }
 
-// Cards and detail pages: the poster, or for a comic without one its first page (ComicCoverFetcher).
-fun Api.posterArt(item: Item, maxHeight: Int): Any? = poster(item, maxHeight) ?: ComicCovers.of(this, item)
+// Cards and detail pages: the poster, or for a comic without one its first page (ComicCoverFetcher). Music items: the
+// music cover rule (MusicArt: an album's first track, an artist's first album, sizes from buckets).
+fun Api.posterArt(item: Item, maxHeight: Int): Any? =
+    if (MusicArt.isMusic(item)) musicArt(item, maxHeight) else poster(item, maxHeight) ?: ComicCovers.of(this, item)
 
 fun Api.thumb(item: Item, maxWidth: Int): String? {
     if (item.isEpisode) item.imageTags["Primary"]?.let { return image(item.id, "Primary", it, maxWidth = maxWidth) }

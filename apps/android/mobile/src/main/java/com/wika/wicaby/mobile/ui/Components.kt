@@ -294,6 +294,9 @@ fun PosterCard(item: Item, api: Api, onClick: () -> Unit, modifier: Modifier = M
         ) {
             if (url != null && !failed) {
                 AsyncImage(url, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(), onError = { failed = true })
+            } else if (com.wika.wicaby.core.music.MusicArt.isMusic(item)) {
+                // Music without art (music spec MU-A4): initials on a colour from the name.
+                com.wika.wicaby.mobile.music.ArtPlaceholder(item.name, width ?: 116.dp)
             } else {
                 Text(item.name, style = Type.callout, color = G.label2, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center).padding(10.dp))
             }

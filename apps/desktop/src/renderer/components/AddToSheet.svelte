@@ -8,7 +8,8 @@
   import Sheet from './Sheet.svelte';
 
   // "Ajouter à une playlist / collection": pick an existing one or name a new one.
-  let { kind, item, onclose }: { kind: Kind | null; item: BaseItem; onclose: () => void } = $props();
+  // ids: a multi-selection of tracks (music spec C3), all of item's server and type.
+  let { kind, item, ids, onclose }: { kind: Kind | null; item: BaseItem; ids?: string[]; onclose: () => void } = $props();
 
   let targets = $state<BaseItem[] | null>(null);
   let name = $state('');
@@ -46,14 +47,14 @@
   function submit(e: SubmitEvent): void {
     e.preventDefault();
     const n = name.trim();
-    if (n && kind) void run(() => create(kind, n, item), n);
+    if (n && kind) void run(() => create(kind, n, item, ids), n);
   }
 </script>
 
 <Sheet open={kind !== null} {onclose} label={t('browse.addTo.title', { kind: noun })} width={440}>
   <div class="body">
     <h2 class="title-3">{t('browse.addTo.title', { kind: noun })}</h2>
-    <p class="footnote">{item.Name}</p>
+    <p class="footnote">{ids && ids.length > 1 ? t('music.selection.count', { count: ids.length }) : item.Name}</p>
 
     <form class="new" onsubmit={submit}>
       <input class="field" bind:value={name} placeholder={t('browse.addTo.newPlaceholder', { kind: noun })} maxlength="120" aria-label={t('browse.addTo.newName', { kind: noun })} />
@@ -67,7 +68,7 @@
         {#each targets as target (target.Id)}
           {@const art = posterUrl(target, 96)}
           <li>
-            <button disabled={busy} onclick={() => kind && run(() => addTo(kind, target.Id, item), target.Name)}>
+            <button disabled={busy} onclick={() => kind && run(() => addTo(kind, target.Id, item, ids), target.Name)}>
               <span class="art">{#if art}<img src={art} alt="" loading="lazy" decoding="async" />{:else}<Icon name={kind === 'collection' ? 'collection' : 'list'} size={16} />{/if}</span>
               <span class="t-name">{target.Name}</span>
               {#if target.ChildCount}<span class="t-count">{target.ChildCount}</span>{/if}

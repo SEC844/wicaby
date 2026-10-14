@@ -99,7 +99,10 @@
         "musicQueue": "Queue",
         "musicFavorite": "Favourite",
         "musicClose": "Close player",
-        "musicMini": "Mini Player"
+        "musicMini": "Mini Player",
+        "musicShowPlaying": "Show the playing track",
+        "musicNextAlbum": "Next album",
+        "musicPreviousAlbum": "Previous album"
       },
       "context": {
         "music": "Music"

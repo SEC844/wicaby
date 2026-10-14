@@ -11,6 +11,8 @@
 // MU-05 lyrics: AC1 current line at 5 positions, AC2 click seeks, AC3 Emby .lrc stream, AC4 plain / none / 500, AC5
 //       reduced motion.
 // MU-06 mix and favourites: AC1 /Items/{id}/InstantMix from 5 kinds, AC2 radio top-up, AC3 hearts.
+// Feishin spec part (c) (music-feishin-navidrome.md): C3 multi-select (aria-selected, Space, Escape, drop on the queue
+//       at the drop row), C6 the active tab hides the full-screen player's panel.
 //
 //   node tools/checks/music-ui-cdp.mjs [--only=emby|jellyfin] [--shots=<dir>] [--keep]
 // Ports: MUSICUI_MOCK_PORT (8881, Jellyfin +1), MUSICUI_DEV_PORT (5621), MUSICUI_CDP_PORT (9781).
@@ -329,7 +331,7 @@ async function pass(kind) {
   await go(`#/item/${serverId}/album-4-0`, 'section.tracks button.track');
   await soon('12 tracks', async () => (await count('section.tracks button.track')) === 12);
   const order = await ev(`[...document.querySelectorAll('section.tracks button.track')].map((b) => b.dataset.id)`);
-  check((await count('section.tracks h3.disc')) === 2 && js(order) === js(quartz), `MU-03 AC3 two disc headers, order ${order.map((x) => x.slice(-2)).join(',')}`);
+  check((await count('section.tracks h3[data-disc]')) === 2 && js(order) === js(quartz), `MU-03 AC3 two disc headers, order ${order.map((x) => x.slice(-2)).join(',')}`);
   await shot('album-discs');
 
   // AC5 (with a queue playing): play next and add to queue go to main as PlayNext / PlayLast; the playlist entry opens the sheet.
@@ -702,6 +704,75 @@ async function pass(kind) {
   check(Boolean(barFav), 'MU-06 AC3 bar heart toggles IsFavorite');
 
   }
+  // ======== Feishin spec C3 / C6 ========
+  if (!skip('fe')) {
+    await stopPlayback();
+    // C4 "More from {artist}": the artist's other albums only (Emby: ArtistIds + ArtistType, never AlbumArtistIds).
+    const lines4 = mockLines.length;
+    await go(`#/item/${serverId}/album-0-0`, 'section.tracks button.track');
+    const moreTitle = fr('music').albumPage.moreFrom.replace('{name}', 'Les Ondes Calmes');
+    const more = await soon('the More from row', () => ev(`(() => { const h = [...document.querySelectorAll('section.row h2')].find((x) => x.textContent.trim() === ${js(moreTitle)}); return h && [...h.closest('section.row').querySelectorAll('.card')].map((c) => c.textContent.trim()); })()`), 8000);
+    const asked = mockLines.slice(lines4).filter((l) => /IncludeItemTypes=MusicAlbum/.test(l) && /ArtistIds=/.test(l));
+    const filterOk = kind === 'emby' ? asked.some((l) => /[?&]ArtistIds=/.test(l) && /ArtistType=AlbumArtist/.test(l)) && !asked.some((l) => /AlbumArtistIds=/.test(l)) : asked.some((l) => /AlbumArtistIds=/.test(l));
+    check(more?.length === 1 && more[0].includes('Brume') && filterOk, `C4 "${moreTitle}" lists ${js(more)}, filter ${filterOk ? 'ok' : js(asked.slice(0, 2))}`);
+    await go(`#/item/${serverId}/album-4-0`, 'section.tracks button.track');
+    await soon('12 tracks', async () => (await count('section.tracks button.track')) === 12);
+    const selected = () => ev(`[...document.querySelectorAll('section.tracks .row[aria-selected="true"]')].map((r) => r.querySelector('button.track').dataset.id)`);
+    // Ctrl-click 3 rows: those rows aria-selected, the bar counts 3, nothing plays.
+    for (const i of [0, 2, 4]) await ev(`(document.querySelectorAll('section.tracks button.track')[${i}].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true })), true)`);
+    const three = await selected();
+    const barCount = await ev(`document.querySelector('[data-selection-bar] [data-count]')?.dataset.count`);
+    check(js(three) === js([quartz[0], quartz[2], quartz[4]]) && barCount === '3' && (await count('section.tracks .row[aria-selected="false"]')) === 9, `C3 Ctrl-click 3 rows: aria-selected ${three.length}, bar ${barCount}`);
+    // Space (a real key, so a button would activate) toggles the focused row and plays nothing.
+    const space = async (i) => {
+      await ev(`(document.querySelectorAll('section.tracks button.track')[${i}].focus(), true)`);
+      for (const type of ['keyDown', 'keyUp']) await main.call('Input.dispatchKeyEvent', { type, key: ' ', code: 'Space', windowsVirtualKeyCode: 32, ...(type === 'keyDown' ? { text: ' ' } : {}) });
+      await sleep(150);
+    };
+    await space(6);
+    const four = await selected();
+    await space(6);
+    const back3 = await selected();
+    await sleep(500);
+    check(four.length === 4 && four.includes(quartz[6]) && js(back3) === js(three) && !(await state()).active, `C3 Space toggles the focused row (${four.length} then ${back3.length}), nothing plays`);
+    await key('Escape');
+    check((await soon('cleared', async () => (await selected()).length === 0 && !(await ev(`!!document.querySelector('[data-selection-bar]')`)), 3000)) !== null, 'C3 Escape clears the selection');
+    // A drop on the queue panel's row 3 (upper half) inserts before it.
+    await play({ itemIds: quartz, startIndex: 0 });
+    await until('a fresh queue', async () => ((st) => st.item?.id === quartz[0] && st.music?.queue.ids.length === 12)(await state()), 10000);
+    await pauseNow();
+    await click('[data-now-playing-bar] [data-queue]');
+    await until('the queue panel', async () => (await count('[data-queue-panel] .row')) === 12, 5000);
+    await ev(`(() => {
+      const dt = new DataTransfer();
+      dt.setData('application/x-wicaby-tracks', ${js(js({ ids: marée.slice(0, 2), serverId }))});
+      const row = document.querySelector('[data-queue-panel] .row[data-index="3"] .main');
+      const r = row.getBoundingClientRect();
+      const o = { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + 20, clientY: r.top + 4 };
+      row.dispatchEvent(new DragEvent('dragover', o));
+      row.dispatchEvent(new DragEvent('drop', o));
+      return true;
+    })()`);
+    const want = [...quartz.slice(0, 3), ...marée.slice(0, 2), ...quartz.slice(3)];
+    const dropped = await soon('the drop', async () => ((st) => js(st.music?.queue.ids) === js(want))(await state()), 8000);
+    check(Boolean(dropped), `C3 a drop on queue row 3 inserts there (${((await state()).music?.queue.ids ?? []).map((x) => x.slice(-5)).join(',')})`);
+    await click('[data-queue-panel] .top button');
+    // C6: clicking the active tab closes the panel (data-panel=closed), clicking it again opens it.
+    await click('[data-now-playing-bar] .art');
+    await until('the full-screen player', () => ev(`!!document.querySelector('[data-now-playing] .body')`), 5000);
+    const activeTab = '[data-now-playing] .right [role="radio"][aria-checked="true"]';
+    const panel = () => ev(`(() => { const b = document.querySelector('[data-now-playing] .body'); return b.dataset.panel + ':' + (b.querySelector('.pane-body').hidden ? 'hidden' : 'shown'); })()`);
+    const open0 = await panel();
+    await click(activeTab);
+    const closedP = await soon('panel closed', async () => ((v) => (v === 'closed:hidden' ? v : null))(await panel()), 3000);
+    await shot('np-panel-closed');
+    await click(activeTab);
+    const reopened = await soon('panel open', async () => ((v) => (v === 'open:shown' ? v : null))(await panel()), 3000);
+    check(open0 === 'open:shown' && Boolean(closedP) && Boolean(reopened), `C6 the active tab toggles data-panel (${open0} → ${closedP} → ${reopened})`);
+    await key('Escape');
+    await soon('closed', async () => !(await ev(`!!document.querySelector('[data-now-playing]')`)));
+    await stopPlayback();
+  }
   // ======== MU-04 AC7 ======== restart with resumeQueue on: the bar is back, paused, nothing plays.
   if (kind === 'emby') {
     await play({ itemIds: marée, startIndex: 1 });
@@ -741,7 +812,7 @@ async function run() {
     log(`== ${kind}`);
     failures.push(...(await pass(kind)).map((f) => `${kind}: ${f}`));
   }
-  log(failures.length ? `${failures.length} problem(s):\n  ${failures.join('\n  ')}` : 'ok: library views, bar, queue, full-screen player, shortcuts, lyrics, mix and favourites');
+  log(failures.length ? `${failures.length} problem(s):\n  ${failures.join('\n  ')}` : 'ok: library views, bar, queue, full-screen player, shortcuts, lyrics, mix and favourites, Feishin C3/C4/C6');
   return failures.length ? 1 : 0;
 }
 

@@ -38,7 +38,10 @@
     "mixFromTrack": "Mix à partir de ce titre",
     "goToArtist": "Aller à l’artiste",
     "goToAlbum": "Aller à l’album",
-    "more": "Plus d’actions pour {name}"
+    "more": "Plus d’actions pour {name}",
+    "playNextNamed": "Lire {name} ensuite",
+    "addToQueueNamed": "Ajouter {name} à la file",
+    "playDisc": "Lire le disque {n}"
   },
   "album": {
     "disc": "Disque {n}",
@@ -147,5 +150,46 @@
     "band": "Bande {freq}",
     "value": "{db} dB",
     "htmlNote": "Le lecteur intégré n’applique pas l’égaliseur."
+  },
+  "selection": {
+    "label": "Titres sélectionnés",
+    "count": "{count, plural, one {# titre sélectionné} other {# titres sélectionnés}}",
+    "clear": "Désélectionner"
+  },
+  "release": {
+    "album": "Album",
+    "ep": "EP",
+    "single": "Single",
+    "compilation": "Compilation"
+  },
+  "albumPage": {
+    "moreFrom": "Plus de {name}",
+    "enlarge": "Agrandir la pochette"
+  },
+  "artistPage": {
+    "similar": "Artistes similaires"
+  },
+  "barExtra": {
+    "timeToggle": "Afficher le temps restant ou la durée",
+    "album": "Album"
+  },
+  "similar": {
+    "title": "Similaires",
+    "empty": "Aucun titre similaire."
+  },
+  "songs": {
+    "withArt": "Afficher les pochettes",
+    "plays": "Écoutes",
+    "added": "Ajouté le"
+  },
+  "sidebar": {
+    "title": "Playlists",
+    "all": "Toutes les playlists",
+    "show": "Afficher les playlists",
+    "hide": "Masquer les playlists"
+  },
+  "drop": {
+    "queue": "Déposer pour ajouter à la file",
+    "added": "{count, plural, one {# titre ajouté} other {# titres ajoutés}} à « {name} »"
   }
 }

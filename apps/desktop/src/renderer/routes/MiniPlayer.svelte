@@ -3,6 +3,7 @@
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
   import { imageUrl } from '../lib/images';
+  import { initials, placeholderBg } from '../lib/music-art';
   import { command } from '../lib/music-ui.svelte';
   import { playback } from '../lib/stores.svelte';
 
@@ -24,7 +25,7 @@
 
 <div class="mini material drag" data-mini>
   <button class="art no-drag" title={t('music.mini.expand')} aria-label={t('music.mini.expand')} onclick={close}>
-    {#if art}<img src={art} alt="" decoding="async" />{:else}<Icon name="music" size={22} />{/if}
+    {#if art}<img src={art} alt="" decoding="async" />{:else if it}<span class="ph-initials" style:background={placeholderBg(it.album ?? it.name)}>{initials(it.album ?? it.name)}</span>{:else}<Icon name="music" size={22} />{/if}
   </button>
   <div class="txt">
     <span class="title headline" data-title>{it?.name ?? 'Wicaby'}</span>
@@ -68,6 +69,15 @@
     background: var(--fill-2);
     color: var(--label-3);
     overflow: hidden;
+  }
+  .art .ph-initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 650;
+    color: rgb(255 255 255 / 0.92);
   }
   .art img {
     width: 100%;

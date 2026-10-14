@@ -5,16 +5,18 @@
   import BrowseMenu from '../components/BrowseMenu.svelte';
   import Card from '../components/Card.svelte';
   import Icon from '../components/Icon.svelte';
+  import MusicArt from '../components/music/MusicArt.svelte';
   import SongList from '../components/music/SongList.svelte';
   import Toggle from '../components/Toggle.svelte';
   import { apiFor, dedupe, itemKey, itemPath } from '../lib/api';
   import { t } from '../lib/i18n.svelte';
   import { posterUrl } from '../lib/images';
+  import { isMusicItem, placeholderBg } from '../lib/music-art';
   import { scrollMemory } from '../lib/motion';
   import { albums, artists, genres, years } from '../lib/music';
   import { playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue } from '../lib/queue.svelte';
-  import { navigate } from '../lib/router.svelte';
+  import { navigate, router } from '../lib/router.svelte';
   import { errorMessage } from '../lib/stores.svelte';
 
   // A music library (music-spec MU-03, §4.3): Albums, Artists, Songs, Genres, Playlists and Folders tabs. The tab,
@@ -53,6 +55,9 @@
     }
   }
   const prefs = $state<Prefs>(loadPrefs());
+  // A link to a tab (the sidebar's "All playlists", music spec C5).
+  const linkedTab = untrack(() => router.route.query.get('tab')) as Tab | null;
+  if (linkedTab && TABS.includes(linkedTab)) prefs.tab = linkedTab;
   $effect(() => {
     const snapshot = JSON.stringify(prefs);
     try {
@@ -290,7 +295,7 @@
       <div class="genres">
         {#each items as g (g.Id)}
           {@const src = posterUrl(g, 160)}
-          <button class="genre" onclick={() => openGenre(g)}>
+          <button class="genre" class:tinted={!src} style:background={src ? undefined : placeholderBg(g.Name)} onclick={() => openGenre(g)}>
             {#if src}<img src={src} alt="" loading="lazy" decoding="async" />{/if}
             <span class="title-3">{g.Name}</span>
           </button>
@@ -307,7 +312,7 @@
         {#each items as it (itemKey(it))}
           {@const src = it.IsFolder && it.Type !== 'MusicAlbum' ? null : posterUrl(it, 56)}
           <button class="line" onclick={() => openFolderEntry(it)}>
-            <span class="art">{#if src}<img src={src} alt="" loading="lazy" decoding="async" />{:else}<Icon name={it.Type === 'Audio' ? 'music' : 'folder'} size={18} />{/if}</span>
+            <span class="art">{#if isMusicItem(it)}<MusicArt item={it} size={48} />{:else if src}<img src={src} alt="" loading="lazy" decoding="async" />{:else}<Icon name="folder" size={18} />{/if}</span>
             <span class="txt"><span class="t">{it.Name}</span><span class="a">{it.AlbumArtist ?? (it.Artists ?? []).join(', ')}</span></span>
           </button>
         {/each}
@@ -315,9 +320,8 @@
     {:else if prefs.tab === 'albums' && prefs.view === 'list'}
       <div class="rows">
         {#each items as it (itemKey(it))}
-          {@const src = posterUrl(it, 56)}
           <a class="line" href={`#${itemPath(it)}`}>
-            <span class="art">{#if src}<img src={src} alt="" loading="lazy" decoding="async" />{/if}</span>
+            <span class="art"><MusicArt item={it} size={48} /></span>
             <span class="txt"><span class="t">{it.Name}</span><span class="a">{it.AlbumArtist ?? ''}</span></span>
             <span class="meta footnote">{it.ProductionYear ?? ''}</span>
             <span class="meta footnote">{it.ChildCount ? t('common.count.items', { count: it.ChildCount }) : ''}</span>
@@ -500,6 +504,10 @@
     height: 100%;
     object-fit: cover;
     opacity: 0.5;
+  }
+  /* No genre image: a tile coloured from its name (music spec MU-A4), white text on it in both themes. */
+  .genre.tinted {
+    color: rgb(255 255 255 / 0.92);
   }
   .genre span {
     position: relative;

@@ -87,6 +87,10 @@ export const MUSIC_SHORTCUTS: readonly Shortcut[] = [
   music('favorite', ['F']),
   music('mini', ['Ctrl+Shift+M']),
   music('close', ['Escape']),
+  // Feishin-inspired (music-feishin-navidrome spec C9): the playing track's album page, and album jumps in the queue.
+  music('showPlaying', ['Ctrl+L']),
+  music('nextAlbum', ['Ctrl+Alt+ArrowRight']),
+  music('previousAlbum', ['Ctrl+Alt+ArrowLeft']),
 ];
 
 export const SHORTCUTS: readonly Shortcut[] = [...VOD_SHORTCUTS, ...LIVE_KEYS, ...MUSIC_SHORTCUTS];

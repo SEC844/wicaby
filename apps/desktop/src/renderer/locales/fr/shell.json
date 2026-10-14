@@ -37,7 +37,7 @@
     "menu": {
       "history": "Historique",
       "setup": "Assistant de configuration",
-      "servers": "Serveurs",
+      "servers": "Sources",
       "switchUser": "Changer d’utilisateur",
       "switchServer": "Changer de serveur",
       "quit": "Quitter Wicaby"

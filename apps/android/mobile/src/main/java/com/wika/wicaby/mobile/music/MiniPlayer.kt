@@ -68,6 +68,7 @@ fun MiniPlayerSlot() {
 @Composable
 fun MiniPlayer(s: MusicSession, onOpen: () -> Unit) {
     val item = s.current ?: return
+    PrefetchNextArt(s)
     val pos by rememberPosition(s)
     val dur = s.durationMs()
     Column(

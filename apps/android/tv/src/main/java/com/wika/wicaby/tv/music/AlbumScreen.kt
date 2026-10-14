@@ -28,7 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -36,7 +38,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Icon
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Api
@@ -45,19 +47,24 @@ import com.wika.wicaby.core.data.SafeNames
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.core.data.TICKS_PER_MS
 import com.wika.wicaby.core.data.clock
-import com.wika.wicaby.core.data.poster
+import com.wika.wicaby.core.data.posterArt
+import com.wika.wicaby.core.music.MusicUi
 import com.wika.wicaby.core.music.instantMix
+import com.wika.wicaby.tv.LocalNav
 import com.wika.wicaby.tv.R
 import com.wika.wicaby.tv.ui.C
 import com.wika.wicaby.tv.ui.Centered
 import com.wika.wicaby.tv.ui.ErrorState
 import com.wika.wicaby.tv.ui.Ic
 import com.wika.wicaby.tv.ui.LocalAccent
+import com.wika.wicaby.tv.ui.MediaRow
 import com.wika.wicaby.tv.ui.Pill
 import com.wika.wicaby.tv.ui.Radius
 import com.wika.wicaby.tv.ui.Spinner
 import com.wika.wicaby.tv.ui.Type
+import com.wika.wicaby.tv.ui.rememberFocusMemory
 import com.wika.wicaby.tv.ui.rememberLoad
+import com.wika.wicaby.tv.ui.route
 import com.wika.wicaby.tv.ui.tvFocus
 import kotlinx.coroutines.launch
 
@@ -82,6 +89,8 @@ fun AlbumScreen(api: Api, id: String, name: String) {
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(album != null) { if (album != null) runCatching { playFocus.requestFocus() } }
     val noMix = stringResource(R.string.music_mix_none)
+    val nav = LocalNav.current
+    val memory = rememberFocusMemory()
 
     fun start(tracks: List<Item>, i: Int, shuffle: Boolean = false) {
         if (tracks.isEmpty()) return
@@ -89,19 +98,36 @@ fun AlbumScreen(api: Api, id: String, name: String) {
         if (shuffle) Music.session?.toggleShuffle()
     }
 
-    Box(Modifier.fillMaxSize().background(C.bg).testTag("music-album")) {
+    // An album without art borrows its first track's cover (the field bug, music spec MU-A2), else its initials.
+    val art = remember(album?.item) { album?.item?.let { Servers.forItem(it, api).posterArt(it, 640) } }
+    // Feishin-inspired (music spec C4): the cover's colour washes the page (never text or focus); more by the artist.
+    val tint by rememberArtColour(art)
+    val wash = tint?.let { Modifier.background(Brush.verticalGradient(listOf(lerp(C.bg, it, 0.3f), C.bg))) } ?: Modifier
+
+    Box(Modifier.fillMaxSize().background(C.bg).then(wash).testTag("music-album")) {
         when {
             album == null && loaded.error != null -> Centered { ErrorState { com.wika.wicaby.tv.ui.Cache.changed() } }
             album == null -> Centered { Spinner() }
             else -> Row(Modifier.fillMaxSize().padding(start = 64.dp, end = 64.dp, top = 48.dp)) {
                 val item = album.item
-                val art = remember(item.id) { Servers.forItem(item, api).poster(item, 640) }
+                var failed by remember(art) { mutableStateOf(false) }
+                val byArtist = item.albumArtists.firstOrNull()?.takeIf { item.type == "MusicAlbum" }
+                val more by rememberLoad("music-more-from-$id") {
+                    if (byArtist == null) return@rememberLoad emptyList<Item>()
+                    val by = if (api.server.isEmby) arrayOf("ArtistIds" to byArtist.id, "ArtistType" to "AlbumArtist") else arrayOf<Pair<String, Any?>>("AlbumArtistIds" to byArtist.id)
+                    api.items(*by, "IncludeItemTypes" to "MusicAlbum", "Recursive" to true, "SortBy" to "ProductionYear,SortName", "SortOrder" to "Descending", "Limit" to 25)
+                        .items.filter { it.id != id && SafeNames.isValidId(it.id) }
+                }
                 Column(Modifier.width(320.dp)) {
                     Box(Modifier.size(320.dp).clip(RoundedCornerShape(Radius.lg)).background(C.elevated2), contentAlignment = Alignment.Center) {
-                        if (art != null) AsyncImage(art, item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else Icon(Ic.Play, null, tint = C.label3, modifier = Modifier.size(64.dp))
+                        if (art != null && !failed) AsyncImage(art, item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(), onError = { failed = true })
+                        else CoverPlaceholder(item.name.ifEmpty { name }, 88.sp)
                     }
-                    Text(item.name.ifEmpty { name }, style = Type.title2, color = C.label, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 20.dp))
+                    if (item.type == "MusicAlbum" && album.tracks.isNotEmpty()) {
+                        val kind = MusicUi.releaseType(album.tracks.size, album.tracks.sumOf { it.runTimeTicks ?: 0 } / TICKS_PER_MS, item.albumArtist)
+                        Text(stringResource(RELEASE.getValue(kind)), style = Type.footnote, color = C.label3, modifier = Modifier.padding(top = 20.dp))
+                    }
+                    Text(item.name.ifEmpty { name }, style = Type.title2, color = C.label, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = if (item.type == "MusicAlbum") 2.dp else 20.dp))
                     (item.albumArtist ?: item.artistLine.takeIf { it.isNotEmpty() })?.let {
                         Text(it, style = Type.callout, color = C.label2, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                     }
@@ -129,12 +155,27 @@ fun AlbumScreen(api: Api, id: String, name: String) {
                         itemsIndexed(album.tracks, key = { i, it -> "$i:${it.id}" }) { i, t ->
                             TrackRow(t, i, playlist = item.type == "Playlist", albumArtist = item.albumArtist) { start(album.tracks, i) }
                         }
+                        // Below the last track: ↓ reaches it, OK opens the album.
+                        val others = more.value.orEmpty()
+                        if (byArtist != null && others.isNotEmpty()) item("more-from") {
+                            MediaRow(
+                                stringResource(R.string.music_more_from, byArtist.name), others, api, memory, "album-more-from", wide = false, onFocusItem = {}, square = true,
+                                onClick = { nav.push(it.route()) }, modifier = Modifier.padding(top = 24.dp).testTag("music-album-more-from"),
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+private val RELEASE = mapOf(
+    MusicUi.Release.ALBUM to R.string.music_release_album,
+    MusicUi.Release.EP to R.string.music_release_ep,
+    MusicUi.Release.SINGLE to R.string.music_release_single,
+    MusicUi.Release.COMPILATION to R.string.music_release_compilation,
+)
 
 @Composable
 private fun TrackRow(t: Item, i: Int, playlist: Boolean, albumArtist: String?, onClick: () -> Unit) {

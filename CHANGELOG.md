@@ -18,6 +18,38 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-10-14
+
+Covers on Emby albums without art, a new music library and a Sources screen. Windows and Linux desktop **0.10.4**,
+Android TV app **0.10.4** (`versionCode` 25), Android mobile app **0.10.4** (`versionCode` 22).
+
+### Fixed
+
+- Android TV and mobile: comic covers from an Emby server show again. Emby answers a request for the last bytes of a
+  file (`Range: bytes=-N`) with its first bytes, so the archive's table of contents was never found; Wicaby now notices
+  and asks for the end of the file by offset.
+- Music, on desktop, Android TV and mobile: an album whose cover only shows once a track plays (Emby keeps no cover
+  for an album whose art is embedded in its tracks) now shows its first track's art in the library. An artist without
+  an image borrows one of its albums' covers. Each is looked up once, a few at a time, and kept for the session; with
+  no art at all, a tile shows the initials on a colour from the name.
+
+### Added
+
+- Music library ideas taken from Feishin: an Album, EP, Single or Compilation label, "More by" the artist and a ▶ per
+  disc on album pages, similar artists on artist pages, and a tint from the cover (desktop, Android TV and mobile).
+  On desktop: play next and add to queue on album cards, a full-size cover, `Ctrl`/`Shift`-click selection with a bar
+  and drag onto the queue or a playlist, playlists in the sidebar, covers and extra columns in Songs, an album link and
+  remaining time in the bar, a crossfade, format badge and "Similar" tab in the full-screen player, and the shortcuts
+  `Ctrl` + `L` (the playing track's album) and `Ctrl` + `Alt` + `→`/`←` (next or previous album in the queue). On
+  Android mobile, long-press to select tracks on an album page.
+
+### Changed
+
+- Desktop: the Servers page is now **Sources**, one list of your Emby, Jellyfin and Plex servers, folders and shares,
+  and photo sources, with remote access on the same page. **Add Source** opens a sheet that picks the kind of source
+  (Emby or Jellyfin, Plex, a folder or share, photos, or a device reached through Tailscale or NetBird) and lists the
+  servers found on this network.
+
 ## [0.10.3] - 2026-10-14
 
 Photo libraries from your own files. Windows and Linux desktop **0.10.3**, Android TV app **0.10.3** (`versionCode`

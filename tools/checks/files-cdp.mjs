@@ -264,7 +264,7 @@ async function run() {
   await shot(main, 'files-settings.png');
   await ev(`document.querySelector('[data-files-settings] .row.add').click()`);
   await until('add sheet', () => ev(`!!document.querySelector('.sheet .choices')`), 5000);
-  await ev(`[...document.querySelectorAll('.sheet .choice')][1].click()`);
+  await ev(`[...document.querySelectorAll('.sheet .choices button')][1].click()`);
   await sleep(200);
   await ev(`(() => { const i = document.querySelector('.sheet input.field'); i.value = ${js(secure.base)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await ev(`(() => { const f = [...document.querySelectorAll('.sheet input.field')]; f[1].value = 'demo'; f[1].dispatchEvent(new Event('input', { bubbles: true })); f[2].value = 'demo'; f[2].dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
