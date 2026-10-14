@@ -114,7 +114,7 @@ async function flavour(name, base, login, tokenHeader, items, views, uid, userQu
   const suite = await get(q(`ParentId=${album('Suites en deux temps').Id}&IncludeItemTypes=Audio&Recursive=true&SortBy=ParentIndexNumber,IndexNumber,SortName`));
   assert.equal(suite.TotalRecordCount, 12, `${name}: 2 × 6 tracks`);
   assert.deepEqual(suite.Items.map((t) => `${t.ParentIndexNumber}.${t.IndexNumber}`), [1, 2].flatMap((d) => [1, 2, 3, 4, 5, 6].map((n) => `${d}.${n}`)), `${name}: disc then track order`);
-  const tracks = (await get(q(`ParentId=${album('Marée basse').Id}&IncludeItemTypes=Audio&Recursive=true&SortBy=ParentIndexNumber,IndexNumber,SortName`))).Items;
+  const tracks = (await get(q(`ParentId=${album('Marée basse').Id}&IncludeItemTypes=Audio&Recursive=true&SortBy=ParentIndexNumber,IndexNumber,SortName&Fields=MediaSources`))).Items;
   assert.deepEqual(tracks.map((t) => t.IndexNumber), [1, 2, 3], `${name}: an album's tracks by number`);
   assert.equal(tracks[0].Album, 'Marée basse', `${name}: a track names its album`);
   assert.ok(tracks[0].AlbumId && tracks[0].Artists?.length && tracks[0].AlbumArtists?.length && tracks[0].ArtistItems?.length && tracks[0].AlbumPrimaryImageTag, `${name}: and its album id, artists and art`);
@@ -122,6 +122,9 @@ async function flavour(name, base, login, tokenHeader, items, views, uid, userQu
   // Music filters and sorts.
   const nora = artist('Nora Vale').Id;
   assert.deepEqual(names(await get(q(`AlbumArtistIds=${nora}&IncludeItemTypes=MusicAlbum&Recursive=true&SortBy=SortName`))), ['Lignes claires', 'Seule'], `${name}: AlbumArtistIds`);
+  // The artist page (desktop, Android TV): ArtistIds on albums is the album artist's own and the ones they appear on.
+  assert.deepEqual(names(await get(q(`ArtistIds=${nora}&IncludeItemTypes=MusicAlbum&Recursive=true&SortBy=SortName`))), ['Compilation Graphite', 'Lignes claires', 'Seule'], `${name}: ArtistIds on albums`);
+  assert.deepEqual(names(await get(q(`ArtistIds=${artist('Divers artistes').Id}&IncludeItemTypes=MusicAlbum&Recursive=true`))), ['Compilation Graphite'], `${name}: ArtistIds takes the album artist`);
   assert.deepEqual(names(await get(q(`ContributingArtistIds=${nora}&IncludeItemTypes=MusicAlbum&Recursive=true`))), ['Compilation Graphite'], `${name}: ContributingArtistIds (appears on)`);
   assert.deepEqual(names(await get(q(`GenreIds=genre-classique&IncludeItemTypes=MusicAlbum&Recursive=true&SortBy=SortName`))), ['Suites en deux temps', 'Trois vents'], `${name}: GenreIds`);
   assert.equal((await get(q(`AlbumIds=${album('Gain').Id}&IncludeItemTypes=Audio&Recursive=true`))).TotalRecordCount, 3, `${name}: AlbumIds`);
@@ -157,18 +160,26 @@ async function flavour(name, base, login, tokenHeader, items, views, uid, userQu
   entries = (await get(`/Playlists/${created.Id}/Items?${userQuery(User.Id)}`)).Items;
   assert.deepEqual(entries.map((e) => e.Id), [tracks[2].Id, tracks[1].Id], `${name}: moved and removed`);
 
+  // The static stream as Emby answers it: 400 without a DeviceId (Jellyfin does not ask), 400 for a MediaSourceId the
+  // track does not have (an Emby source id is not the item id; Jellyfin takes the item id), 200 with the track's own.
+  const dev = 'DeviceId=music-check';
+  const source = tracks[0].MediaSources?.[0]?.Id;
+  assert.ok(source, `${name}: tracks list their MediaSources when asked (Fields=MediaSources)`);
+  assert.equal((await call(`/Audio/${tracks[0].Id}/stream?static=true&MediaSourceId=${source}`)).status, jellyfin ? 200 : 400, `${name}: a stream without a DeviceId`);
+  assert.equal((await call(`/Audio/${tracks[0].Id}/stream?static=true&MediaSourceId=${tracks[0].Id}&${dev}`)).status, jellyfin ? 200 : 400, `${name}: the item id as MediaSourceId`);
+  assert.equal((await call(`/Audio/${tracks[0].Id}/stream?static=true&MediaSourceId=nope&${dev}`)).status, 400, `${name}: an unknown MediaSourceId`);
   // AC3: a 20 s track is a WAV of silence whose length matches RunTimeTicks within 50 ms.
-  const wav = Buffer.from(await (await call(`/Audio/${tracks[0].Id}/stream?static=true&mediaSourceId=${tracks[0].Id}`)).arrayBuffer());
+  const wav = Buffer.from(await (await call(`/Audio/${tracks[0].Id}/stream?static=true&mediaSourceId=${source}&${dev}&PlaySessionId=p0`)).arrayBuffer());
   assert.equal(wav.toString('ascii', 0, 4) + wav.toString('ascii', 8, 12), 'RIFFWAVE', `${name}: a WAV file`);
   const rate = wav.readUInt32LE(28);
   assert.ok(wav.length >= 44 + 65536 && wav.subarray(44, 44 + 65536).every((b) => b === 0), `${name}: 64 KB of silence`);
   assert.ok(wav.subarray(44).every((b) => b === 0), `${name}: silence only`);
   assert.ok(Math.abs(((wav.length - 44) / rate) * 1000 - tracks[0].RunTimeTicks / 10_000) <= 50, `${name}: length matches RunTimeTicks`);
-  const part = await call(`/Audio/${tracks[0].Id}/stream.wav`, { headers: { Range: 'bytes=100-199' } });
+  const part = await call(`/Audio/${tracks[0].Id}/stream.wav?${dev}`, { headers: { Range: 'bytes=100-199' } });
   assert.equal(part.status, 206, `${name}: Range`);
   // The ReplayGain album: silent FLAC with track and album gain tags.
   const gain = (await get(q(`ParentId=${album('Gain').Id}&IncludeItemTypes=Audio&Recursive=true&SortBy=ParentIndexNumber,IndexNumber`))).Items;
-  const flac = readFlac(Buffer.from(await (await call(`/Audio/${gain[0].Id}/stream.flac?static=true`)).arrayBuffer()));
+  const flac = readFlac(Buffer.from(await (await call(`/Audio/${gain[0].Id}/stream.flac?static=true&${dev}`)).arrayBuffer()));
   assert.equal(flac.samples, (gain[0].RunTimeTicks / TICKS_S) * 8000, `${name}: FLAC length`);
   assert.match(flac.tags.REPLAYGAIN_TRACK_GAIN, /^-\d+\.\d\d dB$/, `${name}: track gain tag`);
   assert.match(flac.tags.REPLAYGAIN_ALBUM_GAIN, /^-\d+\.\d\d dB$/, `${name}: album gain tag`);

@@ -120,10 +120,11 @@ export function addMusic({ add, makeList, ud }) {
 
 export const isMusic = (item) => item?.Type === 'Audio';
 
-// What PlaybackInfo answers for a track: one direct-play source (WAV, or FLAC for the tagged album).
+// What PlaybackInfo answers for a track: one direct-play source (WAV, or FLAC for the tagged album). Its id is not the
+// item id, as on a real Emby (mediasource_<n>): a client that sends the item id as MediaSourceId gets the 400 Emby gives.
 export function musicSource(item) {
   return {
-    Id: item.Id, Name: item.Name, Protocol: 'File', Container: item.Container, Path: `/music/${item.Id}.${item.Container}`,
+    Id: `mediasource_${item.Id}`, Name: item.Name, Protocol: 'File', Container: item.Container, Path: `/music/${item.Id}.${item.Container}`,
     Size: item.Container === 'flac' ? audioFile(item).length : 44 + Math.round((item.RunTimeTicks / TICKS_S) * RATE) * 2,
     Bitrate: 128_000, RunTimeTicks: item.RunTimeTicks, SupportsDirectPlay: true, SupportsDirectStream: true, SupportsTranscoding: true, DefaultAudioStreamIndex: 0,
     MediaStreams: [{ Type: 'Audio', Index: 0, Codec: item.Container === 'flac' ? 'flac' : 'pcm_s16le', Channels: 1, SampleRate: RATE, IsDefault: true, Language: 'und', DisplayTitle: 'Mono' }, ...(item._lyricStream ? [item._lyricStream] : [])],
@@ -232,6 +233,11 @@ export function musicRoute({ req, res, p, parts, q, items, list, send, log }) {
   if (['Audio', 'Videos', 'Items'].includes(parts[0]) && (parts[2] === 'stream' || parts[2]?.startsWith('stream.') || parts[2] === 'universal') && isMusic(item)) {
     // Emby's universal needs a PlaySessionId (spec §3.4); Jellyfin's does not.
     if (parts[2] === 'universal' && !jellyfin && !q1(q, 'PlaySessionId')) return send(res, 400, 'PlaySessionId is required', 'text/plain'), true;
+    // Emby's static stream answers 400 without a DeviceId, and both servers to a MediaSourceId the item does not have
+    // (Jellyfin also takes the item id itself; none: the default source).
+    const sourceId = q1(q, 'MediaSourceId');
+    if (parts[2] !== 'universal' && !jellyfin && !q1(q, 'DeviceId')) return log?.('REFUSED stream without DeviceId', p), send(res, 400, 'DeviceId is required', 'text/plain'), true;
+    if (sourceId && sourceId !== musicSource(item).Id && !(jellyfin && sourceId === item.Id)) return log?.('REFUSED stream of an unknown MediaSourceId', sourceId), send(res, 400, 'Unknown MediaSourceId', 'text/plain'), true;
     const container = parts[2].startsWith('stream.') ? parts[2].slice(7) : (q1(q, 'Container') ?? item.Container);
     logPush(LOG.streams, { id: item.Id, route: parts[0] + '/' + parts[2], container, static: /^true$/i.test(q1(q, 'Static') ?? '') });
     const data = audioFile(item);

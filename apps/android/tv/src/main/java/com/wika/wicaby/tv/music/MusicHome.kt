@@ -71,7 +71,7 @@ fun MusicHome(api: Api, parentId: String, title: String, top: Dp, onScrolled: (B
         MusicRow("recently-played", R.string.music_row_recently_played) {
             api.items(
                 "ParentId" to parentId, "IncludeItemTypes" to "Audio", "Recursive" to true, "Filters" to "IsPlayed",
-                "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to ROW,
+                "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to ROW, "Fields" to api.trackFields,
             ).items
         },
         // Playlists live outside the music library: the user's audio ones (a playlist keeps one media type).
@@ -88,9 +88,9 @@ fun MusicHome(api: Api, parentId: String, title: String, top: Dp, onScrolled: (B
 
     fun open(item: Item) {
         when {
-            // A track plays on through its album, an artist or a genre all their tracks (PlayQueue.tracks).
+            // A track plays on through its album, a genre all its tracks (PlayQueue.tracks); an artist opens their page.
             item.isAudio -> play(context, item)
-            item.type == "MusicArtist" || item.type == "MusicGenre" || item.type == "Genre" -> scope.launch { playMusic(context, api, item) }
+            item.type == "MusicGenre" || item.type == "Genre" -> scope.launch { playMusic(context, api, item) }
             else -> nav.push(item.route())
         }
     }

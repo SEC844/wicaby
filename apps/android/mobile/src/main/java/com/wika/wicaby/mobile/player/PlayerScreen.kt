@@ -93,6 +93,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.rememberScrollState
@@ -722,10 +723,12 @@ private fun BifThumb(bif: Bif, ms: Long) {
 }
 
 @Composable
-private fun RoundIcon(icon: ImageVector, description: String?, onClick: () -> Unit, size: Int = 44, iconSize: Int = 22, fill: Color = Color.Transparent, label: String? = null) {
+private fun RoundIcon(icon: ImageVector, description: String?, onClick: () -> Unit, size: Int = 44, iconSize: Int = 22, fill: Color = Color.Transparent, label: String? = null, on: Boolean? = null) {
     val source = remember { MutableInteractionSource() }
+    // [on]: a toggle, lit while on (and announced as selected).
     Box(
-        Modifier.size(size.dp).pressScale(source).clip(CircleShape).background(fill).clickable(source, null, role = Role.Button, onClick = onClick),
+        Modifier.size(size.dp).pressScale(source).clip(CircleShape).background(if (on == true) Color.White.copy(alpha = 0.22f) else fill)
+            .clickable(source, null, role = Role.Button, onClick = onClick).semantics { if (on != null) selected = on },
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, description, tint = Color.White, modifier = Modifier.size(iconSize.dp))
@@ -778,6 +781,8 @@ private fun Osd(
             }
             if (onNext != null) RoundIcon(Ic.Next, stringResource(R.string.up_next), onNext, iconSize = 18)
             RoundIcon(Ic.Captions, stringResource(R.string.subtitles), onTracks)
+            // Playback info: the stats panel (top left); stays on for the next videos.
+            RoundIcon(Ic.Info, stringResource(com.wika.wicaby.core.R.string.stats_title), { PlaybackStats.visible = !PlaybackStats.visible }, on = PlaybackStats.visible)
             RoundIcon(Ic.Gauge, stringResource(com.wika.wicaby.core.R.string.speed), onSpeed)
             RoundIcon(Ic.Scan, stringResource(com.wika.wicaby.core.R.string.aspect_value, stringResource(aspect.label)), onAspect)
             // X-02: the gear plus the current label ("Originale", "720p · 2 Mb/s").
@@ -967,7 +972,7 @@ private fun TracksSheet(pb: Playback, onSearch: () -> Unit, onSync: () -> Unit) 
     val allowed by produceState(true, pb.item?.id) { value = SubtitleSearch.allowed(pb.api) }
     val searchRow = if (pb.canSearchSubtitles && allowed) listOf(SEARCH_ROW to stringResource(com.wika.wicaby.core.R.string.subsearch_row)) else emptyList()
     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-        // "Synchronisation..." (audio delay, subtitle offset, stats) ends the audio column.
+        // "Synchronisation..." (audio delay, subtitle offset) ends the audio column.
         TrackColumn(
             stringResource(R.string.audio), audio.map { it.index to label(it) } + (SYNC_ROW to stringResource(com.wika.wicaby.core.R.string.sync_row)),
             pb.audioIndex ?: audio.firstOrNull { it.isDefault }?.index, { i -> if (i == SYNC_ROW) onSync() else pb.selectAudio(i) }, Modifier.weight(1f),
@@ -982,18 +987,15 @@ private fun TracksSheet(pb: Playback, onSearch: () -> Unit, onSync: () -> Unit) 
 private const val SEARCH_ROW = -2
 private const val SYNC_ROW = -4
 
-// Audio delay (50 ms steps) and subtitle offset (100 ms steps), each with a reset; "Whole series" on an episode;
-// the stats panel toggle. Values apply at once and are remembered per video (Playback.adjustDelay, AvSync).
+// Audio delay (50 ms steps) and subtitle offset (100 ms steps), each with a reset; "Whole series" on an episode.
+// Values apply at once and are remembered per video (Playback.adjustDelay, AvSync).
 @Composable
 private fun SyncSheet(pb: Playback) {
     Text(stringResource(com.wika.wicaby.core.R.string.sync_title).uppercase(), style = Type.eyebrow, color = G.label3, modifier = Modifier.padding(start = 12.dp, bottom = 6.dp))
     Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SyncRow(stringResource(com.wika.wicaby.core.R.string.sync_audio), pb.audioDelayMs, AvSync.AUDIO_STEP_MS) { pb.adjustDelay(audio = true, deltaMs = it) }
         SyncRow(stringResource(com.wika.wicaby.core.R.string.sync_subtitles), pb.subtitleDelayMs, AvSync.SUBTITLE_STEP_MS) { pb.adjustDelay(audio = false, deltaMs = it) }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (pb.canSyncSeries) PillButton(stringResource(com.wika.wicaby.core.R.string.sync_series), { pb.toggleSyncSeries() }, icon = if (pb.syncSeries) Ic.Check else null, selected = pb.syncSeries, compact = true)
-            PillButton(stringResource(com.wika.wicaby.core.R.string.stats_title), { PlaybackStats.visible = !PlaybackStats.visible }, icon = if (PlaybackStats.visible) Ic.Check else null, selected = PlaybackStats.visible, compact = true)
-        }
+        if (pb.canSyncSeries) PillButton(stringResource(com.wika.wicaby.core.R.string.sync_series), { pb.toggleSyncSeries() }, icon = if (pb.syncSeries) Ic.Check else null, selected = pb.syncSeries, compact = true)
         Text(stringResource(com.wika.wicaby.core.R.string.sync_hint), style = Type.footnote, color = G.label2)
     }
 }
@@ -1017,7 +1019,7 @@ private fun SyncRow(title: String, ms: Int, step: Int, onStep: (Int?) -> Unit) {
 private fun syncLabel(ms: Int): String =
     stringResource(com.wika.wicaby.core.R.string.sync_ms, (if (ms > 0) "+" else if (ms < 0) "−" else "") + formatNumber(abs(ms)))
 
-// The playback stats panel (top left), refreshed every second while shown.
+// The playback info panel (top left), refreshed every second while shown.
 @Composable
 private fun StatsOverlay(pb: Playback, modifier: Modifier) {
     val ctx = LocalContext.current

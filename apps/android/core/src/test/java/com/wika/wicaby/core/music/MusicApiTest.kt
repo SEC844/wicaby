@@ -48,6 +48,8 @@ class MusicApiTest {
             assertEquals("GET /Items", it.route())
             assertEquals("u1", it.url.queryParameter("userId"))
             assertEquals("Audio", it.url.queryParameter("IncludeItemTypes"))
+            // Tracks come with their MediaSources (the stream's source id), and Fields is sent once.
+            assertEquals(listOf("${api("jellyfin").listFields},MediaSources"), it.url.queryParameterValues("Fields"))
             assertEquals("Album,ParentIndexNumber,IndexNumber,SortName", it.url.queryParameter("SortBy"))
         }
         api("jellyfin").musicArtists("lib", albumArtistsOnly = true)

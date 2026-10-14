@@ -83,7 +83,7 @@ suspend fun tracksOf(api: Api, id: String, type: String, name: String): List<Ite
         "MusicGenre" -> arrayOf((if (api.server.isEmby) "Genres" to name else "GenreIds" to id), "SortBy" to sorted)
         else -> arrayOf("ParentId" to id, "SortBy" to "ParentIndexNumber,IndexNumber,SortName")
     }
-    return api.items(*q, "IncludeItemTypes" to "Audio", "Recursive" to true, "Limit" to 500).items
+    return api.items(*q, "IncludeItemTypes" to "Audio", "Recursive" to true, "Limit" to 500, "Fields" to api.trackFields).items
 }
 
 /** A paged list (albums, songs): the next 100 when the end comes into view. */

@@ -5,6 +5,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -71,5 +72,57 @@ class PlaybackStatsTest {
     fun lineSkipsMissingParts() {
         assertEquals("HEVC · 3840×2160 · HDR10", PlaybackStats.line("HEVC", null, "3840×2160", "", "HDR10"))
         assertNull(PlaybackStats.line(null, " "))
+    }
+
+    @Test
+    fun levels() {
+        assertEquals("5.1", PlaybackStats.level("hvc1.2.4.L153.B0"))
+        assertEquals("4.0", PlaybackStats.level("hev1.1.6.H120.90"))
+        assertEquals("4.0", PlaybackStats.level("avc1.640028"))
+        assertEquals("5.1", PlaybackStats.level("avc1.4D0033"))
+        assertEquals("4.0", PlaybackStats.level("av01.0.08M.10"))
+        assertEquals("5.1", PlaybackStats.level("vp09.02.51.10"))
+        assertEquals("6", PlaybackStats.level("dvh1.08.06"))
+        assertNull(PlaybackStats.level("av01.0.31M.08"))
+        assertNull(PlaybackStats.level("mp4a.40.2"))
+        assertNull(PlaybackStats.level("hvc1.2.4"))
+        assertNull(PlaybackStats.level(null))
+    }
+
+    @Test
+    fun subtitleFormats() {
+        assertEquals("SRT", PlaybackStats.subtitleFormat("subrip"))
+        assertEquals("PGS", PlaybackStats.subtitleFormat("PGSSUB"))
+        assertEquals("VobSub", PlaybackStats.subtitleFormat("dvd_subtitle"))
+        assertEquals("ASS", PlaybackStats.subtitleFormat("ass"))
+        assertEquals("XSUB", PlaybackStats.subtitleFormat("xsub"))
+        assertNull(PlaybackStats.subtitleFormat(" "))
+        assertNull(PlaybackStats.subtitleFormat(null))
+    }
+
+    @Test
+    fun transcodeReasonsAreWordedOrSpacedOut() {
+        // Every reason the desktop dashboard words has its string.
+        listOf(
+            "ContainerNotSupported", "VideoCodecNotSupported", "AudioCodecNotSupported", "SubtitleCodecNotSupported", "ContainerBitrateExceedsLimit",
+            "VideoBitrateNotSupported", "AudioBitrateNotSupported", "VideoResolutionNotSupported", "VideoLevelNotSupported", "VideoProfileNotSupported",
+            "VideoBitDepthNotSupported", "VideoFramerateNotSupported", "VideoRangeTypeNotSupported", "RefFramesNotSupported", "AnamorphicVideoNotSupported",
+            "InterlacedVideoNotSupported", "AudioChannelsNotSupported", "AudioProfileNotSupported", "AudioSampleRateNotSupported", "AudioBitDepthNotSupported",
+            "SecondaryAudioNotSupported", "AudioIsExternal", "DirectPlayError", "UnknownVideoStreamInfo", "UnknownAudioStreamInfo", "StreamCountExceedsLimit",
+        ).forEach { assertNotNull(it, PlaybackStats.reasonText(it)) }
+        assertNull(PlaybackStats.reasonText("NewThingNotSupported"))
+        assertEquals("New Thing Not Supported", PlaybackStats.spaced("NewThingNotSupported"))
+    }
+
+    @Test
+    fun connectionPath() {
+        assertEquals(PlaybackStats.Link.Local, PlaybackStats.link(false, "192.168.1.5"))
+        assertEquals(PlaybackStats.Link.Local, PlaybackStats.link(false, "nas"))
+        assertEquals(PlaybackStats.Link.Local, PlaybackStats.link(false, "nas.local"))
+        assertEquals(PlaybackStats.Link.Remote, PlaybackStats.link(false, "media.example.org"))
+        assertEquals(PlaybackStats.Link.Remote, PlaybackStats.link(false, "203.0.113.7"))
+        // The mesh wins, even for a LAN address it forwards.
+        assertEquals(PlaybackStats.Link.Mesh, PlaybackStats.link(true, "100.64.0.3"))
+        assertEquals(PlaybackStats.Link.Mesh, PlaybackStats.link(true, "192.168.1.5"))
     }
 }

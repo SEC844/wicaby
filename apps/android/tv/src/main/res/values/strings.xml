@@ -407,6 +407,8 @@
     <string name="music_row_artists">Artistes</string>
     <string name="music_row_genres">Genres</string>
     <string name="music_shuffle">Aléatoire</string>
+    <string name="music_singles">Singles et EP</string>
+    <string name="music_appears_on">Apparaît sur</string>
     <string name="music_queue_edit">Déplacer</string>
     <string name="music_queue_edit_hint">← → : déplacer · OK : terminé · maintenir OK : retirer</string>
 

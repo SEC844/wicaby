@@ -76,7 +76,7 @@ fun AlbumScreen(api: Api, id: String, name: String) {
         val item = api.item(id)
         // A playlist keeps its own order; an album goes by disc and track number.
         val order = if (item.type == "Playlist") emptyArray<Pair<String, Any?>>() else arrayOf<Pair<String, Any?>>("SortBy" to "ParentIndexNumber,IndexNumber,SortName")
-        Album(item, api.items("ParentId" to id, "IncludeItemTypes" to "Audio", "Recursive" to true, *order, "Limit" to 1000).items.filter { SafeNames.isValidId(it.id) })
+        Album(item, api.items("ParentId" to id, "IncludeItemTypes" to "Audio", "Recursive" to true, *order, "Limit" to 1000, "Fields" to api.trackFields).items.filter { SafeNames.isValidId(it.id) })
     }
     val album = loaded.value
     val playFocus = remember { FocusRequester() }

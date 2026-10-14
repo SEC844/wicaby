@@ -1,9 +1,16 @@
 package com.wika.wicaby.core.player
 
+import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.upstream.Loader
 import com.wika.wicaby.core.player.Recovery.Fix
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.IOException
@@ -85,5 +92,20 @@ class RecoveryTest {
         assertEquals(4_000L, b.next())
         now += 4_000 + 3_000
         assertNull(b.next())
+    }
+
+    // 0.10.2: a VC-1 trailer on a TV played as sound over black: no decoder, so ExoPlayer left the video out, no error.
+    @Test
+    fun aVideoNoDecoderCanPlayIsUndecodable() {
+        fun group(mime: String, support: Int) =
+            Tracks.Group(TrackGroup(Format.Builder().setSampleMimeType(mime).build()), false, intArrayOf(support), booleanArrayOf(support == C.FORMAT_HANDLED))
+        val audio = group(MimeTypes.AUDIO_AAC, C.FORMAT_HANDLED)
+        assertTrue(Recovery.undecodableVideo(Tracks(listOf(group(MimeTypes.VIDEO_VC1, C.FORMAT_UNSUPPORTED_SUBTYPE), audio))))
+        assertTrue(Recovery.undecodableVideo(Tracks(listOf(group(MimeTypes.VIDEO_MPEG2, C.FORMAT_UNSUPPORTED_TYPE), audio))))
+        assertFalse(Recovery.undecodableVideo(Tracks(listOf(group(MimeTypes.VIDEO_H264, C.FORMAT_HANDLED), audio))))
+        // Beyond the decoder's stated limits (a 4K stream on a 1080p one) still plays: ExoPlayer selects it.
+        assertFalse(Recovery.undecodableVideo(Tracks(listOf(group(MimeTypes.VIDEO_H265, C.FORMAT_EXCEEDS_CAPABILITIES), audio))))
+        // Music, or a file with no video at all: nothing to convert.
+        assertFalse(Recovery.undecodableVideo(Tracks(listOf(audio))))
     }
 }

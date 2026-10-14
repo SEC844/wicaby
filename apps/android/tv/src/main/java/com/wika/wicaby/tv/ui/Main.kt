@@ -131,6 +131,8 @@ fun Item.route(): Route =
             type == "PhotoAlbum" -> Route.PhotoAlbum(id, name, sid)
             // Music (MU-09): an album or an audio playlist opens its page (art, tracks, Lire / Aléatoire / Mix).
             type == "MusicAlbum" || (type == "Playlist" && mediaType == "Audio") -> Route.MusicAlbum(id, name, sid)
+            // An artist opens their page (albums, singles, appears on), as on desktop and mobile.
+            type == "MusicArtist" -> Route.MusicArtist(id, name, sid)
             isFolder && !isSeries && type != "Season" -> Route.Folder(id, name, sid)
             else -> Route.Detail(id, sid)
         }
@@ -863,9 +865,8 @@ fun LibraryGrid(
                                 when {
                                     item.type == "TvChannel" -> play(context, item)
                                     // A track plays on through its album (play: the resume question, then the music session;
-                                    // an audiobook in the player), an artist all their tracks (PlayQueue.tracks).
+                                    // an audiobook in the player).
                                     item.isAudio -> play(context, item)
-                                    item.type == "MusicArtist" -> scope.launch { com.wika.wicaby.tv.playMusic(context, api, item) }
                                     else -> nav.push(item.route())
                                 }
                             },

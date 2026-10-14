@@ -6,6 +6,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
+import com.wika.wicaby.core.data.MediaSource
 import com.wika.wicaby.core.data.Server
 import com.wika.wicaby.core.player.AudioFx
 import com.wika.wicaby.core.player.AudioFxChain
@@ -103,6 +104,35 @@ class MusicSessionTest {
             assertTrue(m.mediaMetadata.artworkUri.toString(), m.mediaMetadata.artworkUri.toString().contains("/Items/t${i + 1}/Images/Primary"))
             assertTrue(m.localConfiguration!!.uri.toString().contains("/Audio/t${i + 1}/stream?static=true"))
         }
+        s.release()
+    }
+
+    // The 0.10.1 bug: Emby answered 400 to /Audio/{id}/stream?static=true&MediaSourceId=<item id> (no DeviceId, and an
+    // Emby source id is not the item id). Now as desktop: the track's own source id, DeviceId and a PlaySessionId that
+    // the reports carry too; a track listed without its MediaSources sends none (the server's default source).
+    @Test
+    fun theStreamNamesTheSourceTheDeviceAndThePlaySession() {
+        val withSource = track(1).copy(mediaSources = listOf(MediaSource(id = "mediasource_1")))
+        val s = MusicSession(api(), player, listOf(withSource, track(2)))
+        s.load()
+        val u1 = player.getMediaItemAt(0).localConfiguration!!.uri
+        val u2 = player.getMediaItemAt(1).localConfiguration!!.uri
+        assertEquals("/Audio/t1/stream", u1.path)
+        assertEquals("mediasource_1", u1.getQueryParameter("MediaSourceId"))
+        assertEquals("phone", u1.getQueryParameter("DeviceId"))
+        assertEquals(null, u2.getQueryParameter("MediaSourceId"))
+        assertEquals("phone", u2.getQueryParameter("DeviceId"))
+        val psid = u1.getQueryParameter("PlaySessionId")!!
+        assertTrue(psid.length == 32 && psid != u2.getQueryParameter("PlaySessionId"))
+        awaitReports(1)
+        val playing = Json.parseToJsonElement(reports[0].body!!.utf8()).jsonObject
+        assertEquals(psid, playing["PlaySessionId"]!!.jsonPrimitive.content)
+        assertEquals("mediasource_1", playing["MediaSourceId"]!!.jsonPrimitive.content)
+        // The next track reports under the session its stream was opened with.
+        autoAdvance(s)
+        awaitReports(3)
+        assertEquals(psid, Json.parseToJsonElement(reports[1].body!!.utf8()).jsonObject["PlaySessionId"]!!.jsonPrimitive.content)
+        assertEquals(u2.getQueryParameter("PlaySessionId"), Json.parseToJsonElement(reports[2].body!!.utf8()).jsonObject["PlaySessionId"]!!.jsonPrimitive.content)
         s.release()
     }
 

@@ -84,7 +84,7 @@ fun MusicScreen(api: Api, route: GridRoute, nav: NavController) {
             item("shuffle") {
                 Chip(stringResource(R.string.music_shuffle), selected = false, icon = Ic.Shuffle) {
                     scope.launch {
-                        val all = runCatching { api.items("ParentId" to lib, "IncludeItemTypes" to "Audio", "Recursive" to true, "SortBy" to "Random", "Limit" to 300).items }.getOrNull()
+                        val all = runCatching { api.items("ParentId" to lib, "IncludeItemTypes" to "Audio", "Recursive" to true, "SortBy" to "Random", "Limit" to 300, "Fields" to api.trackFields).items }.getOrNull()
                         if (!all.isNullOrEmpty()) PlayerHolder.startMusic(context, api, all, 0)
                     }
                 }

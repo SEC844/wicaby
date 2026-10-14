@@ -15,6 +15,7 @@ import { bif, comicPage, zip } from './cbz-fixture.mjs';
 import { createSessions } from './sessions.mjs';
 import { addMusic, isMusic, LOG as MUSIC_LOG, logReport, lrclibRoute, musicFilters, musicRoute, musicSource } from './music-fixture.mjs';
 import { addPhotos, countAlbums, photoRoute } from './photos-fixture.mjs';
+import { vc1Trailer } from './trailer-fixture.mjs';
 
 const PORT = Number(process.argv[2] ?? 8096);
 const VIDEO = process.argv[3] ? path.resolve(process.argv[3]) : null;
@@ -344,6 +345,12 @@ add({ Id: 'trailer-3', Name: 'Uplink · Bande-annonce', Type: 'Trailer', MediaTy
 TRAILERS['movie-3'] = ['trailer-3'];
 items.get('movie-3').LocalTrailerCount = 1;
 items.get('movie-2').RemoteTrailers = [{ Url: 'https://youtu.be/eRsGyueVLvQ' }];
+// A VC-1 local trailer (trailer-fixture.mjs): Android has no decoder for it, so a direct play shows black (0.10.2).
+add({ Id: 'trailer-6', Name: 'Bande-annonce VC-1', Type: 'Trailer', MediaType: 'Video', RunTimeTicks: 30 * 10_000_000, ImageTags: { Primary: 'p' } });
+VIDEO_OVERRIDES['trailer-6'] = { Codec: 'vc1', Width: 1920, Height: 1080, VideoRange: 'SDR', VideoRangeType: undefined, ExtendedVideoType: 'None', DisplayTitle: '1080p VC-1' };
+TRAILERS['movie-6'] = ['trailer-6'];
+items.get('movie-6').LocalTrailerCount = 1;
+let vc1File = null;
 
 // Extras (SpecialFeatures): Video items with an ExtraType, outside every library listing.
 const EXTRAS = { 'movie-0': ['extra-0-1', 'extra-0-2'], 'series-1': ['extra-s1-1'] };
@@ -427,7 +434,15 @@ const sortNameOf = (x) => (x.SortName ?? x.Name ?? '').toLowerCase().replace(/^(
 function list(arr, q) {
   const start = Number(q.get('StartIndex') ?? 0);
   const limit = Number(q.get('Limit') ?? 1000);
-  return { Items: arr.slice(start, start + limit).map(view), TotalRecordCount: arr.length, StartIndex: start };
+  // As both servers: a track in a list carries its MediaSources and MediaStreams only when Fields names them.
+  const fields = (q.get('Fields') ?? q.get('fields') ?? '').split(',');
+  const trim = (v) => {
+    if (v.Type !== 'Audio') return v;
+    if (!fields.includes('MediaSources')) delete v.MediaSources;
+    if (!fields.includes('MediaStreams')) delete v.MediaStreams;
+    return v;
+  };
+  return { Items: arr.slice(start, start + limit).map((x) => trim(view(x))), TotalRecordCount: arr.length, StartIndex: start };
 }
 
 function svg(id, type, w, h) {
@@ -848,6 +863,13 @@ export async function handler(req, res) {
   // Music (music-fixture.mjs): silent streams, lyrics, genres, instant mix, artists.
   if (musicRoute({ req, res, p, parts, q, items, list, send, log: hooks.log })) return;
   if ((parts[0] === 'Videos' || parts[0] === 'Items') && (parts[2] === 'stream' || parts[2]?.startsWith('stream.') || parts[2] === 'Download')) {
+    // The VC-1 trailer's own file on a direct play; the server's conversion (not static) is the normal video below.
+    if (parts[1] === 'trailer-6' && /^true$/i.test(q.get('static') ?? q.get('Static') ?? '')) {
+      vc1File ??= vc1Trailer(30);
+      hooks.log('Stream VC-1 trailer', p);
+      res.writeHead(200, { 'Content-Type': 'video/x-matroska', 'Content-Length': vc1File.length });
+      return res.end(vc1File);
+    }
     if (!VIDEO || !fs.existsSync(VIDEO)) return send(res, 404, 'No test video configured', 'text/plain');
     if (streamFail.mode !== 'none' && streamFail.count > 0) {
       const { mode, after } = streamFail;
@@ -1003,7 +1025,8 @@ export async function handler(req, res) {
       if (ids) arr = arr.filter((x) => ids.includes(x.Id));
       if (parent) arr = arr.filter((x) => x.ParentId === parent || (q.get('Recursive') === 'true' && (x.SeriesId === parent || x.SeasonId === parent || items.get(x.SeriesId)?.ParentId === parent || items.get(x.ParentId)?.ParentId === parent)));
       const artists = q.get('ArtistIds')?.split(',');
-      if (artists) arr = arr.filter((x) => x.ArtistItems?.some((a) => artists.includes(a.Id)));
+      // Both servers: an album artist or an artist credited on the item.
+      if (artists) arr = arr.filter((x) => [...(x.ArtistItems ?? []), ...(x.AlbumArtists ?? [])].some((a) => artists.includes(a.Id)));
       if (types) arr = arr.filter((x) => types.includes(x.Type));
       if (term) arr = arr.filter((x) => x.Name.toLowerCase().includes(term));
       if (q.get('Genres')) arr = arr.filter((x) => x.Genres?.includes(q.get('Genres')));

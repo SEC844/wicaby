@@ -396,6 +396,8 @@
     <string name="music_row_artists">Artists</string>
     <string name="music_row_genres">Genres</string>
     <string name="music_shuffle">Shuffle</string>
+    <string name="music_singles">Singles &amp; EPs</string>
+    <string name="music_appears_on">Appears on</string>
     <string name="music_queue_edit">Move</string>
     <string name="music_queue_edit_hint">← →: move · OK: done · hold OK: remove</string>
 

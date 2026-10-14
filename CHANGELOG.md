@@ -18,6 +18,31 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-10-14
+
+Music and trailer fixes on Android, playback info. Windows and Linux desktop **0.10.2**, Android TV app **0.10.2**
+(`versionCode` 23), Android mobile app **0.10.2** (`versionCode` 20).
+
+### Added
+
+- Android TV: an artist opens their page, as on desktop and mobile, instead of playing at once: their art over the
+  backdrop, **Play** and **Shuffle** (focus starts on Play), then rows of albums, **Singles & EPs** and **Appears on**.
+  OK on an album opens the album page; Back returns to the artist.
+- Android TV and mobile: **Playback info** is now a top-level entry (a column of the TV player's track menu, an (i)
+  button in the mobile player's top bar) instead of a toggle inside "Sync…". The panel catches up with the desktop
+  overlay: direct play, direct stream or transcode with the server's reasons in plain words, video level and bit depth,
+  audio sample rate, subtitle format, and the server with its path (local network, remote or mesh); larger text on TV.
+
+### Fixed
+
+- Android TV and mobile: music played nothing on Emby (the server answered 400 to every track). The stream now carries
+  the app's device id and a play session id, as desktop and the video player do, and the track's own media source id
+  (an Emby source id is not the item id): the music lists now ask the server for it. The Playing, Progress and Stopped
+  reports carry the stream's play session id.
+- Android TV and mobile: a video no decoder of the device can play (a VC-1 trailer, for one) no longer plays as sound
+  over a black screen: the server converts it, as after a decoder error. ExoPlayer drops such a track without an
+  error, which is why the TV showed nothing.
+
 ## [0.10.1] - 2026-10-13
 
 LAN services through the VPN, TV fixes. Windows and Linux desktop **0.10.1**, Android TV app **0.10.1** (`versionCode`

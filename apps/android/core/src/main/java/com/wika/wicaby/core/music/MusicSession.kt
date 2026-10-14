@@ -55,7 +55,8 @@ object MusicGain {
  * The music player (music spec MU-07, §4.5), the twin of player/Playback.kt for songs. The queue ([PlayQueue] with the
  * MusicQueue ops) is the truth; the player holds a window of it, the current track and the next two, so ExoPlayer
  * plays them gapless. Each transition reports Stopped (previous) then Playing (next), sets the loudness gain and
- * refills the window. Tracks stream directly (/Audio/{id}/stream?static=true, §3.4), a downloaded one from its file.
+ * refills the window. Tracks stream directly (/Audio/{id}/stream?static=true with DeviceId and PlaySessionId, §3.4), a
+ * downloaded one from its file.
  */
 class MusicSession(
     val api: Api,
@@ -241,7 +242,14 @@ class MusicSession(
     internal fun mediaItem(id: String): MediaItem {
         val copy = local(id)
         val it = copy?.item ?: known[id] ?: Item(id)
-        val uri = copy?.uri ?: Uri.parse(api.url("/Audio/$id/stream", "static" to true, "MediaSourceId" to (it.mediaSources.firstOrNull()?.id ?: id)))
+        // As desktop and the video path: DeviceId and a PlaySessionId (Emby answers 400 without the DeviceId), and the
+        // track's own source id (an Emby source id is not the item id); unknown, none, so the server takes the default.
+        val uri = copy?.uri ?: Uri.parse(
+            api.url(
+                "/Audio/$id/stream", "static" to true, "MediaSourceId" to it.mediaSources.firstOrNull()?.id,
+                "PlaySessionId" to newSessionId(), "DeviceId" to api.deviceId,
+            ),
+        )
         val meta = MediaMetadata.Builder()
             .setTitle(it.name).setArtist(it.artistLine).setAlbumTitle(it.album).setAlbumArtist(it.albumArtist)
             .setTrackNumber(it.indexNumber).setDiscNumber(it.parentIndexNumber)
@@ -299,7 +307,8 @@ class MusicSession(
     // A new current track: its Playing report and its gain.
     private fun begin() {
         current = known[queue.id] ?: queue.id?.let { local(it)?.item }
-        playSessionId = UUID.randomUUID().toString().replace("-", "")
+        // The one the stream was opened with, so the reports and the stream are one session.
+        playSessionId = player.currentMediaItem?.localConfiguration?.uri?.getQueryParameter("PlaySessionId") ?: newSessionId()
         lastPosMs = 0
         reported = true
         report("/Sessions/Playing", null)
@@ -325,7 +334,7 @@ class MusicSession(
 
     private fun body(it: Item, posMs: Long, event: String?) = reporter.body(
         SessionReporter.State(
-            it.id, it.mediaSources.firstOrNull()?.id ?: it.id, playSessionId, posMs * TICKS_PER_MS, !player.playWhenReady,
+            it.id, it.mediaSources.firstOrNull()?.id, playSessionId, posMs * TICKS_PER_MS, !player.playWhenReady,
             muted = false, volume = null, playMethod = "DirectPlay", canSeek = true,
         ),
         event,
@@ -359,7 +368,7 @@ class MusicSession(
         override fun enqueue(ids: List<String>, next: Boolean): Boolean {
             val safe = ids.filter(SafeNames::isValidId)
             scope.launch {
-                val items = runCatching { api.items("Ids" to safe.joinToString(","), "EnableImages" to true).items }.getOrNull() ?: return@launch
+                val items = runCatching { api.items("Ids" to safe.joinToString(","), "EnableImages" to true, "Fields" to api.trackFields).items }.getOrNull() ?: return@launch
                 if (next) playNext(items) else addToQueue(items)
             }
             return true
@@ -367,6 +376,7 @@ class MusicSession(
     }
 
     companion object {
+        private fun newSessionId() = UUID.randomUUID().toString().replace("-", "")
         const val WINDOW = 3
         const val ART_PX = 512
     }

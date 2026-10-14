@@ -21,7 +21,7 @@ suspend fun Api.albums(parentId: String, startIndex: Int = 0, limit: Int = 100):
     items("ParentId" to parentId, "IncludeItemTypes" to "MusicAlbum", "Recursive" to true, "SortBy" to "SortName", "StartIndex" to startIndex, "Limit" to limit)
 
 suspend fun Api.songs(parentId: String, startIndex: Int = 0, limit: Int = 100): ItemsResult =
-    items("ParentId" to parentId, "IncludeItemTypes" to "Audio", "Recursive" to true, "SortBy" to "Album,ParentIndexNumber,IndexNumber,SortName", "StartIndex" to startIndex, "Limit" to limit)
+    items("ParentId" to parentId, "IncludeItemTypes" to "Audio", "Recursive" to true, "SortBy" to "Album,ParentIndexNumber,IndexNumber,SortName", "StartIndex" to startIndex, "Limit" to limit, "Fields" to trackFields)
 
 /** Album artists (whom albums are filed under) or every artist credited on a track (§3.2); Jellyfin 12's /Persons later. */
 suspend fun Api.musicArtists(parentId: String, albumArtistsOnly: Boolean): ItemsResult =
@@ -35,7 +35,7 @@ suspend fun Api.musicGenres(parentId: String): ItemsResult =
 
 /** One route for tracks, albums, artists, genres and playlists on both servers (§3.3). */
 suspend fun Api.instantMix(id: String, limit: Int = 100): ItemsResult =
-    get("/Items/$id/InstantMix", userKey to userId, "Limit" to limit, "Fields" to listFields)
+    get("/Items/$id/InstantMix", userKey to userId, "Limit" to limit, "Fields" to trackFields)
 
 /**
  * Server lyrics (§3.5). Jellyfin: /Audio/{id}/Lyrics when HasLyrics. Emby has no lyrics route: an external lrc / text

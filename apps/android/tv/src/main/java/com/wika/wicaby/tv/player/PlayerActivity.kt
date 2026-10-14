@@ -1408,7 +1408,7 @@ private fun TrackPanel(pb: Playback, onClose: () -> Unit, onSearch: () -> Unit, 
     val searchRow = if (pb.canSearchSubtitles && allowed) listOf(SEARCH_ROW to stringResource(com.wika.wicaby.core.R.string.subsearch_row)) else emptyList()
     // TP-01: "Effets audio…" ends the audio column.
     val fxRow = if (audio.isEmpty()) emptyList() else listOf(AUDIO_FX_ROW to stringResource(com.wika.wicaby.core.R.string.audio_fx_row))
-    // Audio delay, subtitle offset and the stats panel.
+    // Audio delay and subtitle offset.
     val syncRow = listOf(SYNC_ROW to stringResource(com.wika.wicaby.core.R.string.sync_row))
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)).pointerInput(Unit) { detectTapGestures { onClose() } })
@@ -1417,32 +1417,40 @@ private fun TrackPanel(pb: Playback, onClose: () -> Unit, onSearch: () -> Unit, 
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(280.dp)
-                .padding(start = 48.dp, end = 48.dp, bottom = 32.dp)
+                // The text stays 56 dp in (inside the 48 dp overscan margin); five columns need the room.
+                .padding(start = 32.dp, end = 32.dp, bottom = 32.dp)
                 .clip(RoundedCornerShape(Radius.xl))
                 .background(C.elevated.copy(alpha = 0.96f))
                 .padding(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(32.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            // Weights: the short columns keep their uppercase titles ("TAILLE DU TEXTE", "INFOS DE LECTURE") on one line.
             TrackColumn(
-                stringResource(R.string.audio), Modifier.weight(1f), memory, "a",
+                stringResource(R.string.audio), Modifier.weight(1.3f), memory, "a",
                 audio.map { it.index to label(it) } + fxRow + syncRow, pb.audioIndex ?: audio.firstOrNull { it.isDefault }?.index,
                 { i -> if (i == AUDIO_FX_ROW) onAudioFx() else if (i == SYNC_ROW) onSync() else pb.selectAudio(i) }, defaultColumn = true,
             )
             TrackColumn(
-                stringResource(R.string.subtitles), Modifier.weight(1f), memory, "s",
+                stringResource(R.string.subtitles), Modifier.weight(1.3f), memory, "s",
                 listOf(-1 to off) + subs.map { it.index to label(it) } + searchRow, pb.subtitleIndex ?: -1,
                 { i -> if (i == SEARCH_ROW) onSearch() else pb.selectSubtitle(i) }, defaultColumn = audio.isEmpty(),
             )
             // Quick subtitle look, the same prefs as Réglages > Lecture > Sous-titres.
             TrackColumn(
-                stringResource(R.string.subtitle_size), Modifier.weight(0.6f), memory, "z",
+                stringResource(R.string.subtitle_size), Modifier.weight(1f), memory, "z",
                 listOf(R.string.size_small, R.string.size_normal, R.string.size_large, R.string.size_xlarge).mapIndexed { i, r -> i to stringResource(r) },
                 TvSettings.subtitleSize.value, { TvSettings.subtitleSize.value = it }, defaultColumn = false,
             )
             TrackColumn(
-                stringResource(R.string.subtitle_position), Modifier.weight(0.6f), memory, "p",
+                stringResource(R.string.subtitle_position), Modifier.weight(1f), memory, "p",
                 SUB_POSITION_LABELS.mapIndexed { i, r -> i to stringResource(r) },
                 TvSettings.subtitlePosition.value, { TvSettings.subtitlePosition.value = it }, defaultColumn = false,
+            )
+            // Playback info: the stats panel (top left); stays on for the next videos.
+            TrackColumn(
+                stringResource(com.wika.wicaby.core.R.string.stats_title), Modifier.weight(1.1f), memory, "i",
+                listOf(0 to stringResource(R.string.off), 1 to stringResource(R.string.on)),
+                if (PlaybackStats.visible) 1 else 0, { PlaybackStats.visible = it == 1 }, defaultColumn = false,
             )
         }
     }
@@ -1802,8 +1810,8 @@ private fun SpeedPanel(current: Float, onSelect: (Float) -> Unit, onClose: () ->
     }
 }
 
-// Audio delay (50 ms steps) and subtitle offset (100 ms steps), each with a reset; "Whole series" on an episode;
-// the stats panel toggle. Values apply at once and are remembered per video (Playback.adjustDelay, AvSync).
+// Audio delay (50 ms steps) and subtitle offset (100 ms steps), each with a reset; "Whole series" on an episode.
+// Values apply at once and are remembered per video (Playback.adjustDelay, AvSync).
 @Composable
 private fun SyncPanel(pb: Playback, onClose: () -> Unit) {
     val first = remember { FocusRequester() }
@@ -1813,11 +1821,8 @@ private fun SyncPanel(pb: Playback, onClose: () -> Unit) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SyncRow(stringResource(com.wika.wicaby.core.R.string.sync_audio), pb.audioDelayMs, AvSync.AUDIO_STEP_MS, first) { pb.adjustDelay(audio = true, deltaMs = it) }
             SyncRow(stringResource(com.wika.wicaby.core.R.string.sync_subtitles), pb.subtitleDelayMs, AvSync.SUBTITLE_STEP_MS, null) { pb.adjustDelay(audio = false, deltaMs = it) }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (pb.canSyncSeries) {
-                    Pill(stringResource(com.wika.wicaby.core.R.string.sync_series), onClick = { pb.toggleSyncSeries() }, icon = if (pb.syncSeries) Ic.Check else null, selected = pb.syncSeries)
-                }
-                Pill(stringResource(com.wika.wicaby.core.R.string.stats_title), onClick = { PlaybackStats.visible = !PlaybackStats.visible }, icon = if (PlaybackStats.visible) Ic.Check else null, selected = PlaybackStats.visible)
+            if (pb.canSyncSeries) {
+                Pill(stringResource(com.wika.wicaby.core.R.string.sync_series), onClick = { pb.toggleSyncSeries() }, icon = if (pb.syncSeries) Ic.Check else null, selected = pb.syncSeries)
             }
         }
     }
@@ -1840,7 +1845,8 @@ private fun SyncRow(title: String, ms: Int, step: Int, focus: FocusRequester?, o
 private fun syncLabel(ms: Int): String =
     stringResource(com.wika.wicaby.core.R.string.sync_ms, (if (ms > 0) "+" else if (ms < 0) "−" else "") + NumberFormat.getInstance(Core.locale).format(abs(ms)))
 
-// The playback stats panel (top left), refreshed every second while shown.
+// The playback info panel (top left), refreshed every second while shown. Sofa-sized text; nothing in it
+// takes focus, so the D-pad keeps driving the player.
 @Composable
 private fun StatsOverlay(pb: Playback, modifier: Modifier) {
     val ctx = LocalContext.current
@@ -1854,8 +1860,8 @@ private fun StatsOverlay(pb: Playback, modifier: Modifier) {
         Text(stringResource(com.wika.wicaby.core.R.string.stats_title).uppercase(), style = Type.eyebrow, color = C.label3, modifier = Modifier.padding(bottom = 8.dp))
         rows.forEach { (label, value) ->
             Row {
-                Text(label, style = Type.caption, color = C.label2, modifier = Modifier.width(150.dp))
-                Text(value, style = Type.caption, color = Color.White, modifier = Modifier.widthIn(max = 420.dp))
+                Text(label, style = Type.callout, color = C.label2, modifier = Modifier.width(180.dp))
+                Text(value, style = Type.callout, color = Color.White, modifier = Modifier.widthIn(max = 480.dp))
             }
         }
     }

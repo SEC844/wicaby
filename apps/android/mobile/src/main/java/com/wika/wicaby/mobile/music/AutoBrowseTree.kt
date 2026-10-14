@@ -74,7 +74,7 @@ class AutoBrowseTree(
 suspend fun Api.autoNode(node: String): List<Item> {
     val id = node.substringAfter('/')
     return when {
-        node == AutoBrowseTree.RECENT -> items("IncludeItemTypes" to "Audio", "Recursive" to true, "Filters" to "IsPlayed", "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to 50).items
+        node == AutoBrowseTree.RECENT -> items("IncludeItemTypes" to "Audio", "Recursive" to true, "Filters" to "IsPlayed", "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to 50, "Fields" to trackFields).items
         node == AutoBrowseTree.PLAYLISTS -> lists(ListKind.Playlist).filter { it.mediaType == null || it.mediaType == "Audio" }
         node == AutoBrowseTree.ALBUMS -> items("IncludeItemTypes" to "MusicAlbum", "Recursive" to true, "SortBy" to "DateCreated,SortName", "SortOrder" to "Descending", "Limit" to 100).items
         node == AutoBrowseTree.ARTISTS -> albumArtists("SortBy" to "SortName", "Limit" to 200).items

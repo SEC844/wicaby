@@ -253,6 +253,7 @@ sealed interface Route {
     data class Files(val sourceId: String, val id: String, val name: String) : Route
     // Music (MU-09): an album or audio playlist page, and a music library's full grid (albums, artists or songs).
     data class MusicAlbum(val id: String, val name: String, val serverId: String? = null) : Route
+    data class MusicArtist(val id: String, val name: String, val serverId: String? = null) : Route
     data class MusicLibrary(val id: String, val name: String, val mode: Int, val serverId: String? = null) : Route
     // Onboarding (OB-T1): the first-run wizard; rerun: Réglages > Interface > Relancer la configuration.
     data class Welcome(val rerun: Boolean = false) : Route
@@ -557,6 +558,9 @@ private fun App() {
                                 is Route.Files -> if (api != null) com.wika.wicaby.tv.ui.FilesFolderScreen(route.sourceId, route.id, route.name)
                                 is Route.MusicAlbum -> if (api != null) ServerScope(route.serverId) {
                                     LocalApi.current?.let { com.wika.wicaby.tv.music.AlbumScreen(it, route.id, route.name) }
+                                }
+                                is Route.MusicArtist -> if (api != null) ServerScope(route.serverId) {
+                                    LocalApi.current?.let { com.wika.wicaby.tv.music.ArtistScreen(it, route.id, route.name) }
                                 }
                                 is Route.MusicLibrary -> if (api != null) ServerScope(route.serverId) {
                                     com.wika.wicaby.tv.music.MusicLibraryScreen(route.id, route.name, route.mode)

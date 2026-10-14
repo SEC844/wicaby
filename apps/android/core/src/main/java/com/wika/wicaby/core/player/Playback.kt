@@ -54,6 +54,9 @@ import com.wika.wicaby.core.livetv.LiveState
 import com.wika.wicaby.core.livetv.LiveTuner
 import com.wika.wicaby.core.livetv.ServerLiveApi
 import com.wika.wicaby.core.livetv.ZapEntry
+import com.wika.wicaby.core.net.AddressSwitch
+import com.wika.wicaby.core.net.ServerTransport
+import com.wika.wicaby.core.net.origin
 import com.wika.wicaby.core.trakt.TraktService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -67,6 +70,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.put
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 // A downloaded copy: the item as it was fetched (streams, chapters) and the file to play.
 class LocalMedia(val item: Item, val uri: Uri)
@@ -211,6 +215,11 @@ class Playback(
         override fun onTracksChanged(tracks: Tracks) {
             // A file source has no server to list the embedded tracks: they come from the file itself.
             if (api.server.isFiles && !tracks.isEmpty) fileStreams(tracks, streams).let { if (it != streams) streams = it }
+            // 0.10.2: a trailer in VC-1 played as sound over black on a TV. Direct play only (a conversion is h264).
+            if (live == null && !fellBack && playMethod != "Transcode" && !tracks.isEmpty && Recovery.undecodableVideo(tracks)) {
+                if (BuildConfig.DEBUG) Log.w("Wicaby", "no decoder for the video on $playMethod")
+                if (!fallBack(Recovery.Fix.TRANSCODE)) fail(context.getString(R.string.files_error_cannot_decode))
+            }
             if (applyTracksPending && !tracks.isEmpty) {
                 applyTracksPending = false
                 applyTracks()
@@ -228,10 +237,15 @@ class Playback(
 
     // B01/B03: the server's conversion once, or a reload at the position with backoff. False: show the error.
     private fun recover(e: PlaybackException): Boolean {
-        if (preview || offline || stopped || item == null) return false
         val status = (e.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode ?: 0
         val fix = Recovery.decide(e.errorCode, e.cause, status, playMethod, fellBack)
         if (BuildConfig.DEBUG) Log.w("Wicaby", "player error ${e.errorCodeName} on $playMethod: $fix", e)
+        return fallBack(fix)
+    }
+
+    // Applies a [Recovery.Fix]: false when there is nothing to do (show the error).
+    private fun fallBack(fix: Recovery.Fix): Boolean {
+        if (preview || offline || stopped || item == null) return false
         // A file source cannot convert (caps transcode): say so instead of asking a server for a conversion.
         if (!api.server.caps.transcode && (fix == Recovery.Fix.TRANSCODE || fix == Recovery.Fix.TRANSCODE_LOW)) {
             fail(context.getString(R.string.files_error_cannot_decode))
@@ -766,13 +780,16 @@ class Playback(
                 // The decoder's colour info wins; the server's range only when Media3 has none.
                 val transfer = f.colorInfo?.colorTransfer ?: Format.NO_VALUE
                 PlaybackStats.line(
-                    PlaybackStats.codecName(f.sampleMimeType), PlaybackStats.profile(f.codecs) ?: sv?.profile,
+                    PlaybackStats.codecName(f.sampleMimeType), PlaybackStats.profile(f.codecs) ?: sv?.profile, PlaybackStats.level(f.codecs)?.let { "L$it" },
                     if (f.width > 0 && f.height > 0) "${f.width}×${f.height}" else null, fps?.let { nf.format(it) },
                     PlaybackStats.hdr(f.sampleMimeType, transfer) ?: sv?.takeIf { transfer == Format.NO_VALUE }?.let { VideoRange.of(it).badge },
                 )
             },
+            bitDepth = v?.let { f -> f.colorInfo?.lumaBitdepth?.takeIf { it > 0 } ?: sv?.bitDepth },
             videoDecoder = probe.videoDecoder,
-            audio = a?.let { f -> PlaybackStats.line(PlaybackStats.codecName(f.sampleMimeType), PlaybackStats.channels(f.channelCount)) },
+            audio = a?.let { f ->
+                PlaybackStats.line(PlaybackStats.codecName(f.sampleMimeType), PlaybackStats.channels(f.channelCount), f.sampleRate.takeIf { it > 0 }?.let { nf.format(it / 1000.0) + " kHz" })
+            },
             audioDecoder = if (bitstream) null else probe.audioDecoder,
             passthrough = bitstream,
             bitrate = PlaybackStats.transcodeBitrate(url) ?: s?.bitrate?.toLong(),
@@ -780,7 +797,20 @@ class Playback(
             reasons = PlaybackStats.reasons(url),
             bufferMs = player.totalBufferedDuration,
             dropped = dropped,
+            subtitle = streams.firstOrNull { it.type == "Subtitle" && it.index == subtitleIndex }?.let { PlaybackStats.subtitleFormat(it.codec) },
+            server = api.server.name,
+            link = link(),
+            offline = offline,
         )
+    }
+
+    // The stats panel's path to the server: the address in use (B09), forwarded by the mesh node or not.
+    private fun link(): PlaybackStats.Link? {
+        val t = Core.transport
+        val u = ((t as? AddressSwitch)?.inUse(api.server) ?: api.server.address).toHttpUrlOrNull() ?: return null
+        // The mesh caches each origin's answer (a forwarder or "not a peer"): no new dial for a server in use.
+        val mesh = t !== ServerTransport.Direct && runCatching { Core.mesh.forward(origin(u)) }.getOrNull() != null
+        return PlaybackStats.link(mesh, u.host)
     }
 
     /** X-02 Quality sheet rows for the version playing: Original first, then the presets coversSource keeps. */

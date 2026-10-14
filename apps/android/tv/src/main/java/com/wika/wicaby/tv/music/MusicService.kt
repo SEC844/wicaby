@@ -119,7 +119,7 @@ suspend fun MusicSession.mix(): Boolean {
 
 /** The tracks [ids] stand for, in that order (PlayQueue.tracks gives the ids; this their metadata, 100 a request). */
 suspend fun Api.tracksOf(ids: List<String>): List<Item> {
-    val byId = ids.distinct().chunked(100).flatMap { items("Ids" to it.joinToString(","), "Limit" to it.size).items }.associateBy { it.id }
+    val byId = ids.distinct().chunked(100).flatMap { items("Ids" to it.joinToString(","), "Limit" to it.size, "Fields" to trackFields).items }.associateBy { it.id }
     return ids.mapNotNull(byId::get)
 }
 

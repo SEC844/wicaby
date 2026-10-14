@@ -113,6 +113,7 @@ data class MediaStream(
     val dvVersionMajor: Int? = null,
     val dvBlSignalCompatibilityId: Int? = null,
     val realFrameRate: Float? = null,
+    val bitDepth: Int? = null,
     val averageFrameRate: Float? = null,
     // External subtitles: the file next to the media (X-03 finds a downloaded one by it).
     val path: String? = null,
@@ -395,6 +396,8 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
     val base = server.address + prefix
     // PremiereDate is not an ItemFields value on Jellyfin (it always sends it): named for Emby only (X-01).
     val listFields = if (server.isEmby) "$LIST_FIELDS,PremiereDate" else LIST_FIELDS
+    // Music tracks: their MediaSources too, whose id the audio stream names (an Emby source id is not the item id).
+    val trackFields get() = "$listFields,MediaSources"
 
     private fun q(v: String) = "\"" + URLEncoder.encode(v, "UTF-8") + "\""
 
@@ -503,11 +506,12 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
             .getOrElse { get("/Users/$userId/Items/Latest", *query) }
     }
 
-    // Jellyfin has always taken /Items?userId= (the per-user route is obsolete since 10.9).
+    // Jellyfin has always taken /Items?userId= (the per-user route is obsolete since 10.9). A "Fields" in [query]
+    // replaces the list fields.
     suspend fun items(vararg query: Pair<String, Any?>): ItemsResult =
         get(
             if (server.isEmby) "/Users/$userId/Items" else "/Items", "userId" to userId.takeUnless { server.isEmby },
-            "Fields" to listFields, "EnableImageTypes" to "Primary,Backdrop,Thumb,Logo", "ImageTypeLimit" to 1, *query,
+            "Fields" to listFields.takeIf { query.none { q -> q.first == "Fields" } }, "EnableImageTypes" to "Primary,Backdrop,Thumb,Logo", "ImageTypeLimit" to 1, *query,
         )
 
     // Jellyfin 10.9 moved it to /Items/{id}?userId= (the per-user route is obsolete); older Jellyfin only has the old one.

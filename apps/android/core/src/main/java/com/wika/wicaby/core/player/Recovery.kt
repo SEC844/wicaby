@@ -1,6 +1,8 @@
 package com.wika.wicaby.core.player
 
+import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.Tracks
 import java.io.EOFException
 import java.io.InterruptedIOException
 import java.net.ConnectException
@@ -35,6 +37,13 @@ object Recovery {
             else -> Fix.NONE
         }
     }
+
+    /**
+     * A video track no decoder of this device can play (VC-1, MPEG-2…): ExoPlayer leaves it out without an error, so
+     * the sound plays over a black picture. Playback asks the server for a conversion, as for a decoder error.
+     */
+    fun undecodableVideo(tracks: Tracks): Boolean =
+        tracks.containsType(C.TRACK_TYPE_VIDEO) && !tracks.isTypeSupported(C.TRACK_TYPE_VIDEO, /* allowExceedsCapabilities = */ true)
 
     private fun transient(code: Int, chain: List<Throwable>, httpStatus: Int): Boolean = when (code) {
         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
