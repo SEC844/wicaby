@@ -14,7 +14,7 @@
   import { rotation } from '../../lib/photos/asset';
   import { exifOf, formatExif, type ApertureUnit } from '../../lib/photos/exif';
   import { setFavorite, type GridAsset } from '../../lib/photos/source.svelte';
-  import { errorMessage, toast } from '../../lib/stores.svelte';
+  import { errorMessage, isFileSource, toast } from '../../lib/stores.svelte';
   import { ZoomPan } from '../../lib/zoom.svelte';
 
   let {
@@ -138,8 +138,8 @@
         altitude: tpl('altitude', 'value'),
         location: tpl('location', 'lat', 'lon'),
       },
-      // Immich reports the f-number itself.
-      immichOf(a) ? 'fnumber' : APERTURE,
+      // Immich and the index of a photo source (EXIF FNumber) report the f-number itself.
+      immichOf(a) || isFileSource(a?.serverId) ? 'fnumber' : APERTURE,
     );
   });
 
@@ -393,14 +393,15 @@
     {#if onslideshow}
       <button class="round material-thin" aria-label={t('photos.viewer.slideshow')} onclick={() => onslideshow(index)}><Icon name="presentation" size={18} /></button>
     {/if}
-    <div class="more">
+    <!-- A photo source's file is already the original: nothing to save. -->
+    {#if !isFileSource(a?.serverId)}<div class="more">
       <button class="round material-thin" aria-label={t('photos.viewer.more')} aria-haspopup="menu" aria-expanded={menu} onclick={() => (menu = !menu)}><Icon name="ellipsis" size={18} /></button>
       {#if menu}
         <div class="menu material" role="menu">
           <button role="menuitem" onclick={saveOriginal}><Icon name="download" size={16} /> {t('photos.viewer.saveOriginal')}</button>
         </div>
       {/if}
-    </div>
+    </div>{/if}
   </header>
 
   {#if index > 0}<button class="nav prev round material-thin" aria-label={t('photos.viewer.previous')} onclick={() => go(index - 1)}><Icon name="chevronLeft" size={22} /></button>{/if}

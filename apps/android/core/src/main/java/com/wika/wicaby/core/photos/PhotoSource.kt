@@ -112,7 +112,10 @@ object PhotoSizes {
     fun tvTile(c: DeviceClass, px: Int): Int = if (c == DeviceClass.TV_LOW) minOf(px, TV_LOW_TILE) else px
 }
 
-fun Api.photoImage(a: PhotoAsset, maxWidth: Int? = null, maxHeight: Int? = null): String = if (Immich.owns(a)) immichImage(a, maxWidth, maxHeight) else url(
+fun Api.photoImage(a: PhotoAsset, maxWidth: Int? = null, maxHeight: Int? = null): String = if (Immich.owns(a)) immichImage(a, maxWidth, maxHeight)
+// A photo source: the file itself, which Coil downsamples to the tile and caches (no server to resize it).
+else if (this is com.wika.wicaby.core.files.FilesApi) image(a.id, "Primary", a.thumbTag, maxWidth, maxHeight)
+else url(
     "/Items/${a.id}/Images/Primary", "tag" to a.thumbTag, "maxWidth" to maxWidth, "maxHeight" to maxHeight, "quality" to 90,
     "AutoOrient" to true.takeIf { server.isEmby },
 )
@@ -142,6 +145,9 @@ fun immichClipPlayer(context: android.content.Context, url: String): androidx.me
 
 // The favourite toggle and the info panel's item, on the asset's own source.
 suspend fun Api.setPhotoFavorite(a: PhotoAsset, on: Boolean) = if (Immich.owns(a)) Immich.client().setFavorite(a.id, on) else setFavorite(a.id, on)
+
+// The info panel's aperture: Immich and the photo sources (EXIF FNumber) give the f-number itself.
+fun Api.apertureUnit(a: PhotoAsset): String = if (Immich.owns(a) || this is com.wika.wicaby.core.files.FilesApi) "fnumber" else "hidden"
 
 suspend fun Api.photoDetail(p: Photo): Item = if (Immich.owns(p.asset)) Immich.client().detail(p.asset.id) else item(p.asset.id)
 

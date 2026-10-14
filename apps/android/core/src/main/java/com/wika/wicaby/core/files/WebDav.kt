@@ -83,6 +83,13 @@ class WebDav(private val source: FileSource, val client: OkHttpClient) : FileBac
         }
     }
 
+    // Read inside the call, so its timeout covers the body too.
+    override suspend fun <T> open(rel: String, entry: FileEntry?, maxBytes: Int, use: (java.io.InputStream) -> T): T = gate.run {
+        withContext(Dispatchers.IO) {
+            call(Request.Builder().url(uri(rel, entry)).header("Range", "bytes=0-${maxBytes - 1}").build(), LIST_TIMEOUT_MS) { r -> use(r.body.byteStream()) }
+        }
+    }
+
     private fun <T> call(req: Request, timeoutMs: Long, read: (Response) -> T): T {
         val call = client.newCall(req)
         call.timeout().timeout(timeoutMs, TimeUnit.MILLISECONDS)

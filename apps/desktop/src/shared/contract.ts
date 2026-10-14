@@ -27,7 +27,8 @@ export interface ServerInfo {
   // Overlay network the server lives on, when one of its addresses is a VPN address.
   vpn?: VpnKind;
   // File sources only: the protocol (icon) and the address as shown, never with credentials.
-  files?: { protocol: FileProtocol; display: string };
+  // photos: a photo source (Settings > Photo sources), its own photo library instead of a Files entry.
+  files?: { protocol: FileProtocol; display: string; photos?: boolean };
   // Plex servers (plex-spec §5.6): the linked plex.tv account that lists it, owned or shared by `source`, and
   // whether the user hid it (D-10: shared servers show by default).
   plex?: { account: string; owned: boolean; source?: string; hidden?: boolean };
@@ -1020,6 +1021,14 @@ export interface FileSourceInfo {
   tls?: 'verify' | 'pin' | 'insecure-http';
   // pending: imported from a settings file, nothing contacts it until the user connects it.
   status: 'signed-in' | 'offline' | 'pending';
+  // A photo source: its index (count: files found so far while scanning).
+  photos?: PhotoScanStatus;
+}
+
+export interface PhotoScanStatus {
+  state: 'scanning' | 'ready' | 'error';
+  count: number;
+  scannedAt?: number;
 }
 
 // A service "Find on this network" heard of (mDNS, file-sources-spec §6.2): it only fills the Add sheet.
@@ -1044,6 +1053,8 @@ export interface FileSourceInput {
   pin?: string;
   // "I understand the password travels unencrypted" (plain http with credentials).
   insecure?: boolean;
+  // Added under Settings > Photo sources: a photo library indexed from the folder tree.
+  photos?: boolean;
 }
 
 export type FileTestCode = 'ok' | 'auth' | 'notFound' | 'certUntrusted' | 'certChanged' | 'digestOnly' | 'smb1' | 'offline' | 'insecure' | 'invalid' | 'unsupported';
@@ -1173,7 +1184,7 @@ export interface WicabyBridge {
     discover(): Promise<FileDiscovered[]>;
     // Main shows the OS folder picker; null when cancelled.
     pickFolder(): Promise<string | null>;
-    // Drops the listing cache of one source.
+    // Drops the listing cache of one source; a photo source also rescans its folder tree (in the background).
     refresh(id: string): Promise<void>;
   };
   photos: {

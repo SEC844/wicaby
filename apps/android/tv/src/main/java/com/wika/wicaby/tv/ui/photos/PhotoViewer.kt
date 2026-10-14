@@ -65,6 +65,7 @@ import com.wika.wicaby.core.photos.Photo
 import com.wika.wicaby.core.photos.TimelineState
 import com.wika.wicaby.core.photos.exifOf
 import com.wika.wicaby.core.photos.Immich
+import com.wika.wicaby.core.photos.apertureUnit
 import com.wika.wicaby.core.photos.photoDetail
 import com.wika.wicaby.core.photos.setPhotoFavorite
 import com.wika.wicaby.core.photos.formatExif
@@ -283,8 +284,8 @@ private fun InfoPanel(api: Api, p: Photo) {
         stringResource(CoreR.string.photos_exif_location_value),
     )
     val lines = listOf(stringResource(CoreR.string.photos_exif_taken) to photoDate(p.asset.takenAt, locale)) +
-        // Immich reports the f-number itself.
-        formatExif(exifOf(item), locale.language, tpl, if (Immich.owns(p.asset)) "fnumber" else "hidden").map { (k, v) -> stringResource(LABELS.getValue(k)) to v }
+        // Immich and the photo sources report the f-number itself.
+        formatExif(exifOf(item), locale.language, tpl, api.apertureUnit(p.asset)).map { (k, v) -> stringResource(LABELS.getValue(k)) to v }
     Column(
         Modifier.fillMaxWidth().background(C.elevated.copy(alpha = 0.94f)).padding(horizontal = 56.dp, vertical = 28.dp).testTag("photo-info"),
         verticalArrangement = Arrangement.spacedBy(8.dp),

@@ -2,7 +2,8 @@
   // The Photos page (photos spec PH-02..PH-04): photo and home-video libraries open here instead of the poster
   // grid. Timeline, albums (folders) and favourites; the viewer and the slideshow are overlays, so the grid keeps
   // its scroll and focus underneath. An Immich source (immich: its id, spec PH-12) is its own library here: its
-  // albums, its people, its memories above the timeline, and map markers from /api/map/markers.
+  // albums, its people, its memories above the timeline, and map markers from /api/map/markers. A photo source on
+  // files (Settings > Photo sources) is a library of its own too, its memories above the timeline as well.
   import { tick } from 'svelte';
   import type { BaseItem } from '../../../shared/models';
   import Icon from '../../components/Icon.svelte';
@@ -11,8 +12,8 @@
   import { reducedMotion } from '../../lib/motion';
   import { immichError, immichMarkers, immichMemories, immichSkeleton, type ImmichPerson } from '../../lib/photos/immich.svelte';
   import { localDay } from '../../lib/photos/memories';
-  import { mapEnabled, setFavorite, skeleton, type GridAsset, type MemoryGroup, type Skeleton } from '../../lib/photos/source.svelte';
-  import { errorMessage, toast } from '../../lib/stores.svelte';
+  import { mapEnabled, memoriesOf, setFavorite, skeleton, type GridAsset, type MemoryGroup, type Skeleton } from '../../lib/photos/source.svelte';
+  import { errorMessage, isFileSource, toast } from '../../lib/stores.svelte';
   import Albums from './Albums.svelte';
   import MemoryCards from './MemoryCards.svelte';
   import People from './People.svelte';
@@ -46,10 +47,10 @@
         tab === 'albums' ? (album ? immichSkeleton(immich, { albumId: album.Id }) : null) : tab === 'people' ? (person ? immichSkeleton(immich, { personId: person.id }) : null) : immichSkeleton(immich, { favorites: tab === 'favorites' });
     else view = tab === 'albums' ? (album ? skeleton(server, album.Id) : null) : skeleton(server, lib.Id, tab === 'favorites');
   });
+  const fileSource = $derived(isFileSource(server));
   $effect(() => {
-    if (!immich) return;
-    const id = immich;
-    immichMemories(id, localDay())
+    if (!immich && !fileSource) return;
+    (immich ? immichMemories(immich, localDay()) : memoriesOf(server!, localDay()))
       .then((g) => (memories = g))
       .catch(() => (memories = []));
   });
@@ -154,7 +155,7 @@
   {:else if tab === 'map' && view}
     <PhotoMap assets={mapAssets} done={view.done && (!immich || markers !== null)} />
   {:else if view}
-    {#if immich && tab === 'timeline' && memories.length > 0}<MemoryCards groups={memories} />{/if}
+    {#if (immich || fileSource) && tab === 'timeline' && memories.length > 0}<MemoryCards groups={memories} />{/if}
     {#if view.error}
       <div class="note"><Icon name="exclamation" size={16} /> {immich ? view.error : `${t('photos.error.load')} ${view.error}`}</div>
     {:else if view.done && view.assets.length === 0}

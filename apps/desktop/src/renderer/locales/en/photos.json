@@ -136,6 +136,16 @@
       "server": "This server does not answer like an Immich server.",
       "auth": "API key refused.",
       "scope": "The key lacks the asset.read permission the timeline needs."
-    }
+    },
+    "section": "Photos",
+    "addFolder": "Folder on this computer",
+    "addSmb": "SMB share",
+    "addWebdav": "WebDAV",
+    "addTitle": "Add a photo source",
+    "addBlurb": "A folder on this computer, an SMB share or a WebDAV folder. Wicaby reads each photo’s date, orientation and camera (EXIF) once, then only files that changed. Subfolders become albums.",
+    "indexing": "Indexing… {count, plural, one {# item found} other {# items found}}",
+    "indexed": "{count, plural, one {# item} other {# items}} · last scan {date}",
+    "scanFailed": "Scan failed: the folder does not answer.",
+    "rescan": "Rescan"
   }
 }

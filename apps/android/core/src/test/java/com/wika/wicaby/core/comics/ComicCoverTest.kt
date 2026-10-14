@@ -112,6 +112,30 @@ class ComicCoverTest {
     }
 
     @Test
+    fun theFieldLogNeverNamesTheUrlTheBookOrTheToken() = runBlocking {
+        honourRange = false
+        val url = server.url("/emby/Items/b1/File?api_key=s3cr3tT0ken").toString()
+        val steps = mutableListOf<String>()
+        val refused = try {
+            ComicCovers.firstPage(http, url, steps)
+            null
+        } catch (e: IOException) {
+            e
+        }!!
+        val host = server.url("/").host
+        val logs = listOf(
+            ComicCovers.diagnostic(refused, steps, url),
+            // OkHttp's own messages can carry the address.
+            ComicCovers.diagnostic(IOException("unexpected end of stream on $url"), steps, url),
+            ComicCovers.diagnostic(IOException("Failed to connect to /$host:${server.port} for b1 s3cr3tT0ken"), listOf("206 0-9/10 read 10"), url),
+        )
+        assertTrue(logs[0], logs[0].contains("Refused") && logs[0].contains("HTTP 200") && logs[0].contains("200 no Content-Range"))
+        for (log in logs) {
+            for (secret in listOf(url, "s3cr3tT0ken", "api_key=", host, "b1", "http://", "/Items/")) assertTrue("$secret in: $log", secret !in log)
+        }
+    }
+
+    @Test
     fun aServerIgnoringRangeIsRefused() = runBlocking {
         honourRange = false
         try {

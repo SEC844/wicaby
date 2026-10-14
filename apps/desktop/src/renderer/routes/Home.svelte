@@ -48,7 +48,7 @@
   import { localDay } from '../lib/photos/memories';
   import { memoriesOf } from '../lib/photos/source.svelte';
   import MemoryCards from './photos/MemoryCards.svelte';
-  import { dataVersion, fileSessions, libraries, liveTv, multiServer, onlineSessions, serverName, session, sessionFor, settings, toast, updateSettings } from '../lib/stores.svelte';
+  import { dataVersion, fileSessions, libraries, liveTv, multiServer, onlineSessions, photoSessions, serverName, session, sessionFor, settings, toast, updateSettings } from '../lib/stores.svelte';
 
   let resume = $state<BaseItem[]>(last?.resume ?? []);
   let nextUp = $state<BaseItem[]>(last?.nextUp ?? []);
@@ -76,7 +76,9 @@
   let featuredFallback = $state<BaseItem[]>([]);
 
   const libs = $derived(libraries.list.filter((l) => !['playlists', 'livetv', 'folders'].includes(l.CollectionType ?? '')));
-  const hasPhotos = $derived(libs.some((l) => l.CollectionType === 'photos' || l.CollectionType === 'homevideos'));
+  // Photo sources on files bring "on this day" too, whatever "Show file sources on Home" says.
+  const photoSources = $derived(photoSessions().filter((s) => s.status === 'signed-in').map((s) => s.server.id));
+  const hasPhotos = $derived(photoSources.length > 0 || libs.some((l) => l.CollectionType === 'photos' || l.CollectionType === 'homevideos'));
   // Several servers: merged rows name each card's server, and same-named libraries name theirs.
   // File sources merged into Home (setting on): their cards carry the source name like another server's.
   const filesOn = $derived(settings.value?.ui.filesOnHome === true && fileSessions().some((s) => s.status === 'signed-in'));
@@ -197,21 +199,20 @@
     } else channels = [];
     if (wants('memories')) {
       const today = localDay();
-      rows.push(
-        fanOut(
-          (_, sid) => memoriesOf(sid, today),
-          (parts) => {
-            if (!current()) return;
-            // One card per year across servers, nearest first.
-            const byYear = new Map<number, MemoryGroup>();
-            for (const g of parts.flatMap((x) => x ?? [])) {
-              const m = byYear.get(g.yearsAgo);
-              byYear.set(g.yearsAgo, m ? { ...m, assets: [...m.assets, ...g.assets] } : g);
-            }
-            memories = [...byYear.values()].sort((a, b) => a.yearsAgo - b.yearsAgo);
-          },
-        ),
-      );
+      let fromServers: (MemoryGroup[] | null)[] = [];
+      let fromSources: (MemoryGroup[] | null)[] = [];
+      const show = () => {
+        if (!current()) return;
+        // One card per year across servers and photo sources, nearest first.
+        const byYear = new Map<number, MemoryGroup>();
+        for (const g of [...fromServers, ...fromSources].flatMap((x) => x ?? [])) {
+          const m = byYear.get(g.yearsAgo);
+          byYear.set(g.yearsAgo, m ? { ...m, assets: [...m.assets, ...g.assets] } : g);
+        }
+        memories = [...byYear.values()].sort((a, b) => a.yearsAgo - b.yearsAgo);
+      };
+      rows.push(fanOut((_, sid) => memoriesOf(sid, today), (parts) => ((fromServers = parts), show())));
+      rows.push(Promise.all(photoSources.map((sid) => memoriesOf(sid, today).catch(() => null))).then((parts) => ((fromSources = parts), show())));
     } else memories = [];
     // Each library's row as soon as its own answer lands; the set is replaced at the end (rows removed meanwhile go).
     const fresh: Record<string, BaseItem[]> = {};
@@ -258,6 +259,7 @@
       onlineSessions().map((s) => `${s.server.id}/${s.user?.id}`).join(),
       mergeOn,
       filesOn ? fileSessions().map((s) => `${s.server.id}:${s.status}`).join() : '',
+      photoSources.join(),
       liveTv.servers.join(),
       JSON.stringify(settings.value?.ui.continueHidden ?? []),
     ].join('|'),

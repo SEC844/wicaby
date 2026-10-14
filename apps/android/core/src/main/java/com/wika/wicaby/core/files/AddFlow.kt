@@ -29,6 +29,14 @@ fun FileError.text(): String = Core.str(
     },
 )
 
+// A photo source's scan status (Réglages > Sources de photos): "Indexing N photos…", or the count and the last scan.
+fun PhotoIndex.Status.text(): String = when {
+    scanning -> Core.plural(R.plurals.photos_sources_indexing, count, count)
+    error != null -> errorText(error)
+    scannedAt == 0L -> Core.str(R.string.photos_sources_not_scanned)
+    else -> Core.plural(R.plurals.photos_sources_indexed, count, count, DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Core.locale).format(Date(scannedAt)))
+}
+
 fun errorText(e: Throwable?): String = (e as? FileError)?.text() ?: (e?.cause as? FileError)?.text() ?: Core.str(R.string.files_error_offline)
 
 // The lines of the "Trust this certificate for this source only" prompt (§7.3).
@@ -40,7 +48,7 @@ fun TlsPin.CertInfo.lines(): String = listOf(
 ).joinToString("\n")
 
 // Both apps' Add sheet (§6.1): the form, Test, the certificate prompt and Save. Nothing connects before Test.
-class FileSourceDraft(protocol: String = FileSource.WEBDAV) {
+class FileSourceDraft(protocol: String = FileSource.WEBDAV, private val photos: Boolean = false) {
     var protocol by mutableStateOf(protocol)
     var url by mutableStateOf("")
     var user by mutableStateOf("")
@@ -84,7 +92,7 @@ class FileSourceDraft(protocol: String = FileSource.WEBDAV) {
             p.url.startsWith("http://") -> TlsPolicy(TlsPolicy.INSECURE_HTTP)
             else -> pin ?: TlsPolicy(TlsPolicy.VERIFY)
         }
-        return FileSource(id, name.trim().ifEmpty { Urls.defaultName(p.url) }, protocol, p.url, tls, addedAt = System.currentTimeMillis())
+        return FileSource(id, name.trim().ifEmpty { Urls.defaultName(p.url) }, protocol, p.url, tls, addedAt = System.currentTimeMillis(), photos = photos)
     }
 
     private fun creds() = if (user.isEmpty() && pass.isEmpty()) null else FileCredentials(user, pass, domain.trim().ifEmpty { null })
@@ -163,10 +171,10 @@ object LocalFolders {
         Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).resolveActivity(context.packageManager) != null
 
     // A folder the picker returned (D11): its read permission is kept across restarts, and it becomes a source.
-    fun add(context: Context, tree: Uri) {
+    fun add(context: Context, tree: Uri, photos: Boolean = false) {
         context.contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         val doc = runCatching { DocumentsContract.getTreeDocumentId(tree) }.getOrNull().orEmpty()
         val name = doc.substringAfterLast(':').substringAfterLast('/').ifEmpty { doc }.ifEmpty { "Local" }
-        FileSources.add(FileSource(FileSource.newId(), name, FileSource.LOCAL, tree.toString(), addedAt = System.currentTimeMillis()), null)
+        FileSources.add(FileSource(FileSource.newId(), name, FileSource.LOCAL, tree.toString(), addedAt = System.currentTimeMillis(), photos = photos), null)
     }
 }

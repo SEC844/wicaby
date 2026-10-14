@@ -36,6 +36,7 @@
     "servers": "{count, plural, one {# server} other {# servers}}",
     "menu": {
       "history": "History",
+      "setup": "Setup Assistant",
       "servers": "Servers",
       "switchUser": "Switch User",
       "switchServer": "Switch Server",

@@ -78,7 +78,9 @@ suspend fun Api.homeMemories(today: String): List<Pair<Int, List<Photo>>> {
     val key = "${server.id}/$userId/$today"
     synchronized(homeCache) { homeCache[key] }?.let { return it }
     // An Immich source's own memories join theirs, year by year (photos spec PH-13).
-    val groups = (memoryGroups(null, today, limit = 90) + immichMemories(today)).groupBy { it.first }.map { (y, l) -> y to l.flatMap { it.second } }.sortedBy { it.first }
+    // And the photo sources' (photo file sources), from their indexes.
+    val files = com.wika.wicaby.core.files.FileSources.photoApis().flatMap { a -> runCatching { a.memoryGroups(null, today, limit = 90) }.getOrDefault(emptyList()) }
+    val groups = (memoryGroups(null, today, limit = 90) + immichMemories(today) + files).groupBy { it.first }.map { (y, l) -> y to l.flatMap { it.second } }.sortedBy { it.first }
     synchronized(homeCache) {
         homeCache.keys.removeAll { !it.endsWith("/$today") }
         homeCache[key] = groups

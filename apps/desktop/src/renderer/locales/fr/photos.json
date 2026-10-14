@@ -136,6 +136,16 @@
       "server": "Ce serveur ne répond pas comme un serveur Immich.",
       "auth": "Clé d’API refusée.",
       "scope": "La clé n’a pas la permission asset.read, nécessaire pour la chronologie."
-    }
+    },
+    "section": "Photos",
+    "addFolder": "Dossier sur cet ordinateur",
+    "addSmb": "Partage SMB",
+    "addWebdav": "WebDAV",
+    "addTitle": "Ajouter une source de photos",
+    "addBlurb": "Un dossier sur cet ordinateur, un partage SMB ou un dossier WebDAV. Wicaby lit une fois la date, l’orientation et l’appareil de chaque photo (EXIF), puis seulement les fichiers modifiés. Les sous-dossiers deviennent des albums.",
+    "indexing": "Indexation… {count, plural, one {# élément trouvé} other {# éléments trouvés}}",
+    "indexed": "{count, plural, one {# élément} other {# éléments}} · dernière analyse le {date}",
+    "scanFailed": "Analyse impossible : le dossier ne répond pas.",
+    "rescan": "Réanalyser"
   }
 }

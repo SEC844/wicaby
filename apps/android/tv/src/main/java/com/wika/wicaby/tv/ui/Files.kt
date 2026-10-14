@@ -363,14 +363,15 @@ private fun CertChanged(api: FilesApi, onCancel: () -> Unit, onDone: () -> Unit)
 // the credentials, Test, Save; an untrusted certificate is shown before anything is trusted.
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
-fun AddFileSourceSheet(onDismiss: () -> Unit) {
+// photos: a photo source (Réglages > Sources de photos), the same form; protocol: the one preselected.
+fun AddFileSourceSheet(onDismiss: () -> Unit, photos: Boolean = false, protocol: String = FileSource.WEBDAV) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val draft = remember { FileSourceDraft() }
+    val draft = remember { FileSourceDraft(protocol, photos) }
     val local = remember { LocalFolders.available(context) }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
-            runCatching { LocalFolders.add(context, uri) }.onFailure { Toast.makeText(context, errorText(it), Toast.LENGTH_LONG).show() }
+            runCatching { LocalFolders.add(context, uri, photos) }.onFailure { Toast.makeText(context, errorText(it), Toast.LENGTH_LONG).show() }
             onDismiss()
         }
     }
@@ -387,7 +388,7 @@ fun AddFileSourceSheet(onDismiss: () -> Unit) {
     TvSheet(onDismiss, width = 620.dp, trap = draft.cert == null) {
         // Taller than the 540 dp canvas with every field: it scrolls with the focus.
         Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
-        Text(stringResource(CoreR.string.files_add), style = Type.title2, color = C.label, modifier = Modifier.padding(bottom = 16.dp))
+        Text(stringResource(if (photos) CoreR.string.photos_sources_files_add else CoreR.string.files_add), style = Type.title2, color = C.label, modifier = Modifier.padding(bottom = 16.dp))
         val first = remember { FocusRequester() }
         LaunchedEffect(Unit) { delay(60); runCatching { first.requestFocus() } }
         Row(Modifier.focusGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

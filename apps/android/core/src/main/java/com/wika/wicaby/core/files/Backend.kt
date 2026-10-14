@@ -24,6 +24,10 @@ interface FileBackend {
 
     suspend fun read(rel: String, entry: FileEntry?, maxBytes: Int): ByteArray
 
+    // The file as a stream for [use] (photo thumbnails), asked from byte 0 up to [maxBytes] (the caller caps the reading
+    // too). The real backends stream; this default (in-memory test backends) does not.
+    suspend fun <T> open(rel: String, entry: FileEntry?, maxBytes: Int, use: (java.io.InputStream) -> T): T = use(read(rel, entry, maxBytes).inputStream())
+
     fun close() {}
 }
 

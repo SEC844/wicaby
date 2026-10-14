@@ -24,7 +24,8 @@
   let result = $state<FileTestResult | null>(null);
 
   async function load(): Promise<void> {
-    sources = await w.files.list().catch(() => []);
+    // Photo sources are listed under Photo sources (ImmichSettings), once connected: an imported one is connected here.
+    sources = (await w.files.list().catch(() => [])).filter((s) => !s.photos || s.status === 'pending');
   }
 
   // The list follows the sessions (a source added, renamed, removed or gone offline).

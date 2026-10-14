@@ -1,12 +1,21 @@
 package com.wika.wicaby.mobile.ui.photos
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -24,7 +33,16 @@ import com.wika.wicaby.core.photos.Immich
 import com.wika.wicaby.core.photos.ImmichClient
 import com.wika.wicaby.core.photos.ImmichProbe
 import com.wika.wicaby.core.photos.normalizeImmichUrl
+import com.wika.wicaby.core.files.FileSource
+import com.wika.wicaby.core.files.FileSources
+import com.wika.wicaby.core.files.LocalFolders
+import com.wika.wicaby.core.files.PhotoIndex
+import com.wika.wicaby.core.files.errorText
+import com.wika.wicaby.core.files.text
+import com.wika.wicaby.mobile.ui.AddFileSourceSheet
 import com.wika.wicaby.mobile.ui.Cache
+import com.wika.wicaby.mobile.ui.SignInSheet
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.wika.wicaby.mobile.ui.Eyebrow
 import com.wika.wicaby.mobile.ui.G
 import com.wika.wicaby.mobile.ui.Group
@@ -64,6 +82,7 @@ fun ImmichSettings() {
     }
     Eyebrow(stringResource(CoreR.string.photos_sources_title))
     Group {
+        PhotoSourceRows()
         source?.let { s ->
             GroupRow(s.name, {
                 scope.launch {
@@ -102,4 +121,59 @@ fun ImmichSettings() {
         GroupRow(stringResource(CoreR.string.photos_sources_add), { run(true) }, icon = Ic.Plus, chevron = false)
     }
     Text(stringResource(CoreR.string.photos_sources_foot), style = Type.footnote, color = G.label2, modifier = Modifier.padding(start = 16.dp, top = 8.dp))
+}
+
+// The photo sources (a folder or a share used as a photo library): each with its scan status (tap: Rescan, Remove),
+// then Add, through the file sources' own sheet (address, credentials, Test, Find on this network).
+@Composable
+private fun PhotoSourceRows() {
+    val context = LocalContext.current
+    val sources by FileSources.photos.collectAsState()
+    var acting by remember { mutableStateOf<FileSource?>(null) }
+    var adding by remember { mutableStateOf<String?>(null) }
+    var signIn by remember { mutableStateOf<FileSource?>(null) }
+    sources.forEach { s ->
+        key(s.id) {
+            val index = remember(s.id) { FileSources.api(s.id)?.photos }
+            val status by (index?.status ?: MutableStateFlow(PhotoIndex.Status())).collectAsState()
+            LaunchedEffect(index) { index?.peek() }
+            val sub = if (FileSources.needsSignIn(s)) stringResource(CoreR.string.files_sign_in_again) else status.text()
+            GroupRow(s.name, { acting = s }, subtitle = sub, icon = Ic.Server, chevron = false, end = {
+                Icon(Ic.Refresh, stringResource(CoreR.string.photos_sources_rescan), tint = G.label2, modifier = Modifier.size(20.dp))
+            })
+            GroupDivider()
+        }
+    }
+    // A folder of this device: the system picker at once (the sheet's other fields do not apply to it).
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) runCatching { LocalFolders.add(context, uri, photos = true); Cache.map.clear() }
+            .onFailure { Toast.makeText(context, errorText(it), Toast.LENGTH_LONG).show() }
+    }
+    listOfNotNull(
+        (CoreR.string.files_add_local to FileSource.LOCAL).takeIf { LocalFolders.available(context) },
+        CoreR.string.files_add_smb to FileSource.SMB,
+        CoreR.string.files_add_webdav to FileSource.WEBDAV,
+    ).forEach { (label, protocol) ->
+        GroupRow(stringResource(CoreR.string.photos_sources_add_with, stringResource(label)), {
+            if (protocol == FileSource.LOCAL) runCatching { pick.launch(null) } else adding = protocol
+        }, icon = Ic.Plus, chevron = false)
+        GroupDivider()
+    }
+    adding?.let { p -> AddFileSourceSheet(onDismiss = { adding = null; Cache.map.clear() }, photos = true, protocol = p) }
+    signIn?.let { s -> SignInSheet(s) { signIn = null } }
+    acting?.let { s ->
+        val index = remember(s.id) { FileSources.api(s.id)?.photos }
+        AlertDialog(
+            onDismissRequest = { acting = null },
+            title = { Text(s.name) },
+            text = { Text(s.label.ifEmpty { stringResource(CoreR.string.files_add_local) }) },
+            dismissButton = {
+                Row {
+                    if (!s.isLocal) TextButton({ acting = null; signIn = s }) { Text(stringResource(CoreR.string.files_sign_in_again)) }
+                    TextButton({ acting = null; FileSources.remove(s.id); Cache.map.clear() }) { Text(stringResource(CoreR.string.photos_sources_remove), color = G.red) }
+                }
+            },
+            confirmButton = { TextButton({ acting = null; index?.rescan(); Cache.map.clear() }) { Text(stringResource(CoreR.string.photos_sources_rescan)) } },
+        )
+    }
 }

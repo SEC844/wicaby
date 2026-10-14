@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -67,6 +68,7 @@ import kotlinx.coroutines.launch
 fun LibrariesScreen(api: Api, nav: NavController) {
     var nonce by remember { mutableIntStateOf(0) }
     val views = rememberLoad("views", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
+    val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
     PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
         val list = views.value
         when {
@@ -88,6 +90,12 @@ fun LibrariesScreen(api: Api, nav: NavController) {
                         LibraryCard(api, Item(id = s.id, name = s.name), "Immich · ${s.name}") {
                             nav.navigate(GridRoute(s.name, parentId = s.id, collectionType = com.wika.wicaby.mobile.ui.photos.IMMICH))
                         }
+                    }
+                }
+                // Photo sources (a folder or a share used as a photo library): each its own library, like Immich.
+                items(photoSources, key = { "photos-${it.id}" }) { s ->
+                    LibraryCard(api, Item(id = s.id, name = s.name), s.name) {
+                        nav.navigate(GridRoute(s.name, parentId = com.wika.wicaby.core.files.pure.Ids.ROOT, collectionType = "photos", serverId = s.id))
                     }
                 }
                 // File sources (FS-10): folders, WebDAV and SMB shares, browsed without a server.

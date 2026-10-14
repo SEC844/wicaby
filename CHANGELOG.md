@@ -18,6 +18,32 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-10-14
+
+Photo libraries from your own files. Windows and Linux desktop **0.10.3**, Android TV app **0.10.3** (`versionCode`
+24), Android mobile app **0.10.3** (`versionCode` 21).
+
+### Added
+
+- Photo sources from a folder, an SMB share or a WebDAV server, on desktop, Android TV and mobile: **Settings > Photo
+  sources** offers "Folder on this computer" (a folder picked with the system picker on Android), "SMB share" and
+  "WebDAV" next to Immich. Wicaby indexes the photos once (date, orientation, camera and, only with the map on,
+  location from their EXIF), then re-reads only the files that changed; folders become albums. The timeline, grid,
+  viewer, slideshow, albums, favourites and "On this day" work as with Immich. Thumbnails are made on demand and cached.
+
+### Fixed
+
+- Android TV and mobile: a photo source's thumbnails no longer load the whole photo into memory (up to 64 MB each,
+  several at once). The file is streamed and decoded straight at the thumbnail's size, with a 20 s limit per
+  thumbnail and at most two at once on TV (three on phones), so an 8000x6000 photo costs a 500x375 bitmap in the grid.
+
+### Changed
+
+- Android TV and mobile: a comic cover that cannot be read from the archive now leaves one line in the system log (tag
+  `WicabyComicCover`): the error and, for each request, the HTTP status, the Content-Range numbers and the bytes read;
+  a book skipped for its format or a server cover is logged once per session with its extension. The line never holds
+  the address, the book or the token.
+
 ## [0.10.2] - 2026-10-14
 
 Music and trailer fixes on Android, playback info. Windows and Linux desktop **0.10.2**, Android TV app **0.10.2**

@@ -261,7 +261,7 @@ export function handleProtocols(opts: {
         if (!api) return new Response('offline', { status: 503, headers: CORS });
         const rel = sid ? url.pathname.slice(first.length + 1) : url.pathname;
         // A file source answers from its backend (posters, the file for the HTML player, sidecar subtitles).
-        if (api instanceof FilesClient) return await api.media(rel, req.method, req.headers.get('range') ?? undefined);
+        if (api instanceof FilesClient) return await api.media(rel, req.method, req.headers.get('range') ?? undefined, url.searchParams, req.signal);
         if (!rel.startsWith('/') || rel.startsWith('//') || !isServerOrigin(api, rel)) return new Response('Bad request', { status: 400, headers: CORS });
         return await fetchFromServer(api, rel + url.search, req.method, (h) => req.headers.get(h));
       }

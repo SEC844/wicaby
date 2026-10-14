@@ -3,7 +3,7 @@
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath } from '../lib/api';
   import { navigate, router } from '../lib/router.svelte';
-  import { downloads, fileSessions, libraries, liveTv, onlineSessions, session, settings, updateSettings } from '../lib/stores.svelte';
+  import { downloads, fileSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, updateSettings } from '../lib/stores.svelte';
   import Icon, { type IconName } from './Icon.svelte';
   import { t } from '../lib/i18n.svelte';
   import Logo from './Logo.svelte';
@@ -30,7 +30,10 @@
   // File sources: one entry each under "Files" (file-sources-spec §9.1); hidden when there is none.
   const sources = $derived(fileSessions());
   const sourceIcon = (p?: string): IconName => (p === 'webdav' ? 'globe' : p === 'smb' ? 'server' : 'folder');
-  // Immich photo sources (photos spec PH-12): each its own library under "Immich", hidden when there is none.
+  // Photo sources: a folder, SMB or WebDAV photo library, then each Immich source (photos spec PH-12), each its own
+  // library under "Photos", hidden when there is none.
+  const photoSources = $derived(photoSessions());
+  const immichShown = $derived(offline ? [] : immich.sources);
   watchImmichSources();
 
   const NAV: { path: string; name: string; labelKey: string; icon: IconName; online: boolean }[] = [
@@ -147,10 +150,27 @@
         </ul>
       {/if}
 
-      {#if immich.sources.length > 0 && !offline}
-        <div class="section fades">Immich</div>
+      {#if photoSources.length > 0 || immichShown.length > 0}
+        <div class="section fades">{t('photos.sources.section')}</div>
         <ul class="group" data-immich>
-          {#each immich.sources as s, i (s.id)}
+          {#each photoSources as s, i (s.server.id)}
+            <li style:--i={Math.min(i, 12)}>
+              <button
+                class="link"
+                data-photo-source
+                class:active={route.name === 'library' && route.params.server === s.server.id}
+                onclick={() => navigate(`/library/${s.server.id}/p.`)}
+                title={collapsed ? s.server.name : s.status === 'offline' ? t('files.manage.offline') : undefined}
+              >
+                <span class="glyph">
+                  <Icon name="images" size={18} />
+                  {#if s.status === 'offline'}<span class="dot-badge off show" aria-hidden="true"></span>{/if}
+                </span>
+                <span class="label fades" class:dim={s.status === 'offline'}>{s.server.name}</span>
+              </button>
+            </li>
+          {/each}
+          {#each immichShown as s, i (s.id)}
             <li style:--i={Math.min(i, 12)}>
               <button class="link" class:active={route.name === 'immich' && route.params.id === s.id} onclick={() => navigate(`/immich/${s.id}`)} title={collapsed ? s.name : undefined}>
                 <span class="glyph"><Icon name="images" size={18} /></span>

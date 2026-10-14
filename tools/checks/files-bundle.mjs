@@ -25,6 +25,8 @@ const electronStub = {
           getSelectedStorageBackend: () => 'test',
         };
         export const powerSaveBlocker = { start: () => 0, stop: () => undefined };
+        // No decoder in checks: photo thumbnails fall back to the original file.
+        export const nativeImage = { createFromBuffer: () => ({ isEmpty: () => true }) };
         export default { app, net, safeStorage };
       `,
     }));

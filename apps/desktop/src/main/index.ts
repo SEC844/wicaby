@@ -180,7 +180,7 @@ async function bootstrap(): Promise<void> {
   const connection = new ConnectionManager(path.join(userData, 'servers.json'), vault, identity, vpn);
   connection.setAllowControl(settings.value.remote.allowControl);
   // File sources (file-sources-spec): one local session each, next to the servers.
-  const files = new FileSources(path.join(userData, 'files'), vault, identity, connection);
+  const files = new FileSources(path.join(userData, 'files'), vault, identity, connection, process.platform, () => settings.value.photos.map.enabled);
   files.start();
   // A packaged build always loads its own bundled pages.
   const devUrl = app.isPackaged ? undefined : process.env.WICABY_DEV_URL;

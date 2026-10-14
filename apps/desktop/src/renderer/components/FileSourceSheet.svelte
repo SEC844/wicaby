@@ -1,7 +1,8 @@
 <script lang="ts">
   // "Add a file source" (file-sources-spec §6.1, §7.3): a folder from the OS picker, a WebDAV folder or an SMB
   // share (UNC, Windows). Test lists the root once; an untrusted certificate is shown with its fingerprint and
-  // trusted for this source only on an explicit click. Passwords go to main and never come back.
+  // trusted for this source only on an explicit click. Passwords go to main and never come back. With `photos` it
+  // adds a photo source (Settings > Photo sources), starting on `initial`: the same form, an indexed photo library.
   import type { FileDiscovered, FileProtocol, FileSourceInput, FileTestResult } from '../../shared/contract';
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
@@ -12,7 +13,7 @@
   import Icon, { type IconName } from './Icon.svelte';
   import Sheet from './Sheet.svelte';
 
-  let { open, onclose }: { open: boolean; onclose: () => void } = $props();
+  let { open, onclose, photos = false, initial = 'local' }: { open: boolean; onclose: () => void; photos?: boolean; initial?: FileProtocol } = $props();
 
   let protocol = $state<FileProtocol>('local');
   let folder = $state('');
@@ -43,6 +44,7 @@
       ...(protocol === 'webdav' && user ? { user, pass } : {}),
       ...(pin ? { pin } : {}),
       ...(plainHttp ? { insecure } : {}),
+      ...(photos ? { photos: true } : {}),
     };
   }
 
@@ -56,6 +58,10 @@
     protocol = p;
     changed();
   }
+
+  $effect(() => {
+    if (open) pick(initial);
+  });
 
   async function chooseFolder(): Promise<void> {
     const dir = await w.files.pickFolder().catch((err) => (toast('error', errorMessage(err)), null));
@@ -87,7 +93,8 @@
       const info = await w.files.add(input());
       toast('success', t('files.add.added'));
       close();
-      navigate(`/files/${info.id}/p.`);
+      // A photo source stays in Settings, where its first scan shows its progress.
+      if (!photos) navigate(`/files/${info.id}/p.`);
     } catch (err) {
       toast('error', errorMessage(err));
     } finally {
@@ -129,10 +136,10 @@
   );
 </script>
 
-<Sheet {open} onclose={close} label={t('files.add.title')} width={560}>
+<Sheet {open} onclose={close} label={t(photos ? 'photos.sources.addTitle' : 'files.add.title')} width={560}>
   <div class="body">
-    <h2 class="title">{t('files.add.title')}</h2>
-    <p class="blurb">{t('files.add.blurb')}</p>
+    <h2 class="title">{t(photos ? 'photos.sources.addTitle' : 'files.add.title')}</h2>
+    <p class="blurb">{t(photos ? 'photos.sources.addBlurb' : 'files.add.blurb')}</p>
 
     <div class="choices" role="radiogroup" aria-label={t('files.add.title')}>
       {#each CHOICES as c (c.id)}

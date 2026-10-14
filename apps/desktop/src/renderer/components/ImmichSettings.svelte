@@ -1,14 +1,66 @@
 <script lang="ts">
   // Settings > Library > "Sources de photos" (photos spec PH-12): connect an Immich server with an API key. The key
   // goes to main once (vault) and never comes back; Test checks the version (2.0 or later) and which permissions
-  // the key lacks, each one hiding its feature.
-  import type { ImmichTestResult } from '../../shared/contract';
+  // the key lacks, each one hiding its feature. Above it, the photo sources on files: a folder on this computer, an
+  // SMB share or a WebDAV folder, added with the file sources' own sheet, each with its scan status, Rescan and
+  // Remove.
+  import type { FileProtocol, FileSourceInfo, ImmichTestResult } from '../../shared/contract';
   import { w } from '../lib/bridge';
-  import { t } from '../lib/i18n.svelte';
+  import { fmt, t } from '../lib/i18n.svelte';
   import { immich, watchImmichSources } from '../lib/photos/immich.svelte';
-  import { errorMessage, toast } from '../lib/stores.svelte';
+  import { forgetViews } from '../lib/photos/source.svelte';
+  import { errorMessage, session, toast } from '../lib/stores.svelte';
+  import FileSourceSheet from './FileSourceSheet.svelte';
+  import Icon, { type IconName } from './Icon.svelte';
 
   watchImmichSources();
+
+  let folders = $state<FileSourceInfo[]>([]);
+  let adding = $state<FileProtocol | null>(null);
+  const ADD: { id: FileProtocol; key: string; icon: IconName }[] = [
+    { id: 'local', key: 'photos.sources.addFolder', icon: 'folder' },
+    { id: 'smb', key: 'photos.sources.addSmb', icon: 'server' },
+    { id: 'webdav', key: 'photos.sources.addWebdav', icon: 'globe' },
+  ];
+
+  async function loadFolders(): Promise<void> {
+    const next = (await w.files.list().catch(() => [])).filter((s) => s.photos && s.status !== 'pending');
+    // A scan just finished: the library's views load again on their next visit.
+    for (const s of next) if (s.photos?.state === 'ready' && folders.find((o) => o.id === s.id)?.photos?.state === 'scanning') forgetViews(s.id);
+    folders = next;
+  }
+  $effect(() => {
+    void session.value.sessions.filter((s) => s.server.files?.photos).map((s) => `${s.server.id}:${s.server.name}:${s.status}`).join();
+    void loadFolders();
+  });
+  // While one scans, its count is read again every second.
+  $effect(() => {
+    if (!folders.some((s) => s.photos?.state === 'scanning')) return;
+    const timer = setInterval(() => void loadFolders(), 1000);
+    return () => clearInterval(timer);
+  });
+
+  const scanText = (s: FileSourceInfo) =>
+    s.photos?.state === 'scanning'
+      ? t('photos.sources.indexing', { count: s.photos.count })
+      : s.photos?.state === 'error'
+        ? t('photos.sources.scanFailed')
+        : t('photos.sources.indexed', { count: s.photos?.count ?? 0, date: s.photos?.scannedAt ? fmt.date(s.photos.scannedAt, { dateStyle: 'medium', timeStyle: 'short' }) : '' });
+
+  async function rescan(id: string): Promise<void> {
+    await w.files.refresh(id).catch((err) => toast('error', errorMessage(err)));
+    await loadFolders();
+  }
+
+  async function removeFolder(id: string): Promise<void> {
+    try {
+      await w.files.remove(id);
+      forgetViews(id);
+      await loadFolders();
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  }
   let url = $state('');
   let key = $state('');
   let busy = $state(false);
@@ -40,6 +92,28 @@
 </script>
 
 <h3 class="gh">{t('photos.sources.title')}</h3>
+<div class="group" data-photo-sources>
+  {#each folders as s (s.id)}
+    <div class="row">
+      <span class="ic"><Icon name={s.protocol === 'webdav' ? 'globe' : s.protocol === 'smb' ? 'server' : 'folder'} size={17} /></span>
+      <div class="txt">
+        <div class="lbl">{s.name}{#if s.status === 'offline'}<span class="off">{t('files.manage.offline')}</span>{/if}</div>
+        <div class="desc path" title={s.display}>{s.display}</div>
+        <div class="desc" data-scan={s.photos?.state}>{scanText(s)}</div>
+      </div>
+      <button type="button" class="btn sm" disabled={s.photos?.state === 'scanning'} onclick={() => rescan(s.id)}>{t('photos.sources.rescan')}</button>
+      <button type="button" class="btn sm" onclick={() => removeFolder(s.id)}>{t('photos.sources.remove')}</button>
+    </div>
+  {/each}
+  <div class="row adds">
+    {#each ADD as a (a.id)}
+      <button type="button" class="btn sm" data-add={a.id} onclick={() => (adding = a.id)}><Icon name={a.icon} size={14} /> {t(a.key)}</button>
+    {/each}
+  </div>
+</div>
+<FileSourceSheet open={adding !== null} photos initial={adding ?? 'local'} onclose={() => ((adding = null), void loadFolders())} />
+
+<h3 class="gh">Immich</h3>
 <div class="group">
   {#each immich.sources as s (s.id)}
     <div class="row">
@@ -151,6 +225,32 @@
   .btn.sm {
     height: 30px;
     padding: 0 12px;
+    gap: 6px;
     font-size: var(--fs-footnote);
+  }
+  .adds {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ic {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--fill-1);
+    color: var(--label-2);
+  }
+  .path {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .off {
+    margin-left: 8px;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--label-3);
   }
 </style>

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,7 +28,17 @@ import com.wika.wicaby.core.photos.Immich
 import com.wika.wicaby.core.photos.ImmichClient
 import com.wika.wicaby.core.photos.ImmichProbe
 import com.wika.wicaby.core.photos.normalizeImmichUrl
+import com.wika.wicaby.core.files.FileSource
+import com.wika.wicaby.core.files.FileSources
+import com.wika.wicaby.core.files.LocalFolders
+import com.wika.wicaby.core.files.PhotoIndex
+import com.wika.wicaby.core.files.text
+import com.wika.wicaby.tv.R
+import com.wika.wicaby.tv.ui.AddFileSourceSheet
+import com.wika.wicaby.tv.ui.AlertAction
 import com.wika.wicaby.tv.ui.C
+import com.wika.wicaby.tv.ui.SignInSheet
+import com.wika.wicaby.tv.ui.TvAlert
 import com.wika.wicaby.tv.ui.Cache
 import com.wika.wicaby.tv.ui.Group
 import com.wika.wicaby.tv.ui.LocalOverlay
@@ -47,6 +59,7 @@ internal fun ImmichGroup() {
     var source by remember { mutableStateOf(Immich.source) }
     val add = remember { FocusRequester() }
     Group(stringResource(CoreR.string.photos_sources_title), stringResource(CoreR.string.photos_sources_foot)) {
+        PhotoSourceRows()
         source?.let { s ->
             SettingRow(s.name, stringResource(CoreR.string.photos_sources_remove), onClick = {
                 scope.launch {
@@ -66,6 +79,52 @@ internal fun ImmichGroup() {
                     overlay.close()
                 }
             }
+        })
+    }
+}
+
+// The photo sources (a folder or a share used as a photo library): each with its scan status (OK: Rescan, Remove),
+// then Add, through the file sources' own sheet (address, credentials, Test, Find on this network).
+@Composable
+private fun PhotoSourceRows() {
+    val overlay = LocalOverlay.current
+    val context = LocalContext.current
+    val sources by FileSources.photos.collectAsState()
+    sources.forEach { s ->
+        key(s.id) {
+            val me = remember { FocusRequester() }
+            val index = remember(s.id) { FileSources.api(s.id)?.photos }
+            val status by (index?.status ?: kotlinx.coroutines.flow.MutableStateFlow(PhotoIndex.Status())).collectAsState()
+            LaunchedEffect(index) { index?.peek() }
+            val sub = if (FileSources.needsSignIn(s)) stringResource(CoreR.string.files_sign_in_again) else status.text()
+            SettingRow(s.name, sub, Modifier.focusRequester(me), chevron = true, onClick = {
+                overlay.show(me) {
+                    val actions = buildList {
+                        add(AlertAction(stringResource(CoreR.string.photos_sources_rescan)) { overlay.close(); index?.rescan(); Cache.changed() })
+                        if (!s.isLocal) add(AlertAction(stringResource(CoreR.string.files_sign_in_again)) { overlay.show(me) { SignInSheet(s, overlay::close) } })
+                        add(AlertAction(stringResource(CoreR.string.photos_sources_remove), destructive = true) { overlay.close(); FileSources.remove(s.id); Cache.changed() })
+                        add(AlertAction(stringResource(R.string.cancel)) { overlay.close() })
+                    }
+                    TvAlert(s.name, s.label.ifEmpty { null }, actions, focusIndex = actions.lastIndex, onDismiss = overlay::close)
+                }
+            })
+        }
+    }
+    // A folder of this device: the system picker at once (the sheet's other fields do not apply to it).
+    val pick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) runCatching { LocalFolders.add(context, uri, photos = true); Cache.changed() }
+            .onFailure { android.widget.Toast.makeText(context, com.wika.wicaby.core.files.errorText(it), android.widget.Toast.LENGTH_LONG).show() }
+    }
+    val choices = listOfNotNull(
+        (CoreR.string.files_add_local to FileSource.LOCAL).takeIf { LocalFolders.available(context) },
+        CoreR.string.files_add_smb to FileSource.SMB,
+        CoreR.string.files_add_webdav to FileSource.WEBDAV,
+    )
+    choices.forEach { (label, protocol) ->
+        val me = remember { FocusRequester() }
+        SettingRow(stringResource(CoreR.string.photos_sources_add_with, stringResource(label)), modifier = Modifier.focusRequester(me), chevron = true, onClick = {
+            if (protocol == FileSource.LOCAL) runCatching { pick.launch(null) }
+            else overlay.show(me) { AddFileSourceSheet(onDismiss = { overlay.close(); Cache.changed() }, photos = true, protocol = protocol) }
         })
     }
 }

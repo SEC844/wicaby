@@ -65,6 +65,8 @@ class WicabyApp : Application(), SingletonImageLoader.Factory {
                 // Comics without a server cover: their first page, read with Range requests (core ComicCover.kt).
                 add(ComicCoverKeyer())
                 add(ComicCoverFetcher.Factory())
+                // Photo sources' thumbnails: decoded once from the file, kept in cacheDir/photo-thumbs (core PhotoThumbs.kt).
+                add(com.wika.wicaby.core.files.PhotoThumbFetcher.Factory())
                 add(OkHttpNetworkFetcherFactory(callFactory = { com.wika.wicaby.core.files.FileSources.calls }))
             }
             .crossfade(220)

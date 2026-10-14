@@ -77,6 +77,8 @@ const checks = [
   ['files-playback-check.mjs'],
   ['files-smb-check.mjs'],
   ['files-mdns-check.mjs'],
+  // Photo sources on files (EXIF reader vectors, the photo index over a folder and the WebDAV mock).
+  ['photo-files-check.mjs'],
   // Plex backend (plex-spec PX-00 to PX-03).
   ['plex-mock-check.mjs'],
   ['plex-map-check.mjs'],

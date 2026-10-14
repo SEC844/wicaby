@@ -65,4 +65,17 @@
     <string name="files_mdns_searching">Searching the network…</string>
     <string name="files_mdns_none">No share announces itself on this network. Type its address.</string>
     <string name="files_sign_in_body">Enter the credentials for %1$s again. Its watch progress is kept.</string>
+    <!-- Photo sources: a folder or a share used as a photo library (Settings > Photo sources). -->
+    <string name="photos_sources_files_add">Add a photo source</string>
+    <string name="photos_sources_add_with">Add: %1$s</string>
+    <string name="photos_sources_rescan">Rescan</string>
+    <string name="photos_sources_not_scanned">Not scanned yet</string>
+    <plurals name="photos_sources_indexing">
+        <item quantity="one">Indexing %d photo…</item>
+        <item quantity="other">Indexing %d photos…</item>
+    </plurals>
+    <plurals name="photos_sources_indexed">
+        <item quantity="one">%1$d photo · last scan %2$s</item>
+        <item quantity="other">%1$d photos · last scan %2$s</item>
+    </plurals>
 </resources>

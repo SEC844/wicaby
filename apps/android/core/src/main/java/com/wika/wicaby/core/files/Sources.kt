@@ -19,6 +19,8 @@ data class FileSource(
     val tls: TlsPolicy? = null,
     val hasCredentials: Boolean = false,
     val addedAt: Long = 0,
+    // A photo source (Réglages > Sources de photos): its own photo library, answered from a PhotoIndex; not in Files.
+    val photos: Boolean = false,
 ) {
     val isLocal get() = protocol == LOCAL
     val isWebDav get() = protocol == WEBDAV
@@ -93,6 +95,7 @@ class SourceStore(private val dir: File, private val seal: (String) -> String, p
         setCredentials(id, null)
         write(read().let { s -> s.copy(sources = s.sources.filter { it.id != id }) })
         progressFile(id).delete()
+        photoIndexFile(id).delete()
     }
 
     @Synchronized
@@ -109,6 +112,8 @@ class SourceStore(private val dir: File, private val seal: (String) -> String, p
     fun needsSignIn(source: FileSource): Boolean = source.hasCredentials && credentials(source.id) == null
 
     fun progressFile(id: String) = File(dir, "progress-$id.json")
+
+    fun photoIndexFile(id: String) = File(dir, "photo-index-$id.json")
 
     companion object {
         // A crash mid-write keeps the previous file (android.util.AtomicFile is not on the unit-test JVM).

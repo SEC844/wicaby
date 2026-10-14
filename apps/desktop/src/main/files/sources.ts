@@ -16,6 +16,8 @@ import { LocalBackend } from './backend-local';
 import { WebDavBackend } from './backend-webdav';
 import { FilesClient } from './files-client';
 import { LoopbackRelay } from './loopback';
+import { PhotoIndex } from './photo-index';
+import { PhotoThumbs } from './photo-thumbs';
 import { ProgressStore } from './progress';
 import type { PeerCert, TlsPolicy } from './tls-pin';
 
@@ -33,6 +35,8 @@ export interface StoredSource {
   // Imported from a settings file: nothing contacts it (no stat, no SMB logon, no TLS handshake) until the
   // user presses Connect, which runs the same test as the Add sheet (setCredentials).
   pending?: boolean;
+  // A photo source (Settings > Photo sources): indexed, shown as a photo library (photo-index.ts).
+  photos?: boolean;
 }
 
 interface SourcesDoc {
@@ -46,6 +50,7 @@ export interface ExportedSource {
   protocol: 'webdav' | 'smb';
   url: string;
   tls?: TlsPolicy;
+  photos?: boolean;
 }
 
 interface Secret {
@@ -75,6 +80,7 @@ export class FileSources {
   // Certificates shown to the user by test(), by origin: a pin must match one of them.
   private shown = new Map<string, PeerCert>();
   readonly relay = new LoopbackRelay();
+  private readonly thumbs: PhotoThumbs;
 
   constructor(
     private readonly dir: string,
@@ -82,7 +88,10 @@ export class FileSources {
     private readonly identity: ClientIdentity,
     private readonly host: SessionHost,
     private readonly platform: NodeJS.Platform = process.platform,
+    // The photo map is on (Settings > Privacy): only then do photo sources hand coordinates to the page.
+    private readonly photoMap: () => boolean = () => false,
   ) {
+    this.thumbs = new PhotoThumbs(path.join(dir, 'photo-thumbs'));
     this.store = new JsonStore<SourcesDoc>(path.join(dir, 'sources.json'), { v: 1, sources: [] });
     const doc = this.store.value;
     if (!doc || !Array.isArray(doc.sources)) this.store.set({ v: 1, sources: [] });
@@ -103,11 +112,12 @@ export class FileSources {
   }
 
   private info(s: StoredSource): FileSourceInfo {
-    return { id: s.id, name: s.name, protocol: s.protocol, display: displayUrl(s.url), ...(isPlainHttp(s) ? { http: true } : {}), hasCredentials: s.hasCredentials, tls: s.tls?.mode, status: s.pending ? 'pending' : (this.status.get(s.id) ?? 'signed-in') };
+    const photos = s.photos ? (this.clients.get(s.id)?.photos?.status ?? { state: 'error' as const, count: 0 }) : undefined;
+    return { id: s.id, name: s.name, protocol: s.protocol, display: displayUrl(s.url), ...(isPlainHttp(s) ? { http: true } : {}), hasCredentials: s.hasCredentials, tls: s.tls?.mode, status: s.pending ? 'pending' : (this.status.get(s.id) ?? 'signed-in'), ...(photos ? { photos } : {}) };
   }
 
   private serverInfo(s: StoredSource): ServerInfo {
-    return { id: s.id, name: s.name, kind: 'files', version: '', hasToken: true, files: { protocol: s.protocol, display: displayUrl(s.url) } };
+    return { id: s.id, name: s.name, kind: 'files', version: '', hasToken: true, files: { protocol: s.protocol, display: displayUrl(s.url), ...(s.photos ? { photos: true } : {}) } };
   }
 
   private secret(id: string): Secret | null {
@@ -134,7 +144,8 @@ export class FileSources {
       return;
     }
     const progress = new ProgressStore(path.join(this.dir, `progress-${s.id}.json`));
-    const client = new FilesClient({ id: s.id, name: s.name, protocol: s.protocol }, backend, progress, this.identity, this.relay);
+    const photos = s.photos ? new PhotoIndex(backend, path.join(this.dir, `photos-${s.id}.json`), s.id, this.thumbs, this.photoMap) : undefined;
+    const client = new FilesClient({ id: s.id, name: s.name, protocol: s.protocol }, backend, progress, this.identity, this.relay, photos);
     this.clients.set(s.id, client);
     this.status.set(s.id, 'signed-in');
     this.host.putLocal(this.serverInfo(s), client, 'signed-in');
@@ -166,6 +177,7 @@ export class FileSources {
     if (c) this.relay.releaseBackend(c.backend);
     (c?.backend as { close?: () => void } | undefined)?.close?.();
     c?.progress.flush();
+    c?.photos?.flush();
     this.clients.delete(id);
     this.status.delete(id);
     this.host.dropLocal(id);
@@ -181,16 +193,17 @@ export class FileSources {
     const user = typeof input.user === 'string' ? input.user.slice(0, 256) : '';
     const pass = typeof input.pass === 'string' ? input.pass.slice(0, 1024) : '';
     const domain = typeof input.domain === 'string' && input.domain ? input.domain.slice(0, 256) : undefined;
+    const photos = input.photos === true ? { photos: true } : {};
     if (input.protocol === 'local') {
       const p = path.resolve(input.url);
       if (!this.picked.has(p)) return { code: 'invalid' };
-      return { source: { protocol: 'local', url: p }, secret: null };
+      return { source: { protocol: 'local', url: p, ...photos }, secret: null };
     }
     const parsed = parseSourceUrl(input.url);
     if (!parsed || parsed.protocol !== input.protocol) return { code: 'invalid' };
     const u = user || parsed.user || '';
     const secret = u ? { user: u, pass: pass || parsed.pass || '', ...(domain ? { domain } : {}) } : null;
-    if (parsed.protocol === 'smb') return { source: { protocol: 'smb', url: parsed.url }, secret };
+    if (parsed.protocol === 'smb') return { source: { protocol: 'smb', url: parsed.url, ...photos }, secret };
     let tls: TlsPolicy = { mode: 'verify' };
     if (parsed.url.startsWith('http://')) {
       if (!input.insecure) return { code: 'insecure' };
@@ -200,7 +213,7 @@ export class FileSources {
       if (!cert || cert.sha256.replace(/:/g, '').toLowerCase() !== input.pin.replace(/:/g, '').toLowerCase()) return { code: 'invalid' };
       tls = { mode: 'pin', sha256: cert.sha256, subject: cert.subject, notAfter: cert.validTo };
     }
-    return { source: { protocol: 'webdav', url: parsed.url, tls }, secret };
+    return { source: { protocol: 'webdav', url: parsed.url, tls, ...photos }, secret };
   }
 
   private async probe(source: Pick<StoredSource, 'protocol' | 'url' | 'tls'>, secret: Secret | null): Promise<FileTestResult> {
@@ -245,8 +258,10 @@ export class FileSources {
     if (n.secret) await this.vault.set(VAULT_PREFIX + id, { userId: n.secret.user, userName: n.secret.domain ?? '', token: n.secret.pass });
     this.store.update((d) => void d.sources.push(s));
     this.store.flush();
-    log.info(`added ${s.protocol} source ${short(id)}`);
+    log.info(`added ${s.protocol} ${s.photos ? 'photo ' : ''}source ${short(id)}`);
     this.attach(s);
+    // A photo source starts its first scan now: Settings shows its progress.
+    void this.clients.get(id)?.photos?.rescan().catch(() => undefined);
     return this.info(s);
   }
 
@@ -257,6 +272,7 @@ export class FileSources {
     this.detach(id);
     progress?.destroy();
     fs.rmSync(path.join(this.dir, `progress-${id}.json`), { force: true });
+    fs.rmSync(path.join(this.dir, `photos-${id}.json`), { force: true });
     if (this.vault.get(VAULT_PREFIX + id)) await this.vault.delete(VAULT_PREFIX + id);
     this.store.update((d) => void (d.sources = d.sources.filter((x) => x.id !== id)));
     this.store.flush();
@@ -318,11 +334,13 @@ export class FileSources {
   }
 
   refresh(id: string): void {
-    this.clients.get(id)?.refresh();
+    const c = this.clients.get(id);
+    c?.refresh();
+    void c?.photos?.rescan().catch(() => undefined);
   }
 
   exportable(): ExportedSource[] {
-    return this.store.value.sources.filter((s) => s.protocol !== 'local').map((s) => ({ name: s.name, protocol: s.protocol as 'webdav' | 'smb', url: s.url, ...(s.tls ? { tls: s.tls } : {}) }));
+    return this.store.value.sources.filter((s) => s.protocol !== 'local').map((s) => ({ name: s.name, protocol: s.protocol as 'webdav' | 'smb', url: s.url, ...(s.tls ? { tls: s.tls } : {}), ...(s.photos ? { photos: true } : {}) }));
   }
 
   // From a settings import: remote sources not already known, without credentials, pending until the user
@@ -345,6 +363,7 @@ export class FileSources {
         hasCredentials: false,
         addedAt: Date.now(),
         pending: true,
+        ...(e.photos === true ? { photos: true } : {}),
       };
       this.store.update((d) => void d.sources.push(s));
       added++;
@@ -355,7 +374,7 @@ export class FileSources {
 
   flush(): void {
     this.store.flush();
-    for (const c of this.clients.values()) c.progress.flush();
+    for (const c of this.clients.values()) (c.progress.flush(), c.photos?.flush());
   }
 
   shutdown(): void {

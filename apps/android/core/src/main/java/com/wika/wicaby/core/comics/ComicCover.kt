@@ -1,5 +1,6 @@
 package com.wika.wicaby.core.comics
 
+import android.util.Log
 import coil3.ImageLoader
 import coil3.decode.DataSource
 import coil3.decode.ImageSource
@@ -13,6 +14,7 @@ import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -21,6 +23,7 @@ import kotlinx.coroutines.withTimeout
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -54,9 +57,14 @@ object ComicCovers {
     // Same rule as desktop src/shared/comic-cover.ts: CBZ/ZIP books, or books whose list entry
     // does not name the format; null when the server has a cover (or the book is not a ZIP).
     fun of(api: Api, item: Item): ComicCover? {
-        if (!Comics.isBook(item) || item.imageTags["Primary"] != null) return null
+        if (!Comics.isBook(item)) return null
         val ext = Comics.extension(item)
-        if (ext.isNotEmpty() && ext != "cbz" && ext != "zip") return null
+        val skip = if (item.imageTags["Primary"] != null) "server cover" else if (ext.isNotEmpty() && ext != "cbz" && ext != "zip") "not a ZIP" else null
+        if (skip != null) {
+            // Field log, once per reason and extension a session: the extension only, nothing that names the book.
+            if (skipped.add("$skip.$ext")) Log.w(TAG, "skipped ($skip): extension \"$ext\"")
+            return null
+        }
         return ComicCover(api.url("/Items/${item.id}/File"), item.etag ?: item.dateCreated.orEmpty())
     }
 
@@ -74,34 +82,38 @@ object ComicCovers {
 
     private class Refused(val code: Int) : IOException("HTTP $code: no Range answer")
 
-    // A server answering 200 (the whole file) is refused at once: a cover never downloads the archive.
-    private suspend fun range(http: OkHttpClient, url: String, range: String, max: Int): Ranged =
+    // A server answering 200 (the whole file) is refused at once: a cover never downloads the archive. [steps] gets each
+    // answer's status, Content-Range numbers and bytes read (the field log).
+    private suspend fun range(http: OkHttpClient, url: String, range: String, max: Int, steps: MutableList<String>): Ranged =
         http.newCall(Request.Builder().url(url).header("Range", range).build()).await().use { r ->
-            val m = Regex("^bytes (\\d+)-(\\d+)/(\\d+)$").find(r.header("Content-Range").orEmpty())
+            val cr = r.header("Content-Range")
+            val m = Regex("^bytes (\\d+)-(\\d+)/(\\d+)$").find(cr.orEmpty())
+            steps += "${r.code} " + (m?.let { "${it.groupValues[1]}-${it.groupValues[2]}/${it.groupValues[3]}" } ?: if (cr == null) "no Content-Range" else "odd Content-Range")
             if (r.code != 206 || m == null) throw Refused(r.code)
             val src = r.body.source()
             val buf = Buffer()
             // Some servers (Emby) ignore the end of "bytes=a-b" and stream to the end of the file:
             // keep what was asked for and stop reading (closing the response cancels the rest).
             while (buf.size < max && src.read(buf, 64L * 1024) != -1L) Unit
+            steps[steps.lastIndex] += " read ${buf.size}"
             Ranged(buf.readByteArray(minOf(buf.size, max.toLong())), m.groupValues[1].toLong(), m.groupValues[3].toLong())
         }
 
     // The cover page's bytes (decompressed). /File first, as the reader; /Download when it is refused.
-    suspend fun firstPage(http: OkHttpClient, fileUrl: String): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun firstPage(http: OkHttpClient, fileUrl: String, steps: MutableList<String> = mutableListOf()): ByteArray = withContext(Dispatchers.IO) {
         var url = fileUrl
         val tail = try {
-            range(http, url, "bytes=-$TAIL", TAIL)
+            range(http, url, "bytes=-$TAIL", TAIL, steps)
         } catch (e: Refused) {
             if (e.code != 401 && e.code != 403 && e.code != 404) throw e
             val u = fileUrl.toHttpUrl()
             url = u.newBuilder().setPathSegment(u.pathSize - 1, "Download").build().toString()
-            range(http, url, "bytes=-$TAIL", TAIL)
+            range(http, url, "bytes=-$TAIL", TAIL, steps)
         }
         val read: suspend (Long, Int) -> ByteArray = { pos, len ->
             val at = pos - tail.start
             if (at >= 0 && at + len <= tail.bytes.size) tail.bytes.copyOfRange(at.toInt(), at.toInt() + len)
-            else range(http, url, "bytes=$pos-${pos + len - 1}", len).bytes
+            else range(http, url, "bytes=$pos-${pos + len - 1}", len, steps).bytes
         }
         val entries = entries(tail.bytes, tail.total, read)
         val name = entry(entries.map { it.name }) ?: throw IOException("no page")
@@ -206,6 +218,20 @@ object ComicCovers {
 
     // Books without a usable first page this session: not tried again on every scroll.
     internal val failed: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+    private val skipped: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+    const val TAG = "WicabyComicCover"
+
+    // The release log line of a failed cover: the exception and each step (status, Content-Range numbers, bytes read).
+    // Never the URL, host, item id or token, even when OkHttp puts them in its message.
+    fun diagnostic(e: Throwable, steps: List<String>, url: String): String {
+        var msg = e.message.orEmpty().replace(Regex("[a-zA-Z][a-zA-Z0-9+.-]*://\\S*"), "<url>")
+        url.toHttpUrlOrNull()?.let { u ->
+            val secrets = listOf(u.host) + u.pathSegments.filter { it.length > 1 && it !in setOf("emby", "Items", "File", "Download") } +
+                (0 until u.querySize).mapNotNull { u.queryParameterValue(it) }
+            for (v in secrets.filter { it.isNotEmpty() }.sortedByDescending { it.length }) msg = msg.replace(v, "<redacted>")
+        }
+        return "cover failed: ${e::class.java.simpleName}: $msg; steps: ${steps.joinToString(", ").ifEmpty { "none" }}"
+    }
 }
 
 // Coil's memory and disk caches key the cover by server URL, item and version.
@@ -226,11 +252,13 @@ class ComicCoverFetcher(private val data: ComicCover, private val loader: ImageL
         val cache = loader.diskCache
         cache?.openSnapshot(key)?.let { return SourceFetchResult(ImageSource(it.data, cache.fileSystem, key, it), null, DataSource.DISK) }
         if (key in ComicCovers.failed) throw IOException("no cover")
+        val steps = mutableListOf<String>()
         val bytes = try {
-            permits.withPermit { withTimeout(TIMEOUT_MS) { ComicCovers.firstPage(http(), data.url) } }
-        } catch (e: CancellationException) {
-            throw e // scrolled away or timed out: tried again next time
+            permits.withPermit { withTimeout(TIMEOUT_MS) { ComicCovers.firstPage(http(), data.url, steps) } }
         } catch (e: Exception) {
+            // Field log (kept in release): every failure and timeout, not a card scrolled away.
+            if (e !is CancellationException || e is TimeoutCancellationException) Log.w(ComicCovers.TAG, ComicCovers.diagnostic(e, steps, data.url))
+            if (e is CancellationException) throw e // scrolled away or timed out: tried again next time
             ComicCovers.failed += key
             throw e
         }

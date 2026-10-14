@@ -20,9 +20,14 @@ export function onlineSessions(): ServerSession[] {
   return session.value.sessions.filter((s) => s.status === 'signed-in' && s.server.kind !== 'files');
 }
 
-// File sources (file-sources-spec): every one, online or not.
+// File sources (file-sources-spec): every one, online or not. Photo sources are listed apart (photoSessions).
 export function fileSessions(): ServerSession[] {
-  return session.value.sessions.filter((s) => s.server.kind === 'files');
+  return session.value.sessions.filter((s) => s.server.kind === 'files' && !s.server.files?.photos);
+}
+
+// Photo sources on files (Settings > Photo sources): a photo library each, like an Immich source.
+export function photoSessions(): ServerSession[] {
+  return session.value.sessions.filter((s) => s.server.kind === 'files' && s.server.files?.photos === true);
 }
 
 export function isFileSource(serverId?: string): boolean {

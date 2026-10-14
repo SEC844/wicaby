@@ -36,6 +36,7 @@
     "servers": "{count, plural, one {# serveur} other {# serveurs}}",
     "menu": {
       "history": "Historique",
+      "setup": "Assistant de configuration",
       "servers": "Serveurs",
       "switchUser": "Changer d’utilisateur",
       "switchServer": "Changer de serveur",

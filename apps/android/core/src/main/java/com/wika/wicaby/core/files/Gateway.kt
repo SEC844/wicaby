@@ -49,7 +49,7 @@ class Gateway(
     override suspend fun list(rel: String): List<FileEntry> = gate.run {
         withContext(Dispatchers.IO) {
             get("${base()}/ls/${path(rel)}") { body ->
-                filesJson.decodeFromString<List<Ls>>(body.decodeToString())
+                filesJson.decodeFromString<List<Ls>>(body.bytes().decodeToString())
                     .filter { Ids.segmentOk(it.name) }
                     .map { FileEntry(it.name, it.dir, it.size, it.mtime * 1000) }
             }
@@ -58,11 +58,15 @@ class Gateway(
 
     override suspend fun read(rel: String, entry: FileEntry?, maxBytes: Int): ByteArray = gate.run {
         withContext(Dispatchers.IO) {
-            get(uri(rel, entry), "bytes=0-${maxBytes - 1}") { it.copyOf(minOf(it.size, maxBytes)) }
+            get(uri(rel, entry), "bytes=0-${maxBytes - 1}") { b -> b.bytes().let { it.copyOf(minOf(it.size, maxBytes)) } }
         }
     }
 
-    private fun <T> get(url: String, range: String? = null, read: (ByteArray) -> T): T {
+    override suspend fun <T> open(rel: String, entry: FileEntry?, maxBytes: Int, use: (java.io.InputStream) -> T): T = gate.run {
+        withContext(Dispatchers.IO) { get(uri(rel, entry), "bytes=0-${maxBytes - 1}") { use(it.byteStream()) } }
+    }
+
+    private fun <T> get(url: String, range: String? = null, read: (okhttp3.ResponseBody) -> T): T {
         val req = Request.Builder().url(url).apply { range?.let { header("Range", it) } }.build()
         val call = http.newCall(req)
         call.timeout().timeout(WebDav.LIST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
@@ -73,7 +77,7 @@ class Gateway(
         }
         return res.use { r ->
             when (r.code) {
-                in 200..299 -> read(r.body.bytes())
+                in 200..299 -> read(r.body)
                 // The gateway names the SMB failure in its body: auth, notfound, smb1, offline.
                 else -> throw gatewayError(r.code, r.body.string())
             }

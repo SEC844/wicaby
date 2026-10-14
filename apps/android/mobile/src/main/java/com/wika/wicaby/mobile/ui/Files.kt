@@ -114,7 +114,7 @@ fun FilesSection(nav: NavController) {
         }.value.orEmpty()
         if (cont.isNotEmpty()) MediaRow(stringResource(CoreR.string.files_continue), cont, FileSources.all().first(), wide = true, onClick = { play(context, it) })
     }
-    if (adding) AddFileSourceSheet { adding = false }
+    if (adding) AddFileSourceSheet(onDismiss = { adding = false })
     signIn?.let { s -> SignInSheet(s) { signIn = null } }
 }
 
@@ -292,20 +292,21 @@ private fun FindOnNetwork(draft: FileSourceDraft) {
 // certificate is shown, and trusted for this source only, before anything is sent.
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun AddFileSourceSheet(onDismiss: () -> Unit) {
+// photos: a photo source (Réglages > Sources de photos), the same form; protocol: the one preselected.
+fun AddFileSourceSheet(onDismiss: () -> Unit, photos: Boolean = false, protocol: String = FileSource.WEBDAV) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val draft = remember { FileSourceDraft() }
+    val draft = remember { FileSourceDraft(protocol, photos) }
     val accent = LocalAccent.current
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
-            runCatching { LocalFolders.add(context, uri) }.onFailure { Toast.makeText(context, errorText(it), Toast.LENGTH_LONG).show() }
+            runCatching { LocalFolders.add(context, uri, photos) }.onFailure { Toast.makeText(context, errorText(it), Toast.LENGTH_LONG).show() }
             onDismiss()
         }
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = G.elevated) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imeAware().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
-            Text(stringResource(CoreR.string.files_add), style = Type.title2, color = G.label, modifier = Modifier.padding(bottom = 14.dp))
+            Text(stringResource(if (photos) CoreR.string.photos_sources_files_add else CoreR.string.files_add), style = Type.title2, color = G.label, modifier = Modifier.padding(bottom = 14.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (LocalFolders.available(context)) Chip(stringResource(CoreR.string.files_add_local), selected = false) { runCatching { pick.launch(null) } }
                 Chip(stringResource(CoreR.string.files_add_webdav), selected = draft.protocol == FileSource.WEBDAV) { draft.protocol = FileSource.WEBDAV }
@@ -384,7 +385,7 @@ fun FilesSettings() {
             )
         }
     }
-    if (adding) AddFileSourceSheet { adding = false }
+    if (adding) AddFileSourceSheet(onDismiss = { adding = false })
     removing?.let { s ->
         AlertDialog(
             onDismissRequest = { removing = null },

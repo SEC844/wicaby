@@ -16,6 +16,7 @@ import { ApiClient, ApiError, buildQuery, type ClientIdentity } from '../connect
 import { logger } from '../core/log';
 import { filesError, MAX_ENTRIES, mimeOf, type FileEntry, type FilesBackend } from './backend';
 import type { LoopbackRelay } from './loopback';
+import type { PhotoIndex } from './photo-index';
 import type { ProgressStore } from './progress';
 
 const log = logger.scope('files');
@@ -68,6 +69,8 @@ export class FilesClient extends ApiClient {
     readonly progress: ProgressStore,
     identity: ClientIdentity,
     private readonly relay: LoopbackRelay,
+    // A photo source: its photo calls are answered from this index.
+    readonly photos?: PhotoIndex,
   ) {
     super(`wicaby-files://${source.id}`, 'files', identity, undefined, 'local');
   }
@@ -98,6 +101,24 @@ export class FilesClient extends ApiClient {
     const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
     let m: RegExpExecArray | null;
     const is = (verb: string, re: RegExp) => method === verb && (m = re.exec(path)) !== null;
+    if (this.photos) {
+      const ph = this.photos;
+      if (is('GET', /^\/Users\/[^/]+\/Views$/)) return { Items: [ph.rootItem(this.source.name)], TotalRecordCount: 1 } as T;
+      if (is('GET', /^\/Users\/[^/]+\/Items$/)) return (await ph.items(q)) as T;
+      if (is('GET', /^\/Years$/)) return (await ph.years(q)) as T;
+      if (is('POST', /^\/Users\/[^/]+\/FavoriteItems\/([^/]+)$/)) return ph.setFavorite(this.relOf(m![1]), true) as T;
+      if (is('DELETE', /^\/Users\/[^/]+\/FavoriteItems\/([^/]+)$/)) return ph.setFavorite(this.relOf(m![1]), false) as T;
+      if (is('GET', /^\/Users\/[^/]+\/Items\/([^/]+)$/)) {
+        const rel = this.relOf(m![1]);
+        if (!rel) return ph.rootItem(this.source.name) as T;
+        const photo = await ph.item(rel);
+        if (photo) return photo as T;
+        // A clip plays as any file; its heart is the photo source's.
+        const item = await this.item(m![1]);
+        if (item.UserData) item.UserData.IsFavorite = ph.isFavorite(rel);
+        return item as T;
+      }
+    }
     if (is('GET', /^\/Users\/[^/]+\/Views$/)) return { Items: [this.rootItem()], TotalRecordCount: 1 } as T;
     if (is('GET', /^\/Users\/[^/]+\/Items\/Resume$/)) return (await this.resume(Number(q.Limit) || 24)) as T;
     if (is('GET', /^\/Users\/[^/]+\/Items\/Latest$/)) return [] as T;
@@ -491,13 +512,19 @@ export class FilesClient extends ApiClient {
   // ---- Media (wicaby-media://api/<sourceId>/…) ----
 
   // Images, the file itself (HTML player) and sidecar subtitles. rel: the API path.
-  async media(apiPath: string, method: string, range: string | undefined): Promise<Response> {
+  async media(apiPath: string, method: string, range: string | undefined, query?: URLSearchParams, signal?: AbortSignal): Promise<Response> {
     const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges' };
     const m = /^\/Items\/([^/]+)\/(Images\/(Primary|Backdrop|Thumb)(?:\/0)?|File|Subtitles\/(\d{1,3}))$/.exec(apiPath);
     if (!m) return new Response('Not found', { status: 404, headers: cors });
     const rel = decodeId(m[1]);
     if (rel === null) return new Response('Bad request', { status: 400, headers: cors });
     try {
+      if (m[3] === 'Primary' && this.photos) {
+        const r = await this.photos.image(rel, query ?? new URLSearchParams(), signal);
+        if (!r) return new Response('Not found', { status: 404, headers: cors });
+        for (const [k, v] of Object.entries(cors)) r.headers.set(k, v);
+        return r;
+      }
       if (m[3]) {
         const target = await this.imageOf(rel, m[3]);
         if (!target) return new Response('Not found', { status: 404, headers: cors });

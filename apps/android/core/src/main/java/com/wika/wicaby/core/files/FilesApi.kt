@@ -52,6 +52,8 @@ class FilesApi(
     val backend: FileBackend,
     val progress: FileProgress,
     deviceId: String,
+    // A photo source (FileSource.photos): its index answers the photo screens' calls (PhotoRoutes.kt).
+    val photos: PhotoIndex? = null,
     private val now: () -> Long = System::currentTimeMillis,
 ) : Api(Server(source.id, source.name, "files:${source.id}", "files"), deviceId, null, USER) {
     private class Listing(val entries: List<FileEntry>, val at: Long, val cut: Boolean)
@@ -96,7 +98,8 @@ class FilesApi(
     // Subtitle delivery URLs are the backend's own absolute URIs.
     override fun resolve(u: String): String = u
 
-    override fun image(id: String, type: String, tag: String?, maxWidth: Int?, maxHeight: Int?): String = images["$id/$type"].orEmpty()
+    override fun image(id: String, type: String, tag: String?, maxWidth: Int?, maxHeight: Int?): String =
+        photos?.let { photoImage(id, maxOf(maxWidth ?: 0, maxHeight ?: 0)) } ?: images["$id/$type"].orEmpty()
 
     override suspend fun raw(method: String, path: String, body: String?, vararg query: Pair<String, Any?>): String =
         route(method, path, body, query.asList())
@@ -117,7 +120,7 @@ class FilesApi(
     // The file was replaced since its progress was saved (§4.4): it starts at 0 and the player says why. Once.
     fun changed(itemId: String): Boolean = Ids.decode(itemId)?.let { changedRels.remove(it) } == true
 
-    private fun arg(query: List<Pair<String, Any?>>, name: String): String? =
+    internal fun arg(query: List<Pair<String, Any?>>, name: String): String? =
         query.firstOrNull { it.first.equals(name, ignoreCase = true) }?.second?.toString()?.takeIf { it.isNotEmpty() }
 
     // Emby and Jellyfin spell the same call several ways (Api picks by kind): one route each here.
@@ -136,6 +139,7 @@ class FilesApi(
         val parts = p.trim('/').split('/')
         fun unmapped(): Nothing = throw ApiException("FILES-UNMAPPED $method $p", 404)
         fun id(i: Int) = parts.getOrNull(i) ?: unmapped()
+        if (photos != null) photoRoute(method, p, parts, query)?.let { return@withContext it }
         when (method) {
             "GET" -> when {
                 p == "/Views" -> encode(ItemsResult(listOf(root()), 1))
@@ -179,9 +183,9 @@ class FilesApi(
         }
     }
 
-    private fun encode(r: ItemsResult) = json.encodeToString(ItemsResult.serializer(), r)
+    internal fun encode(r: ItemsResult) = json.encodeToString(ItemsResult.serializer(), r)
 
-    private fun root() = Item(Ids.ROOT, source.name, "CollectionFolder", collectionType = "mixed", isFolder = true, serverId = source.id)
+    internal fun root() = Item(Ids.ROOT, source.name, "CollectionFolder", collectionType = if (photos != null) "photos" else "mixed", isFolder = true, serverId = source.id)
 
     private fun folderItem(rel: String, name: String): Item? = Ids.encode(rel)?.let { Item(it, name, "Folder", isFolder = true, serverId = source.id) }
 
@@ -224,7 +228,7 @@ class FilesApi(
             .awaitAll().mapNotNull { (r, l) -> l?.let { r to it } }.toMap()
     }
 
-    private fun relOf(id: String) = Ids.decode(id) ?: throw ApiException("FILES-BAD-ID", 404)
+    internal fun relOf(id: String) = Ids.decode(id) ?: throw ApiException("FILES-BAD-ID", 404)
 
     private suspend fun list(parentId: String, query: List<Pair<String, Any?>>): ItemsResult {
         val rel = relOf(parentId)

@@ -69,4 +69,8 @@ class LocalSaf(private val context: Context, source: FileSource) : FileBackend {
             buf.toByteArray()
         }
     }
+
+    override suspend fun <T> open(rel: String, entry: FileEntry?, maxBytes: Int, use: (java.io.InputStream) -> T): T = withContext(Dispatchers.IO) {
+        (context.contentResolver.openInputStream(Uri.parse(entry?.uri ?: uri(rel, null))) ?: throw FileError(FileError.Kind.NOT_FOUND)).use(use)
+    }
 }

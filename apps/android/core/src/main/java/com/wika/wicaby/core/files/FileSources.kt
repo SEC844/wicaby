@@ -21,7 +21,12 @@ object FileSources {
     private val store: SourceStore by lazy { SourceStore(File(Core.app.filesDir, "files"), Vault::encrypt, Vault::decrypt) }
     private val apis = ConcurrentHashMap<String, FilesApi>()
     private val _list = MutableStateFlow<List<FileSource>>(emptyList())
+    // The file sources (Files); the photo sources live in [photos], their own photo libraries.
     val list: StateFlow<List<FileSource>> = _list
+    private val _photos = MutableStateFlow<List<FileSource>>(emptyList())
+    val photos: StateFlow<List<FileSource>> = _photos
+    @Volatile
+    private var every: List<FileSource> = emptyList()
     private val _showOnHome = MutableStateFlow(false)
     // Réglages > Accueil > "Show file sources on Home" (D10, off by default): their Continue items join Home's row.
     val showOnHome: StateFlow<Boolean> = _showOnHome
@@ -36,19 +41,30 @@ object FileSources {
     }
 
     private fun reload() {
-        _list.value = store.list()
+        every = store.list()
+        _list.value = every.filterNot { it.photos }
+        _photos.value = every.filter { it.photos }
         _showOnHome.value = store.showOnHome
     }
 
-    fun source(id: String?): FileSource? = _list.value.firstOrNull { it.id == id }
+    fun source(id: String?): FileSource? = every.firstOrNull { it.id == id }
 
     fun api(id: String?): FilesApi? {
         val s = source(id) ?: return null
         apis[s.id]?.takeIf { it.source == s }?.let { return it }
-        return FilesApi(s, backend(s, store.credentials(s.id)), FileProgress(store.progressFile(s.id)), deviceId).also { apis.put(s.id, it)?.backend?.close() }
+        val backend = backend(s, store.credentials(s.id))
+        val index = if (s.photos) PhotoIndex(backend, store.photoIndexFile(s.id)) else null
+        return FilesApi(s, backend, FileProgress(store.progressFile(s.id)), deviceId, photos = index).also { apis.put(s.id, it)?.let(::release) }
+    }
+
+    private fun release(a: FilesApi) {
+        a.backend.close()
+        a.photos?.close()
     }
 
     fun all(): List<FilesApi> = _list.value.mapNotNull { api(it.id) }
+
+    fun photoApis(): List<FilesApi> = _photos.value.mapNotNull { api(it.id) }
 
     // Home's Continue row: only with the setting on (caps homeOptIn).
     fun forHome(): List<Api> = if (_showOnHome.value) all() else emptyList()
@@ -100,7 +116,7 @@ object FileSources {
     // "Sign in again" (§7.1) and new passwords go through here (SignInDraft tests them first).
     fun setCredentials(id: String, creds: FileCredentials?) {
         store.setCredentials(id, creds)
-        apis.remove(id)?.backend?.close()
+        apis.remove(id)?.let(::release)
         reload()
     }
 
@@ -112,7 +128,7 @@ object FileSources {
     // Its progress goes with it (the caller confirmed), and a picked folder gives its permission back (§7.5).
     fun remove(id: String) {
         val s = source(id) ?: return
-        apis.remove(id)?.backend?.close()
+        apis.remove(id)?.let(::release)
         store.remove(id)
         if (s.isLocal) runCatching { Core.app.contentResolver.releasePersistableUriPermission(Uri.parse(s.url), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         reload()

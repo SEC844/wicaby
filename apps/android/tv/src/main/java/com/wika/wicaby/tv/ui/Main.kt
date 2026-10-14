@@ -168,6 +168,7 @@ fun MainScreen() {
 
     val onScrolled: (Boolean) -> Unit = { scrolled = it }
     val fileSources by com.wika.wicaby.core.files.FileSources.list.collectAsState()
+    val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
     val dests = buildList {
         add(Dest(TopTab("home", stringResource(R.string.tab_home))) { HomeTab(api, libs, it) })
         views.forEach { v ->
@@ -185,6 +186,12 @@ fun MainScreen() {
         // Immich photo source (photos spec PH-13): its own library tab.
         com.wika.wicaby.core.photos.Immich.source?.let { s ->
             add(Dest(TopTab("immich", s.name)) { com.wika.wicaby.tv.ui.photos.PhotosTab(api, s.id, s.name, top = 104.dp, onScrolled = it, kind = com.wika.wicaby.tv.ui.photos.IMMICH) })
+        }
+        // Photo sources (a folder or a share used as a photo library): each its own tab, like Immich.
+        photoSources.forEach { s ->
+            add(Dest(TopTab("photos:${s.id}", s.name)) { scroll ->
+                ServerScope(s.id) { LocalApi.current?.let { a -> com.wika.wicaby.tv.ui.photos.PhotosTab(a, com.wika.wicaby.core.files.pure.Ids.ROOT, s.name, top = 104.dp, onScrolled = scroll) } }
+            })
         }
         addAll(extraTabs())
         add(Dest(TopTab("search", stringResource(R.string.tab_search), Ic.Search)) { SearchTab(api, live = views.any { it.collectionType == "livetv" }) })

@@ -178,6 +178,9 @@
               <button role="menuitem" onclick={() => run(() => navigate('/settings'))}>
                 <Icon name="settings" size={16} /> {t('shell.nav.settings')}
               </button>
+              <button role="menuitem" onclick={() => run(() => navigate('/welcome?rerun=1'))}>
+                <Icon name="sparkles" size={16} /> {t('shell.account.menu.setup')}
+              </button>
               {#if multi}
                 <button role="menuitem" onclick={() => run(() => navigate('/servers'))}>
                   <Icon name="server" size={16} /> {t('shell.account.menu.servers')}

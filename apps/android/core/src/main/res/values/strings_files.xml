@@ -66,4 +66,19 @@
     <string name="files_mdns_searching">Recherche sur le réseau…</string>
     <string name="files_mdns_none">Aucun partage ne s’annonce sur ce réseau. Saisissez son adresse.</string>
     <string name="files_sign_in_body">Saisissez à nouveau les identifiants de %1$s. Sa progression de lecture est conservée.</string>
+    <!-- Photo sources: a folder or a share used as a photo library (Réglages > Sources de photos). -->
+    <string name="photos_sources_files_add">Ajouter une source de photos</string>
+    <string name="photos_sources_add_with">Ajouter : %1$s</string>
+    <string name="photos_sources_rescan">Réanalyser</string>
+    <string name="photos_sources_not_scanned">Pas encore analysée</string>
+    <plurals name="photos_sources_indexing">
+        <item quantity="one">Indexation de %d photo…</item>
+        <item quantity="many">Indexation de %d photos…</item>
+        <item quantity="other">Indexation de %d photos…</item>
+    </plurals>
+    <plurals name="photos_sources_indexed">
+        <item quantity="one">%1$d photo · dernière analyse le %2$s</item>
+        <item quantity="many">%1$d photos · dernière analyse le %2$s</item>
+        <item quantity="other">%1$d photos · dernière analyse le %2$s</item>
+    </plurals>
 </resources>

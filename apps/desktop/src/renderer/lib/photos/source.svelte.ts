@@ -52,6 +52,11 @@ export function cachedSkeleton(key: string, start: (s: Skeleton) => Promise<void
   return s;
 }
 
+// A rescanned photo source: its views load again on their next visit.
+export function forgetViews(server: string): void {
+  for (const k of cache.keys()) if (k.startsWith(`${server}:`)) cache.delete(k);
+}
+
 export const mapEnabled = () => settings.value?.photos?.map.enabled === true;
 
 async function load(s: Skeleton, server: string | undefined, parentId: string, favorites: boolean, geo: boolean): Promise<void> {
