@@ -7,6 +7,10 @@
 //   PlaybackInfo (castProfile, 20 Mbps), through the LAN relay by default, with text subtitles as VTT tracks. The
 //   sender reports for the cast as its own session (Playing, Progress every 10 s and on each change, Ping every 30 s
 //   while transcoding, Stopped at IDLE/close/loss).
+// - Speakers and speaker groups (no video output) always get the Default Media Receiver: Google documents it on
+//   audio devices, while a custom receiver must be registered for them. Songs go there as a queue the sender runs:
+//   at IDLE/FINISHED the next one is LOADed (Stopped, then Playing, as the local music player reports), with its
+//   title, artists, album and cover (MusicTrackMediaMetadata) for the device's screen and the Google Home app.
 import { TICKS_PER_MS, type CastCommand, type CastStartOptions, type CastState, type CastTarget, type PlayMethod } from '../../shared/contract';
 import type { BaseItem, MediaSource, PlaybackInfoResponse } from '../../shared/models';
 import type { ApiClient } from '../connection/api-client';
@@ -15,7 +19,7 @@ import { logger } from '../core/log';
 import { t } from '../i18n';
 import type { LocalPlayer } from './cast-manager';
 import { CastChannel, CastError, NS, RECEIVER, type Payload } from './castv2';
-import { CastFailure, deviceUrls, serverPath, type CastToken } from './dlna-cast';
+import { artPath, castItem, CastFailure, deviceUrls, serverPath, type CastToken } from './dlna-cast';
 import { lanServerBase } from './lan';
 import type { CastDevice } from './mdns';
 import { castProfile, type CastPrefs } from './profiles';
@@ -119,10 +123,12 @@ export class ChromecastCast {
     let pos = moving ? this.positionTicks + (Date.now() - this.at) * TICKS_PER_MS : this.positionTicks;
     if (this.item?.RunTimeTicks) pos = Math.min(pos, this.item.RunTimeTicks);
     const it = this.item;
+    const queued = this.ids.length > 1 && (this.mode === 'receiver' || this.music);
     return {
       target: this.d.target,
       status: this.status,
-      item: it && { id: it.Id, name: it.Name ?? '', type: it.Type, seriesName: it.SeriesName, runTimeTicks: it.RunTimeTicks },
+      item: it && castItem(it),
+      ...(this.music && this.mode === 'dmr' ? { queue: { index: this.index, length: this.ids.length } } : {}),
       serverId: this.d.target.serverId!,
       positionTicks: Math.round(pos),
       paused: this.paused,
@@ -130,8 +136,13 @@ export class ChromecastCast {
       muted: this.muted,
       audio: this.audio,
       sub: this.sub,
-      controls: { ...controlsFor(this.d.target, this.d.api.kind, 1), nextPrev: this.mode === 'receiver' && this.ids.length > 1 },
+      controls: { ...controlsFor(this.d.target, this.d.api.kind, 1), nextPrev: queued },
     };
+  }
+
+  // A song on the Default Media Receiver: the sender runs the queue.
+  private get music(): boolean {
+    return this.item?.MediaType === 'Audio';
   }
 
   // local: the player handed off (paused once the device took it, stopped once it plays); null from an item page.
@@ -148,7 +159,7 @@ export class ChromecastCast {
       this.ch.on('message', (ns: string, p: Payload) => this.onMessage(ns, p));
       this.ch.once('lost', () => void this.end('cast.error.lost'));
       await this.ch.connect(device.ip, device.port);
-      if (api.kind === 'jellyfin') {
+      if (api.kind === 'jellyfin' && device.video) {
         const appId = await this.receiverId();
         try {
           await this.launch(appId);
@@ -243,7 +254,7 @@ export class ChromecastCast {
   // The Default Media Receiver: PlaybackInfo with the Cast profile, then LOAD.
   private async loadAt(startTicks: number, msid = this.stream?.msid): Promise<void> {
     const ticks = Math.max(0, Math.round(startTicks));
-    const { s, contentId, contentType, tracks } = await this.prepare(ticks, msid);
+    const { s, contentId, contentType, tracks, art } = await this.prepare(ticks, msid);
     const active = this.sub !== undefined && s.tracks.has(this.sub) ? [s.tracks.get(this.sub)!] : [];
     this.restarting = true;
     try {
@@ -253,7 +264,7 @@ export class ChromecastCast {
           contentId,
           contentType,
           streamType: 'BUFFERED',
-          metadata: { metadataType: 0, title: this.item?.Name ?? '' },
+          metadata: this.metadata(art),
           ...(this.item?.RunTimeTicks ? { duration: this.item.RunTimeTicks / TICKS_PER_S } : {}),
           ...(tracks.length ? { tracks } : {}),
           ...(s.hls ? { hlsVideoSegmentFormat: s.fmp4 ? 'fmp4' : 'mpeg2_ts' } : {}),
@@ -274,7 +285,24 @@ export class ChromecastCast {
     this.paused = false;
   }
 
-  private async prepare(startTicks: number, msid?: string): Promise<{ s: Stream; contentId: string; contentType: string; tracks: Record<string, unknown>[] }> {
+  // GenericMediaMetadata (0) for a video; MusicTrackMediaMetadata (3) for a song, with its cover.
+  private metadata(art?: string): Record<string, unknown> {
+    const it = this.item;
+    if (!it || it.MediaType !== 'Audio') return { metadataType: 0, title: it?.Name ?? '' };
+    const c = castItem(it);
+    return {
+      metadataType: 3,
+      title: c.name,
+      ...(c.artists ? { artist: c.artists.join(', ') } : {}),
+      ...(c.album ? { albumName: c.album } : {}),
+      ...(it.AlbumArtist ? { albumArtist: it.AlbumArtist } : {}),
+      ...(Number.isInteger(it.IndexNumber) ? { trackNumber: it.IndexNumber } : {}),
+      ...(Number.isInteger(it.ParentIndexNumber) ? { discNumber: it.ParentIndexNumber } : {}),
+      ...(art ? { images: [{ url: art }] } : {}),
+    };
+  }
+
+  private async prepare(startTicks: number, msid?: string): Promise<{ s: Stream; contentId: string; contentType: string; tracks: Record<string, unknown>[]; art?: string }> {
     const { api, device } = this.d;
     const item = this.item!;
     const max = 20_000_000;
@@ -322,7 +350,8 @@ export class ChromecastCast {
     // shortcut: no side tracks from Plex (PMS serves its sidecars as SRT, not VTT); upgrade through its subtitle transcoder.
     const subs = api.kind === 'plex' ? [] : (src.MediaStreams ?? []).filter((m) => m.Type === 'Subtitle' && m.Index >= 0 && m.DeliveryMethod !== 'Encode' && (m.IsTextSubtitleStream === true || TEXT_SUBS.test(m.Codec ?? '')));
     const subPath = (i: number) => `/Videos/${item.Id}/${src.Id}/Subtitles/${i}/${api.kind === 'jellyfin' ? '0/' : ''}Stream.vtt`;
-    const r = await deviceUrls({ ...this.d, ip: device.ip }, [path, ...subs.map((m) => subPath(m.Index))], this.nonce);
+    const art = artPath(api, item);
+    const r = await deviceUrls({ ...this.d, ip: device.ip }, [path, ...subs.map((m) => subPath(m.Index)), ...(art ? [art] : [])], this.nonce);
     this.nonce = r.nonce;
     const trackIds = new Map(subs.map((m) => [m.Index, m.Index + 1]));
     const tracks = subs.map((m, i) => ({
@@ -341,6 +370,7 @@ export class ChromecastCast {
       contentId: r.urls[0],
       contentType,
       tracks,
+      art: art ? r.urls[subs.length + 1] : undefined,
     };
   }
 
@@ -387,7 +417,11 @@ export class ChromecastCast {
       const was = this.paused;
       this.playerState = s.playerState;
       if (s.playerState === 'IDLE' && this.status === 'playing') {
-        if (s.idleReason === 'FINISHED' || s.idleReason === 'CANCELLED' || s.idleReason === 'ERROR') void this.end(s.idleReason === 'ERROR' ? 'cast.error.rejected' : undefined);
+        // A song that finished: the next one of the queue (the sender's, on the DMR).
+        if (s.idleReason === 'FINISHED' && this.mode === 'dmr' && this.music && this.index + 1 < this.ids.length) {
+          this.positionTicks = this.item?.RunTimeTicks ?? this.positionTicks;
+          void this.jump(this.index + 1).catch((err) => (log.warn('next song failed', err), this.end()));
+        } else if (s.idleReason === 'FINISHED' || s.idleReason === 'CANCELLED' || s.idleReason === 'ERROR') void this.end(s.idleReason === 'ERROR' ? 'cast.error.rejected' : undefined);
         return;
       }
       if (s.playerState === 'PAUSED' || s.playerState === 'PLAYING' || s.playerState === 'BUFFERING') this.paused = s.playerState === 'PAUSED';
@@ -452,10 +486,19 @@ export class ChromecastCast {
         void this.report('Progress', 'VolumeChange');
         break;
       case 'next':
-      case 'previous':
-        if (!receiver || this.ids.length < 2) throw new Error(t('cast.remote.unavailable'));
-        this.connectsdk(cmd.type === 'next' ? 'NextTrack' : 'PreviousTrack', {});
+      case 'previous': {
+        if (!this.state.controls.nextPrev) throw new Error(t('cast.remote.unavailable'));
+        if (receiver) {
+          this.connectsdk(cmd.type === 'next' ? 'NextTrack' : 'PreviousTrack', {});
+          break;
+        }
+        // Previous: back to the start past 5 s or on the first song (the music player's rule).
+        if (cmd.type === 'previous' && (pos > 5000 * TICKS_PER_MS || this.index === 0)) return this.control({ type: 'seek', positionTicks: 0 });
+        const i = this.index + (cmd.type === 'next' ? 1 : -1);
+        if (i >= this.ids.length) throw new Error(t('cast.remote.unavailable'));
+        await this.jump(i);
         break;
+      }
       case 'audio':
       case 'subtitle': {
         const audio = cmd.type === 'audio';
@@ -478,6 +521,28 @@ export class ChromecastCast {
   // shortcut: the old transcode is left to the server's idle timeout, not killed; kill it if servers pile them up.
   private async restart(ticks: number): Promise<void> {
     await this.loadAt(ticks);
+  }
+
+  // Song i of the queue on the DMR: Stopped for this one, its LOAD, Playing for that one. The old media's last
+  // words (IDLE…) are ignored meanwhile.
+  private async jump(i: number): Promise<void> {
+    this.restarting = true;
+    this.d.publish();
+    try {
+      const item = await userItem<BaseItem>(this.d.api, this.d.userId, this.ids[i]);
+      if (this.done) return;
+      await this.report('Stopped');
+      this.item = item;
+      this.index = i;
+      this.stream = undefined;
+      this.audio = undefined;
+      this.sub = undefined;
+      await this.loadAt(0);
+    } finally {
+      this.restarting = false;
+    }
+    void this.report('Playing');
+    this.d.publish();
   }
 
   private body(extra: Record<string, unknown> = {}): Record<string, unknown> {

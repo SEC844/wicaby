@@ -15,11 +15,20 @@
   "sidebar": {
     "show": "Afficher la barre latérale",
     "hide": "Masquer la barre latérale",
-    "libraries": "Bibliothèques",
+    "groups": {
+      "watch": "Films et séries",
+      "live": "TV en direct",
+      "music": "Musique",
+      "photos": "Photos",
+      "books": "Livres et BD",
+      "files": "Fichiers",
+      "other": "Autres"
+    },
     "servers": "{count, plural, one {# serveur} other {# serveurs}}",
     "someOffline": "{count} hors ligne",
-    "allConnected": "connectés",
-    "serverState": "{kind} · {state, select, offline {hors ligne} other {connecté}}"
+    "allConnected": "Tous connectés",
+    "serverState": "{kind} · {state, select, offline {Hors ligne} other {Connecté}}",
+    "channels": "Chaînes"
   },
   "search": {
     "placeholder": "Films, séries, musique",

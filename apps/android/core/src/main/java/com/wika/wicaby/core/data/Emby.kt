@@ -508,11 +508,13 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
 
     // Jellyfin has always taken /Items?userId= (the per-user route is obsolete since 10.9). A "Fields" in [query]
     // replaces the list fields.
-    suspend fun items(vararg query: Pair<String, Any?>): ItemsResult =
-        get(
-            if (server.isEmby) "/Users/$userId/Items" else "/Items", "userId" to userId.takeUnless { server.isEmby },
-            "Fields" to listFields.takeIf { query.none { q -> q.first == "Fields" } }, "EnableImageTypes" to "Primary,Backdrop,Thumb,Logo", "ImageTypeLimit" to 1, *query,
-        )
+    // A default the query names is left out (desktop's object spread): Emby 4.10 joins a repeated name, so ImageTypeLimit
+    // twice reads "1,1" and the call answers 500 (every music cover lookup of 0.10.4).
+    suspend fun items(vararg query: Pair<String, Any?>): ItemsResult {
+        val named = query.map { it.first.lowercase() }.toSet()
+        val defaults = listOf("Fields" to listFields, "EnableImageTypes" to "Primary,Backdrop,Thumb,Logo", "ImageTypeLimit" to 1).filter { it.first.lowercase() !in named }
+        return get(if (server.isEmby) "/Users/$userId/Items" else "/Items", "userId" to userId.takeUnless { server.isEmby }, *defaults.toTypedArray(), *query)
+    }
 
     // Jellyfin 10.9 moved it to /Items/{id}?userId= (the per-user route is obsolete); older Jellyfin only has the old one.
     suspend fun item(id: String): Item =

@@ -12,7 +12,12 @@
 //   mock killed -> cast.error.lost within 20 s and Stopped reported (DMR); AC 5 the VTT track is fetched with an
 //   Origin and CORS is satisfied (relay); AC 6 SetSubtitleStreamIndex with a numeric index, a 2-item queue with its
 //   startIndex; plus the DMR fallback when the Jellyfin receiver does not launch, and local playback stopping a DMR
-//   cast first (§1).
+//   cast first (§1);
+// - music: a song queue handed off to the DMR (Emby, mock-cast as a TV): MusicTrackMediaMetadata with the cover
+//   through the relay (fetched without a token), a WAV transcoded to MP3 and a FLAC played directly, the next song
+//   LOADed at IDLE/FINISHED with Stopped then Playing reported, next/previous, the end of the queue; a speaker group
+//   (a second mock-cast with MOCK_CAST_AUDIO_ONLY=1, seeded as /group) is listed for songs only, with its icon, and
+//   gets the DMR even from Jellyfin.
 // Nothing leaves 127.0.0.1: outgoing TCP and UDP to a non-loopback address throw, the electron stub's fetch and
 // request refuse any other host, and mDNS asks on no interface.
 // Usage: node tools/checks/cast-castv2-check.mjs [--verbose]
@@ -171,6 +176,20 @@ C.CastManager.mdnsInterfaces = () => [];
   const row = C.castTarget(packets[0].expected[0]);
   assert.deepEqual([row.key, row.kind, row.section, row.name, row.detail], ['c:0123456789abcdef0123456789abcdef', 'cast', 'chromecast', 'Living room', 'Chromecast with Google TV']);
   assert.deepEqual(C.castTarget(packets[3].expected[0]).mediaTypes, ['Audio'], 'an audio-only device');
+  assert.equal(C.castTarget(packets[3].expected[0]).device, 'speaker', 'a speaker icon');
+  assert.equal(C.castTarget(packets[0].expected[0]).device, undefined, 'a screen keeps the default icon');
+  // A speaker group: TXT ca with the multizone bit (32), its own port, answered by the group's leader.
+  {
+    // The Nest Mini's TXT ca=199172 (audio out, no video out) with bit 32 set: 199204, same length.
+    const groupTxt = packets[3].hex.replace(Buffer.from('ca=199172').toString('hex'), Buffer.from('ca=199204').toString('hex'));
+    assert.notEqual(groupTxt, packets[3].hex);
+    const g = C.castDevices(Buffer.from(groupTxt, 'hex'), packets[3].from)[0];
+    assert.deepEqual([g.group, g.video], [true, false], 'ca bit 32: a speaker group');
+    assert.equal(C.castTarget(g).device, 'group');
+  }
+  const seeds = C.castSeeds('127.0.0.1:18009,127.0.0.1:18011/speaker,127.0.0.1:18013/group', false);
+  assert.deepEqual(seeds.map((d) => [d.port, d.video, Boolean(d.group), C.castTarget(d).device]), [[18009, true, false, undefined], [18011, false, false, 'speaker'], [18013, false, true, 'group']], 'seeds: /speaker and /group');
+  assert.deepEqual(C.castTarget(seeds[2]).mediaTypes, ['Audio'], 'a group takes songs only');
 }
 // castProfile per model (§2.6.6).
 {
@@ -306,19 +325,21 @@ class FakeLocal {
 try {
   const video = path.join(tmp, 'video.mkv');
   fs.writeFileSync(video, Buffer.alloc(256 * 1024, 0x1a)); // only its bytes are fetched, never decoded
-  const ports = { jf: await freePort(), emby: await freePort(), cast: await freePort(), castState: await freePort() };
+  const ports = { jf: await freePort(), emby: await freePort(), cast: await freePort(), castState: await freePort(), group: await freePort(), groupState: await freePort() };
   const castEnv = { MOCK_CAST_PORT: String(ports.cast), MOCK_CAST_STATE_PORT: String(ports.castState) };
   const startCast = () => startMock('cast', 'mock-cast.mjs', [], castEnv, /^Mock Cast device/);
   const t1 = Date.now();
-  let [jf, emby, cast] = await Promise.all([
-    startMock('jellyfin', 'mock-jellyfin.mjs', [String(ports.jf), video], {}, /^Mock Jellyfin/),
-    startMock('emby', 'mock-emby.mjs', [String(ports.emby), video], {}, /^Mock Emby/),
+  let [jf, emby, cast, group] = await Promise.all([
+    startMock('jellyfin', 'mock-jellyfin.mjs', [String(ports.jf), video], { MOCK_MUSIC: '1' }, /^Mock Jellyfin/),
+    startMock('emby', 'mock-emby.mjs', [String(ports.emby), video], { MOCK_MUSIC: '1' }, /^Mock Emby/),
     startCast(),
+    startMock('group', 'mock-cast.mjs', [], { MOCK_CAST_PORT: String(ports.group), MOCK_CAST_STATE_PORT: String(ports.groupState), MOCK_CAST_AUDIO_ONLY: '1' }, /^Mock Cast speaker/),
   ]);
   if (VERBOSE) console.log(`  mocks up in ${Date.now() - t1} ms`);
   const root = (p) => `http://127.0.0.1:${ports[p]}`;
-  process.env.WICABY_CAST_SEED = `127.0.0.1:${ports.cast}`;
+  process.env.WICABY_CAST_SEED = `127.0.0.1:${ports.cast},127.0.0.1:${ports.group}/group`;
   const castState = () => json(`${root('castState')}/Mock/State`);
+  const groupState = () => json(`${root('groupState')}/Mock/State`);
   const jfReports = () => jf.log.filter((l) => l.startsWith('REPORT ')).length;
   const embyReports = () => emby.log.filter((l) => l.startsWith('Report '));
 
@@ -453,6 +474,58 @@ try {
     console.log(`ok AC4 device lost: cast.error.lost in ${ms} ms, Stopped reported`);
     cast = await startCast();
   }
+  // ---- Music: a song queue on the DMR (a TV) ----
+  {
+    const ids = ['track-3-0-0', 'track-5-0-0', 'track-3-0-1'];
+    const { rows, key } = await listCast(E, ids[0]);
+    const groupRow = rows.find((r) => r.device === 'group');
+    assert.ok(groupRow && groupRow.section === 'chromecast' && groupRow.name.startsWith('Speaker group'), 'a song lists the speaker group, with its icon');
+    assert.ok(!(await E.cast.targets('movie-0', E.serverId)).some((r) => r.device === 'group'), 'a film does not list the speaker group');
+    await E.cast.targets(ids[0], E.serverId);
+    E.toasts.length = 0;
+    E.local.log.length = 0;
+    E.local.snapshot = { serverId: E.serverId, itemIds: ids, startIndex: 0, positionTicks: 0, msid: 'mediasource_track-3-0-0', sub: -1, live: false, policy: 'mbb' };
+    const before = embyReports().length;
+    await E.cast.start(key);
+    assert.equal(E.cast.state?.status, 'playing', `a song cast (${JSON.stringify(E.toasts)})`);
+    assert.deepEqual(E.local.log, ['pause', 'stop'], 'the music player hands off like the video player');
+    let load = await lastLoad();
+    const md = load.media.metadata;
+    assert.deepEqual([md.metadataType, md.title, md.artist, md.albumName, md.albumArtist, md.trackNumber], [3, 'Fil', 'Nora Vale', 'Lignes claires', 'Nora Vale', 1], `MusicTrackMediaMetadata (${JSON.stringify(md)})`);
+    assert.match(md.images?.[0]?.url ?? '', /^http:\/\/127\.0\.0\.1:\d+\/c\/[0-9a-f]{32}\/Items\/album-3-0\/Images\/Primary\?maxHeight=600&quality=90&format=jpg&tag=p$/, "the album's cover through the relay");
+    assert.match(load.media.contentId, /\/c\/[0-9a-f]{32}\/Audio\/track-3-0-0\/stream\.mp3\?/, 'a WAV the device cannot play: the server transcodes to MP3');
+    assert.equal(load.media.contentType, 'audio/mpeg');
+    assert.ok(!JSON.stringify(load).match(/api_key|ApiKey|X-Emby-Token/i), 'no token in the song LOAD');
+    const s = await castState();
+    const img = s.fetched.findLast((f) => f.kind === 'image');
+    assert.ok(img && [200, 206].includes(img.status) && img.tokenInUrl === false, `the device fetched the cover (${img?.status})`);
+    assert.deepEqual(E.cast.state.item.artists, ['Nora Vale']);
+    assert.deepEqual([E.cast.state.item.album, E.cast.state.item.imageItemId], ['Lignes claires', 'album-3-0'], 'the bar gets the album and its cover');
+    assert.deepEqual(E.cast.state.queue, { index: 0, length: 3 });
+    assert.equal(E.cast.state.controls.nextPrev, true, 'next/previous with a song queue');
+    // The song ends: the next one is LOADed (FLAC, played directly), each reported as its own play.
+    await fetch(`${root('castState')}/Mock/End`, { method: 'POST' });
+    await until(() => E.cast.state?.item?.id === ids[1] && E.cast.state.status === 'playing', 4000, 'the next song after IDLE/FINISHED');
+    load = await lastLoad();
+    assert.match(load.media.contentId, /\/Audio\/track-5-0-0\/stream\.flac\?Static=true&/, 'a FLAC the device plays: direct');
+    assert.equal(load.media.contentType, 'audio/flac');
+    assert.equal(load.media.metadata.title, 'Niveau');
+    await until(() => embyReports().slice(before).some((l) => l.startsWith('Report Start track-5-0-0')), 3000, 'Playing for the next song');
+    const seq = embyReports().slice(before).filter((l) => /^Report (Start|Stopped) track-/.test(l)).map((l) => l.split(' ').slice(1, 3).join(' '));
+    assert.deepEqual(seq, ['Start track-3-0-0', 'Stopped track-3-0-0', 'Start track-5-0-0'], `each song its own play (${seq.join(' | ')})`);
+    // Next, then previous within 5 s (the music player's rule), from the bar.
+    await E.cast.control({ type: 'next' });
+    assert.equal(E.cast.state.item.id, ids[2], 'next');
+    assert.deepEqual(E.cast.state.queue, { index: 2, length: 3 });
+    await E.cast.control({ type: 'previous' });
+    assert.equal(E.cast.state.item.id, ids[1], 'previous within 5 s: the song before');
+    await E.cast.control({ type: 'next' });
+    // The last song ends: so does the cast.
+    await fetch(`${root('castState')}/Mock/End`, { method: 'POST' });
+    await until(() => E.cast.state === null, 4000, 'the cast ends with the queue');
+    await until(() => embyReports().some((l) => l.startsWith('Report Stopped track-3-0-1')), 2000, 'Stopped for the last song');
+    console.log('ok music DMR: metadata and cover, MP3 transcode and direct FLAC, next song at the end, next/previous');
+  }
   E.cast.dispose();
   for (const c of E.m.conns.values()) c.socket?.close();
 
@@ -529,9 +602,31 @@ try {
     assert.ok(/^REPORT stopped .*method=Transcode/.test(tail[0]) && /^REPORT start item=movie-2/.test(tail[1]), `the cast's Stopped before the local Playing (${tail.join(' | ')})`);
     console.log('ok fallback: receiver LAUNCH_ERROR -> DMR with reports; local play stops it first');
   }
+  // ---- Music on a speaker group from Jellyfin: the DMR (documented on speakers), the sender reports ----
+  {
+    const ids = ['track-3-0-0', 'track-3-0-1'];
+    const rows = await J.cast.targets(ids[0], J.serverId);
+    const key = rows.find((r) => r.device === 'group')?.key;
+    assert.ok(key, 'the group is listed for a Jellyfin song');
+    const before = jfReports();
+    await J.cast.start(key, { itemIds: ids, startIndex: 0 });
+    assert.equal(J.cast.state?.status, 'playing', `a song to the group (${JSON.stringify(J.toasts)})`);
+    const g = await groupState();
+    assert.equal(g.app.appId, 'CC1AD845', 'a speaker group gets the Default Media Receiver, not the Jellyfin receiver');
+    assert.equal(g.connectsdk.length, 0);
+    const load = g.calls.findLast((c) => c.type === 'LOAD').data;
+    assert.match(load.media.contentType, /^audio\//, 'an audio stream for a speaker');
+    assert.equal(load.media.metadata.metadataType, 3);
+    assert.equal(g.fetched.findLast((f) => f.kind === 'content').tokenInUrl, false, 'no token to the group (relay)');
+    assert.ok(J.cast.senderReported, 'sender-reported: the quit prompt applies');
+    await until(() => jfReports() > before, 2000, 'Playing reported by the sender');
+    await J.cast.stop();
+    assert.ok(!group.log.some((l) => /NO-VIDEO-OUT/.test(l)), 'nothing but audio went to the speaker group');
+    console.log('ok music group: Jellyfin song queue to a speaker group through the DMR');
+  }
   J.cast.dispose();
   for (const c of J.m.conns.values()) c.socket?.close();
-  assert.ok(![jf, emby, cast].some((x) => x.log.some((l) => /GUARD|REFUSED/.test(l))), 'no mock tried to leave loopback');
+  assert.ok(![jf, emby, cast, group].some((x) => x.log.some((l) => /GUARD|REFUSED/.test(l))), 'no mock tried to leave loopback');
 } finally {
   for (const c of children) c.kill();
 }

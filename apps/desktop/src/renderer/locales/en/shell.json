@@ -15,11 +15,20 @@
   "sidebar": {
     "show": "Show Sidebar",
     "hide": "Hide Sidebar",
-    "libraries": "Libraries",
+    "groups": {
+      "watch": "Movies & Shows",
+      "live": "Live TV",
+      "music": "Music",
+      "photos": "Photos",
+      "books": "Books & Comics",
+      "files": "Files",
+      "other": "Other"
+    },
     "servers": "{count, plural, one {# server} other {# servers}}",
     "someOffline": "{count} offline",
-    "allConnected": "all connected",
-    "serverState": "{kind} · {state, select, offline {offline} other {connected}}"
+    "allConnected": "All connected",
+    "serverState": "{kind} · {state, select, offline {Offline} other {Connected}}",
+    "channels": "Channels"
   },
   "search": {
     "placeholder": "Movies, TV shows, music",

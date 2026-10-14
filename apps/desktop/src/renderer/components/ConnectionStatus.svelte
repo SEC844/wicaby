@@ -10,7 +10,8 @@
   import { session } from '../lib/stores.svelte';
   import { initTorrents } from '../lib/torrents.svelte';
 
-  let { children }: { children: Snippet } = $props();
+  // The sidebar's text gets the dot's level, so its sub-line never says "connected" next to an orange dot.
+  let { children }: { children: Snippet<[Level]> } = $props();
 
   let open = $state(false);
   let root = $state<HTMLDivElement>();
@@ -124,7 +125,7 @@
     onclick={() => (open ? hide() : show())}
   >
     <span class="status {level}"></span>
-    {@render children()}
+    {@render children(level)}
   </button>
   <span id="connection-status-summary" hidden>{t(`shell.status.level.${level}`)}</span>
 

@@ -76,9 +76,11 @@ fun CastPicker(api: Api, item: Item, casting: Boolean, onPick: (CastTarget) -> U
     var searching by remember(allowed) { mutableStateOf(allowed != false) }
     // Same rules as direct DLNA: a Cast device fetches the server itself (or, Jellyfin's receiver, calls its API).
     val google = remember { GoogleCastProvider.get(context) }
+    // A speaker or a speaker group takes songs, not films.
+    val media = item.mediaType ?: "Video"
     val chromecasts by produceState(emptyList<CastTarget>(), direct, granted) {
         value = emptyList()
-        if (direct && granted) google?.routes?.collect { value = it }
+        if (direct && granted) google?.routes?.collect { list -> value = list.filter { media in it.mediaTypes } }
     }
     // Whether a renderer can fetch the server: a LAN address, not the mesh (§2.6.4). Otherwise its rows say why.
     var lan by remember { mutableStateOf(true) }
@@ -104,6 +106,7 @@ fun CastPicker(api: Api, item: Item, casting: Boolean, onPick: (CastTarget) -> U
             val list = targets.orEmpty()
             // §2.2 dedupe: a renderer the server already drives shows once, as the server's session.
             val found = renderers.filter { r -> list.none { it.kind == CastTarget.Kind.Dlna && it.deviceId.equals(r.key.removePrefix("d:"), true) } }.map { it.target() }
+                .filter { media in it.mediaTypes }
             val none = list.isEmpty() && found.isEmpty() && chromecasts.isEmpty()
             when {
                 none && targets == null && unavailable && !searching -> Text(stringResource(com.wika.wicaby.mobile.R.string.play_on_unavailable), style = Type.body, color = G.label2)
@@ -137,11 +140,17 @@ private fun Section(title: Int, rows: List<CastTarget>, onPick: (CastTarget) -> 
             val own = t.key.startsWith("d:") || t.key.startsWith("c:")
             val detail = when {
                 own && !lan -> stringResource(R.string.cast_error_lan_only, t.name)
-                own -> t.detail.ifBlank { if (t.kind == CastTarget.Kind.Cast) "Chromecast" else "DLNA/UPnP" }
+                t.device == CastTarget.Device.Group -> stringResource(R.string.cast_speaker_group)
+                own -> t.detail.ifBlank { if (t.device == CastTarget.Device.Speaker) stringResource(R.string.cast_speaker) else if (t.kind == CastTarget.Kind.Cast) "Chromecast" else "DLNA/UPnP" }
                 t.kind == CastTarget.Kind.Dlna -> stringResource(R.string.cast_via_server, t.detail)
                 else -> t.detail
             }
-            GroupRow(t.name, if (own && !lan) null else ({ onPick(t) }), subtitle = detail, icon = Ic.Cast)
+            val icon = when (t.device) {
+                CastTarget.Device.Group -> Ic.SpeakerGroup
+                CastTarget.Device.Speaker -> Ic.Speaker
+                null -> Ic.Cast
+            }
+            GroupRow(t.name, if (own && !lan) null else ({ onPick(t) }), subtitle = detail, icon = icon)
         }
     }
 }

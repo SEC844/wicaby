@@ -183,10 +183,7 @@
     "added": "Added"
   },
   "sidebar": {
-    "title": "Playlists",
-    "all": "All playlists",
-    "show": "Show playlists",
-    "hide": "Hide playlists"
+    "all": "All Playlists"
   },
   "drop": {
     "queue": "Drop to add to the queue",

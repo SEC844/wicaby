@@ -257,8 +257,10 @@
     <string name="cast_picker_title">Lire sur…</string>
     <string name="cast_this_device">Cet appareil</string>
     <string name="cast_section_apps">Applications</string>
-    <string name="cast_section_dlna">Téléviseurs et lecteurs (DLNA/UPnP)</string>
-    <string name="cast_section_chromecast">Chromecast et Google TV</string>
+    <string name="cast_section_dlna">Téléviseurs, enceintes et lecteurs (DLNA/UPnP)</string>
+    <string name="cast_section_chromecast">Chromecast, Google TV et enceintes</string>
+    <string name="cast_speaker">Enceinte</string>
+    <string name="cast_speaker_group">Groupe d’enceintes</string>
     <string name="cast_searching">Recherche d’appareils…</string>
     <string name="cast_empty">Aucun appareil trouvé sur ce réseau</string>
     <string name="cast_via_server">via %1$s</string>

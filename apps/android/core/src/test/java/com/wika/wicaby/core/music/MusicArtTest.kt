@@ -18,8 +18,10 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -111,6 +113,48 @@ class MusicArtTest {
         val own = emby.posterArt(album.copy(imageTags = mapOf("Primary" to "p")), 300) as String
         assertTrue(own, own.contains("/Items/al1/Images/Primary") && own.contains("maxWidth=320") && own.contains("maxHeight=320"))
         assertEquals(1, srv.requestCount)
+    }
+
+    // The 0.10.4 field bug on Emby 4.10: Api.items' defaults and the lookup both named ImageTypeLimit, Emby
+    // joins a repeated name ("1,1", checked on a real 4.10.1: 500 "The input string '100,100' was not in a correct
+    // format.") and every lookup failed, so no album without a Primary got a cover. The desktop sends each name once.
+    @Test
+    fun embyJoinsARepeatedQueryNameSoTheLookupSendsEachOnce() = runBlocking {
+        srv.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val u = request.url
+                val joined = (0 until u.querySize).groupBy({ u.queryParameterName(it).lowercase() }, { u.queryParameterValue(it) })
+                joined.values.firstOrNull { it.size > 1 }?.let { return MockResponse.Builder().code(500).body("The input string '${it.joinToString(",")}' was not in a correct format.").build() }
+                return MockResponse.Builder().body("""{"Items":[{"Id":"t1","Type":"Audio","ImageTags":{"Primary":"tt"}}],"TotalRecordCount":1}""").build()
+            }
+        }
+        assertEquals(MusicArt.Ref("t1", "tt"), MusicArt.resolve(api("emby"), Item("al1", "Brume", "MusicAlbum")))
+        srv.takeRequest().url.let {
+            assertEquals(listOf("1"), it.queryParameterValues("ImageTypeLimit"))
+            assertEquals(listOf("Primary"), it.queryParameterValues("EnableImageTypes"))
+        }
+    }
+
+    // The field log (kept in release): why a cover failed, never the URL, host, ids, token or names.
+    @Test
+    fun theFieldLogNeverNamesTheUrlIdsTokenOrNames() {
+        val api = api("emby")
+        val host = srv.url("/").host
+        val url = api.image("t1", "Primary", "a1b2c3d4e5f60718", 320, 320) + "&api_key=s3cr3tT0ken"
+        val album = Item("1234567", "Brume", "MusicAlbum")
+        val logs = listOf(
+            MusicArt.diagnostic("lookup", "firstTrack", null, com.wika.wicaby.core.data.ApiException("The input string '1,1' was not in a correct format.", 500), MusicArt.secrets(api, album)),
+            MusicArt.diagnostic("lookup", "firstTrack", false, null, MusicArt.secrets(api, album)),
+            MusicArt.diagnostic("load", "firstTrack", true, java.io.IOException("unexpected end of stream on $url for Brume ${api.token} 0123456789abcdef0123456789abcdef 9876543 a1b2c3d4e5f60718"), MusicArt.secrets(api, album, MusicArt.Ref("t1", "a1b2c3d4e5f60718"))),
+            MusicArt.diagnostic("load", "firstAlbum", true, java.net.ConnectException("Failed to connect to /203.0.113.9:8096"), MusicArt.secrets(api, Item("ar1", "Night Arcade", "MusicArtist"))),
+        )
+        assertTrue(logs[0], logs[0].contains("status=500") && logs[0].contains("kind=firstTrack") && logs[0].contains("ApiException") && logs[0].contains("'1,1'"))
+        assertTrue(logs[1], logs[1].contains("items=no") && logs[1].contains("error=none"))
+        assertTrue(logs[3], logs[3].contains("ConnectException") && logs[3].contains("kind=firstAlbum"))
+        for (log in logs) {
+            assertTrue(log, log.startsWith("cover failed: step="))
+            for (secret in listOf(url, "http://", "/Items/", "api_key", "s3cr3tT0ken", "tok", "0123456789abcdef", host, "1234567", "9876543", "a1b2c3d4e5f60718", "Brume", "203.0.113.9", "u1")) assertTrue("$secret in: $log", secret !in log)
+        }
     }
 
     @Test

@@ -11,6 +11,9 @@
   // only while this is open; Sessions-API rows today, DLNA (CA-07) and Chromecast (CA-09) rows later.
   const SECTIONS: CastSection[] = ['apps', 'dlna', 'chromecast'];
   const ICON = { apps: 'tv', dlna: 'tv', chromecast: 'cast' } as const;
+  // Speakers and speaker groups say so, by icon and words (their model is often a bare "Google Cast Group").
+  const icon = (r: CastTarget, s: CastSection) => (r.device === 'group' ? 'speakerGroup' : r.device === 'speaker' ? 'speaker' : ICON[s]);
+  const detailOf = (r: CastTarget) => (r.via ? t('cast.picker.viaServer', { server: r.via }) : r.device === 'group' ? t('cast.picker.group') : r.detail || (r.device === 'speaker' ? t('cast.picker.speaker') : ''));
 
   let rows = $state<CastTarget[]>([]);
   let searching = $state(false);
@@ -77,11 +80,11 @@
         <h3 class="col-h" id="cast-section-{g.s}">{t(`cast.picker.section.${g.s}`)}</h3>
         <ul class="rows">
           {#each g.list as r (r.key)}
-            {@const detail = r.via ? t('cast.picker.viaServer', { server: r.via }) : r.detail}
+            {@const detail = detailOf(r)}
             <li>
               <!-- The accessible name carries the transport too (the section), not only the icon. -->
               <button class="row" aria-label="{r.name}, {t(`cast.picker.section.${g.s}`)}{detail ? `, ${detail}` : ''}" aria-current={cast.state?.target.key === r.key || undefined} onclick={() => void castTo(r.key)}>
-                <Icon name={ICON[g.s]} size={18} />
+                <Icon name={icon(r, g.s)} size={18} />
                 <span class="lbl"><span class="name">{r.name}</span>{#if detail}<span class="detail">{detail}</span>{/if}</span>
                 {#if cast.state?.target.key === r.key}<Icon name="check" size={14} stroke={2.4} />{/if}
               </button>

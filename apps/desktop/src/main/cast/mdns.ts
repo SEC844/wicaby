@@ -17,6 +17,9 @@ const T_A = 1;
 const T_PTR = 12;
 const T_TXT = 16;
 const T_SRV = 33;
+// A speaker group: TXT ca bit 5 (CastDevice.CAPABILITY_MULTIZONE_GROUP = 32), or the model pychromecast reports.
+const GROUP_MODEL = /^google cast group$/i;
+const CA_GROUP = 32;
 
 export interface CastDevice {
   // The TXT id (or the instance name): the picker key is "c:<id>".
@@ -28,6 +31,8 @@ export interface CastDevice {
   port: number;
   // TXT ca bit 0: the device has a video output (a Nest Mini has none).
   video: boolean;
+  // A multi-room speaker group: its own port (not 8009), answered by the group's elected leader.
+  group?: boolean;
 }
 
 function encodeName(name: string): Buffer {
@@ -137,19 +142,30 @@ export function castDevices(buf: Buffer, from: string, loopback = false): CastDe
       ip,
       port: srv ? srv.data.readUInt16BE(4) : 8009,
       video: !Number.isInteger(ca) || (ca & 1) === 1,
+      // Groups are audio-only: a screen with that bit (the recorded Nest Hub) stays a screen.
+      ...(GROUP_MODEL.test(t.md ?? '') || (Number.isInteger(ca) && (ca & CA_GROUP) !== 0 && (ca & 1) === 0) ? { group: true } : {}),
     });
   }
   return out;
 }
 
-// WICABY_CAST_SEED=<ip:port,…>: devices added without mDNS, in development builds only (the checks' mock-cast).
+// WICABY_CAST_SEED=<ip:port[/speaker|/group],…>: devices added without mDNS, in development builds only (the checks'
+// mock-cast; /speaker and /group stand for the TXT a Nest Mini or a speaker group would send).
 export function castSeeds(env = process.env.WICABY_CAST_SEED, packaged = app.isPackaged): CastDevice[] {
   if (packaged || !env) return [];
   return env
     .split(',')
-    .map((s) => /^\s*(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})\s*$/.exec(s))
+    .map((s) => /^\s*(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})(?:\/(speaker|group))?\s*$/.exec(s))
     .filter((m): m is RegExpExecArray => m !== null && isLanAddress(m[1], { loopback: true }) && Number(m[2]) > 0 && Number(m[2]) < 65536)
-    .map((m) => ({ id: `seed-${m[1].replace(/\./g, '-')}-${m[2]}`, name: `Chromecast ${m[1]}:${m[2]}`, model: '', ip: m[1], port: Number(m[2]), video: true }));
+    .map((m) => ({
+      id: `seed-${m[1].replace(/\./g, '-')}-${m[2]}`,
+      name: `${m[3] === 'group' ? 'Speaker group' : m[3] === 'speaker' ? 'Speaker' : 'Chromecast'} ${m[1]}:${m[2]}`,
+      model: m[3] === 'group' ? 'Google Cast Group' : m[3] === 'speaker' ? 'Google Nest Mini' : '',
+      ip: m[1],
+      port: Number(m[2]),
+      video: !m[3],
+      ...(m[3] === 'group' ? { group: true } : {}),
+    }));
 }
 
 // Calls onFound once per device; resolves after timeoutMs (plus the 5353 retry when nobody answered). ips: the

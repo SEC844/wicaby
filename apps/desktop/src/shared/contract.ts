@@ -932,6 +932,8 @@ export interface CastTarget {
   // Sessions: SupportedCommands, compared case-insensitively. dlna/cast: the synthetic set of §2.3.
   commands: string[];
   mediaTypes: ('Audio' | 'Video')[];
+  // The picker's icon: a speaker (audio only, Nest or DLNA audio renderer), a speaker group, or a screen (default).
+  device?: 'speaker' | 'group';
 }
 
 // What `start` plays; absent = hand off what the player is playing (§2.4).
@@ -978,7 +980,9 @@ export interface CastState {
   // starting: sent, waiting for the target to show the item (10 s); failed: break-before-make channel handoff that
   // did not take (the bar offers "Reprendre ici").
   status: 'starting' | 'playing' | 'failed';
-  item?: { id: string; name: string; type?: string; seriesName?: string; runTimeTicks?: number };
+  item?: { id: string; name: string; type?: string; seriesName?: string; runTimeTicks?: number; artists?: string[]; album?: string; imageItemId?: string; imageTag?: string };
+  // Direct casts with a queue (music): where the device is in it.
+  queue?: { index: number; length: number };
   serverId: string;
   positionTicks: number;
   paused: boolean;

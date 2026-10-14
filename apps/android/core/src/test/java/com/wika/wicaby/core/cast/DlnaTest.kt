@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -143,6 +144,7 @@ class DlnaTest {
             val didl = Dlna.didl(
                 str("title")!!, i.getValue("audio").jsonPrimitive.boolean, url, str("mime")!!, str("flags"),
                 i["durationSec"]?.jsonPrimitive?.double?.let { (it * 1000).toLong() }, str("subtitleUrl"),
+                if (i.containsKey("artist")) DidlSong(str("artist"), str("album"), i["track"]?.jsonPrimitive?.int, str("artUrl")) else null,
             )
             val name = c.getValue("name").jsonPrimitive.content
             assertEquals(name, c.getValue("didl").jsonPrimitive.content, didl)

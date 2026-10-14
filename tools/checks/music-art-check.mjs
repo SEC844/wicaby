@@ -111,6 +111,10 @@ async function flavour(name, base, login, tokenHeader, itemsPath) {
   const lookedUp = new Set(asked);
   assert.equal(lookedUp.size, asked.length, `${name}: one lookup per item across two visits`);
   for (const x of [...albums, ...artists]) if (x.ImageTags?.Primary) assert.ok(!lookedUp.has(x.Id), `${name}: no lookup for ${x.Name}, which has a Primary`);
+  // Emby joins a name repeated in the query (checked on a real 4.10.1): Android 0.10.4's lookup named ImageTypeLimit
+  // twice and every lookup answered 500. Jellyfin takes the first value.
+  const twice = await fetch(`${base}${itemsPath(User.Id)}${new URLSearchParams(lookupQuery('firstTrack', brume.Id, emby))}&ImageTypeLimit=1`, { headers: tokenHeader(AccessToken) });
+  assert.equal(twice.status, emby ? 500 : 200, `${name}: a number named twice in the query`);
   const img = await fetch(`${base}/Items/${brumeTracks[0].Id}/Images/Primary?tag=${brumeTracks[0].ImageTags.Primary}&maxWidth=480&maxHeight=480`);
   assert.equal(img.status, 200, `${name}: the borrowed cover is served`);
 }

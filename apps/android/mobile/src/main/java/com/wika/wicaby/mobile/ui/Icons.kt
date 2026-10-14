@@ -63,6 +63,9 @@ object Ic {
         "M16 9a5 5 0 0 1 0 6", "M19.364 18.364a9 9 0 0 0 0-12.728",
     )
     val Stop = fill(rect(6f, 6f, 12f, 12f, 1.5f))
+    // Cast picker rows: a speaker (audio only) and a speaker group (Lucide speaker, audio-lines).
+    val Speaker = stroke("M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", "M12 6h.01", circle(12f, 14f, 4f), "M12 14h.01")
+    val SpeakerGroup = stroke("M2 10v3", "M6 6v11", "M10 3v18", "M14 8v7", "M18 5v13", "M22 10v3")
     val Cast = stroke("M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6", "M2 12a9 9 0 0 1 8 8", "M2 16a5 5 0 0 1 4 4", "M2 20h.01")
     val Scan = stroke("M3 7V5a2 2 0 0 1 2-2h2", "M17 3h2a2 2 0 0 1 2 2v2", "M21 17v2a2 2 0 0 1-2 2h-2", "M7 21H5a2 2 0 0 1-2-2v-2")
     val Mic = stroke("M12 19v3", "M19 10v2a7 7 0 0 1-14 0v-2", rect(9f, 2f, 6f, 13f, 3f))

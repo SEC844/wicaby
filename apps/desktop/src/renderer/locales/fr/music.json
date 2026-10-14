@@ -183,10 +183,7 @@
     "added": "Ajouté le"
   },
   "sidebar": {
-    "title": "Playlists",
-    "all": "Toutes les playlists",
-    "show": "Afficher les playlists",
-    "hide": "Masquer les playlists"
+    "all": "Toutes les playlists"
   },
   "drop": {
     "queue": "Déposer pour ajouter à la file",

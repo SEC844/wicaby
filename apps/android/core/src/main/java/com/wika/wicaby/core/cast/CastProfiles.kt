@@ -114,6 +114,14 @@ object CastProfiles {
                         addJsonObject { put("Condition", "LessThanEqual"); put("Property", "VideoLevel"); put("Value", if (uhd) "51" else "41"); put("IsRequired", false) }
                     }
                 }
+                // Cast plays FLAC up to 96 kHz / 24 bit (speakers included): hi-res files are transcoded.
+                addJsonObject {
+                    put("Type", "Audio"); put("Codec", "flac")
+                    putJsonArray("Conditions") {
+                        addJsonObject { put("Condition", "LessThanEqual"); put("Property", "AudioSampleRate"); put("Value", "96000"); put("IsRequired", false) }
+                        addJsonObject { put("Condition", "LessThanEqual"); put("Property", "AudioBitDepth"); put("Value", "24"); put("IsRequired", false) }
+                    }
+                }
             }
             putJsonArray("TranscodingProfiles") {
                 // HEVC goes out in fMP4 segments on Jellyfin; Emby transcodes it to h264.

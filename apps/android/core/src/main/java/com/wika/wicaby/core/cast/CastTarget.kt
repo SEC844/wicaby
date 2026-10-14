@@ -15,7 +15,11 @@ data class CastTarget(
     val deviceId: String? = null,
     val commands: Set<String> = emptySet(),
     val mediaTypes: Set<String> = emptySet(),
+    // The picker's icon: a speaker (audio only: a Nest speaker, a DLNA audio renderer) or a speaker group; null: a screen.
+    val device: Device? = null,
 ) {
+    enum class Device { Speaker, Group }
+
     enum class Kind { Session, Dlna, Cast }
 
     // General commands only, case-insensitively (§2.3: Playstate is never gated, servers spell it two ways).

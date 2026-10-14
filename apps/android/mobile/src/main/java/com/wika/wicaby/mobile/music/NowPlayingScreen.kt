@@ -72,6 +72,9 @@ import androidx.compose.ui.zIndex
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.data.TICKS_PER_MS
+import com.wika.wicaby.core.data.caps
+import com.wika.wicaby.mobile.cast.CastButton
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.poster
 import com.wika.wicaby.core.music.Lyrics
@@ -132,6 +135,7 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconBtn(Ic.ChevronDown, stringResource(R.string.music_close), onClose)
                 Text(stringResource(R.string.music_now_playing), style = Type.eyebrow, color = G.label2, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                if (item != null && api.server.caps.castSend) MusicCastButton(s, item)
                 IconBtn(Ic.More, stringResource(R.string.music_options), { menu = item })
             }
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -186,6 +190,21 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
     sheet?.let { PlayerSheet(s, it) { sheet = null } }
     if (eqOpen) EqualizerSheet { eqOpen = false }
     menu?.let { TrackMenu(api, it, onDismiss = { menu = null }) }
+}
+
+/**
+ * The queue to a speaker, a speaker group or a TV (the cast picker): the whole queue from this song and position. A
+ * direct cast (DLNA, Google Cast) ends the music here once the device plays (Casting's beforePlaying); a Sessions-API
+ * target once it shows the song, else the music plays on here.
+ */
+@Composable
+private fun MusicCastButton(s: MusicSession, item: Item) {
+    CastButton(s.api, item, send = { rt, t ->
+        val ids = s.queue.ids.toList()
+        rt.play(t, ids, startIndex = s.queue.index, positionTicks = s.player.currentPosition * TICKS_PER_MS)
+        if (PlayerHolder.music === s) s.player.pause()
+        rt.awaitPlaying(t, item.id).also { ok -> if (PlayerHolder.music === s) if (ok) s.release() else s.player.play() }
+    }) { casting, onClick -> IconBtn(Ic.Cast, stringResource(com.wika.wicaby.core.R.string.cast_button), onClick, fill = if (casting) G.fill3 else Color.Transparent) }
 }
 
 /** Paroles and File d'attente, one bottom sheet with two pages. */

@@ -216,7 +216,7 @@ async function run() {
   await ev(`[...document.querySelectorAll('.actions button')].find((b) => /Favorites/.test(b.title)).click()`);
   await until('watchlisted', () => (plex.state.watchlist['a1b2c3d4e5f60718'] ?? []).length === 1, 10000).catch(() => null);
   ok('the heart adds to the plex.tv watchlist', (plex.state.watchlist['a1b2c3d4e5f60718'] ?? []).join() === 'plex://movie/mock1003');
-  const sidebar = await ev(`[...document.querySelectorAll('nav.sidebar .link .label')].map((l) => l.textContent.trim())`);
+  const sidebar = await ev(`[...document.querySelectorAll('nav.sidebar :is(.link .label, .gname)')].map((l) => l.textContent.trim())`);
   ok('no Administration and no Live TV for the Plex owner', !sidebar.includes('Administration') && !sidebar.some((x) => /Live TV/i.test(x)), sidebar.join(', '));
   const targets = await ev(`wicaby.cast.targets('1003', ${js(sid)}).then((t) => t.filter((x) => x.section === 'apps').length)`);
   ok('no "Play on" rows from the Plex server (caps.sessionsRemote)', targets === 0, String(targets));

@@ -49,9 +49,16 @@ data class CastStream(
     val durationMs: Long?,
     val subtitles: List<CastSubtitle>,
     val subtitle: Int?,
+    // A song's cover on the server's LAN origin (images need no token), for the device's screen and app.
+    val artUrl: String? = null,
 ) {
     val audio get() = item.mediaType.equals("Audio", true)
+
+    // A song's artist line, album and number (DIDL-Lite musicTrack, Cast MusicTrackMediaMetadata).
+    val song get() = if (audio) DidlSong(item.artists.ifEmpty { item.artistItems.map { it.name } }.joinToString(", ").ifBlank { null }, item.album, item.indexNumber, artUrl) else null
 }
+
+data class DidlSong(val artist: String?, val album: String?, val track: Int?, val artUrl: String?)
 
 data class CastSubtitle(val index: Int, val url: String, val language: String?, val title: String?)
 
@@ -80,7 +87,7 @@ class DlnaDevice(val renderer: Renderer, private val dlna: DlnaClient = DlnaClie
         val mime = CastProfiles.mime(stream.container, stream.audio, sink)
         val flags = if (stream.direct) Dlna.FLAGS_DIRECT else Dlna.FLAGS_TRANSCODE
         val sub = stream.subtitles.firstOrNull { it.index == stream.subtitle }?.url
-        dlna.load(renderer, stream.url) { flagged -> Dlna.didl(stream.item.name, stream.audio, stream.url, mime, flags.takeIf { flagged }, stream.durationMs, sub) }
+        dlna.load(renderer, stream.url) { flagged -> Dlna.didl(stream.item.name, stream.audio, stream.url, mime, flags.takeIf { flagged }, stream.durationMs, sub, stream.song) }
     }
 
     override suspend fun state() = dlna.transportState(renderer)

@@ -32,6 +32,7 @@
     volume: L.Volume2,
     mute: L.VolumeX,
     speaker: L.Speaker,
+    speakerGroup: L.AudioLines,
     calendar: L.Calendar,
     subtitles: L.Captions,
     audio: L.AudioLines,
@@ -121,6 +122,10 @@
     images: L.Images,
     presentation: L.Presentation,
     zoomOut: L.ZoomOut,
+    monitorPlay: L.MonitorPlay,
+    listMusic: L.ListMusic,
+    bookHeadphones: L.BookHeadphones,
+    bookClosed: L.Book,
   } satisfies Record<string, Glyph>;
 
   export type IconName = keyof typeof ICONS;

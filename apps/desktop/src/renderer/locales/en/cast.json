@@ -5,9 +5,11 @@
     "thisDevice": "This computer",
     "section": {
       "apps": "Apps",
-      "dlna": "TVs and players (DLNA/UPnP)",
-      "chromecast": "Chromecast and Google TV"
+      "dlna": "TVs, speakers and players (DLNA/UPnP)",
+      "chromecast": "Chromecast, Google TV and speakers"
     },
+    "speaker": "Speaker",
+    "group": "Speaker group",
     "searching": "Looking for devices…",
     "empty": "No devices found on this network",
     "emptyHint": "Make sure the device is on and on the same network.",

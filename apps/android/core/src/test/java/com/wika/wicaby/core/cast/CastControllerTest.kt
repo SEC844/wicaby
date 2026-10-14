@@ -69,6 +69,9 @@ class CastControllerTest {
 
     private val item = """{"Id":"m1","Name":"Film","Type":"Movie","MediaType":"Video","RunTimeTicks":${7_200_000L * TICKS_PER_MS}}"""
 
+    private fun song(id: String, n: Int) =
+        """{"Id":"$id","Name":"Song $n","Type":"Audio","MediaType":"Audio","Album":"Album & Co","AlbumId":"al1","AlbumPrimaryImageTag":"p","Artists":["Artist"],"IndexNumber":$n,"RunTimeTicks":${180_000L * TICKS_PER_MS}}"""
+
     private fun info() = if (transcode) {
         """{"PlaySessionId":"ps-${infos.size - 1}","MediaSources":[{"Id":"src1","Container":"mkv","SupportsDirectPlay":false,"SupportsTranscoding":true,""" +
             """"TranscodingUrl":"/videos/m1/stream.ts?MediaSourceId=src1&ApiKey=old&PlaySessionId=ps-${infos.size - 1}","MediaStreams":[]}]}"""
@@ -98,6 +101,8 @@ class CastControllerTest {
                     path == "/Sessions/Logout" -> { logouts += request; MockResponse.Builder().code(204).build() }
                     path.endsWith("/PlaybackInfo") -> { infos += request; MockResponse.Builder().body(info()).build() }
                     path.contains("/Items/m1") -> MockResponse.Builder().body(item).build()
+                    path.contains("/Items/s1") -> MockResponse.Builder().body(song("s1", 1)).build()
+                    path.contains("/Items/s2") -> MockResponse.Builder().body(song("s2", 2)).build()
                     path.endsWith("/LiveTv/Recordings") -> {
                         recordingQueries += request
                         recording?.let { MockResponse.Builder().body("""{"Items":[{"Id":"$it","Type":"Movie"}],"TotalRecordCount":1}""").build() }
@@ -239,6 +244,45 @@ class CastControllerTest {
         val stopped = reports.filter { it.url.encodedPath == "/Sessions/Playing/Stopped" }
         assertEquals(1, stopped.size)
         assertEquals(605_000 * TICKS_PER_MS, body(stopped[0]).getValue("PositionTicks").jsonPrimitive.long)
+    }
+
+    // Music: a song queue on the renderer, with its metadata and cover (no token), the next song at the end of one,
+    // each its own play, next/previous from the remote panel, the end with the queue.
+    @Test
+    fun songQueue() = runBlocking {
+        val (c, t) = controller(api("jellyfin"))
+        c.play(t, listOf("s1", "s2"), startIndex = 0)
+        assertTrue(c.awaitPlaying(t, "s1"))
+        val set = soap.first { it.headers["SOAPACTION"]!!.contains("SetAVTransportURI") }.body!!.utf8()
+        assertTrue(set, set.contains("object.item.audioItem.musicTrack"))
+        assertTrue(set, set.contains("&lt;upnp:artist&gt;Artist&lt;/upnp:artist&gt;"))
+        assertTrue(set, set.contains("&lt;upnp:album&gt;Album &amp;amp; Co&lt;/upnp:album&gt;"))
+        val art = Regex("albumArtURI .*?JPEG_TN&quot;&gt;(.*?)&lt;/upnp:albumArtURI").find(set)!!.groupValues[1]
+        assertTrue(art, art.contains("/Items/al1/Images/Primary"))
+        assertFalse("no token in the cover URL: $art", art.contains("user-token"))
+        assertEquals(2, c.mirror(t).first().session!!.nowPlayingQueue.size)
+
+        // The song ends: the next one loads; Stopped for the first, Playing for the second.
+        state = "STOPPED"
+        until("the next song") { c.state.value?.item?.id == "s2" }
+        assertNull(c.ended.value)
+        val plays = { reports.filter { it.url.encodedPath != "/Sessions/Playing/Progress" }.map { it.url.encodedPath.substringAfterLast('/') + " " + body(it)["ItemId"]?.jsonPrimitive?.content } }
+        until("Playing s2") { plays().contains("Playing s2") }
+        assertEquals(listOf("Playing s1", "Stopped s1", "Playing s2"), plays())
+        assertEquals(180_000 * TICKS_PER_MS, body(reports.first { it.url.encodedPath.endsWith("/Stopped") }).getValue("PositionTicks").jsonPrimitive.long)
+
+        // Previous within 5 s: the song before; next: back.
+        c.transport(t, "PreviousTrack")
+        until("previous") { c.state.value?.item?.id == "s1" }
+        c.transport(t, "NextTrack")
+        until("next") { c.state.value?.item?.id == "s2" }
+
+        // The last song ends: so does the cast.
+        until("playing") { state == "PLAYING" }
+        delay(100)
+        state = "STOPPED"
+        until("end") { c.ended.value != null }
+        assertEquals(CastController.End.Finished, c.ended.value)
     }
 
     @Test

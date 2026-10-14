@@ -14,6 +14,8 @@ const checks = [
   ['parity-check.mjs'],
   ['skip-check.mjs'],
   ['home-rows-check.mjs'],
+  // Sidebar sections by media type (sidebar redesign spec §3.2).
+  ['sidebar-groups-check.mjs'],
   ['livetv-check.mjs'],
   ['tv-home-check.mjs'],
   ['play-on-check.mjs'],

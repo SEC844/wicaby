@@ -1,5 +1,6 @@
 package com.wika.wicaby.mobile.cast
 
+import android.net.Uri
 import androidx.media3.cast.MediaItemConverter
 import androidx.media3.common.MediaItem
 import com.google.android.gms.cast.HlsVideoSegmentFormat
@@ -7,6 +8,7 @@ import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.MediaTrack
+import com.google.android.gms.common.images.WebImage
 import com.wika.wicaby.core.cast.CastStream
 import org.json.JSONObject
 import androidx.media3.common.MediaMetadata as Media3Metadata
@@ -20,6 +22,14 @@ class CastMediaItems(private val prepared: (itemId: String) -> CastStream?) : Me
         val s = prepared(mediaItem.mediaId) ?: throw IllegalStateException("no prepared cast stream for item ${mediaItem.mediaId}")
         val meta = MediaMetadata(if (s.audio) MediaMetadata.MEDIA_TYPE_MUSIC_TRACK else MediaMetadata.MEDIA_TYPE_MOVIE)
         meta.putString(MediaMetadata.KEY_TITLE, s.item.name)
+        // A song (MusicTrackMediaMetadata): who, which album, its number and the cover, for the speaker's app and a TV.
+        s.song?.let { song ->
+            song.artist?.let { meta.putString(MediaMetadata.KEY_ARTIST, it) }
+            song.album?.let { meta.putString(MediaMetadata.KEY_ALBUM_TITLE, it) }
+            s.item.albumArtist?.let { meta.putString(MediaMetadata.KEY_ALBUM_ARTIST, it) }
+            song.track?.let { meta.putInt(MediaMetadata.KEY_TRACK_NUMBER, it) }
+            song.artUrl?.let { meta.addImage(WebImage(Uri.parse(it))) }
+        }
         // §2.6.6: text subtitles as External VTT, one track per stream, its id the server's stream index.
         val tracks = s.subtitles.map { t ->
             MediaTrack.Builder(t.index.toLong(), MediaTrack.TYPE_TEXT).setSubtype(MediaTrack.SUBTYPE_SUBTITLES)

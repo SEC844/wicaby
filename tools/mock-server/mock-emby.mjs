@@ -572,6 +572,20 @@ if (demo || process.env.MOCK_MUSIC === '1') {
   addMusic({ add, makeList, ud });
   items.get('playlist-music').MediaType = 'Audio';
 }
+// MOCK_EXTRA_LIBS=1: empty views of every other CollectionType, plus more film and series libraries, so the
+// desktop sidebar shows each of its groups and a long list (sidebar redesign screenshots). Invented names.
+if (process.env.MOCK_EXTRA_LIBS === '1') {
+  for (const [id, Name, CollectionType] of [
+    ['classics', 'Classics', 'movies'],
+    ['uhd', '4K', 'movies'],
+    ['kids', 'Kids Shows', 'tvshows'],
+    ['docs', 'Documentary', 'mixed'],
+    ['concerts', 'Concerts', 'musicvideos'],
+    ['audiobooks', 'Audiobooks', 'audiobooks'],
+    ['games', 'Games', 'games'],
+  ])
+    add({ Id: `lib-x-${id}`, Name, Type: 'CollectionFolder', CollectionType, IsFolder: true, ImageTags: { Primary: 't' } });
+}
 // Photo libraries (photos-fixture.mjs, generated; MOCK_PHOTOS=0 leaves them out).
 addPhotos({ add, ud });
 countAlbums(items);
@@ -753,6 +767,14 @@ export async function handler(req, res) {
   if (!url.pathname.toLowerCase().startsWith('/emby/')) return send(res, 404, 'Not found', 'text/plain');
   const p = url.pathname.slice(5);
   const parts = p.split('/').filter(Boolean);
+  // As Emby 4.10 (checked on a real 4.10.1): a name repeated in the query (any case) is one value joined with commas, so
+  // a repeated number ("ImageTypeLimit=1&ImageTypeLimit=1") fails to parse: 500. Jellyfin (ASP.NET Core) takes the first.
+  if (req.headers['x-mock-flavour'] !== 'jellyfin') {
+    const named = new Map();
+    for (const [k, v] of q) named.set(k.toLowerCase(), [...(named.get(k.toLowerCase()) ?? []), v]);
+    const bad = [...named.values()].find((vs) => vs.length > 1 && vs.every((v) => /^-?\d+$/.test(v)));
+    if (bad) return send(res, 500, `The input string '${bad.join(',')}' was not in a correct format.`, 'text/plain');
+  }
   // TP-11: outside the hours of the token's user (sign-in: below, once the password is checked). Images stay public.
   const caller = authed(req, q) ? tokenUser.get(tokenOf(req, q)) : null;
   if (caller && !parts.includes('Images') && !(await allowedNow(caller))) return send(res, 401, 'This user account is not allowed access at this time.', 'text/plain');
@@ -938,6 +960,15 @@ export async function handler(req, res) {
     const PlaySessionId = randomUUID().replace(/-/g, '');
     // Cast spec CA-09: the Chromecast profile (desktop castProfile) is honoured: a container it does not list (MKV)
     // is remuxed to HLS, as both servers do; every other profile keeps the bitrate-only rule below.
+    // A song to a Cast or DLNA device (music casting): direct when the profile lists its container, else an MP3
+    // transcode over plain HTTP, as both servers answer an audio TranscodingProfile.
+    if (/^Wicaby (Cast|DLNA)/.test(String(b.DeviceProfile?.Name ?? '')) && isMusic(items.get(parts[1]))) {
+      const listedAudio = (b.DeviceProfile?.DirectPlayProfiles ?? []).some((d) => d.Type === 'Audio' && String(d.Container).split(',').includes(src.Container));
+      hooks.log('PlaybackInfo', parts[1], listedAudio ? 'Audio direct' : 'Audio transcode mp3 of', src.Container);
+      if (listedAudio) return send(res, 200, { MediaSources: [src], PlaySessionId });
+      const aq = new URLSearchParams({ MediaSourceId: src.Id, PlaySessionId, DeviceId: 'mock-transcode', AudioCodec: 'mp3', AudioBitrate: '320000' });
+      return send(res, 200, { MediaSources: [{ ...src, SupportsDirectPlay: false, SupportsDirectStream: false, TranscodingSubProtocol: 'http', TranscodingContainer: 'mp3', TranscodingUrl: `/Audio/${parts[1]}/stream.mp3?${aq}` }], PlaySessionId });
+    }
     const castDmr = String(b.DeviceProfile?.Name ?? '').startsWith('Wicaby Cast');
     const listed = (b.DeviceProfile?.DirectPlayProfiles ?? []).some((d) => d.Type === 'Video' && String(d.Container).split(',').includes(src.Container));
     if (castDmr && !listed) {

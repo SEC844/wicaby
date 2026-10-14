@@ -161,7 +161,8 @@
     void genre;
     void decade;
     void folders.length;
-    void reset();
+    // Only the deps above: reset() also reads stores that change when a track starts playing.
+    untrack(() => void reset());
   });
 
   $effect(() => {
@@ -173,13 +174,13 @@
 
   // The genre menu of the Albums and Songs tabs.
   $effect(() => {
-    void genres(id, server)
+    void untrack(() => genres(id, server))
       .then((r) => (genreList = r.Items ?? []))
       .catch(() => (genreList = []));
   });
 
   $effect(() => {
-    void years(id, server)
+    void untrack(() => years(id, server))
       .then((r) => (decades = [...new Set((r.Items ?? []).map((y) => y.ProductionYear ?? Number(y.Name)).filter((y) => y > 1800).map((y) => y - (y % 10)))].sort((a, b) => b - a)))
       .catch(() => (decades = []));
   });

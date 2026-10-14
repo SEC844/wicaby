@@ -10,6 +10,7 @@
   import Segmented from '../components/Segmented.svelte';
   import TitleBar from '../components/TitleBar.svelte';
   import { apiFor, itemPath } from '../lib/api';
+  import { openCastPicker } from '../lib/cast.svelte';
   import { fmt, t } from '../lib/i18n.svelte';
   import { imageUrl } from '../lib/images';
   import { artColour, fullArtPx, initials, placeholderBg } from '../lib/music-art';
@@ -120,6 +121,10 @@
               <Icon name="heart" size={20} fill={fav} stroke={fav ? 0 : 1.9} />
             </button>
           {/if}
+          <!-- The queue goes to a speaker, a group or a TV (cast-manager: the player's handoff). -->
+          <button class="btn ghost icon heart" data-cast aria-haspopup="dialog" title={t('cast.button')} aria-label={t('cast.button')} onclick={() => openCastPicker({ itemId: it.id, serverId: it.serverId })}>
+            <Icon name="cast" size={20} />
+          </button>
         </div>
         {#if badge}<p class="badge caption mono" data-badge>{badge}</p>{/if}
         <SeekBar positionMs={s.positionMs} durationMs={s.durationMs} />

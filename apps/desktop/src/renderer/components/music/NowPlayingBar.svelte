@@ -4,6 +4,7 @@
   import { applyOverrides, resolve } from '../../../shared/shortcuts';
   import { itemPath } from '../../lib/api';
   import { w } from '../../lib/bridge';
+  import { openCastPicker } from '../../lib/cast.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { imageUrl } from '../../lib/images';
   import { initials, placeholderBg, prefetchTrackArt } from '../../lib/music-art';
@@ -210,6 +211,7 @@
       </button>
       <input class="volume" type="range" min="0" max="100" step="1" value={s.volume} style:--pct="{s.muted ? 0 : s.volume}%" aria-label={t('music.bar.volume')} oninput={(e) => command({ type: 'volume', value: Number(e.currentTarget.value) })} onwheel={wheelVolume} />
       <BrowseMenu label={t('music.bar.output')} icon="speaker" compact up align="end" options={outputs} onselect={(v) => v !== device && void setSettings({ playback: { audioDevice: v } })} />
+      <button class="icon-btn" data-cast aria-haspopup="dialog" title={t('cast.button')} aria-label={t('cast.button')} onclick={() => openCastPicker({ itemId: it.id, serverId: it.serverId })}><Icon name="cast" size={16} /></button>
       <button class="icon-btn" data-open-mini title={t('music.mini.open')} aria-label={t('music.mini.open')} onclick={() => w.window.mini('open')}><Icon name="pip" size={16} /></button>
       <button class="icon-btn" title={t('music.bar.fullScreen')} aria-label={t('music.bar.fullScreen')} onclick={fullScreen}><Icon name="fullscreen" size={16} /></button>
     </div>

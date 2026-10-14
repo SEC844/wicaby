@@ -29,13 +29,21 @@ data class Renderer(
 ) {
     val key get() = "d:" + udn.removePrefix("uuid:")
     val sony get() = CastProfiles.isSony("$manufacturer $model")
+    // An audio renderer (Sonos, HEOS, an AV receiver…), by its maker and model, as the desktop's dlna.ts.
+    // shortcut: makers and words of audio-only renderers; read the Sink (no video MIME) if one is missed.
+    val speaker get() = SPEAKER.containsMatchIn("$manufacturer $model")
 
     // §2.3 synthetic commands: transport is never gated; tracks restart the stream; volume needs RenderingControl.
     fun target() = CastTarget(
         key, CastTarget.Kind.Dlna, name, model, deviceId = udn.removePrefix("uuid:"),
         commands = setOf("SetAudioStreamIndex", "SetSubtitleStreamIndex") + if (renderingControl != null) setOf("SetVolume", "Mute", "Unmute", "ToggleMute") else emptySet(),
-        mediaTypes = setOf("Audio", "Video"),
+        mediaTypes = if (speaker) setOf("Audio") else setOf("Audio", "Video"),
+        device = CastTarget.Device.Speaker.takeIf { speaker },
     )
+
+    private companion object {
+        val SPEAKER = Regex("sonos|heos|denon|marantz|bose|soundtouch|musiccast|yamaha|onkyo|pioneer|wiim|bluesound|linkplay|naim|audio|speaker|soundbar|receiver|\\bavr\\b", RegexOption.IGNORE_CASE)
+    }
 }
 
 class UpnpException(val code: Int, message: String) : IOException("UPnP $code: $message")
@@ -144,12 +152,17 @@ object Dlna {
     // DIDL-Lite for one item. Every value is escaped here; the whole document is escaped again inside the envelope.
     // A text subtitle goes three ways at once (Samsung sec:CaptionInfoEx right after <res>, a text/srt <res>, and
     // pv:subtitleFileUri); renderers ignore the ones they do not know.
-    fun didl(title: String, audio: Boolean, url: String, mime: String, flags: String?, durationMs: Long?, subtitleUrl: String? = null): String = buildString {
+    // [song]: a track's artist, album, number and cover URL, shown by the renderer and its app (the desktop's goldens).
+    fun didl(title: String, audio: Boolean, url: String, mime: String, flags: String?, durationMs: Long?, subtitleUrl: String? = null, song: DidlSong? = null): String = buildString {
         append("""<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" """)
         append("""xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:sec="http://www.sec.co.kr/" xmlns:pv="http://www.pv.com/pvns/">""")
         append("""<item id="0" parentID="-1" restricted="1">""")
         append("<dc:title>").append(escape(title)).append("</dc:title>")
         append("<upnp:class>").append(if (audio) "object.item.audioItem.musicTrack" else "object.item.videoItem").append("</upnp:class>")
+        song?.artist?.let { append("<upnp:artist>").append(escape(it)).append("</upnp:artist><dc:creator>").append(escape(it)).append("</dc:creator>") }
+        song?.album?.let { append("<upnp:album>").append(escape(it)).append("</upnp:album>") }
+        song?.track?.takeIf { it > 0 }?.let { append("<upnp:originalTrackNumber>").append(it).append("</upnp:originalTrackNumber>") }
+        song?.artUrl?.let { append("""<upnp:albumArtURI xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" dlna:profileID="JPEG_TN">""").append(escape(it)).append("</upnp:albumArtURI>") }
         append("""<res protocolInfo="http-get:*:""").append(escape(mime)).append(':').append(escape(flags ?: "*")).append('"')
         // Whole seconds, ".000" (the desktop's goldens, CK/fixtures/cast/dlna-didl.json).
         durationMs?.takeIf { it > 0 }?.let { append(""" duration="""").append(hms(it / 1000 * 1000, millis = true)).append('"') }

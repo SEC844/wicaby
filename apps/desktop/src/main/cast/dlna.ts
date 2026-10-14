@@ -14,7 +14,12 @@ export interface DlnaDevice {
   avt: string;
   rc?: string;
   cm?: string;
+  // An audio renderer (Sonos, HEOS, an AV receiver…), by its maker and model: the picker's speaker icon, no videos.
+  speaker?: boolean;
 }
+
+// shortcut: makers and words of audio-only renderers; read the Sink (no video MIME) at discovery if one is missed.
+const SPEAKER = /sonos|heos|denon|marantz|bose|soundtouch|musiccast|yamaha|onkyo|pioneer|wiim|bluesound|linkplay|naim|audio|speaker|soundbar|receiver|\bavr\b/i;
 
 export class UpnpError extends Error {
   constructor(readonly code: number) {
@@ -77,6 +82,7 @@ export function parseDescription(xml: string, location: string): DlnaDevice | nu
   const avt = control('AVTransport');
   const udn = (tag(xml, 'UDN') ?? '').replace(/^uuid:/i, '');
   if (!avt || !/^[\w.:-]{1,128}$/.test(udn)) return null;
+  const speaker = SPEAKER.test(`${tag(xml, 'manufacturer') ?? ''} ${tag(xml, 'modelName') ?? ''}`);
   return {
     location: loc.href,
     ip: loc.hostname.replace(/^\[|\]$/g, ''),
@@ -86,6 +92,7 @@ export function parseDescription(xml: string, location: string): DlnaDevice | nu
     avt,
     rc: control('RenderingControl'),
     cm: control('ConnectionManager'),
+    ...(speaker ? { speaker } : {}),
   };
 }
 
@@ -158,6 +165,11 @@ export interface DidlInput {
   flags?: string;
   // A text subtitle the renderer fetches itself (srt).
   subtitleUrl?: string;
+  // A song: who, which album, its number there and the cover URL (relay or LAN), shown by the renderer and its app.
+  artist?: string;
+  album?: string;
+  track?: number;
+  artUrl?: string;
 }
 
 // One item. A subtitle goes three ways at once (all harmless together): sec:CaptionInfoEx right after the first
@@ -171,6 +183,10 @@ export function didl(d: DidlInput): string {
   return (
     '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:sec="http://www.sec.co.kr/" xmlns:pv="http://www.pv.com/pvns/">' +
     `<item id="0" parentID="-1" restricted="1"><dc:title>${e(d.title)}</dc:title><upnp:class>${d.audio ? 'object.item.audioItem.musicTrack' : 'object.item.videoItem'}</upnp:class>` +
+    (d.artist ? `<upnp:artist>${e(d.artist)}</upnp:artist><dc:creator>${e(d.artist)}</dc:creator>` : '') +
+    (d.album ? `<upnp:album>${e(d.album)}</upnp:album>` : '') +
+    (d.track ? `<upnp:originalTrackNumber>${d.track}</upnp:originalTrackNumber>` : '') +
+    (d.artUrl ? `<upnp:albumArtURI xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" dlna:profileID="JPEG_TN">${e(d.artUrl)}</upnp:albumArtURI>` : '') +
     `<res protocolInfo="http-get:*:${e(d.mime)}:${e(d.flags ?? '*')}"${dur}${pv}>${e(d.url)}</res>` +
     (sub ? `<sec:CaptionInfoEx sec:type="srt">${e(sub)}</sec:CaptionInfoEx><res protocolInfo="http-get:*:text/srt:*">${e(sub)}</res>` : '') +
     '</item></DIDL-Lite>'

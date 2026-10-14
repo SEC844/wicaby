@@ -6,7 +6,7 @@
 //   1  each new mock starts in under 1 s; the whole check runs in under 60 s
 //   2  DLNA, per profile: the description and GetProtocolInfo are the recorded fixtures; SetAVTransportURI, Play
 //      (the renderer fetches the stream: status, type, tokenInUrl), Seek, Pause, volume (501 outside 0-100), mute,
-//      SetNextAVTransportURI, /Mock/End; sony 701 (no Stop first) and 714 (empty metadata) and their recovery;
+//      SetNextAVTransportURI refused (401, the sonos profile alone has it), /Mock/End; sony 701 (no Stop first) and 714 (empty metadata) and their recovery;
 //      samsung 716 (no DLNA.ORG flags) and 714 (sec:CaptionInfoEx order); faults equal the fault fixtures;
 //      generic: a token-free relay URL (tokenInUrl:false), the media ending at MOCK_DURATION_S, InstanceID 718,
 //      an auth header to the renderer flagged
@@ -363,8 +363,9 @@ for (const profile of ['generic', 'sony', 'samsung']) {
   assert.equal((await R.rc('GetVolume')).out.CurrentVolume, '35');
   assert.equal((await R.rc('SetMute', { DesiredMute: 1 })).status, 200);
   assert.equal((await R.rc('GetMute')).out.CurrentMute, '1');
-  assert.equal((await R.avt('SetNextAVTransportURI', { NextURI: relayVideo, NextURIMetaData: '' })).status, 200);
-  assert.equal((await R.state()).nextUri, relayVideo, `${profile}: SetNextAVTransportURI recorded`);
+  // Optional in AVTransport:1: only the sonos profile has it (cast-dlna-check drives that one).
+  assert.equal((await R.avt('SetNextAVTransportURI', { NextURI: relayVideo, NextURIMetaData: '' })).error, 401, `${profile}: no SetNextAVTransportURI (401)`);
+  assert.equal((await R.state()).nextUri, '', `${profile}: nothing queued`);
 
   assert.equal((await call(`${d.root}/Mock/End`, { method: 'POST' })).status, 204);
   assert.equal(await R.transport(), 'STOPPED', `${profile}: /Mock/End -> STOPPED`);

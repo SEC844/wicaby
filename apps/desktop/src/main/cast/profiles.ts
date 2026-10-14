@@ -70,6 +70,11 @@ export function dlnaProfile(sinkCsv: string, model: string): Record<string, unkn
   };
 }
 
+const FLAC_LIMITS = [
+  { Condition: 'LessThanEqual', Property: 'AudioSampleRate', Value: '96000', IsRequired: false },
+  { Condition: 'LessThanEqual', Property: 'AudioBitDepth', Value: '24', IsRequired: false },
+];
+
 export interface CastPrefs {
   allowHevc?: boolean;
   dolby?: boolean;
@@ -99,7 +104,11 @@ export function castProfile(model: string, prefs: CastPrefs, server: ServerKind)
       { Container: 'flac', Type: 'Audio' },
       { Container: 'opus,ogg,webm', Type: 'Audio', AudioCodec: 'opus,vorbis' },
     ],
-    CodecProfiles: [{ Type: 'Video', Codec: 'h264', Conditions: [{ Condition: 'LessThanEqual', Property: 'VideoLevel', Value: uhd ? '51' : '41', IsRequired: false }] }],
+    CodecProfiles: [
+      { Type: 'Video', Codec: 'h264', Conditions: [{ Condition: 'LessThanEqual', Property: 'VideoLevel', Value: uhd ? '51' : '41', IsRequired: false }] },
+      // Cast plays FLAC up to 96 kHz / 24 bit (speakers included): hi-res files are transcoded.
+      { Type: 'Audio', Codec: 'flac', Conditions: FLAC_LIMITS },
+    ],
     TranscodingProfiles: [
       // HEVC goes out in fMP4 segments on Jellyfin; Emby transcodes it to h264.
       ...(hevc && server === 'jellyfin' ? [{ Container: 'mp4', Type: 'Video', VideoCodec: 'hevc,h264', AudioCodec: 'aac', Protocol: 'hls', Context: 'Streaming', MinSegments: 1, BreakOnNonKeyFrames: true }] : []),

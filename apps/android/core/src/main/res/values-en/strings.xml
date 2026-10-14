@@ -253,8 +253,10 @@
     <string name="cast_picker_title">Play On…</string>
     <string name="cast_this_device">This Device</string>
     <string name="cast_section_apps">Apps</string>
-    <string name="cast_section_dlna">TVs and Players (DLNA/UPnP)</string>
-    <string name="cast_section_chromecast">Chromecast and Google TV</string>
+    <string name="cast_section_dlna">TVs, Speakers and Players (DLNA/UPnP)</string>
+    <string name="cast_section_chromecast">Chromecast, Google TV and Speakers</string>
+    <string name="cast_speaker">Speaker</string>
+    <string name="cast_speaker_group">Speaker group</string>
     <string name="cast_searching">Looking for devices…</string>
     <string name="cast_empty">No devices found on this network</string>
     <string name="cast_via_server">via %1$s</string>

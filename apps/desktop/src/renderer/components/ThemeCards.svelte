@@ -84,7 +84,7 @@
     background: #2e2e33;
   }
   .shot.oled .sb {
-    background: #0e0e10;
+    background: #000;
   }
   .shot.oled .sb i {
     background: #1f1f22;

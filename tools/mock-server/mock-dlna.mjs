@@ -1,13 +1,17 @@
 // Mock DLNA/UPnP MediaRenderer (cast spec CA-06), so the DLNA senders (CA-07 desktop, CA-08 mobile) run with no TV.
 //   node tools/mock-server/mock-dlna.mjs [port]          (default MOCK_DLNA_PORT or 8970, on MOCK_DLNA_HOST or 127.0.0.1)
 //
-// MOCK_DLNA_PROFILE=generic|sony|samsung (default generic) picks the device description and the GetProtocolInfo Sink,
+// MOCK_DLNA_PROFILE=generic|sony|samsung|sonos (default generic) picks the device description and the GetProtocolInfo Sink,
 // both served from tools/checks/fixtures/cast/ (the files the desktop and Android parser tests read):
 // - generic: URLBase set, relative controlURLs; takes anything.
 // - sony: no URLBase; SetAVTransportURI answers 701 while PLAYING (no Stop first) and 714 with empty CurrentURIMetaData.
 // - samsung: no URLBase; 716 when the first <res> protocolInfo has no DLNA.ORG flags, and 714 when the DIDL carries
 //   subtitles without sec:CaptionInfoEx right after the first </res>. [UNVERIFIED] both model the reported Samsung
 //   quirks (cast spec §7), not a captured device.
+// - sonos: an audio renderer in the manner of a Sonos speaker (an invented name and model, no device captured): an
+//   audio-only Sink, 714 for a video MIME type or empty CurrentURIMetaData, and SetNextAVTransportURI: at the end of
+//   the media it moves on to NextURI by itself (no STOPPED between), as a gapless renderer does. The other profiles
+//   answer SetNextAVTransportURI with 401 Invalid Action (the action is optional in AVTransport:1).
 // MOCK_DURATION_S (default 600) is the TrackDuration; RelTime advances in real time while PLAYING and the media ends
 // (STOPPED) at that length.
 //
@@ -33,7 +37,7 @@ const HOST = process.env.MOCK_DLNA_HOST || '127.0.0.1';
 const PORT = Number(process.argv[2] ?? process.env.MOCK_DLNA_PORT ?? 8970);
 const PROFILE = process.env.MOCK_DLNA_PROFILE || 'generic';
 const DURATION = Number(process.env.MOCK_DURATION_S || 600);
-if (!['generic', 'sony', 'samsung'].includes(PROFILE)) throw new Error(`MOCK_DLNA_PROFILE=${PROFILE}: generic, sony or samsung`);
+if (!['generic', 'sony', 'samsung', 'sonos'].includes(PROFILE)) throw new Error(`MOCK_DLNA_PROFILE=${PROFILE}: generic, sony, samsung or sonos`);
 
 const FX = path.resolve(import.meta.dirname, '../checks/fixtures/cast');
 const BASE = `http://${HOST.includes(':') ? `[${HOST}]` : HOST}:${PORT}`;
@@ -61,7 +65,7 @@ const parseHms = (s) => {
 };
 
 // ---- Renderer state ----
-const r = { state: 'NO_MEDIA_PRESENT', status: 'OK', uri: '', meta: '', nextUri: '', nextMeta: '', pos: 0, since: 0, volume: 20, muted: false, fetched: null };
+const r = { state: 'NO_MEDIA_PRESENT', status: 'OK', uri: '', meta: '', nextUri: '', nextMeta: '', pos: 0, since: 0, volume: 20, muted: false, fetched: null, advanced: 0 };
 const calls = [];
 let tokenHeaders = 0;
 
@@ -74,9 +78,18 @@ function setState(state) {
 // The media ends by itself at MOCK_DURATION_S (evaluated on every request, no timer).
 function tick() {
   if (r.state === 'PLAYING' && relTime() >= DURATION) {
+    if (advance()) return;
     setState('STOPPED');
     console.log(`END media reached ${hms(DURATION)}: STOPPED`);
   }
+}
+// A NextURI set (sonos): the renderer moves on by itself, fetches it and plays it from 0.
+function advance() {
+  if (!r.nextUri) return false;
+  Object.assign(r, { uri: r.nextUri, meta: r.nextMeta, nextUri: '', nextMeta: '', pos: 0, since: Date.now(), state: 'PLAYING', status: 'OK', advanced: r.advanced + 1 });
+  console.log(`NEXT the renderer moved on to NextURI (${r.advanced})`);
+  void probe(r.uri, { open: OPEN }).then((f) => (r.fetched = f));
+  return true;
 }
 
 class UpnpError extends Error {
@@ -100,7 +113,8 @@ const actions = {
       const meta = a.CurrentURIMetaData ?? '';
       if (!uri) throw new UpnpError(402, 'CurrentURI is empty');
       if (PROFILE === 'sony' && r.state === 'PLAYING') throw new UpnpError(701, 'sony: SetAVTransportURI while PLAYING, send Stop first');
-      if (PROFILE === 'sony' && !meta.trim()) throw new UpnpError(714, 'sony: CurrentURIMetaData is empty');
+      if ((PROFILE === 'sony' || PROFILE === 'sonos') && !meta.trim()) throw new UpnpError(714, `${PROFILE}: CurrentURIMetaData is empty`);
+      if (PROFILE === 'sonos' && !/protocolInfo="http-get:\*:audio\//.test(meta)) throw new UpnpError(714, 'sonos: not an audio MIME type');
       if (PROFILE === 'samsung') {
         if (!/DLNA\.ORG_/.test(firstResInfo(meta))) throw new UpnpError(716, 'samsung: <res> protocolInfo has no DLNA.ORG flags');
         const end = meta.indexOf('</res>');
@@ -110,6 +124,8 @@ const actions = {
       return {};
     },
     SetNextAVTransportURI(a) {
+      if (PROFILE !== 'sonos') throw new UpnpError(401, `${PROFILE}: no SetNextAVTransportURI`);
+      if (a.NextURIMetaData && !/protocolInfo="http-get:\*:audio\//.test(a.NextURIMetaData)) throw new UpnpError(714, 'sonos: not an audio MIME type');
       r.nextUri = a.NextURI ?? '';
       r.nextMeta = a.NextURIMetaData ?? '';
       return {};
@@ -273,7 +289,7 @@ const summary = (a) =>
     .map(([k, v]) => `${k}=${k.endsWith('MetaData') ? `(${v.length} chars)` : v}`)
     .join(' ');
 
-const state = () => ({ profile: PROFILE, name: NAME, udn: UDN, calls, uri: r.uri, meta: r.meta, nextUri: r.nextUri, fetched: r.fetched, state: r.state, status: r.status, relTime: Math.round(relTime() * 10) / 10, duration: DURATION, volume: r.volume, muted: r.muted, tokenHeaders });
+const state = () => ({ profile: PROFILE, name: NAME, udn: UDN, calls, uri: r.uri, meta: r.meta, nextUri: r.nextUri, nextMeta: r.nextMeta, advanced: r.advanced, fetched: r.fetched, state: r.state, status: r.status, relTime: Math.round(relTime() * 10) / 10, duration: DURATION, volume: r.volume, muted: r.muted, tokenHeaders });
 
 http
   .createServer(async (req, res) => {
@@ -290,7 +306,7 @@ http
         return send(res, 200, JSON.stringify(state()), 'application/json');
       }
       if (req.method === 'POST' && p === '/Mock/End') {
-        if (r.uri) {
+        if (r.uri && !(r.state === 'PLAYING' && advance())) {
           setState('STOPPED');
           r.pos = DURATION;
         }

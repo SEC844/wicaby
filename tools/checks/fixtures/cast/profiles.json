@@ -469,6 +469,24 @@
                 "IsRequired": false
               }
             ]
+          },
+          {
+            "Type": "Audio",
+            "Codec": "flac",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioSampleRate",
+                "Value": "96000",
+                "IsRequired": false
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioBitDepth",
+                "Value": "24",
+                "IsRequired": false
+              }
+            ]
           }
         ],
         "TranscodingProfiles": [
@@ -572,6 +590,24 @@
                 "Condition": "LessThanEqual",
                 "Property": "VideoLevel",
                 "Value": "51",
+                "IsRequired": false
+              }
+            ]
+          },
+          {
+            "Type": "Audio",
+            "Codec": "flac",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioSampleRate",
+                "Value": "96000",
+                "IsRequired": false
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioBitDepth",
+                "Value": "24",
                 "IsRequired": false
               }
             ]
@@ -689,6 +725,24 @@
                 "IsRequired": false
               }
             ]
+          },
+          {
+            "Type": "Audio",
+            "Codec": "flac",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioSampleRate",
+                "Value": "96000",
+                "IsRequired": false
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioBitDepth",
+                "Value": "24",
+                "IsRequired": false
+              }
+            ]
           }
         ],
         "TranscodingProfiles": [
@@ -792,6 +846,24 @@
                 "Condition": "LessThanEqual",
                 "Property": "VideoLevel",
                 "Value": "41",
+                "IsRequired": false
+              }
+            ]
+          },
+          {
+            "Type": "Audio",
+            "Codec": "flac",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioSampleRate",
+                "Value": "96000",
+                "IsRequired": false
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "AudioBitDepth",
+                "Value": "24",
                 "IsRequired": false
               }
             ]

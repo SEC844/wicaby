@@ -59,7 +59,8 @@ object Casting {
     // Sessions API. A direct cast reports as this device: local playback ends once the device plays, before the cast's
     // Playing (§8.4).
     fun remoteFor(context: Context, api: Api, t: CastTarget): CastRemote {
-        val beforePlaying: suspend () -> Unit = { withContext(Dispatchers.Main) { PlayerHolder.playback?.stop() } }
+        // The music player too: a song queue handed off, or anything cast while music plays here (one DeviceId, §8.4).
+        val beforePlaying: suspend () -> Unit = { withContext(Dispatchers.Main) { PlayerHolder.playback?.stop(); PlayerHolder.music?.release() } }
         return when {
             t.key.startsWith("d:") -> CastController(api, DlnaDevice(DlnaRenderers.get(t.key) ?: throw IOException("renderer gone")), beforePlaying = beforePlaying)
             t.key.startsWith("c:") -> GoogleCastProvider.get(context)?.remote(api, t, beforePlaying) ?: throw IOException("no Google Cast")

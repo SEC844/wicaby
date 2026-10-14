@@ -18,7 +18,10 @@
   const s = $derived(cast.state);
   const duration = $derived(s?.item?.runTimeTicks ?? 0);
   const playing = $derived(s?.status === 'playing');
-  const poster = $derived(s?.item ? imageUrl(s.item.id, 'Primary', { server: s.serverId, maxHeight: 44 }) : '');
+  // A song shows its cover (its album's), its artists and where the device is in the queue.
+  const poster = $derived(s?.item ? imageUrl(s.item.imageItemId ?? s.item.id, 'Primary', { tag: s.item.imageTag, server: s.serverId, maxHeight: 44 }) : '');
+  const song = $derived(Boolean(s?.item?.artists || s?.item?.album || s?.queue));
+  const title = $derived(s?.item ? (s.item.seriesName ? `${s.item.seriesName} · ${s.item.name}` : s.item.artists?.length ? `${s.item.name} · ${s.item.artists.join(', ')}` : s.item.name) : '');
 
   function send(cmd: CastCommand): void {
     w.cast.control(cmd).catch((err) => toast('error', errorMessage(err)));
@@ -37,17 +40,19 @@
 {#if s}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <div class="castbar" role="group" aria-label={t('cast.bar.castingTo', { device: s.target.name })} tabindex="0" onkeydown={keys}>
-    {#if poster}<img class="poster" src={poster} alt="" />{:else}<span class="poster ph"><Icon name="cast" size={18} /></span>{/if}
+    {#if poster}<img class="poster" class:square={song} src={poster} alt="" />{:else}<span class="poster ph"><Icon name="cast" size={18} /></span>{/if}
     <div class="meta">
-      <div class="name">{s.item?.seriesName ? `${s.item.seriesName} · ${s.item.name}` : (s.item?.name ?? '')}</div>
-      <div class="sub">{t('cast.bar.castingTo', { device: s.target.name })}</div>
+      <div class="name" data-cast-title>{title}</div>
+      <div class="sub">{t('cast.bar.castingTo', { device: s.target.name })}{s.queue ? ` · ${s.queue.index + 1}/${s.queue.length}` : ''}</div>
     </div>
     {#if s.status === 'failed'}
       <button class="btn" onclick={() => void w.cast.takeBack()}>{t('cast.remote.playHere')}</button>
     {:else}
+      {#if s.controls.nextPrev}<button class="btn icon ghost" data-cast-prev disabled={!playing} aria-label={t('player.osd.previous')} title={t('player.osd.previous')} onclick={() => send({ type: 'previous' })}><Icon name="prev" size={16} fill /></button>{/if}
       <button class="btn icon ghost" disabled={!playing} aria-label={s.paused ? t('player.osd.play') : t('player.osd.pause')} onclick={() => send({ type: 'toggle-pause' })}>
         <Icon name={s.paused ? 'play' : 'pause'} size={18} fill />
       </button>
+      {#if s.controls.nextPrev}<button class="btn icon ghost" data-cast-next disabled={!playing} aria-label={t('player.osd.next')} title={t('player.osd.next')} onclick={() => send({ type: 'next' })}><Icon name="next" size={16} fill /></button>{/if}
       <span class="time tabular">{clock((drag ?? s.positionTicks) / TICKS_PER_MS)}</span>
       <input
         type="range"
@@ -98,6 +103,9 @@
     border-radius: 6px;
     object-fit: cover;
     background: var(--fill-2);
+  }
+  .poster.square {
+    width: 44px;
   }
   .ph {
     display: grid;

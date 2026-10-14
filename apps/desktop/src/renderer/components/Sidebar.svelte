@@ -1,4 +1,8 @@
 <script lang="ts">
+  // Three zones (.dev/sidebar-redesign-spec.md): a fixed head (toggle, Home, Favorites, Downloads), the user's content
+  // grouped by media type in the scrolling middle, and a fixed foot (Administration, Settings, connection status).
+  // Search lives in the title bar (Ctrl+K / Ctrl+F), so it has no row here.
+  import { tick } from 'svelte';
   import { caps, kindLabel } from '../../shared/server-caps';
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath } from '../lib/api';
@@ -6,97 +10,134 @@
   import { carriesTracks, droppedTracks } from '../lib/music-ui.svelte';
   import { addTo, list as listPlaylists } from '../lib/playlists';
   import { dataVersion, downloads, errorMessage, fileSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, toast, updateSettings } from '../lib/stores.svelte';
+  import { GROUPS, libraryRows, type GroupId } from '../lib/sidebar-groups';
   import Icon, { type IconName } from './Icon.svelte';
   import { t } from '../lib/i18n.svelte';
   import Logo from './Logo.svelte';
   import { immich, watchImmichSources } from '../lib/photos/immich.svelte';
   import ConnectionStatus from './ConnectionStatus.svelte';
+  import { listedServers, type Level } from './ConnectionList.svelte';
+
+  interface Row {
+    key: string;
+    label: string;
+    icon: IconName;
+    go: string;
+    active: boolean;
+    /** Several servers signed in: the row's server name, in its tooltip and accessible name. */
+    server?: string;
+    /** Another row of the same group has the same label: the server name shows as a suffix. */
+    clash?: boolean;
+    off?: boolean;
+    disabled?: boolean;
+    badge?: number;
+    kind?: 'photo' | 'immich';
+  }
 
   const collapsed = $derived(settings.value?.ui.sidebarCollapsed ?? false);
   const offline = $derived(session.value.status === 'offline');
   const route = $derived(router.route);
   const activeDownloads = $derived(downloads.list.filter((d) => d.status === 'downloading' || d.status === 'queued').length);
   const server = $derived(session.value.server);
-  // Live TV gets its own entry below the libraries instead of a library row.
-  const libs = $derived(libraries.list.filter((l) => l.CollectionType !== 'livetv'));
-  // Several servers: their libraries under a small heading each. One server: a single "Bibliothèques" group.
   const online = $derived(onlineSessions());
-  const groups = $derived(
-    online.length > 1
-      ? online.map((s) => ({ id: s.server.id, title: s.server.name, kind: kindLabel(s.server.kind), libs: libs.filter((l) => l.ServerId === s.server.id) }))
-      : [{ id: '', title: t('shell.sidebar.libraries'), kind: '', libs }],
-  );
+  const multi = $derived(online.length > 1);
+  // The footer counts every signed-in server, so "2 servers / 1 offline" survives one of them going down.
+  const signedIn = $derived(listedServers().length);
   // Administration appears only when the user administers at least one signed-in server.
   const isAdmin = $derived(online.some((s) => s.user?.isAdmin && caps(s.server.kind).admin));
   const down = $derived(session.value.sessions.filter((s) => s.status === 'offline' && s.server.kind !== 'files').length);
-  // File sources: one entry each under "Files" (file-sources-spec §9.1); hidden when there is none.
   const sources = $derived(fileSessions());
-  const sourceIcon = (p?: string): IconName => (p === 'webdav' ? 'globe' : p === 'smb' ? 'server' : 'folder');
-  // Photo sources: a folder, SMB or WebDAV photo library, then each Immich source (photos spec PH-12), each its own
-  // library under "Photos", hidden when there is none.
+  const sourceIcon = (p?: string): IconName => (p === 'webdav' ? 'globe' : p === 'smb' ? 'server' : 'hardDrive');
   const photoSources = $derived(photoSessions());
   const immichShown = $derived(offline ? [] : immich.sources);
   watchImmichSources();
 
-  const NAV: { path: string; name: string; labelKey: string; icon: IconName; online: boolean }[] = [
-    { path: '/home', name: 'home', labelKey: 'shell.nav.home', icon: 'home', online: true },
-    { path: '/search', name: 'search', labelKey: 'shell.nav.search', icon: 'search', online: true },
-    { path: '/favorites', name: 'favorites', labelKey: 'shell.nav.favorites', icon: 'heart', online: true },
-    { path: '/downloads', name: 'downloads', labelKey: 'shell.nav.downloads', icon: 'download', online: false },
-  ];
-
-  function libraryIcon(type?: string): IconName {
-    switch (type) {
-      case 'movies':
-        return 'film'; // i18n-ignore (icon name)
-      case 'tvshows':
-        return 'tv';
-      case 'music':
-        return 'music';
-      case 'books':
-        return 'book';
-      case 'boxsets':
-        return 'collection';
-      case 'livetv':
-        return 'live';
-      case 'photos':
-      case 'homevideos':
-        return 'images';
-      default:
-        return 'folder';
-    }
-  }
-
   const isActive = (name: string, lib?: BaseItem) =>
     route.name === name && (!lib || (route.params.id === lib.Id && (!route.params.server || route.params.server === lib.ServerId)));
+  const serverName = (id?: string) => (multi ? online.find((s) => s.server.id === id)?.server.name : undefined);
+  const named = (r: Row) => (r.server ? `${r.label} — ${r.server}` : r.label) + (r.off ? ` · ${t('files.manage.offline')}` : '');
+  // The rail shows its own tooltip (railTip), so no native one there.
+  const tip = (r: Row) => (!collapsed && (r.server || r.off) ? named(r) : undefined);
+
+  const nav = $derived<Row[]>([
+    { key: 'home', label: t('shell.nav.home'), icon: 'home', go: '/home', active: isActive('home'), disabled: offline },
+    { key: 'favorites', label: t('shell.nav.favorites'), icon: 'heart', go: '/favorites', active: isActive('favorites'), disabled: offline },
+    { key: 'downloads', label: t('shell.nav.downloads'), icon: 'download', go: '/downloads', active: isActive('downloads'), badge: activeDownloads },
+  ]);
+  const foot = $derived<Row[]>([
+    ...(isAdmin && !offline ? [{ key: 'admin', label: t('admin.title'), icon: 'admin' as const, go: '/admin', active: isActive('admin') }] : []),
+    { key: 'settings', label: t('shell.nav.settings'), icon: 'settings', go: '/settings', active: isActive('settings') },
+  ]);
+
+  // Live TV rows deep-link into the page's tabs; ?tab=channels redirects to now, Scheduled sits with Recordings.
+  // The now row says "Channels", so it doesn't repeat its "Live TV" header.
+  const LIVE = [['now', 'live', 'shell.sidebar.channels'], ['guide', 'calendar', 'livetv.tabs.guide'], ['recordings', 'record', 'livetv.tabs.recordings']] as const;
+  // Several servers: Movies & Shows clusters by kind (films, then series...), so same-name rows sit together.
+  const WATCH: IconName[] = ['film', 'tv', 'trailer', 'collection']; // i18n-ignore (icon names)
+  const liveTab = $derived.by(() => {
+    if (route.name !== 'livetv') return '';
+    const tab = route.query.get('tab');
+    return tab === 'guide' ? 'guide' : tab === 'recordings' || tab === 'scheduled' ? 'recordings' : 'now';
+  });
+
+  // Every content row, by group, in server order then the server's view order.
+  const rows = $derived.by(() => {
+    const g = Object.fromEntries(GROUPS.map((id) => [id, [] as Row[]])) as Record<GroupId, Row[]>;
+    if (!offline) {
+      for (const { group, icon, lib } of libraryRows(libraries.list, musicLib?.ServerId))
+        g[group].push({ key: itemKey(lib), label: lib.Name ?? '', icon, go: itemPath(lib, 'library'), active: isActive('library', lib), server: serverName(lib.ServerId) });
+      if (multi) g.watch.sort((a, b) => WATCH.indexOf(a.icon) - WATCH.indexOf(b.icon));
+      if (liveTv.available)
+        for (const [id, icon, key] of LIVE) g.live.push({ key: id, label: t(key), icon, go: `/livetv?tab=${id}`, active: liveTab === id });
+    }
+    for (const s of photoSources)
+      g.photos.push({ key: s.server.id, label: s.server.name, icon: 'images', go: `/library/${s.server.id}/p.`, active: route.name === 'library' && route.params.server === s.server.id, off: s.status === 'offline', kind: 'photo' });
+    for (const s of immichShown) g.photos.push({ key: s.id, label: s.name, icon: 'images', go: `/immich/${s.id}`, active: route.name === 'immich' && route.params.id === s.id, kind: 'immich' });
+    for (const s of sources)
+      g.files.push({ key: s.server.id, label: s.server.name, icon: sourceIcon(s.server.files?.protocol), go: `/files/${s.server.id}/p.`, active: route.name === 'files' && route.params.server === s.server.id, off: s.status === 'offline' });
+    // The suffix only where it tells two rows apart; the tooltip and accessible name carry the server on every row.
+    for (const list of Object.values(g)) for (const r of list) r.clash = !!r.server && list.some((x) => x !== r && x.label === r.label);
+    return g;
+  });
+  const shown = $derived(GROUPS.filter((id) => rows[id].length > 0));
+
+  // Folded groups, remembered on this device. The rail ignores folds (a folded group would be unreachable there),
+  // and a folded group still shows its active row.
+  const FOLDS_KEY = 'wicaby.sidebar.folded';
+  let folds = $state<string[]>(readFolds());
+  function readFolds(): string[] {
+    try {
+      const v: unknown = JSON.parse(localStorage.getItem(FOLDS_KEY) ?? '[]');
+      return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+  function toggleGroup(id: GroupId): void {
+    folds = folds.includes(id) ? folds.filter((x) => x !== id) : [...folds, id];
+    try {
+      localStorage.setItem(FOLDS_KEY, JSON.stringify(folds));
+    } catch {
+      // Best effort: the choice lasts this session.
+    }
+  }
+  const shut = (id: GroupId) => !collapsed && folds.includes(id);
 
   function toggle() {
     void updateSettings({ ui: { sidebarCollapsed: !collapsed } });
   }
 
-  // Audio playlists of the first music library's server (music spec C5): up to 20, then "All playlists"; each takes
-  // tracks dropped on it (C3). Folded or not is remembered on this device.
+  // Audio playlists of the first music library's server (music spec C5): All Playlists, a plain Music row, then up to
+  // 20 playlists nested under it, each taking tracks dropped on it (C3). The Music group's fold hides them all.
   const MAX_PLAYLISTS = 20;
-  const FOLD_KEY = 'wicaby.sidebar.playlistsFolded';
-  const musicLib = $derived(libs.find((l) => l.CollectionType === 'music'));
+  const musicLib = $derived(libraries.list.find((l) => l.CollectionType === 'music'));
+  const playlistsView = $derived(libraries.list.find((l) => l.CollectionType === 'playlists' && l.ServerId === musicLib?.ServerId));
   let playlists = $state<BaseItem[]>([]);
-  let folded = $state(readFolded());
   let dropOn = $state('');
-  function readFolded(): boolean {
-    try {
-      return localStorage.getItem(FOLD_KEY) === '1';
-    } catch {
-      return false;
-    }
-  }
-  function fold(): void {
-    folded = !folded;
-    try {
-      localStorage.setItem(FOLD_KEY, folded ? '1' : '0');
-    } catch {
-      // Best effort: the choice lasts this session.
-    }
-  }
+  const allPlaylists = $derived(playlistsView ? itemPath(playlistsView, 'library') : musicLib ? `${itemPath(musicLib, 'library')}?tab=playlists` : '');
+  const allActive = $derived(playlistsView ? isActive('library', playlistsView) : !!musicLib && isActive('library', musicLib) && route.query.get('tab') === 'playlists');
+  const playlistOn = $derived(route.name === 'item' && playlists.some((p) => p.Id === route.params.id));
+  const playlistsShown = $derived(!offline && !!musicLib && (playlists.length > 0 || !!playlistsView));
   $effect(() => {
     const sid = musicLib?.ServerId;
     void dataVersion.library;
@@ -120,209 +161,193 @@
       toast('error', errorMessage(err));
     }
   }
+
+  // The active row stays in view (a gamepad user opening a library from Home sees it highlighted), also when the
+  // libraries arrive after a deep link and when the rail expands.
+  let scroller = $state<HTMLElement>();
+  $effect(() => {
+    void route.path;
+    void liveTab;
+    void libraries.list;
+    void collapsed;
+    void tick().then(() => {
+      const el = scroller?.querySelector('[aria-current="page"]');
+      if (!scroller || !el) return;
+      const a = el.getBoundingClientRect();
+      const b = scroller.getBoundingClientRect();
+      if (a.top < b.top) scroller.scrollTop += a.top - b.top - 8;
+      else if (a.bottom > b.bottom) scroller.scrollTop += a.bottom - b.bottom + 8;
+    });
+  });
+
+  // Rail tooltip: the row's name beside it on hover and on keyboard or gamepad focus (a native title never shows on
+  // focus). A top-layer popover, so neither the scroll area nor the content pane clips it.
+  let railTip = $state<HTMLElement>();
+  let railText = $state('');
+  function showTip(e: Event): void {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.link');
+    if (!collapsed || !railTip || !b || (e.type === 'focusin' && !b.matches(':focus-visible'))) return;
+    const r = b.getBoundingClientRect();
+    railText = b.getAttribute('aria-label') ?? '';
+    railTip.style.left = `${r.right + 8}px`;
+    railTip.style.top = `${r.top + r.height / 2}px`;
+    if (!railTip.matches(':popover-open')) railTip.showPopover();
+  }
+  const hideTip = () => void (railTip?.matches(':popover-open') && railTip.hidePopover());
+  $effect(() => {
+    if (!collapsed) hideTip();
+  });
+
+  function statusLine(level: Level): string {
+    if (signedIn > 1 && down > 0) return t('shell.sidebar.someOffline', { count: down });
+    if (level === 'warn') return t('shell.status.level.warn');
+    if (signedIn > 1) return t('shell.sidebar.allConnected');
+    const kind = kindLabel(server?.kind, t('files.kind'));
+    // "Emby / Connected", not "Emby / Emby · connected", when the server kept its default name.
+    if (kind === server?.name) return t(offline ? 'shell.status.server.offline' : 'shell.status.server.connected');
+    return t('shell.sidebar.serverState', { kind, state: offline ? 'offline' : 'online' });
+  }
 </script>
 
-<nav class="sidebar" class:collapsed aria-label={t('shell.nav.aria')}>
-  <div class="top drag">
-    <button class="toggle no-drag" onclick={toggle} aria-label={collapsed ? t('shell.sidebar.show') : t('shell.sidebar.hide')} title={collapsed ? t('shell.sidebar.show') : t('shell.sidebar.hide')}>
-      <Icon name="sidebar" size={18} />
+{#snippet link(r: Row)}
+  <li data-immich={r.kind === 'immich' || undefined}>
+    <button
+      class="link"
+      class:active={r.active}
+      aria-current={r.active ? 'page' : undefined}
+      aria-label={collapsed || r.server || r.off ? named(r) : undefined}
+      title={tip(r)}
+      disabled={r.disabled}
+      data-photo-source={r.kind === 'photo' || undefined}
+      onclick={() => navigate(r.go)}
+    >
+      <span class="glyph">
+        <Icon name={r.icon} size={18} />
+        {#if r.badge}<span class="dot-badge" class:show={collapsed}></span>{/if}
+        {#if r.off}<span class="dot-badge off show" aria-hidden="true"></span>{/if}
+      </span>
+      <span class="label fades" class:dim={r.off}>{r.label}</span>
+      {#if r.badge}<span class="badge tabular fades">{r.badge}</span>{/if}
+      {#if r.clash}<span class="suffix tabular fades" aria-hidden="true">{r.server}</span>{/if}
     </button>
-    <span class="word fades"><Logo size={18} mono />Wicaby</span>
+  </li>
+{/snippet}
+
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions (the rail tooltip only mirrors the hovered or focused row's name) -->
+<nav class="sidebar" class:collapsed aria-label={t('shell.nav.aria')} onmouseover={showTip} onfocusin={showTip} onmouseout={hideTip} onfocusout={hideTip}>
+  <div class="head">
+    <div class="top drag">
+      <button class="toggle no-drag" onclick={toggle} aria-label={collapsed ? t('shell.sidebar.show') : t('shell.sidebar.hide')} title={collapsed ? t('shell.sidebar.show') : t('shell.sidebar.hide')}>
+        <Icon name="sidebar" size={18} />
+      </button>
+      <span class="word fades"><Logo size={18} mono />Wicaby</span>
+    </div>
+    <ul class="group">
+      {#each nav as r (r.key)}{@render link(r)}{/each}
+    </ul>
   </div>
 
-  <div class="scroll">
+  <div class="scroll" bind:this={scroller} onscroll={hideTip}>
     <div class="list">
-
-      <ul class="group">
-        {#each NAV as item (item.path)}
-          {@const disabled = offline && item.online}
-          <li>
-            <button class="link" class:active={isActive(item.name)} {disabled} onclick={() => navigate(item.path)} title={collapsed ? t(item.labelKey) : undefined}>
-              <span class="glyph">
-                <Icon name={item.icon} size={18} />
-                {#if item.name === 'downloads' && activeDownloads > 0}<span class="dot-badge" class:show={collapsed}></span>{/if}
-              </span>
-              <span class="label fades">{t(item.labelKey)}</span>
-              {#if item.name === 'downloads' && activeDownloads > 0}
-                <span class="badge tabular fades">{activeDownloads}</span>
-              {/if}
+      {#each shown as id (id)}
+        {@const isShut = shut(id)}
+        <section aria-labelledby="sb-h-{id}">
+          <h2 class="gh">
+            <button class="ghead" id="sb-h-{id}" aria-expanded={!isShut} aria-controls="sb-{id}" class:shut={isShut} onclick={() => toggleGroup(id)}>
+              <span class="gname">{t(`shell.sidebar.groups.${id}`)}</span>
+              <Icon name="chevronDown" size={12} />
             </button>
-          </li>
-        {/each}
-      </ul>
-
-      {#if (libs.length > 0 || liveTv.available) && !offline}
-        {#each groups as g, gi (g.id)}
-        <div class="section fades" title={g.kind ? `${g.title} · ${g.kind}` : undefined}>
-          {g.title}{#if g.kind}<span class="kind">{g.kind}</span>{/if}
-        </div>
-        <ul class="group">
-          {#each g.libs as lib, i (itemKey(lib))}
-            <li style:--i={Math.min(i, 12)}>
-              <button class="link" class:active={isActive('library', lib)} onclick={() => navigate(itemPath(lib, 'library'))} title={collapsed ? lib.Name : undefined}>
-                <span class="glyph"><Icon name={libraryIcon(lib.CollectionType)} size={18} /></span>
-                <span class="label fades">{lib.Name}</span>
-              </button>
-            </li>
-          {/each}
-          {#if liveTv.available && gi === groups.length - 1}
-            <li>
-              <button class="link" class:active={isActive('livetv')} onclick={() => navigate('/livetv')} title={collapsed ? t('shell.nav.liveTv') : undefined}>
-                <span class="glyph"><Icon name="live" size={18} /></span>
-                <span class="label fades">{t('shell.nav.liveTv')}</span>
-              </button>
-            </li>
-          {/if}
-        </ul>
-        {/each}
-      {/if}
-
-      {#if playlists.length > 0 && musicLib}
-        <button class="section fold fades" aria-expanded={!folded} title={t(folded ? 'music.sidebar.show' : 'music.sidebar.hide')} onclick={fold} data-playlists-fold>
-          {t('music.sidebar.title')}<Icon name={folded ? 'chevronRight' : 'chevronDown'} size={12} />
-        </button>
-        {#if !folded}
-          <ul class="group" data-sidebar-playlists>
-            {#each playlists.slice(0, MAX_PLAYLISTS) as p, i (p.Id)}
-              <li style:--i={Math.min(i, 12)}>
-                <button
-                  class="link"
-                  class:active={route.name === 'item' && route.params.id === p.Id}
-                  class:drop={dropOn === p.Id}
-                  data-playlist={p.Id}
-                  onclick={() => navigate(itemPath(p))}
-                  ondragover={(e) => carriesTracks(e) && (e.preventDefault(), (dropOn = p.Id))}
-                  ondragleave={() => dropOn === p.Id && (dropOn = '')}
-                  ondrop={(e) => dropTracks(e, p)}
-                  title={collapsed ? p.Name : undefined}
-                >
-                  <span class="glyph"><Icon name="list" size={18} /></span>
-                  <span class="label fades">{p.Name}</span>
-                </button>
-              </li>
-            {/each}
-            {#if playlists.length > MAX_PLAYLISTS}
-              <li>
-                <button class="link" onclick={() => musicLib && navigate(`${itemPath(musicLib, 'library')}?tab=playlists`)} title={collapsed ? t('music.sidebar.all') : undefined}>
-                  <span class="glyph"><Icon name="ellipsis" size={18} /></span>
-                  <span class="label fades">{t('music.sidebar.all')}</span>
-                </button>
-              </li>
+          </h2>
+          <ul class="group" id="sb-{id}" data-files={id === 'files' || undefined}>
+            {#each rows[id].filter((r) => !isShut || r.active) as r (r.key)}{@render link(r)}{/each}
+            {#if id === 'music' && playlistsShown && (!isShut || allActive || playlistOn)}
+              {#if !isShut || allActive}
+                {@render link({ key: 'all-playlists', label: t('music.sidebar.all'), icon: 'listMusic', go: allPlaylists, active: allActive })}
+              {/if}
+              <!-- The playlists nest under All Playlists; the rail leaves them out (identical rows carry no information). -->
+              {#if !collapsed && playlists.length}
+                <li>
+                  <ul class="group" data-sidebar-playlists>
+                    {#each playlists.slice(0, MAX_PLAYLISTS) as p (p.Id)}
+                      {@const on = route.name === 'item' && route.params.id === p.Id}
+                      {#if !isShut || on}
+                        <li>
+                          <button
+                            class="link child"
+                            class:active={on}
+                            class:drop={dropOn === p.Id}
+                            aria-current={on ? 'page' : undefined}
+                            data-playlist={p.Id}
+                            onclick={() => navigate(itemPath(p))}
+                            ondragover={(e) => carriesTracks(e) && (e.preventDefault(), (dropOn = p.Id))}
+                            ondragleave={() => dropOn === p.Id && (dropOn = '')}
+                            ondrop={(e) => dropTracks(e, p)}
+                          >
+                            <span class="label">{p.Name}</span>
+                          </button>
+                        </li>
+                      {/if}
+                    {/each}
+                  </ul>
+                </li>
+              {/if}
             {/if}
           </ul>
-        {/if}
-      {/if}
-
-      {#if sources.length > 0}
-        <div class="section fades">{t('files.section')}</div>
-        <ul class="group" data-files>
-          {#each sources as s, i (s.server.id)}
-            <li style:--i={Math.min(i, 12)}>
-              <button
-                class="link"
-                class:active={route.name === 'files' && route.params.server === s.server.id}
-                onclick={() => navigate(`/files/${s.server.id}/p.`)}
-                title={collapsed ? s.server.name : s.status === 'offline' ? t('files.manage.offline') : undefined}
-              >
-                <span class="glyph">
-                  <Icon name={sourceIcon(s.server.files?.protocol)} size={18} />
-                  {#if s.status === 'offline'}<span class="dot-badge off show" aria-hidden="true"></span>{/if}
-                </span>
-                <span class="label fades" class:dim={s.status === 'offline'}>{s.server.name}</span>
-              </button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-
-      {#if photoSources.length > 0 || immichShown.length > 0}
-        <div class="section fades">{t('photos.sources.section')}</div>
-        <ul class="group" data-immich>
-          {#each photoSources as s, i (s.server.id)}
-            <li style:--i={Math.min(i, 12)}>
-              <button
-                class="link"
-                data-photo-source
-                class:active={route.name === 'library' && route.params.server === s.server.id}
-                onclick={() => navigate(`/library/${s.server.id}/p.`)}
-                title={collapsed ? s.server.name : s.status === 'offline' ? t('files.manage.offline') : undefined}
-              >
-                <span class="glyph">
-                  <Icon name="images" size={18} />
-                  {#if s.status === 'offline'}<span class="dot-badge off show" aria-hidden="true"></span>{/if}
-                </span>
-                <span class="label fades" class:dim={s.status === 'offline'}>{s.server.name}</span>
-              </button>
-            </li>
-          {/each}
-          {#each immichShown as s, i (s.id)}
-            <li style:--i={Math.min(i, 12)}>
-              <button class="link" class:active={route.name === 'immich' && route.params.id === s.id} onclick={() => navigate(`/immich/${s.id}`)} title={collapsed ? s.name : undefined}>
-                <span class="glyph"><Icon name="images" size={18} /></span>
-                <span class="label fades">{s.name}</span>
-              </button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-
-      <ul class="group end">
-        {#if isAdmin && !offline}
-          <li>
-            <button class="link" class:active={isActive('admin')} onclick={() => navigate('/admin')} title={collapsed ? t('admin.title') : undefined}>
-              <span class="glyph"><Icon name="admin" size={18} /></span>
-              <span class="label fades">{t('admin.title')}</span>
-            </button>
-          </li>
-        {/if}
-        <li>
-          <button class="link" class:active={isActive('settings')} onclick={() => navigate('/settings')} title={collapsed ? t('shell.nav.settings') : undefined}>
-            <span class="glyph"><Icon name="settings" size={18} /></span>
-            <span class="label fades">{t('shell.nav.settings')}</span>
-          </button>
-        </li>
-      </ul>
+        </section>
+      {/each}
     </div>
   </div>
 
-  {#if online.length > 1}
-    <ConnectionStatus>
-      <span class="server-text fades">
-        <span class="server-name">{t('shell.sidebar.servers', { count: online.length })}</span>
-        <span class="server-sub">{down > 0 ? t('shell.sidebar.someOffline', { count: down }) : t('shell.sidebar.allConnected')}</span>
-      </span>
-    </ConnectionStatus>
-  {:else if server}
-    <ConnectionStatus>
-      <span class="server-text fades">
-        <span class="server-name">{server.name}</span>
-        <span class="server-sub">{t('shell.sidebar.serverState', { kind: kindLabel(server.kind, t('files.kind')), state: offline ? 'offline' : 'online' })}</span>
-      </span>
-    </ConnectionStatus>
-  {/if}
+  <div class="foot">
+    <ul class="group end">
+      {#each foot as r (r.key)}{@render link(r)}{/each}
+    </ul>
+    {#if signedIn > 1 || server}
+      <ConnectionStatus>
+        {#snippet children(level: Level)}
+          <span class="server-text fades">
+            <span class="server-name">{signedIn > 1 ? t('shell.sidebar.servers', { count: signedIn }) : server?.name}</span>
+            <span class="server-sub">{statusLine(level)}</span>
+          </span>
+        {/snippet}
+      </ConnectionStatus>
+    {/if}
+  </div>
+  <span class="rail-tip" popover="manual" bind:this={railTip} aria-hidden="true">{railText}</span>
 </nav>
 
 <style>
-  /* The sidebar keeps its full width at all times; when collapsed, the content
-     pane slides over it and only the icon column stays visible. */
+  /* The sidebar keeps its full width at all times; when collapsed, the content pane slides over it and only the
+     72 px icon column stays visible. Labels fade, then leave the tab order and spatial navigation (visibility). */
   .sidebar {
     position: absolute;
     inset: 0 auto 0 0;
     width: var(--sidebar);
     display: flex;
     flex-direction: column;
+    /* Focus ring: monochrome, about 4.6:1 on the sidebar and 3.4:1 on the focus fill (WCAG 1.4.11 asks 3:1). */
+    --ring: inset 0 0 0 1px rgb(235 235 245 / 0.5);
   }
   .fades {
     transition: opacity var(--t-med) var(--ease);
   }
   .collapsed .fades {
     opacity: 0;
-    transition-duration: var(--t-fast);
+    visibility: hidden;
+    transition:
+      opacity var(--t-fast) var(--ease),
+      visibility 0s linear var(--t-fast);
   }
 
+  .head {
+    flex: none;
+  }
+  .head > .group,
+  .foot > .group {
+    padding: 0 12px;
+  }
   .top {
     height: var(--titlebar);
-    flex: none;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -333,15 +358,20 @@
     place-items: center;
     width: 40px;
     height: 32px;
-    border-radius: var(--r-sm);
+    border-radius: var(--r-xs);
     color: var(--label-2);
   }
-  .toggle:is(:hover, :focus-visible) {
+  .toggle:hover {
     background: var(--fill-1);
     color: var(--label);
   }
   .toggle:active {
-    background: var(--fill-2);
+    background: var(--fill-3);
+  }
+  .toggle:focus-visible {
+    background: var(--fill-3);
+    box-shadow: var(--ring);
+    color: var(--label);
   }
   .word {
     display: inline-flex;
@@ -353,22 +383,60 @@
     color: var(--label);
   }
 
+  /* The middle scrolls; a hairline shows under the head and above the foot only while content passes beneath,
+     driven by the scroll position itself (no JS, no time-based animation; no hairline where unsupported). */
   .scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    /* The 12 px scrollbar track is always reserved and serves as the right inset, so rows keep their width
+       whether or not the list overflows. */
+    scrollbar-gutter: stable;
   }
   .collapsed .scroll {
     scrollbar-width: none;
   }
-  .list {
-    position: relative;
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 6px 12px 10px;
+  .scroll::before,
+  .scroll::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: 1px;
+    margin-left: 12px;
+    background: var(--separator);
+    opacity: 0;
+    animation: edge linear both;
   }
+  /* A rule of its own: the CSS minifier would fold it into the shorthand above, which Chromium then drops. */
+  .sidebar .scroll::before,
+  .sidebar .scroll::after {
+    animation-timeline: scroll();
+  }
+  .scroll::before {
+    top: 0;
+    margin-bottom: -1px;
+    animation-range: 0 12px;
+  }
+  .scroll::after {
+    bottom: 0;
+    margin-top: -1px;
+    animation-direction: reverse;
+    animation-range: calc(100% - 12px) 100%;
+  }
+  @keyframes edge {
+    to {
+      opacity: 1;
+    }
+  }
+  .list {
+    padding: 0 0 12px 12px;
+  }
+  .collapsed .list {
+    padding-right: 12px;
+  }
+
   .group {
     list-style: none;
     margin: 0;
@@ -377,36 +445,79 @@
     flex-direction: column;
     gap: 2px;
   }
-  .group.end {
-    margin-top: auto;
-    padding-top: 16px;
+  .foot {
+    flex: none;
+    padding-top: 8px;
   }
-  .section {
-    padding: 18px 12px 6px;
+  .foot > .group {
+    margin-bottom: 4px;
+  }
+
+  /* Group header: quiet caption aligned with the glyphs, the whole row toggles it. The chevron shows on hover or
+     focus, and stays while the group is folded so a folded group is discoverable. */
+  .gh {
+    margin: 0;
+    font: inherit;
+  }
+  .ghead {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 28px;
+    margin-top: 16px;
+    padding: 0 12px 0 15px;
+    border-radius: var(--r-xs);
+    color: var(--label-2);
     font-size: var(--fs-caption);
     font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--label-3);
+    letter-spacing: 0.02em;
+    text-align: left;
     white-space: nowrap;
+  }
+  .gname {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .kind {
-    margin-left: 6px;
-    font-weight: 400;
+  .ghead :global(.wi-icon) {
+    color: var(--label-3);
+    opacity: 0;
+    transition: transform var(--t-fast) var(--ease);
   }
-  .fold {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    text-align: left;
+  .ghead:is(:hover, :focus-visible) {
+    color: var(--label);
   }
-  .fold:is(:hover, :focus-visible) {
-    color: var(--label-2);
+  .ghead:focus-visible {
+    background: var(--fill-3);
+    box-shadow: var(--ring);
   }
-  .link.drop {
-    box-shadow: inset 0 0 0 2px var(--accent);
+  .ghead:is(:hover, :focus-visible, .shut) :global(.wi-icon) {
+    opacity: 1;
+  }
+  .ghead.shut :global(.wi-icon) {
+    transform: rotate(-90deg);
+  }
+  /* Rail: each header becomes a short centred hairline; the only way the groups survive in icon-only mode. */
+  .collapsed .ghead {
+    visibility: hidden;
+    height: 25px;
+    margin-top: 0;
+  }
+  .ghead::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    width: 24px;
+    height: 1px;
+    background: var(--separator);
+    visibility: visible;
+    opacity: 0;
+  }
+  .collapsed .ghead::after {
+    opacity: 1;
   }
 
   .link {
@@ -415,25 +526,35 @@
     align-items: center;
     gap: 6px;
     width: 100%;
-    height: 36px;
-    padding: 0 10px 0 4px;
-    border-radius: var(--r-sm);
+    height: 32px;
+    padding: 0 8px 0 4px;
+    border-radius: var(--r-xs);
     color: var(--label-2);
     font-size: var(--fs-callout);
     font-weight: 500;
     text-align: left;
     white-space: nowrap;
   }
-  /* Hover and selection switch instantly: the user dislikes any fade on these rows. */
-  .link:is(:hover, :focus-visible) {
+  /* States switch instantly (the owner dislikes fades on these rows) and stay monochrome: hover < selection <
+     focus in fill, and focus adds the ring, so the keyboard or gamepad cursor beats the selection, even on it. */
+  .link:hover {
     background: var(--fill-1);
     color: var(--label);
   }
-  /* Source-list selection, macOS style: a flat, static fill. The icon follows
-     the label colour (monochrome), nothing moves or glows. */
   .link.active {
-    color: var(--label);
     background: var(--fill-2);
+    color: var(--label);
+  }
+  .link:active {
+    background: var(--fill-3);
+  }
+  .link:focus-visible {
+    background: var(--fill-3);
+    box-shadow: var(--ring);
+    color: var(--label);
+  }
+  .link.drop {
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .collapsed .link {
     width: 48px;
@@ -441,6 +562,11 @@
   .link:disabled {
     opacity: 0.35;
     pointer-events: none;
+  }
+  /* Playlists: icon-less rows nested under All Playlists, 12 px deeper than its label. */
+  .link.child {
+    height: 28px;
+    padding-left: 62px;
   }
   .glyph {
     position: relative;
@@ -454,6 +580,15 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .suffix {
+    flex: none;
+    max-width: 9ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--fs-caption);
+    font-weight: 400;
+    color: var(--label-2);
   }
   .badge {
     min-width: 20px;
@@ -504,6 +639,24 @@
   }
   .server-sub {
     font-size: var(--fs-caption);
-    color: var(--label-3);
+    color: var(--label-2);
+  }
+
+  /* Rail tooltip (railTip): a quiet label beside the hovered or focused glyph, no motion. */
+  .rail-tip {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    transform: translateY(-50%);
+    padding: 4px 8px;
+    border: 0;
+    border-radius: var(--r-xs);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-2), inset 0 0 0 1px var(--hairline);
+    color: var(--label);
+    font-size: var(--fs-footnote);
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
   }
 </style>

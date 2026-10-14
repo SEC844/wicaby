@@ -73,6 +73,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.data.Servers
+import com.wika.wicaby.core.data.caps
 import com.wika.wicaby.core.data.clock
 import com.wika.wicaby.core.data.poster
 import com.wika.wicaby.core.data.posterArt
@@ -110,13 +111,16 @@ class MusicActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppLanguage.applyToCore(this)
         goFullscreen()
-        if (Music.session == null) return finish()
+        if (Music.session == null && TvCasting.target == null) return finish()
         setContent {
             TvCanvas {
                 WicabyTheme(Accents[Wicaby.app.accent.coerceIn(Accents.indices)]) {
                     val s = Music.session
-                    LaunchedEffect(s, s?.released) { if (s == null || s.released) finish() }
-                    if (s != null) NowPlaying(s)
+                    val casting = TvCasting.target
+                    // Cast: the screen stays while the music goes to the device, then drives it (MusicCast.kt).
+                    LaunchedEffect(s, s?.released, casting) { if ((s == null || s.released) && casting == null) finish() }
+                    val r = TvCasting.remote
+                    if (s != null && !s.released) NowPlaying(s) else if (casting != null && r != null) CastingScreen(casting, r)
                 }
             }
         }
@@ -140,6 +144,7 @@ fun NowPlaying(session: MusicSession) {
     val tint by rememberArtColour(art)
     PrefetchNextArt(session, 720)
     var showLyrics by remember { mutableStateOf(false) }
+    var castSheet by remember { mutableStateOf(false) }
     var ambient by remember { mutableStateOf(false) }
     var pokes by remember { mutableIntStateOf(0) }
     var position by remember { mutableLongStateOf(0L) }
@@ -207,7 +212,7 @@ fun NowPlaying(session: MusicSession) {
                         Text(clock(duration), style = Type.mono, color = C.label3)
                     }
                     Spacer(Modifier.height(20.dp))
-                    Controls(session, showLyrics, { showLyrics = !showLyrics }, playFocus) {
+                    Controls(session, showLyrics, { showLyrics = !showLyrics }, playFocus, onCast = { castSheet = true }.takeIf { api.server.caps.castSend }) {
                         scope.launch { if (!session.mix()) Toast.makeText(context, noMix, Toast.LENGTH_SHORT).show() }
                     }
                 }
@@ -219,6 +224,7 @@ fun NowPlaying(session: MusicSession) {
             QueueRow(session)
         }
         AnimatedVisibility(ambient, enter = fadeIn(tween(1200)), exit = fadeOut(tween(300))) { Ambient(session) }
+        if (castSheet) CastSheet(session) { castSheet = false }
     }
 }
 
@@ -251,7 +257,7 @@ private fun SeekBar(position: Long, duration: Long, onSeek: (Long) -> Unit) {
 }
 
 @Composable
-private fun Controls(session: MusicSession, lyricsOn: Boolean, onLyrics: () -> Unit, playFocus: FocusRequester, onMix: () -> Unit) {
+private fun Controls(session: MusicSession, lyricsOn: Boolean, onLyrics: () -> Unit, playFocus: FocusRequester, onCast: (() -> Unit)? = null, onMix: () -> Unit) {
     val scope = rememberCoroutineScope()
     val q = session.queue
     val item = session.current
@@ -277,6 +283,7 @@ private fun Controls(session: MusicSession, lyricsOn: Boolean, onLyrics: () -> U
         }
         CtrlButton(Ic.Mix, stringResource(R.string.music_mix), onClick = onMix)
         CtrlButton(Ic.Lyrics, stringResource(R.string.music_lyrics), Modifier.testTag("music-lyrics-toggle"), on = lyricsOn, onClick = onLyrics)
+        if (onCast != null) CtrlButton(Ic.Cast, stringResource(com.wika.wicaby.core.R.string.cast_button), Modifier.testTag("music-cast"), onClick = onCast)
     }
 }
 

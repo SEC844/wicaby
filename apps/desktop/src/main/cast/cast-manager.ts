@@ -86,7 +86,8 @@ export function dlnaTarget(dev: DlnaDevice): CastTarget {
     name: dev.name,
     detail: dev.model,
     commands: [...(dev.rc ? ['SetVolume', 'Mute'] : []), 'SetAudioStreamIndex', 'SetSubtitleStreamIndex'],
-    mediaTypes: ['Audio', 'Video'],
+    mediaTypes: dev.speaker ? ['Audio'] : ['Audio', 'Video'],
+    ...(dev.speaker ? { device: 'speaker' as const } : {}),
   };
 }
 
@@ -101,6 +102,7 @@ export function castTarget(dev: CastDevice): CastTarget {
     detail: dev.model,
     commands: ['SetVolume', 'Mute', 'SetAudioStreamIndex', 'SetSubtitleStreamIndex'],
     mediaTypes: dev.video ? ['Audio', 'Video'] : ['Audio'],
+    ...(dev.group ? { device: 'group' as const } : dev.video ? {} : { device: 'speaker' as const }),
   };
 }
 
@@ -205,8 +207,9 @@ export class CastManager extends EventEmitter {
     const seq = ++this.listing;
     const list = () => {
       const now = Date.now();
-      const dlna = direct ? [...this.found.values()].filter((f) => now - f.at < CastManager.foundTtlMs).map((f) => dlnaTarget(f.dev)) : [];
       const media = this.pickerItem?.MediaType;
+      // An audio renderer or a speaker (group) takes songs, not films.
+      const dlna = direct ? [...this.found.values()].filter((f) => now - f.at < CastManager.foundTtlMs && (media !== 'Video' || !f.dev.speaker)).map((f) => dlnaTarget(f.dev)) : [];
       const cast = direct
         ? [...this.foundCast.values()].filter((f) => now - f.at < CastManager.foundTtlMs && (media !== 'Video' || f.dev.video)).map((f) => castTarget(f.dev))
         : [];

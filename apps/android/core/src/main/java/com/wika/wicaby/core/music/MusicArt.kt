@@ -1,6 +1,7 @@
 package com.wika.wicaby.core.music
 
 import android.content.Context
+import android.util.Log
 import coil3.ImageLoader
 import coil3.fetch.FetchResult
 import coil3.fetch.Fetcher
@@ -11,12 +12,14 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Item
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
@@ -67,15 +70,42 @@ object MusicArt {
         val mine = CompletableDeferred<Ref?>()
         val running = cache.putIfAbsent(key, mine)
         if (running != null) return running.await()
+        val kind = (plan as Plan.Lookup).kind
         return try {
-            val child = permits.withPermit { lookup((plan as Plan.Lookup).kind, item) }
+            val child = permits.withPermit { lookup(kind, item) }
+            if (child == null) log(diagnostic("lookup", kind, items = false, e = null, secrets = secrets(api, item)))
             (child?.let { resolve(api, it, lookup, depth + 1) }).also { mine.complete(it) }
         } catch (e: Exception) {
             cache.remove(key)
             mine.complete(null)
-            if (e is CancellationException) throw e
+            if (e is CancellationException) throw e // a card scrolled away: asked again next time, not logged
+            log(diagnostic("lookup", kind, items = null, e = e, secrets = secrets(api, item)))
             null
         }
+    }
+
+    const val TAG = "WicabyMusicCover"
+
+    internal fun log(line: String) {
+        runCatching { Log.w(TAG, line) }
+    }
+
+    internal fun secrets(api: Api, item: Item, ref: Ref? = null): List<String?> =
+        listOf(api.server.address, api.server.address.toHttpUrlOrNull()?.host, api.token, api.userId, item.id, item.name, ref?.id, ref?.tag)
+
+    /**
+     * The release log line of a music cover that did not load (field log, kept in release): the step (lookup, load), the
+     * plan, the lookup kind, the HTTP status, whether the lookup returned an item and the exception. Never a URL, host,
+     * id, token or name, even when the server's or OkHttp's message carries one.
+     */
+    fun diagnostic(step: String, kind: String?, items: Boolean?, e: Throwable?, secrets: List<String?>): String {
+        var msg = e?.message.orEmpty().replace(Regex("[a-zA-Z][a-zA-Z0-9+.-]*://\\S*"), "<url>")
+        for (v in secrets.filterNotNull().filter { it.length > 1 }.sortedByDescending { it.length }) msg = msg.replace(v, "<redacted>")
+        // What the caller could not name (another item's id or tag, an address): IPv4, long hex or digit runs.
+        msg = msg.replace(Regex("\\b\\d{1,3}(\\.\\d{1,3}){3}\\b|\\b[0-9a-fA-F]{12,}\\b|\\b\\d{4,}\\b"), "<id>").take(160)
+        val err = e?.let { "${it::class.java.simpleName}: $msg" } ?: "none"
+        return "cover failed: step=$step plan=${if (kind == null) "image" else "lookup"} kind=${kind ?: "-"} " +
+            "status=${(e as? ApiException)?.status ?: "-"} items=${items?.let { if (it) "yes" else "no" } ?: "-"} error=$err"
     }
 
     internal fun clear() = cache.clear()
@@ -172,8 +202,14 @@ class MusicCoverFetcher(private val data: MusicCover, private val options: Optio
         val ref = MusicArt.resolve(data.api, data.item) ?: throw IOException("no cover")
         val url = data.api.image(ref.id, "Primary", ref.tag, maxWidth = data.px, maxHeight = data.px)
         val mapped = loader.components.map(url, options)
-        val (fetcher) = loader.components.newFetcher(mapped, options, loader) ?: throw IOException("no fetcher")
-        return fetcher.fetch()
+        return try {
+            val (fetcher) = loader.components.newFetcher(mapped, options, loader) ?: throw IOException("no fetcher")
+            fetcher.fetch()
+        } catch (e: Exception) {
+            // Coil's HttpException carries the status in its message ("HTTP 404: Not Found").
+            if (e !is CancellationException) MusicArt.log(MusicArt.diagnostic("load", (MusicArt.plan(data.item) as? MusicArt.Plan.Lookup)?.kind, items = true, e = e, secrets = MusicArt.secrets(data.api, data.item, ref)))
+            throw e
+        }
     }
 
     class Factory : Fetcher.Factory<MusicCover> {

@@ -11,7 +11,12 @@
 //   ApiKey (Jellyfin); AC 3 progress with the cast's PlaySessionId, /Mock/End -> Stopped and the bar closes; AC 4 a
 //   seek on a transcode restarts with StartTimeTicks and reports StartTimeTicks + RelTime; AC 5 the relay answers
 //   403 to another IP and to a path off the list, 404 to an ended nonce; AC 8 local playback stops the cast first;
-//   AC 9 an Emby cast through the relay with numeric and mediasource_ paths.
+//   AC 9 an Emby cast through the relay with numeric and mediasource_ paths;
+// - music: an audio renderer (mock-dlna sonos profile) is listed for songs only, with a speaker icon; a song queue
+//   goes there with DIDL-Lite musicTrack metadata and its cover through the relay, a WAV transcoded to MP3 and a
+//   FLAC direct (its Sink), the next song handed over with SetNextAVTransportURI and played gapless (Stopped then
+//   Playing reported), next/previous; the generic renderer refuses SetNextAVTransportURI (401) and gets the next
+//   song when the current one ends.
 // Nothing leaves 127.0.0.1: the electron stub's fetch and request refuse any other host, outgoing TCP and UDP to a
 // non-loopback address throw, and SSDP searches on no interface.
 // Usage: node tools/checks/cast-dlna-check.mjs [--verbose]
@@ -198,6 +203,10 @@ C.CastManager.ssdpInterfaces = () => [];
   assert.equal(C.parseDescription(xxe, loc).name, '&x;', 'entities are never expanded');
   assert.equal(C.dlnaTarget(g).key, 'd:5f9ec1b4-0c6a-4d5e-9a10-000000000001');
   assert.deepEqual(C.dlnaTarget({ ...g, rc: undefined }).commands, ['SetAudioStreamIndex', 'SetSubtitleStreamIndex'], 'no RenderingControl: no volume');
+  assert.equal(g.speaker, undefined, 'a TV is no speaker');
+  const sp = C.parseDescription(fixture('dlna-desc-sonos.xml'), loc);
+  assert.equal(sp.speaker, true, 'an audio renderer, by its model');
+  assert.deepEqual([C.dlnaTarget(sp).device, C.dlnaTarget(sp).mediaTypes], ['speaker', ['Audio']], 'a speaker row takes songs only');
 }
 // DIDL and SOAP goldens; faults.
 {
@@ -237,9 +246,11 @@ C.CastManager.ssdpInterfaces = () => [];
     '/Videos/movie-0/master.m3u8',
     '/Videos/1/hls1/main/0.ts',
     '/Audio/77/stream.mp3',
+    '/Items/77/Images/Primary',
+    '/Items/0f1e2d3c4b5a69788796a5b4c3d2e1f0/Images/Primary',
   ])
     assert.ok(C.relayPathAllowed(p), `allowed: ${p}`);
-  for (const p of ['/System/Info', '/Users/1/Items', '/Items/1/Download', '/Videos/1/../../System/Info', '/Videos/1/hls/../../../System/Info', '/Videos/1/hls/%2e%2e/x', '/Videos/1/hls/a%2fb', '/Videos/1/stream.mkv/x', '/Videos/a b/stream', '//evil/Videos/1/stream'])
+  for (const p of ['/Items/77/Images/Backdrop', '/Items/77/Images/Primary/0', '/Items/77/Images/../../System/Info', '/System/Info', '/Users/1/Items', '/Items/1/Download', '/Videos/1/../../System/Info', '/Videos/1/hls/../../../System/Info', '/Videos/1/hls/%2e%2e/x', '/Videos/1/hls/a%2fb', '/Videos/1/stream.mkv/x', '/Videos/a b/stream', '//evil/Videos/1/stream'])
     assert.ok(!C.relayPathAllowed(p), `refused: ${p}`);
   assert.ok(C.relayRemoteAllowed('::ffff:192.168.1.5', '192.168.1.5'));
   assert.ok(!C.relayRemoteAllowed('192.168.1.6', '192.168.1.5'));
@@ -354,14 +365,15 @@ class FakeLocal {
 try {
   const video = path.join(tmp, 'video.mkv');
   fs.writeFileSync(video, Buffer.alloc(512 * 1024, 0x1a)); // only its bytes are fetched, never decoded
-  const ports = { jf: await freePort(), emby: await freePort(), generic: await freePort(), sony: await freePort(), samsung: await freePort() };
+  const ports = { jf: await freePort(), emby: await freePort(), generic: await freePort(), sony: await freePort(), samsung: await freePort(), sonos: await freePort() };
+  const PROFILES = ['generic', 'sony', 'samsung', 'sonos'];
   const [, , ...dl] = await Promise.all([
-    startMock('jellyfin', 'mock-jellyfin.mjs', [String(ports.jf), video], {}, /^Mock Jellyfin/),
-    startMock('emby', 'mock-emby.mjs', [String(ports.emby), video], {}, /^Mock Emby/),
-    ...['generic', 'sony', 'samsung'].map((p) => startMock(`dlna-${p}`, 'mock-dlna.mjs', [String(ports[p])], { MOCK_DLNA_PROFILE: p }, /^Mock DLNA renderer/)),
+    startMock('jellyfin', 'mock-jellyfin.mjs', [String(ports.jf), video], { MOCK_MUSIC: '1' }, /^Mock Jellyfin/),
+    startMock('emby', 'mock-emby.mjs', [String(ports.emby), video], { MOCK_MUSIC: '1' }, /^Mock Emby/),
+    ...PROFILES.map((p) => startMock(`dlna-${p}`, 'mock-dlna.mjs', [String(ports[p])], { MOCK_DLNA_PROFILE: p }, /^Mock DLNA renderer/)),
   ]);
   const rootOf = (p) => `http://127.0.0.1:${ports[p]}`;
-  process.env.WICABY_DLNA_SEED = ['generic', 'sony', 'samsung'].map((p) => `${rootOf(p)}/desc.xml`).join(',');
+  process.env.WICABY_DLNA_SEED = PROFILES.map((p) => `${rootOf(p)}/desc.xml`).join(',');
   const dlnaState = (p) => json(`${rootOf(p)}/Mock/State`);
   const reports = async () => (await json(`${rootOf('jf')}/Mock/State`)).reports;
 
@@ -570,6 +582,72 @@ try {
     await A.cast.stop();
     A.settings.value.cast.relay = true;
     console.log('ok AC2 relay off: ApiKey');
+  }
+  // ---- Music: a song queue on an audio renderer (Sonos-like), gapless with SetNextAVTransportURI ----
+  {
+    const ids = ['track-3-0-0', 'track-5-0-0', 'track-3-0-1'];
+    const list = await A.cast.targets(ids[0], A.serverId);
+    const speaker = list.find((r) => r.name === 'Mock Speaker');
+    assert.deepEqual([speaker?.device, speaker?.mediaTypes], ['speaker', ['Audio']], 'the audio renderer is listed for a song, as a speaker');
+    assert.ok(list.some((r) => r.name === 'Mock Renderer'), 'a TV takes songs too');
+    A.local.log.length = 0;
+    A.local.onStop = null;
+    A.local.snapshot = { serverId: A.serverId, itemIds: ids, startIndex: 0, positionTicks: 0, msid: 'mediasource_track-3-0-0', sub: -1, live: false, policy: 'mbb' };
+    // Mock/State keeps the last 20 reports: the ones since now, by time.
+    const since = Date.now();
+    const mine = async () => (await reports()).filter((r) => r.at >= since);
+    await A.cast.start(speaker.key);
+    assert.equal(A.cast.state?.status, 'playing', `a song to the speaker (${JSON.stringify(A.toasts.slice(-1))})`);
+    assert.deepEqual(A.local.log, ['pause', 'stop'], 'the music player hands off');
+    let d = await dlnaState('sonos');
+    assert.match(d.uri, /\/c\/[0-9a-f]{32}\/Audio\/track-3-0-0\/stream\.mp3\?/, 'a WAV the speaker cannot play (no audio/wav in its Sink): MP3 transcode');
+    assert.ok([200, 206].includes(d.fetched.status) && d.fetched.tokenInUrl === false, `the speaker fetched the song through the relay (${d.fetched.status})`);
+    assert.match(d.meta, /<upnp:class>object\.item\.audioItem\.musicTrack<\/upnp:class><upnp:artist>Nora Vale<\/upnp:artist><dc:creator>Nora Vale<\/dc:creator><upnp:album>Lignes claires<\/upnp:album><upnp:originalTrackNumber>1<\/upnp:originalTrackNumber>/, 'musicTrack with artist, album and number');
+    const art = /<upnp:albumArtURI[^>]*>([^<]*)<\/upnp:albumArtURI>/.exec(d.meta)?.[1]?.replace(/&amp;/g, '&');
+    assert.match(art ?? '', /^http:\/\/127\.0\.0\.1:\d+\/c\/[0-9a-f]{32}\/Items\/album-3-0\/Images\/Primary\?/, 'the cover through the relay');
+    assert.equal(await httpGet(art, '127.0.0.1'), 200, 'the relay serves the cover to the speaker');
+    assert.ok(!/api_?key|token/i.test(d.meta.replace(/PlaySessionId/g, '')), 'no token in the DIDL');
+    assert.deepEqual(A.cast.state.queue, { index: 0, length: 3 });
+    assert.equal(A.cast.state.controls.nextPrev, true);
+    assert.deepEqual(A.cast.state.item.artists, ['Nora Vale']);
+    // The next song, ahead: FLAC is in the speaker's Sink, so it plays directly.
+    await until(async () => (await dlnaState('sonos')).nextUri.includes('/Audio/track-5-0-0/stream.flac?Static=true'), 4000, 'SetNextAVTransportURI with the next song');
+    d = await dlnaState('sonos');
+    assert.match(d.nextMeta, /<dc:title>Niveau<\/dc:title>/, 'the next song carries its metadata');
+    // The song ends: the speaker moves on by itself (gapless), the sender follows and reports.
+    await fetch(`${rootOf('sonos')}/Mock/End`, { method: 'POST' });
+    await until(() => A.cast.state?.item?.id === ids[1], 4000, 'the sender follows the gapless move');
+    assert.equal((await dlnaState('sonos')).advanced, 1, 'no SetAVTransportURI in between: the renderer moved on itself');
+    assert.equal((await dlnaState('sonos')).calls.filter((c) => c.action === 'SetAVTransportURI').length, 1, 'one load for two songs');
+    await until(async () => (await mine()).some((r) => r.kind === 'start' && r.ItemId === ids[1]), 3000, 'Playing for the second song');
+    const seq = (await mine()).filter((r) => r.kind !== 'progress' && r.kind !== 'ping').map((r) => `${r.kind} ${r.ItemId}`);
+    assert.deepEqual(seq, [`start ${ids[0]}`, `stopped ${ids[0]}`, `start ${ids[1]}`], `each song its own play (${seq.join(' | ')})`);
+    await until(async () => (await dlnaState('sonos')).nextUri.includes('/Audio/track-3-0-1/'), 4000, 'the third song handed over next');
+    // Next (loaded now), previous within 5 s.
+    await A.cast.control({ type: 'next' });
+    assert.equal(A.cast.state.item.id, ids[2]);
+    assert.match((await dlnaState('sonos')).uri, /\/Audio\/track-3-0-1\//, 'next loads the song');
+    await A.cast.control({ type: 'previous' });
+    assert.equal(A.cast.state.item.id, ids[1], 'previous within 5 s: the song before');
+    await A.cast.stop();
+    assert.equal(A.cast.state, null);
+    console.log('ok music speaker: musicTrack DIDL with cover, MP3 transcode and direct FLAC, gapless next, next/previous');
+  }
+  // ---- Music on a renderer without SetNextAVTransportURI: the next song when the current one stops ----
+  {
+    const ids = ['track-3-0-0', 'track-3-0-1'];
+    await A.cast.targets(ids[0], A.serverId);
+    await A.cast.start(key('Mock Renderer'), { itemIds: ids, startIndex: 0 });
+    assert.equal(A.cast.state?.status, 'playing');
+    await until(async () => (await dlnaState('generic')).calls.some((c) => c.action === 'SetNextAVTransportURI' && c.error === 401), 4000, 'SetNextAVTransportURI refused (401)');
+    await fetch(`${rootOf('generic')}/Mock/End`, { method: 'POST' });
+    await until(() => A.cast.state?.item?.id === ids[1], 5000, 'the next song after STOPPED');
+    assert.match((await dlnaState('generic')).uri, /\/Audio\/track-3-0-1\//);
+    assert.equal(A.cast.state.status, 'playing');
+    await sleep(1500); // a poll sees it play (a song lasts longer than a poll)
+    await fetch(`${rootOf('generic')}/Mock/End`, { method: 'POST' });
+    await until(() => A.cast.state === null, 5000, 'the cast ends with the queue');
+    console.log('ok music fallback: no SetNextAVTransportURI, the next song loaded at the end');
   }
   A.cast.dispose();
   for (const c of A.m.conns.values()) c.socket?.close();

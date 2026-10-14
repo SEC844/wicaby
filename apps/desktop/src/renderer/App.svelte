@@ -336,6 +336,10 @@
   :global(html.mica:not([data-theme='oled']):not([data-reduce-transparency])) .shell {
     background: transparent;
   }
+  /* OLED: the sidebar goes true black too; the pane's separator keeps the edge. */
+  :global(html[data-theme='oled']) .shell {
+    background: #000;
+  }
   .pane {
     position: absolute;
     inset: 0 0 0 var(--rail);

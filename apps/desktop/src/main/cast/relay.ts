@@ -15,7 +15,8 @@ import { apiPathRefused, fetchFromServer } from '../protocols';
 const log = logger.scope('relay');
 
 // Emby item ids are digits, its MediaSourceIds can be mediasource_<n>; Jellyfin's are 32 hex (§8).
-const ALLOWED = /^\/(Videos|Audio)\/[A-Za-z0-9_-]{1,64}\/(stream(\.\w+)?|master\.m3u8|main\.m3u8|hls1?\/[\w./-]+|[A-Za-z0-9_-]{1,64}\/Subtitles\/\d+\/(0\/)?Stream\.(vtt|srt))$/i;
+// A song's cover (the Primary image of the track or its album) goes too, for the device's screen and app.
+const ALLOWED = /^\/((Videos|Audio)\/[A-Za-z0-9_-]{1,64}\/(stream(\.\w+)?|master\.m3u8|main\.m3u8|hls1?\/[\w./-]+|[A-Za-z0-9_-]{1,64}\/Subtitles\/\d+\/(0\/)?Stream\.(vtt|srt))|Items\/[A-Za-z0-9_-]{1,64}\/Images\/Primary)$/i;
 
 // A server path the relay forwards: the allow-list, and no dot segment, encoded slash or backslash.
 // Plex (plex-spec §8): the transcoder's HLS (start.m3u8, then its session playlist and segments) and sidecar subtitles.

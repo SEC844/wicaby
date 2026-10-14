@@ -17,6 +17,9 @@
 // - com.connectsdk (Jellyfin receiver apps only): records every message; fails (CONNECTSDK-INVALID, no reply) when
 //   command, serverAddress or accessToken is missing, as the receiver's maincontroller.ts; PlayNow, NextTrack and
 //   PreviousTrack answer through the media namespace so the sender can mirror.
+// MOCK_CAST_AUDIO_ONLY=1: a speaker or speaker group (no video output): a LOAD whose contentType is not audio/* fails
+// (LOAD_FAILED, tagged NO-VIDEO-OUT). LOAD also GETs metadata.images[0].url (the cover, kind 'image'), as a device
+// with a screen or the Google Home app would; it never decides the load.
 // Mock-only (state port): GET /Mock/State {connections, app, volume, media, calls[], fetched[], connectsdk[]},
 // POST /Mock/End (the media finishes: IDLE / FINISHED).
 // Every message is logged; quirks are tagged (NO-CONNECT, CONNECTSDK-INVALID, LAUNCH-ERROR, REFUSED, UNMAPPED).
@@ -39,6 +42,7 @@ const STATE_PORT = Number(process.env.MOCK_CAST_STATE_PORT || 18010);
 const HEARTBEAT_MS = Number(process.env.MOCK_CAST_HEARTBEAT_S || 15) * 1000;
 const DURATION = Number(process.env.MOCK_DURATION_S || 600);
 const ORIGIN = 'https://mock-cast';
+const AUDIO_ONLY = process.env.MOCK_CAST_AUDIO_ONLY === '1';
 
 const NS = 'urn:x-cast:com.google.cast.';
 const CONNECTION = `${NS}tp.connection`;
@@ -163,17 +167,18 @@ function setVolume(v = {}) {
 // fetch=false: the Jellyfin receiver plays an item id and fetches its stream from serverAddress itself (not mocked).
 async function load(media, { currentTime: start = 0, autoplay = true, activeTrackIds = [], customData, queue, fetch = true } = {}) {
   const tracks = Array.isArray(media.tracks) ? media.tracks : [];
-  const probes = fetch ? [media.contentId, ...tracks.map((t) => t.trackContentId)].filter(Boolean) : [];
+  const image = media.metadata?.images?.[0]?.url;
+  const probes = fetch ? [media.contentId, ...tracks.map((t) => t.trackContentId), image].filter(Boolean) : [];
   const results = [];
   for (const url of probes) {
     const res = await probe(url, { open: OPEN, headers: { Origin: ORIGIN } });
-    const entry = { url, status: res.status, type: res.type, cors: Boolean(res.cors), allowOrigin: res.cors, tokenInUrl: res.tokenInUrl, bytes: res.bytes, error: res.error, kind: url === media.contentId ? 'content' : 'track' };
+    const entry = { url, status: res.status, type: res.type, cors: Boolean(res.cors), allowOrigin: res.cors, tokenInUrl: res.tokenInUrl, bytes: res.bytes, error: res.error, kind: url === media.contentId ? 'content' : url === image ? 'image' : 'track' };
     fetched.push(entry);
     results.push(entry);
     console.log(`FETCH ${entry.kind} ${res.status} ${res.type ?? '-'} cors=${res.cors ?? 'none'} tokenInUrl=${res.tokenInUrl}${res.error ? ` (${res.error})${res.error.includes('refused') ? ' REFUSED' : ''}` : ''}`);
   }
   const content = results[0];
-  const ok = !content || (content.status >= 200 && content.status < 300);
+  const ok = (!content || (content.status >= 200 && content.status < 300)) && !(AUDIO_ONLY && !/^audio\//i.test(media.contentType ?? ''));
   dev.media = {
     mediaSessionId: nextMediaSession++,
     contentId: media.contentId,
@@ -207,6 +212,7 @@ async function onMedia(c, msg, p) {
         return send(c, dev.app.transportId, msg.source, MEDIA, { type: 'INVALID_REQUEST', requestId: p.requestId, reason: 'INVALID_PARAMS' });
       }
       if (p.media.hlsVideoSegmentFormat) console.log(`NOTE hlsVideoSegmentFormat=${p.media.hlsVideoSegmentFormat}`);
+      if (AUDIO_ONLY && !/^audio\//i.test(p.media.contentType ?? '')) console.log(`NO-VIDEO-OUT LOAD of ${p.media.contentType} on a speaker`);
       const ok = await load(p.media, { currentTime: p.currentTime, autoplay: p.autoplay, activeTrackIds: p.activeTrackIds, customData: p.customData });
       if (!ok) send(c, dev.app.transportId, msg.source, MEDIA, { type: 'LOAD_FAILED', requestId: p.requestId });
       return replyMedia(c, msg.source, p.requestId);
@@ -361,5 +367,5 @@ tls
         console.log(`UNMAPPED state ${req.method} ${p}`);
         return json(404, { error: 'not found' });
       })
-      .listen(STATE_PORT, HOST, () => console.log(`Mock Cast device on tls://${HOST}:${PORT} (state http://${HOST}:${STATE_PORT}/Mock/State)`));
+      .listen(STATE_PORT, HOST, () => console.log(`Mock Cast ${AUDIO_ONLY ? 'speaker' : 'device'} on tls://${HOST}:${PORT} (state http://${HOST}:${STATE_PORT}/Mock/State)`));
   });

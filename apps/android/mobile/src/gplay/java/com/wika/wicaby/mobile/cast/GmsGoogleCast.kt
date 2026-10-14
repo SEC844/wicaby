@@ -83,17 +83,30 @@ class GmsGoogleCast(context: Context, private val cast: CastContext) : GoogleCas
     }.flowOn(Dispatchers.Main)
 
     // §2.3 synthetic commands: volume through the receiver, tracks by a new load (DMR) or through the session (Jellyfin).
-    private fun target(r: MediaRouter.RouteInfo) = CastTarget(
-        "c:" + r.id, CastTarget.Kind.Cast, r.name, r.description ?: CastDevice.getFromBundle(r.extras)?.modelName.orEmpty(),
-        commands = setOf("SetVolume", "Mute", "Unmute", "ToggleMute", "SetAudioStreamIndex", "SetSubtitleStreamIndex"),
-        mediaTypes = setOf("Audio", "Video"),
-    )
+    // A speaker or a speaker group (no video output) takes songs only, and says so by its icon.
+    private fun target(r: MediaRouter.RouteInfo): CastTarget {
+        val d = CastDevice.getFromBundle(r.extras)
+        val video = d?.hasCapability(CastDevice.CAPABILITY_VIDEO_OUT) ?: true
+        val group = d?.hasCapability(CastDevice.CAPABILITY_MULTIZONE_GROUP) == true
+        return CastTarget(
+            "c:" + r.id, CastTarget.Kind.Cast, r.name, r.description ?: d?.modelName.orEmpty(),
+            commands = setOf("SetVolume", "Mute", "Unmute", "ToggleMute", "SetAudioStreamIndex", "SetSubtitleStreamIndex"),
+            mediaTypes = if (video) setOf("Audio", "Video") else setOf("Audio"),
+            device = when {
+                group -> CastTarget.Device.Group
+                !video -> CastTarget.Device.Speaker
+                else -> null
+            },
+        )
+    }
 
     override fun remote(api: Api, target: CastTarget, beforePlaying: suspend () -> Unit): CastRemote {
         val route = seen[target.key] ?: throw IOException("route gone")
         // Only a Jellyfin server goes to Jellyfin's receiver: it is handed the server token. Plex goes to CastController,
         // which refuses it (the Plex token never leaves for a receiver or a URL; casting Plex is the Cast workflow's).
-        return if (api.server.kind != "jellyfin") {
+        // A speaker or a group gets the Default Media Receiver whatever the server: Google documents it on audio
+        // devices, while a custom receiver (Jellyfin's) must be registered for them.
+        return if (api.server.kind != "jellyfin" || target.device != null) {
             // The receiver loads the page, then the stream: give it longer than a DLNA TV.
             CastController(api, GmsDevice(route, target), startWaitMs = 30_000, beforePlaying = beforePlaying)
         } else JellyfinReceiver(api, route)

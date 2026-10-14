@@ -28,6 +28,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import com.wika.wicaby.core.data.poster
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
@@ -43,7 +46,9 @@ class LanOnlyException : IOException("the server is not on the local network")
 // A direct cast (cast spec CA-08, the Kotlin port of CA-07 without the relay; CA-10 for a Google Cast Default Media
 // Receiver): one item on [device], which fetches the server's stream itself with the token in the URL (§2.6.3), while
 // this device reports progress as its own session (§2.5). One controller per cast; the mobile Casting object holds the
-// live one, PlaybackService keeps it in a foreground service.
+// live one, PlaybackService keeps it in a foreground service. Songs play as a queue this device runs: at the end of
+// one (STOPPED after PLAYING) the next is loaded, each reported as its own play (Stopped, then Playing), with its
+// artist, album and cover for the device's screen and app.
 class CastController(
     private val api: Api,
     val device: CastDevice,
@@ -92,14 +97,19 @@ class CastController(
 
     private val reporter = SessionReporter(api)
     private val watchers = AtomicInteger()
+    // The song queue and where the device is in it (one item for anything else, §1).
+    @Volatile private var ids = emptyList<String>()
+    @Volatile private var index = 0
     private var loop: Job? = null
     // The cast's disposable token, minted once on the first start; revoked when the cast ends (CA-11 rule 6).
     @Volatile private var disposable: Disposable? = null
     private var minted = false
 
     override suspend fun play(target: CastTarget, ids: List<String>, startIndex: Int, positionTicks: Long?, msid: String?, audio: Int?, sub: Int?, command: String) {
-        // One item: no queue on a direct renderer (§1).
+        // One item, or a song queue (the next one when this one ends).
         val id = ids.getOrNull(startIndex) ?: ids.first()
+        this.ids = ids
+        this.index = ids.indexOf(id)
         // A renderer's URLs carry the token, and the Plex token never goes in a URL: casting Plex is the Cast workflow's.
         if (api.server.kind == "plex") throw IOException("casting a Plex server is not supported yet")
         try {
@@ -168,7 +178,9 @@ class CastController(
         val subs = ps.mediaStreams.filter { it.type == "Subtitle" && it.deliveryMethod == "External" }
             .mapNotNull { s -> s.deliveryUrl?.let { CastSubtitle(s.index, lan(base, token, api.resolve(it)), s.language, s.displayTitle ?: s.title) } }
         val durationMs = (ps.runTimeTicks ?: item.runTimeTicks)?.div(TICKS_PER_MS)
-        device.load(CastStream(item, url, container, direct, durationMs, subs, sub ?: ps.defaultSubtitleStreamIndex))
+        // A song's cover: images need no token, so none goes in its URL.
+        val art = if (isAudio) api.poster(item, 600)?.let { lan(base, null, it) } else null
+        device.load(CastStream(item, url, container, direct, durationMs, subs, sub ?: ps.defaultSubtitleStreamIndex, art))
         // §2.4 success: Play answered and the renderer reports PLAYING or TRANSITIONING.
         val t0 = System.currentTimeMillis()
         var st: String
@@ -228,7 +240,11 @@ class CastController(
                 val (rel, uri) = device.position()
                 fails = 0
                 if (st == "PLAYING") seenPlaying = true
-                if ((seenPlaying && (st == "STOPPED" || st == "NO_MEDIA_PRESENT")) || (uri.isNotEmpty() && uri != cur.url)) {
+                if (seenPlaying && (st == "STOPPED" || st == "NO_MEDIA_PRESENT")) {
+                    if (!advance(cur)) finish(End.Finished)
+                    break
+                }
+                if (uri.isNotEmpty() && uri != cur.url) {
                     finish(End.Finished)
                     break
                 }
@@ -287,6 +303,30 @@ class CastController(
         }
     }
 
+    // The end of a song with more queued: the next one, from a coroutine of its own (its start runs a new poll loop).
+    private fun advance(c: Cast): Boolean {
+        if (!c.item.isAudio || index + 1 !in ids.indices) return false
+        scope.launch { runCatching { jump(index + 1, ended = true) } }
+        return true
+    }
+
+    // Song [i] now: Stopped for this one ([ended]: at its full length), then that one's start and Playing.
+    private suspend fun jump(i: Int, ended: Boolean = false) {
+        val c = _state.value ?: return
+        val item = api.item(ids[i])
+        loop?.cancel()
+        _state.value = null
+        reporter.stopped(body(if (ended) c.copy(positionTicks = c.item.runTimeTicks ?: c.positionTicks) else c, null))
+        index = i
+        try {
+            start(item, 0, null, null, null)
+        } catch (e: Exception) {
+            _ended.value = End.Lost
+            release()
+            throw e
+        }
+    }
+
     private suspend fun seek(ticks: Long) {
         val c = _state.value ?: return
         if (c.transcoding) return restart(ticks, c.audio, c.sub)
@@ -308,6 +348,11 @@ class CastController(
             "playpause" -> setPaused(_state.value?.paused == false)
             "stop" -> stop()
             "seek" -> seekTicks?.let { seek(it.coerceAtLeast(0)) }
+            "nexttrack" -> if (index + 1 in ids.indices && _state.value?.item?.isAudio == true) jump(index + 1)
+            // Back to the start past 5 s or on the first song (the music player's rule).
+            "previoustrack" -> _state.value?.let { c ->
+                if (c.positionTicks > 5_000 * TICKS_PER_MS || index <= 0 || !c.item.isAudio) seek(0) else jump(index - 1)
+            }
         }
     }
 
@@ -339,10 +384,14 @@ class CastController(
         .onStart { watchers.incrementAndGet() }
         .onCompletion { watchers.decrementAndGet() }
 
+    // A song queue shows as the session's NowPlayingQueue: the remote panel then offers next and previous.
     private fun session(c: Cast) = SessionInfo(
         id = device.target.key, deviceId = device.id, deviceName = device.name, client = device.client, supportsRemoteControl = true,
         nowPlayingItem = c.item, playState = PlayState(c.positionTicks, c.paused, c.muted, c.volume, c.msid, c.audio, c.sub),
+        nowPlayingQueue = if (c.item.isAudio && ids.size > 1) ids.map { JsonObject(mapOf("Id" to JsonPrimitive(it))) } else emptyList(),
     )
+
+    private val Item.isAudio get() = mediaType.equals("Audio", true)
 
     override suspend fun awaitPlaying(target: CastTarget, itemId: String, timeoutMs: Long): Boolean = _state.value?.item?.id == itemId
 

@@ -18,6 +18,40 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.5] - 2026-10-14
+
+Music casting and a new desktop sidebar. Windows and Linux desktop **0.10.5**, Android TV app **0.10.5**
+(`versionCode` 26), Android mobile app **0.10.5** (`versionCode` 23).
+
+### Fixed
+
+- Android TV and mobile: album covers from an Emby server show again. The cover lookup sent the same query name
+  twice, which Emby 4.10 rejects with an error.
+- Desktop: starting a song on the Music page no longer reloads the list and scrolls back to the top.
+
+### Changed
+
+- Desktop: the sidebar groups libraries by media type (Movies & Shows, Live TV, Music, Photos, Books & Comics, Files),
+  with collapsible groups that remember their state. Home, Favorites and Downloads stay at the top, and
+  Administration, Settings and the connection status stay at the bottom while the libraries scroll. Search lives in
+  the title bar only (`Ctrl` + `K`). The keyboard and gamepad focus is visible on the selected row, the collapsed rail
+  shows dividers between groups and a tooltip on hover or focus, and the OLED theme turns the sidebar black too.
+
+### Added
+
+- Music casting. The music player has a Cast button: in the desktop now-playing bar and full-screen player, and in the
+  Android mobile and TV players. It sends the whole queue, from the current song and position, to another app, to a
+  Chromecast or Google TV, to a speaker or speaker group with Chromecast built in (desktop, and the Android `gplay`
+  build), or to a DLNA/UPnP TV, speaker or AV receiver. Speakers and speaker groups get their own icons and appear
+  for songs only. Songs advance on the device by themselves; DLNA renderers that support it get the next song in
+  advance, for gapless playback. The device's screen and app show the title, artist, album and cover. Play/pause,
+  previous/next, seek and volume stay in sync with the bar. A song whose format the device cannot play is transcoded
+  by the server to MP3; FLAC above 96 kHz or 24 bit is transcoded for Chromecast. As for video, the server token never
+  reaches the device.
+- Amazon Echo is not a cast target: Echo speakers support neither DLNA nor Google Cast, and Alexa Cast is open only to
+  Amazon's partner apps. To play on an Echo, pair it over Bluetooth with the computer or phone, or use your server's
+  Alexa skill.
+
 ## [0.10.4] - 2026-10-14
 
 Covers on Emby albums without art, a new music library and a Sources screen. Windows and Linux desktop **0.10.4**,
