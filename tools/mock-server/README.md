@@ -61,6 +61,18 @@ a bug list. `node tools/checks/cast-mock-check.mjs` exercises both (it is part o
   with a tuner when one is available. `tools/checks/plex-livetv-check.mjs` drives it on the desktop, `PlexMockTest` on
   Android.
 
+## mock-iptv (client-side IPTV sources)
+
+`node tools/mock-server/mock-iptv.mjs [port]` (default 8098; `10.0.2.2:8098` from the Android emulator) serves an
+IPTV provider: `/iptv/playlist.m3u` (10 invented channels in 3 groups, `url-tvg` pointing at `/iptv/guide.xml.gz`), the
+same list Xtream-style at `/get.php?username=wika&password=s3cret&type=m3u_plus` (401 otherwise), the XMLTV guide (now
+− 6 h to now + 3 days, half the channels in `+0200`), flat PNG logos (channel 9 has a `data:` logo, channel 10 none and
+no guide), live HLS windows and looping MPEG-TS. Channel 6 needs the user agent its `#EXTVLCOPT` names (403 otherwise).
+The streams are a test pattern **with no audio track**, encoded once by mpv (`MOCK_MPV`, else `vendor/mpv`) into the OS
+temp folder. `GET /Mock/State` lists hits, user agents and tags (`UA-MISSING`, `NO-MPV`, `UNMAPPED`).
+`tools/checks/iptv-check.mjs` uses it (part of `npm run checks`); `tools/checks/iptv-cdp.mjs` drives the desktop app
+against it, muted, with screenshots.
+
 ## Music library (`music-fixture.mjs`)
 
 `MOCK_MUSIC=1` (or `MOCK_DATASET=demo`) adds a music library to the Emby and Jellyfin mocks (music spec MU-00): album

@@ -321,6 +321,8 @@ internal fun NavGraphBuilder.contentDestinations(api: Api, nav: NavController) {
         Scoped {
             when (r.collectionType) {
                 "livetv" -> LiveScreen(a, r.title, onBack = { nav.popBackStack() })
+                LIVE_SETUP -> com.wika.wicaby.mobile.ui.livetv.LiveSetupScreen(r.title, onBack = { nav.popBackStack() }, onIptv = { nav.navigate(GridRoute(Core.str(com.wika.wicaby.core.R.string.iptv_title), collectionType = IPTV)) })
+                IPTV -> com.wika.wicaby.mobile.ui.livetv.IptvScreen(r.title, onBack = { nav.popBackStack() })
                 "music" -> MusicScreen(a, r, nav)
                 // Photos (PH-05; decision O3: home videos open in the photo timeline too).
                 in com.wika.wicaby.mobile.ui.photos.PHOTO_COLLECTIONS -> com.wika.wicaby.mobile.ui.photos.PhotosScreen(a, r, nav)

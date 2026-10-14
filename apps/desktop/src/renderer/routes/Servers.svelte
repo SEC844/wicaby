@@ -1,12 +1,14 @@
 <script lang="ts">
   import { kindLabel as sharedKindLabel } from '../../shared/server-caps';
   import FileSourceSheet from '../components/FileSourceSheet.svelte';
+  import IptvSourceSheet from '../components/IptvSourceSheet.svelte';
   import { onMount, tick, untrack } from 'svelte';
   import { fade, fly, slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import type {
     DiscoveredServer,
     FileSourceInfo,
+    IptvSourceInfo,
     MeshProvider,
     PlexAccount,
     PlexLinkPin,
@@ -46,6 +48,7 @@
   let embedEl = $state<HTMLDivElement>();
   let saved = $state<ServerInfo[]>([]);
   let files = $state<FileSourceInfo[]>([]);
+  let iptv = $state<IptvSourceInfo[]>([]);
   let loaded = $state(false);
   // The skeleton only shows when the list takes longer than a blink.
   let slow = $state(false);
@@ -74,6 +77,7 @@
   let step = $state<Step>('pick');
   let stepEl = $state<HTMLDivElement>();
   let fileSheet = $state<'files' | 'photos' | null>(null);
+  let iptvSheet = $state(false);
   let plexSheet = $state<string | null>(null);
   // Every removal that loses something (progress, a link, a photo library) asks first, in one sheet.
   let confirming = $state<{ body: string; action: string; run: () => Promise<void> } | null>(null);
@@ -120,7 +124,7 @@
 
   async function refreshSaved() {
     try {
-      [saved, plexAccounts, files] = await Promise.all([w.servers.list(), w.servers.plexAccounts(), w.files.list().catch(() => [])]);
+      [saved, plexAccounts, files, iptv] = await Promise.all([w.servers.list(), w.servers.plexAccounts(), w.files.list().catch(() => []), w.iptv.list().catch(() => [])]);
     } catch (err) {
       toast('error', errorMessage(err));
     } finally {
@@ -309,6 +313,29 @@
     };
   }
 
+  // An IPTV source keeps its favourites on this computer: removing it asks first.
+  function removeIptv(s: IptvSourceInfo) {
+    confirming = {
+      body: t('iptv.manage.removeConfirm', { name: s.name }),
+      action: t('common.actions.remove'),
+      run: async () => {
+        await w.iptv.remove(s.id);
+        await refreshSaved();
+        toast('info', t('iptv.manage.removed'));
+      },
+    };
+  }
+
+  async function refreshIptv(s: IptvSourceInfo) {
+    try {
+      const info = await w.iptv.refresh(s.id);
+      toast('success', t('iptv.refreshed', { count: info.channels }));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+    await refreshSaved();
+  }
+
   async function confirmRun() {
     const c = confirming;
     confirming = null;
@@ -445,12 +472,32 @@
     };
   }
 
+  function iptvRow(s: IptvSourceInfo): Row {
+    const key = `iptv:${s.id}`;
+    const state = s.state === 'loading' ? t('iptv.manage.loading') : s.state === 'error' ? t('iptv.manage.error') : t('iptv.manage.channels', { count: s.channels });
+    const guide = s.guideError ? t('iptv.manage.guideError') : s.guide ? t('iptv.manage.guide', { host: s.guide }) : t('iptv.manage.noGuide');
+    return {
+      key,
+      name: s.name,
+      detail: [state, s.display, guide].filter(Boolean).join(' · '),
+      kind: t('iptv.manage.kind'),
+      dot: s.state === 'error' ? 'bad' : s.state === 'loading' || s.guideError ? 'warn' : 'ok',
+      trail: 'chevron',
+      open: leave(key, '/iptv?tab=now'),
+      menu: [
+        { label: t('iptv.manage.refresh'), run: () => void refreshIptv(s) },
+        { label: t('common.actions.remove'), danger: true, run: () => removeIptv(s) },
+      ],
+    };
+  }
+
   const isOn = (s: ServerInfo) => stateOf(s.id)?.status === 'signed-in';
   const rows = $derived<Row[]>([
     // The source in use comes first, as Spotify Connect and Wi-Fi pin the active one.
     ...[...shown].sort((a, b) => Number(isOn(b)) - Number(isOn(a))).map(serverRow),
     ...plexAccounts.filter((a) => !shown.some((s) => s.plex?.account === a.id)).map(plexRow),
     ...files.map(filesRow),
+    ...iptv.map(iptvRow),
     ...immich.sources.map((s): Row => {
       const key = `immich:${s.id}`;
       // Immich names a server after its address: then the row says Immich and the address goes underneath.
@@ -568,13 +615,18 @@
     step = 'pick';
   }
 
-  function pickType(k: 'server' | 'plex' | 'files' | 'photos' | 'remote') {
+  function pickType(k: 'server' | 'plex' | 'files' | 'iptv' | 'photos' | 'remote') {
     if (k === 'files') openFiles('files');
+    else if (k === 'iptv') {
+      fileFrom = addOpen ? step : null;
+      closeAdd();
+      iptvSheet = true;
+    }
     else if (addOpen) void goStep(k);
     else openAdd(k);
   }
 
-  const TYPES = ['server', 'plex', 'files', 'photos', 'remote'] as const;
+  const TYPES = ['server', 'plex', 'files', 'iptv', 'photos', 'remote'] as const;
   const stepTitle = $derived(step === 'pick' ? t('sources.add.button') : t(`sources.add.types.${step}.title`));
   const stepBack = () => (plexCancel(), void goStep('pick'));
   // The file sheet replaces the add sheet; its back chevron reopens the add sheet where it was left.
@@ -1057,6 +1109,7 @@
     onclose={() => ((fileSheet = null), void refreshSaved())}
     onback={fileFrom ? () => fileFrom && openAdd(fileFrom) : undefined}
   />
+  <IptvSourceSheet open={iptvSheet} onclose={() => ((iptvSheet = false), void refreshSaved())} onback={fileFrom ? () => fileFrom && openAdd(fileFrom) : undefined} />
 {/if}
 
 <style>

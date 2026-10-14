@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { kindLabel } from '../../../shared/server-caps';
+  import { isLocalSource, kindLabel } from '../../../shared/server-caps';
   import { w } from '../../lib/bridge';
   import { t } from '../../lib/i18n.svelte';
   import { vaultNoteKey } from '../../lib/vault.svelte';
@@ -27,7 +27,7 @@
 
 {#if s}
   <!-- One group per server this session holds, primary first. -->
-  {#each session.value.sessions.filter((x) => x.server.kind !== 'files') as ss (ss.server.id)}
+  {#each session.value.sessions.filter((x) => !isLocalSource(x.server.kind)) as ss (ss.server.id)}
     {@const srv = ss.server}
     {@const st = ss.status}
     <div class="group srv">

@@ -17,7 +17,7 @@ import { applyLens } from '../../shared/livetv/lens';
 import { cachedGet, invalidateApiCache, LIST_FIELDS } from './api';
 import { w } from './bridge';
 import { fmt } from './i18n.svelte';
-import { errorMessage, liveTv, sessionFor, toast } from './stores.svelte';
+import { errorMessage, iptvSessions, liveTv, sessionFor, toast } from './stores.svelte';
 import { broadcastTimers, liveGate, storeFor } from './livetv/store.svelte';
 import type { LiveTvStore } from './livetv/store.svelte';
 
@@ -70,6 +70,13 @@ export interface SeriesTimer {
 export const liveServer = $state<{ id: string | undefined }>({ id: undefined });
 export function currentLiveServer(): string | undefined {
   return liveServer.id && liveTv.servers.includes(liveServer.id) ? liveServer.id : liveTv.servers[0];
+}
+
+// IPTV sources (the IPTV page): the same store and pages, one source at a time.
+export const iptvSource = $state<{ id: string | undefined }>({ id: undefined });
+export function currentIptvSource(): string | undefined {
+  const ids = iptvSessions().map((s) => s.server.id);
+  return iptvSource.id && ids.includes(iptvSource.id) ? iptvSource.id : ids[0];
 }
 
 function uid(serverId?: string): string {

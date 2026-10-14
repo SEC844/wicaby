@@ -24,11 +24,13 @@ import { discoverServers } from './connection/discovery';
 import { logger } from './core/log';
 import { discover as discoverFiles } from './files/mdns';
 import type { FileSources } from './files/sources';
+import type { IptvSources } from './iptv/sources';
 import type { ImmichService } from './photos/immich';
 import { isSafeMpvPath, type SettingsService } from './core/settings';
 import type { SettingsExtras } from './core/settings-extras';
 import type { DownloadManager } from './downloads/download-manager';
 import type { TraktService } from './features/trakt';
+import type { AppUpdates } from './features/app-updates';
 import type { Reminders } from './features/reminders';
 import { t } from './i18n';
 import type { PlaybackService } from './playback/playback-service';
@@ -53,9 +55,11 @@ export interface IpcDeps {
   reminders: Reminders;
   cast: CastManager;
   appInfo: () => Promise<AppInfo>;
+  updates: AppUpdates;
   openPath: (kind: 'logs' | 'downloads' | 'mpv-config' | 'data') => void;
   extras: SettingsExtras;
   files: FileSources;
+  iptv: IptvSources;
   immich: ImmichService;
   // MU-13: lrclib.net lyrics (main/music/lrclib.ts), behind the music.lyricsProvider setting.
   lrclib: (track: LrclibTrack) => Promise<Lyrics | null>;
@@ -147,6 +151,12 @@ export function registerIpc(deps: IpcDeps): void {
   });
   handle(Channels.appOpenPath, (_e, kind: unknown) => {
     if (kind === 'logs' || kind === 'downloads' || kind === 'mpv-config' || kind === 'data') deps.openPath(kind);
+  });
+  handle(Channels.updatesState, () => deps.updates.state);
+  handle(Channels.updatesCheck, () => deps.updates.check(true));
+  handle(Channels.updatesDismiss, () => deps.updates.dismiss());
+  handle(Channels.updatesOpen, (_e, target: unknown) => {
+    if (target === 'notes' || target === 'download') return deps.updates.open(target);
   });
   handle(Channels.appStorage, () => deps.extras.storage());
   handle(Channels.appClearStorage, (_e, kind: unknown) => {
@@ -342,6 +352,31 @@ export function registerIpc(deps: IpcDeps): void {
     if (!dir) return null;
     files.rememberPicked(dir);
     return dir;
+  });
+
+  // IPTV sources: addresses only ever go in (no handler returns one); local files only from the picker.
+  const iptv = deps.iptv;
+  handle(Channels.iptvList, () => iptv.list());
+  handle(Channels.iptvAdd, (_e, input: unknown) => {
+    const i = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+    if (!isString(i.playlist, 4096) || (i.guide !== undefined && !isString(i.guide, 4096)) || (i.name !== undefined && !isString(i.name, 256))) throw new Error(t('errors.iptv.invalidPlaylist'));
+    return iptv.add({ playlist: i.playlist as string, guide: i.guide as string | undefined, name: i.name as string | undefined });
+  });
+  handle(Channels.iptvRemove, async (_e, id: unknown) => {
+    const sid = sourceId(id);
+    if (playback.serverId === sid) await playback.stop();
+    return iptv.remove(sid);
+  });
+  handle(Channels.iptvRefresh, (_e, id: unknown) => iptv.refreshNow(sourceId(id)));
+  handle(Channels.iptvPickFile, async (e, kind: unknown) => {
+    const win = senderWindow(e);
+    const filters = kind === 'guide' ? [{ name: 'XMLTV', extensions: ['xml', 'gz'] }] : [{ name: 'M3U', extensions: ['m3u', 'm3u8'] }];
+    const opts: Electron.OpenDialogOptions = { properties: ['openFile'], filters };
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+    const file = r.canceled ? undefined : r.filePaths[0];
+    if (!file) return null;
+    iptv.rememberPicked(file);
+    return file;
   });
 
   // api proxy

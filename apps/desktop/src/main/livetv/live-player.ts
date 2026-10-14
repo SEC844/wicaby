@@ -12,6 +12,7 @@ import { hdrFromStream } from '../../shared/hdr';
 import { buildQuery, fetchServer, isServerOrigin, resolveServerUrl, serverPath, type ApiClient } from '../connection/api-client';
 import { logger } from '../core/log';
 import { t } from '../i18n';
+import { IptvClient } from '../iptv/iptv-client';
 import { buildDeviceProfile } from '../playback/device-profile';
 import { QUALITY_PRESETS } from '../../shared/quality-presets';
 import type { ActivePlayer, LoadParams, PlaybackStats, TimeUpdate } from '../playback/player';
@@ -399,7 +400,13 @@ export class LivePlayback {
     const api = h.deps.connection.apiFor(sid);
     let url: string | null;
     let ownOrigin = true;
-    if (o.play.kind === 'static') {
+    // An IPTV channel: the playlist's own URL and #EXTVLCOPT headers, through mpv only (Chromium plays neither TS nor HLS).
+    const iptv = api instanceof IptvClient ? api.stream(item.Id) : null;
+    if (api instanceof IptvClient) {
+      if (!iptv) throw new LiveError('no-stream');
+      if (kind !== 'mpv') throw new LiveError('failed', t('errors.iptv.needsMpv'));
+      [url, ownOrigin] = [iptv.url, false];
+    } else if (o.play.kind === 'static') {
       const { path, query } = o.play.req;
       url = kind === 'mpv' ? api.url(path, query) : mediaApiUrl(path + buildQuery(query), sid);
       const target = kind === 'mpv' ? await redirectTarget(api, url) : null;
@@ -424,8 +431,8 @@ export class LivePlayback {
     );
     const load: LoadParams & { live: true; timeshift: [string, string][] } = {
       url,
-      isHls: o.isHls,
-      httpHeaders: kind === 'mpv' && ownOrigin ? api.mediaAuthHeaders() : [],
+      isHls: iptv ? iptv.isHls : o.isHls,
+      httpHeaders: iptv ? iptv.headers : kind === 'mpv' && ownOrigin ? api.mediaAuthHeaders() : [],
       startMs: 0,
       title: item.Name,
       volume: h.state.volume,

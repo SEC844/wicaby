@@ -166,6 +166,20 @@ export class CredentialVault {
     return this.persist();
   }
 
+  // Another file under the same OS protection as the vault (the IPTV caches hold playlist URLs that carry
+  // credentials). Null when nothing can encrypt: the caller then keeps the data in memory only.
+  async seal(plainText: string): Promise<Buffer | null> {
+    if (this.plainText && !this.opts.allowPlainText?.()) return null;
+    return this.encrypt(plainText).catch(() => null);
+  }
+
+  async unseal(blob: Buffer): Promise<string | null> {
+    return this.decrypt(blob).then(
+      (r) => r.result,
+      () => null,
+    );
+  }
+
   get(serverId: string): StoredCredential | undefined {
     return this.entries[serverId];
   }

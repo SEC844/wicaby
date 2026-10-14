@@ -18,6 +18,7 @@
     "groups": {
       "watch": "Movies & Shows",
       "live": "Live TV",
+      "iptv": "IPTV",
       "music": "Music",
       "photos": "Photos",
       "books": "Books & Comics",
@@ -28,7 +29,9 @@
     "someOffline": "{count} offline",
     "allConnected": "All connected",
     "serverState": "{kind} · {state, select, offline {Offline} other {Connected}}",
-    "channels": "Channels"
+    "channels": "Channels",
+    "liveSetup": "Set up",
+    "iptvAdd": "Add an IPTV source"
   },
   "search": {
     "placeholder": "Movies, TV shows, music",
@@ -98,5 +101,12 @@
       "certificate": "Untrusted certificate"
     },
     "remoteLink": "Remote Access Settings"
+  },
+  "update": {
+    "available": "Wicaby {version} is available",
+    "label": "Update",
+    "notes": "Release Notes",
+    "download": "Download",
+    "later": "Later"
   }
 }

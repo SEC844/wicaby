@@ -28,6 +28,13 @@ const bridge: WicabyBridge = {
     storage: () => invoke(Channels.appStorage),
     clearStorage: (kind) => invoke(Channels.appClearStorage, kind),
   },
+  updates: {
+    state: () => invoke(Channels.updatesState),
+    check: () => invoke(Channels.updatesCheck),
+    open: (target) => invoke(Channels.updatesOpen, target),
+    dismiss: () => invoke(Channels.updatesDismiss),
+    onState: (cb) => on(Channels.updatesChanged, cb),
+  },
   window: {
     minimize: () => invoke(Channels.windowMinimize),
     toggleMaximize: () => invoke(Channels.windowToggleMaximize),
@@ -89,6 +96,13 @@ const bridge: WicabyBridge = {
     discover: () => invoke(Channels.filesDiscover),
     pickFolder: () => invoke(Channels.filesPickFolder),
     refresh: (id) => invoke(Channels.filesRefresh, id),
+  },
+  iptv: {
+    list: () => invoke(Channels.iptvList),
+    add: (input) => invoke(Channels.iptvAdd, input),
+    remove: (id) => invoke(Channels.iptvRemove, id),
+    refresh: (id) => invoke(Channels.iptvRefresh, id),
+    pickFile: (kind) => invoke(Channels.iptvPickFile, kind),
   },
   playback: {
     play: (request) => invoke(Channels.playbackPlay, request),

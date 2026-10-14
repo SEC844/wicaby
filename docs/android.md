@@ -136,7 +136,7 @@ Neither app is on a store, so both update themselves from a manifest. The logic 
 
 ### How it works
 
-1. **Settings.** On TV, Settings → About → "Update URL". On mobile, Settings → About. The field holds the address of an `update.json`. Empty means off, and the default value in `core/data/Prefs.kt` is `""`. For the public builds, the URL is `https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json`.
+1. **Settings.** On TV, Settings → About → "Update URL". On mobile, Settings → About. The field holds the address of an `update.json`. Empty means the default, `UpdateLogic.DEFAULT_URL`: `https://github.com/WicaebethTheo/wicaby/releases/latest/download/update.json`. GitHub answers it with https redirects (to the tag's asset, then its download host), which the updater follows; a redirect to http is refused in release builds. Relative APK URLs resolve against the URL typed (or the default), not the redirect target, so bare file names point at `…/releases/latest/download/<file>`.
 2. **Check.** Each app calls `Updater.init("tv" | "mobile", versionCode, versionName)` at start. `checkAtStart()` runs at most once every 6 hours and stays silent unless there is an update. "Check for Updates" forces a check. The manifest is fetched with `Cache-Control: no-cache` through `Core.http`, so the mesh transport applies too.
 3. **Newer?** The app reads its own entry (`tv` or `mobile`). `versionCode` decides. If the manifest has no `versionCode`, `versionName` is compared by numeric parts; a leading `v` and suffixes such as `-beta` or `+meta` are ignored.
 4. **ABI choice.** The app takes the APK for `Build.SUPPORTED_ABIS[0]`, else `universal`, else any other ABI the device runs. URLs may be relative to the manifest URL.

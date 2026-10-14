@@ -44,8 +44,9 @@ object Servers {
     internal var extraTimeoutMs = 5_000L
     internal var retryMs = 30_000L
 
-    // A file source (core/files) is found by its id too, though it is never one of the merged servers.
+    // A file source (core/files) and the IPTV sources (core/iptv) are found by their id too, though never merged.
     fun of(serverId: String?): Api? = all.firstOrNull { it.server.id == serverId } ?: com.wika.wicaby.core.files.FileSources.api(serverId)
+        ?: com.wika.wicaby.core.iptv.Iptv.api(serverId)
 
     // Only an extra server: a primary item (or an unknown ServerId) keeps today's routes and intents.
     fun extraOf(serverId: String?): Api? = of(serverId)?.takeIf { it !== Core.api }

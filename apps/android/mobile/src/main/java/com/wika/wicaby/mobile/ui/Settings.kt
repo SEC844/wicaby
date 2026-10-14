@@ -325,7 +325,7 @@ private fun AddressSettings(server: com.wika.wicaby.core.data.Server) {
     }
 }
 
-// Sideloaded updates: the manifest URL (empty = off, saved on Done) and a manual check; the
+// Sideloaded updates: the manifest URL (empty = the GitHub default, saved on Done) and a manual check; the
 // update card shows here too when the check finds something.
 @Composable
 private fun UpdateSettings(saved: String) {
@@ -339,12 +339,12 @@ private fun UpdateSettings(saved: String) {
         Column(Modifier.padding(16.dp)) {
             Text(stringResource(com.wika.wicaby.core.R.string.update_url), style = Type.body, color = G.label, modifier = Modifier.padding(bottom = 8.dp))
             WicabyField(
-                url, { url = it }, "https://…/update.json",
+                url, { url = it }, com.wika.wicaby.core.update.UpdateLogic.DEFAULT_URL,
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri, onSubmit = ::save,
             )
             Text(stringResource(com.wika.wicaby.core.R.string.update_url_hint), style = Type.footnote, color = G.label2, modifier = Modifier.padding(top = 6.dp))
         }
-        if (saved.isNotEmpty() || url.isNotBlank()) {
+        run {
             GroupDivider()
             val status = when (val s = state) {
                 com.wika.wicaby.core.update.UpdateState.Checking -> stringResource(com.wika.wicaby.core.R.string.update_checking)

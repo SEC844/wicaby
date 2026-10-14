@@ -95,6 +95,11 @@ const AUTH_PAIR = new RegExp(
 );
 const AUTH_KEYS = /(?<pre>(?:\/|%2F)Auth(?:\/|%2F)Keys(?:\/|%2F))(?:(?!%2F|%3F|%26)[^/\s"'?&])+/gi;
 
+// IPTV (Xtream) addresses carry the account in the query or the path: get.php?username=U&password=P,
+// /live/U/P/1.ts. Both are masked wherever an address reaches a line (an mpv error naming the stream).
+const QUERY_ACCOUNT = /([?&](?:password|passwd|pwd|pass|username|user)=)[^&\s"'#]+/gi;
+const XTREAM_PATH = /(\/(?:live|movie|series|timeshift)\/)[^/\s"'?#]+\/[^/\s"'?#]+\//gi;
+
 type Groups = Record<string, string | undefined>;
 
 function maskPair(...args: unknown[]): string {
@@ -115,7 +120,9 @@ export function redact(text: string): string {
     .replace(AUTH_SCHEME, '$<head>***')
     .replace(STRONG_PAIR, maskPair)
     .replace(TOKEN_PAIR, maskPair)
-    .replace(AUTH_PAIR, maskPair);
+    .replace(AUTH_PAIR, maskPair)
+    .replace(QUERY_ACCOUNT, '$1***')
+    .replace(XTREAM_PATH, '$1***/***/');
 }
 
 export function oneLine(text: string): string {

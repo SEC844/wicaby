@@ -931,7 +931,8 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
         // Kept composed in PiP and under the guide (its effects follow the session), only not drawn.
         if (live != null) Box(Modifier.fillMaxSize().graphicsLayer { alpha = if (inPip || pig) 0f else 1f }) { LiveOverlay(live, buffering, aspect) }
 
-        val guideApi = Wicaby.app.api
+        // The playing channel's source (IPTV is not the signed-in server).
+        val guideApi = pb.api.takeIf { Wicaby.app.api != null }
         AnimatedVisibility(pig && live != null && guideApi != null, enter = fadeIn(tween(220)), exit = fadeOut(tween(160))) {
             if (live != null && guideApi != null) {
                 CompositionLocalProvider(LocalOverlay provides pigHost) {

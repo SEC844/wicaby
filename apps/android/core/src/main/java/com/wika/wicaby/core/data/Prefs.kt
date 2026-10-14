@@ -61,7 +61,7 @@ data class Snapshot(
     val maxMbps: Int, // 0 = auto
     val displayMode: Int, // 0 = off, 1 = refresh rate, 2 = refresh rate + resolution
     val wifiOnlyDownloads: Boolean = true,
-    // Sideloaded APK updates: the manifest URL ("" = off).
+    // Sideloaded APK updates: the manifest URL typed in Réglages ("" = UpdateLogic.DEFAULT_URL).
     val updateUrl: String = "",
     // Mobile Réglages > "Autoriser le contrôle à distance" (CA-05; the TV keeps its own in TvSettings).
     val remoteControl: Boolean = true,

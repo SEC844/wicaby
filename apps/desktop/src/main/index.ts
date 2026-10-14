@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { app, dialog, Menu, nativeTheme, session, shell } from 'electron';
+import { app, dialog, Menu, nativeTheme, net, session, shell } from 'electron';
+import { installKind } from '../shared/app-update';
 import { Channels, type AppInfo } from '../shared/contract';
 import { CastManager } from './cast/cast-manager';
 import { EphemeralTokens } from './cast/ephemeral-token';
@@ -16,7 +17,9 @@ import { isSafeMpvPath, SettingsService } from './core/settings';
 import { CredentialVault } from './core/vault';
 import { DownloadManager } from './downloads/download-manager';
 import { FileSources } from './files/sources';
+import { IptvSources } from './iptv/sources';
 import { AdminAlerts } from './features/admin-alerts';
+import { AppUpdates } from './features/app-updates';
 import { ContinueWatching } from './features/continue-watching';
 import { DisplayModeSwitcher } from './features/display-mode';
 import { HdrModeSwitcher } from './features/hdr-mode';
@@ -52,6 +55,7 @@ if (app.isPackaged) {
   delete process.env.WICABY_DEV_URL;
   delete process.env.WICABY_DEVTOOLS;
   delete process.env.WICABY_TEST_SILENT;
+  delete process.env.WICABY_FAKE_VERSION;
 }
 // Checks (music-spec §6.2): nothing the app plays makes a sound; mpv gets --ao=null (mpv-controller.ts).
 if (process.env.WICABY_TEST_SILENT === '1') app.commandLine.appendSwitch('mute-audio');
@@ -191,6 +195,16 @@ async function bootstrap(): Promise<void> {
     icon: fs.existsSync(icon) ? icon : undefined,
     settings,
   });
+  // IPTV sources: one local session each, answering the Live TV calls from an M3U playlist and an XMLTV guide.
+  const iptv = new IptvSources(
+    path.join(userData, 'iptv'),
+    vault,
+    identity,
+    connection,
+    (url, init) => net.fetch(url, { ...init, redirect: 'follow', cache: 'no-store', credentials: 'omit' }),
+    (serverId, type, data) => windows.broadcast(Channels.serverEvent, { type, data, serverId }),
+  );
+  iptv.start();
   const downloads = new DownloadManager(path.join(userData, 'downloads.json'), connection, settings, windows);
   const display = new DisplayModeSwitcher();
   const hdr = new HdrModeSwitcher(userData);
@@ -291,8 +305,15 @@ async function bootstrap(): Promise<void> {
     refreshRateMatch: display.available(),
   });
 
+  // WICABY_FAKE_VERSION (development builds only, deleted above when packaged): the version the update check
+  // compares against, e.g. 0.1.0 to see the notice for the current GitHub release.
+  const updates = new AppUpdates(path.join(userData, 'update-check.json'), settings, process.env.WICABY_FAKE_VERSION || app.getVersion(), installKind(process.platform, process.env));
+  updates.on('state', (s) => windows.send(windows.main, Channels.updatesChanged, s));
+  updates.start();
+
   registerIpc({
     windows,
+    updates,
     settings,
     connection,
     playback,
@@ -305,6 +326,7 @@ async function bootstrap(): Promise<void> {
     cast,
     appInfo,
     files,
+    iptv,
     immich,
     lrclib: (track) => lrclibLyrics(track, lrclibOptions),
     extras: createSettingsExtras({ mpvExe: () => mpvPath, runningMpv: () => playback.mpv, comicsDir, logDir, currentLog: () => logger.filePath }),
@@ -474,9 +496,11 @@ async function bootstrap(): Promise<void> {
         reminders.flush();
         connection.flush();
         files.shutdown();
+        iptv.shutdown();
         downloads.flush();
         torrents.flush();
         adminAlerts.flush();
+        updates.flush();
         vpn.dispose();
         desktop.dispose();
         log.info('==== Wicaby exiting ====');

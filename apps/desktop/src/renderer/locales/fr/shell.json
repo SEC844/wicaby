@@ -18,6 +18,7 @@
     "groups": {
       "watch": "Films et séries",
       "live": "TV en direct",
+      "iptv": "IPTV",
       "music": "Musique",
       "photos": "Photos",
       "books": "Livres et BD",
@@ -28,7 +29,9 @@
     "someOffline": "{count} hors ligne",
     "allConnected": "Tous connectés",
     "serverState": "{kind} · {state, select, offline {Hors ligne} other {Connecté}}",
-    "channels": "Chaînes"
+    "channels": "Chaînes",
+    "liveSetup": "Configurer",
+    "iptvAdd": "Ajouter une source IPTV"
   },
   "search": {
     "placeholder": "Films, séries, musique",
@@ -98,5 +101,12 @@
       "certificate": "Certificat non approuvé"
     },
     "remoteLink": "Réglages de l’accès à distance"
+  },
+  "update": {
+    "available": "Wicaby {version} est disponible",
+    "label": "Mise à jour",
+    "notes": "Notes de version",
+    "download": "Télécharger",
+    "later": "Plus tard"
   }
 }

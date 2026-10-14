@@ -59,3 +59,6 @@ gradlew      text eol=lf
 *.mkv        binary
 *.mp4        binary
 
+
+# IPTV parser vectors: edge.m3u keeps its BOM and CRLF line ends on purpose.
+tools/checks/fixtures/iptv/edge.m3u -text

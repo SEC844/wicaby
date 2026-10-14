@@ -18,6 +18,46 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-10-14
+
+IPTV, Live TV always in the sidebar, and update notices. Windows and Linux desktop **0.10.6**, Android TV app
+**0.10.6** (`versionCode` 27), Android mobile app **0.10.6** (`versionCode` 24).
+
+### Added
+
+- Update notices. The Windows and Linux desktop app checks GitHub for a newer release about 30 seconds after start
+  and then once a day, and says "Wicaby X.Y.Z is available" with Download (the installer, portable exe, AppImage or
+  .deb that matches this copy), Release Notes and Later (that version is not shown again). Settings → About shows the
+  version, a Check for Updates button and a switch to turn the automatic check off. Nothing is downloaded or
+  installed by itself.
+- Android TV and mobile: the in-app updater now reads Wicaby's GitHub releases by default (`update.json` asset), so
+  installed apps offer new versions without typing an update URL first. A custom URL in Settings → About still wins.
+- Release tooling: `tools/release/make-update-manifest.mjs --flat --dir release/<version>` writes `update.json` from
+  the APKs as they are named on the GitHub release (`Wicaby-TV-foss-…`, `Wicaby-Mobile-foss-…`,
+  `Wicaby-Mobile-gplay-…`), see `docs/release.md`.
+- Desktop: an IPTV section in the sidebar, right under Live TV. Add an M3U or M3U8 channel list (an address, including
+  Xtream-style `get.php` ones, or a file) and, optionally, an XMLTV guide (`.xml` or `.xml.gz`; the list's `url-tvg`
+  is used otherwise). No server is involved: the channels and the guide use the Live TV pages (now playing, guide grid,
+  search, favourites kept on this computer, hidden channels), the list's groups become filters, and channels play
+  live in mpv with the list's user agent and referrer. Lists refresh every 12 hours or on demand; addresses are kept in
+  the credential vault and the cached list is encrypted. No recording or catch-up yet. IPTV sources are also listed
+  and added in Sources.
+- Desktop: the Live TV section is always in the sidebar. Without a server tuner it opens a setup page that explains
+  where live TV comes from and links each server's own Live TV settings (Emby, Jellyfin, Plex), or IPTV.
+- Android TV and mobile: the same two sections. Live TV is always in the TV top bar and in the phone's Libraries,
+  with a setup page (links to the server's Live TV settings) when no server has a tuner; IPTV sits right after it.
+  Sources are added with the TV's text fields or the phone's form, and use the existing channel list, guide grid,
+  group lenses, favourites, number zapping and live player (HLS or MPEG-TS, with the list's user agent and referrer).
+  Addresses and the cached list are kept in the app's encrypted vault.
+- Developer tools: an IPTV mock provider (`tools/mock-server/mock-iptv.mjs`: 10 channels in 3 groups, an XMLTV guide,
+  silent test-pattern streams) and `tools/checks/iptv-check.mjs` for the M3U and XMLTV parsers.
+
+### Changed
+
+- Android TV: the live overlay, the guide over the video and the detail panel follow the source of the channel
+  playing (they read the signed-in server's channels before).
+- Desktop: logs mask the user and password of Xtream-style IPTV addresses.
+
 ## [0.10.5] - 2026-10-14
 
 Music casting and a new desktop sidebar. Windows and Linux desktop **0.10.5**, Android TV app **0.10.5**

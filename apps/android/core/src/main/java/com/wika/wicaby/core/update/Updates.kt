@@ -34,7 +34,7 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-// Updates for sideloaded APKs. Réglages > À propos holds a manifest URL (empty = off); the
+// Updates for sideloaded APKs. Réglages > À propos holds a manifest URL (empty = UpdateLogic.DEFAULT_URL); the
 // manifest (tools/release/make-update-manifest.mjs writes it) lists, per app ("tv", "mobile"), the
 // newest version and one APK per ABI with its SHA-256:
 //   { "tv": { "versionCode": 6, "versionName": "0.4.0", "notes": { "fr": "…", "en": "…" },
@@ -52,6 +52,13 @@ data class Release(val versionCode: Int = 0, val versionName: String = "", val n
 // Pure rules, unit-tested on the JVM.
 object UpdateLogic {
     const val UNIVERSAL = "universal"
+
+    // The public releases (tools/release/make-update-manifest.mjs --flat writes this asset). GitHub redirects it
+    // over https to the tag's asset, then to its download host; OkHttp follows https -> https redirects.
+    const val DEFAULT_URL = "https://github.com/WicaebethTheo/wicaby/releases/latest/download/update.json"
+
+    // The manifest URL to fetch: the one typed in Réglages, else the default.
+    fun manifestUrl(stored: String): String = stored.trim().ifEmpty { DEFAULT_URL }
 
     private val manifestJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -83,7 +90,8 @@ object UpdateLogic {
     fun notes(r: Release, lang: String): String =
         r.notes[lang] ?: r.notes["en"] ?: r.notes["fr"] ?: r.notes.values.firstOrNull().orEmpty()
 
-    // APK URLs may be relative to the manifest.
+    // APK URLs may be relative to the manifest: resolved against the URL asked for, not the redirect target, so
+    // a bare file name in the default manifest stays on github.com/…/releases/latest/download/.
     fun resolve(manifestUrl: String, url: String): String = manifestUrl.toHttpUrlOrNull()?.resolve(url)?.toString() ?: url
 
     // The manifest and the APK are fetched over https only: the APK checksum comes from the
@@ -191,8 +199,7 @@ object Updater {
     suspend fun check(manual: Boolean) {
         val s = _state.value
         if (s is UpdateState.Downloading || s is UpdateState.Installing || s == UpdateState.Checking) return
-        val url = runCatching { Core.prefs.current().updateUrl }.getOrDefault("").trim()
-        if (url.isEmpty()) return
+        val url = UpdateLogic.manifestUrl(runCatching { Core.prefs.current().updateUrl }.getOrDefault(""))
         if (!UpdateLogic.isAllowedUrl(url, BuildConfig.DEBUG)) {
             if (manual) _state.value = UpdateState.Failed(null, Core.str(R.string.update_check_failed))
             return

@@ -2,6 +2,7 @@
 // objects are updated from its push events.
 import type { DownloadEntry, HtmlPlayerLoad, PlaybackState, ServerSession, SessionState, Settings, Toast } from '../../shared/contract';
 import type { BaseItem } from '../../shared/models';
+import { isLocalSource } from '../../shared/server-caps';
 import { w } from './bridge';
 import { setLanguage } from './i18n.svelte';
 
@@ -15,9 +16,15 @@ export const libraries = $state<{ list: BaseItem[] }>({ list: [] });
 export const liveTv = $state({ available: false, servers: [] as string[] });
 
 // Signed-in servers, primary first. Reactive when read in a template or a $derived. File sources are not
-// servers (their own section, fileSessions()); fanOut() adds them to Home when the setting asks.
+// servers (their own section, fileSessions()); fanOut() adds them to Home when the setting asks. Nor are IPTV
+// sources (iptvSessions()).
 export function onlineSessions(): ServerSession[] {
-  return session.value.sessions.filter((s) => s.status === 'signed-in' && s.server.kind !== 'files');
+  return session.value.sessions.filter((s) => s.status === 'signed-in' && !isLocalSource(s.server.kind));
+}
+
+// IPTV sources (main/iptv): the IPTV sidebar group, one Live TV store each.
+export function iptvSessions(): ServerSession[] {
+  return session.value.sessions.filter((s) => s.server.kind === 'iptv');
 }
 
 // File sources (file-sources-spec): every one, online or not. Photo sources are listed apart (photoSessions).

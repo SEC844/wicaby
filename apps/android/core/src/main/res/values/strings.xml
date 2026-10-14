@@ -124,8 +124,7 @@
 
     <!-- Mises à jour (APK installés hors Play Store) -->
     <string name="update_url">URL de mise à jour</string>
-    <string name="update_url_hint">Adresse d’un fichier update.json. Vide : désactivé.</string>
-    <string name="update_url_off">Désactivée</string>
+    <string name="update_url_hint">Adresse d’un fichier update.json. Vide\u00A0: celle des versions Wicaby sur GitHub.</string>
     <string name="update_check">Rechercher les mises à jour</string>
     <string name="update_checking">Recherche…</string>
     <string name="update_up_to_date">Wicaby est à jour</string>
@@ -169,7 +168,7 @@
     <string name="player_transcode_fallback">Conversion par le serveur…</string>
     <string name="player_reconnecting">Reconnexion…</string>
     <string name="server_addresses">Adresses du serveur</string>
-    <string name="server_addresses_hint">Wicaby utilise celle qui répond et change d’adresse quand le réseau change. Vide : celle que le serveur annonce.</string>
+    <string name="server_addresses_hint">Wicaby utilise celle qui répond et change d’adresse quand le réseau change. Vide\u00A0: celle que le serveur annonce.</string>
     <string name="server_address_local">Adresse locale</string>
     <string name="server_address_remote">Adresse distante</string>
     <string name="server_address_in_use">Utilisée</string>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<!-- Vectors for iptv-check.mjs and IptvParityTest.kt: with edge.m3u, window 2026-10-14T06:00Z to 2026-10-21T12:00Z. -->
+<tv generator-info-name="wicaby-fixture">
+  <channel id="news.fr">
+    <display-name lang="fr">News FR</display-name>
+    <icon src="http://logo.example/news-guide.png"/>
+  </channel>
+  <channel id="radio-guide-id"><display-name>RADIO UNE</display-name><display-name>Radio 1</display-name></channel>
+  <channel id="bare.guide"><display-name>Bare Channel</display-name></channel>
+  <channel id="unknown.channel"><display-name>Nobody</display-name></channel>
+  <programme start="20261014120000 +0200" stop="20261014130000 +0200" channel="news.fr">
+    <title lang="fr">Le journal &amp; la météo</title>
+    <title lang="en">News &amp; weather</title>
+    <sub-title>Édition de midi</sub-title>
+    <desc><![CDATA[Les <titres> du jour & plus]]></desc>
+    <category lang="fr">Infos</category>
+    <category lang="en">News</category>
+    <episode-num system="xmltv_ns">0.4.0/1</episode-num>
+  </programme>
+  <programme start="20261014130000 +0200" stop="20261014140000 +0200" channel="NEWS.FR"><title>Le magazine &#233;co &#x2014; direct</title><episode-num system="onscreen">S03E12</episode-num></programme>
+  <programme start="20261014070000 -0500" stop="20261014080000 -0500" channel="radio-guide-id"><title>Matinale</title></programme>
+  <programme start="202610141500" stop="20261014160000" channel="bare.guide"><title>Sans fuseau</title></programme>
+  <programme start="20261014160000 +0000" stop="20261014170000 +0000" channel="dup"><title>Partagé</title></programme>
+  <programme start="20261014170000 +0000" stop="20261014180000 +0000" channel="kids.fr"/>
+  <programme start="20261014173000 +0000" stop="20261014183000 +0000" channel="kids.fr"><title>Chevauche</title></programme>
+  <programme start="20261001100000 +0000" stop="20261001110000 +0000" channel="news.fr"><title>Trop ancien</title></programme>
+  <programme start="20261030100000 +0000" stop="20261030110000 +0000" channel="news.fr"><title>Trop loin</title></programme>
+  <programme start="20261014100000 +0000" stop="20261014110000 +0000" channel="unknown.channel"><title>Personne</title></programme>
+  <programme start="20261014120000 +0000" stop="20261014110000 +0000" channel="news.fr"><title>Fin avant début</title></programme>
+  <programme start="2026-10-14 12:00" stop="20261014130000 +0000" channel="news.fr"><title>Date illisible</title></programme>
+  <programme start="20261014140000 +0000" stop="20261014150000 +0000" channel="news.fr"><title>Sans fin
+</tv>

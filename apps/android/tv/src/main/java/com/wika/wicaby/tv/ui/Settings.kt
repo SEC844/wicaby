@@ -787,7 +787,7 @@ private fun UpdateRows() {
     val me = remember { FocusRequester() }
     SettingRow(
         stringResource(com.wika.wicaby.core.R.string.update_url),
-        snap.updateUrl.ifEmpty { stringResource(com.wika.wicaby.core.R.string.update_url_off) },
+        com.wika.wicaby.core.update.UpdateLogic.manifestUrl(snap.updateUrl),
         Modifier.focusRequester(me), chevron = true,
         onClick = {
             overlay.show(me) {
@@ -798,7 +798,7 @@ private fun UpdateRows() {
             }
         },
     )
-    if (snap.updateUrl.isNotEmpty()) {
+    run {
         val status = when (val s = state) {
             com.wika.wicaby.core.update.UpdateState.Checking -> stringResource(com.wika.wicaby.core.R.string.update_checking)
             com.wika.wicaby.core.update.UpdateState.UpToDate -> stringResource(com.wika.wicaby.core.R.string.update_up_to_date)

@@ -83,7 +83,20 @@ fun LibrariesScreen(api: Api, nav: NavController) {
             ) {
                 item("title", span = { GridItemSpan(maxLineSpan) }) { LargeTitle(stringResource(R.string.tab_libraries)) }
                 if (list.isEmpty()) item("empty", span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.no_libraries), style = Type.body, color = G.label2) }
-                items(list, key = { Servers.libraryRef(it) }) { v -> LibraryCard(Servers.forItem(v, api), v, viewLabel(v, list)) { nav.navigate(GridRoute(v.name, parentId = v.id, collectionType = v.collectionType, serverId = Servers.extraOf(v.serverId)?.server?.id)) } }
+                // IPTV (core/iptv) right after Live TV; without a server tuner, Live TV opens its setup page.
+                val live = list.indexOfLast { it.collectionType == "livetv" }
+                val split = if (live < 0) list.size else live + 1
+                val library: @Composable (Item) -> Unit = { v -> LibraryCard(Servers.forItem(v, api), v, viewLabel(v, list)) { nav.navigate(GridRoute(v.name, parentId = v.id, collectionType = v.collectionType, serverId = Servers.extraOf(v.serverId)?.server?.id)) } }
+                items(list.take(split), key = { Servers.libraryRef(it) }) { library(it) }
+                if (live < 0) item("livetv-setup") {
+                    val title = stringResource(com.wika.wicaby.core.R.string.livesetup_title)
+                    LibraryCard(api, Item(id = "livetv-setup", name = title), title) { nav.navigate(GridRoute(title, collectionType = LIVE_SETUP)) }
+                }
+                item("iptv") {
+                    val title = stringResource(com.wika.wicaby.core.R.string.iptv_title)
+                    LibraryCard(api, Item(id = "iptv", name = title), title) { nav.navigate(GridRoute(title, collectionType = IPTV)) }
+                }
+                items(list.drop(split), key = { Servers.libraryRef(it) }) { library(it) }
                 // Immich photo source (photos spec PH-13): its own library, next to the server's.
                 com.wika.wicaby.core.photos.Immich.source?.let { s ->
                     item("immich") {
@@ -262,3 +275,7 @@ fun Chip(text: String, selected: Boolean, icon: androidx.compose.ui.graphics.vec
         Text(text, style = Type.callout, color = if (selected) G.label else G.label2)
     }
 }
+
+// GridRoute collection types of the Live TV setup page and of IPTV (not server views).
+const val LIVE_SETUP = "wicaby:livetv-setup"
+const val IPTV = "wicaby:iptv"

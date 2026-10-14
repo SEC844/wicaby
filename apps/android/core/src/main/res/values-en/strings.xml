@@ -122,8 +122,7 @@
 
     <!-- Updates (APKs installed outside the Play Store) -->
     <string name="update_url">Update URL</string>
-    <string name="update_url_hint">Address of an update.json file. Empty: off.</string>
-    <string name="update_url_off">Off</string>
+    <string name="update_url_hint">Address of an update.json file. Empty: Wicaby’s releases on GitHub.</string>
     <string name="update_check">Check for Updates</string>
     <string name="update_checking">Checking…</string>
     <string name="update_up_to_date">Wicaby is up to date</string>

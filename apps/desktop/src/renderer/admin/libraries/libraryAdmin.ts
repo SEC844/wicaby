@@ -103,7 +103,8 @@ export interface ServerPaths {
 export const CONTENT_TYPES: Record<ServerKind, string[]> = {
   emby: ['movies', 'tvshows', 'music', 'musicvideos', 'homevideos', 'books', 'audiobooks', 'mixed'],
   jellyfin: ['movies', 'tvshows', 'music', 'musicvideos', 'homevideos', 'books', 'mixed'],
-  // File sources and Plex servers have no admin panel (caps().admin is false).
+  // File and IPTV sources and Plex servers have no admin panel (caps().admin is false).
+  iptv: [],
   files: [],
   plex: [],
 };

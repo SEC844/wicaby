@@ -119,7 +119,7 @@ fun UpdateUrlSheet(current: String, onSave: (String) -> Unit, onDismiss: () -> U
             modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 18.dp),
         )
         TvTextField(
-            url, { url = it }, "https://…/update.json", Modifier.fillMaxWidth(), autoEdit = current.isEmpty(),
+            url, { url = it }, com.wika.wicaby.core.update.UpdateLogic.DEFAULT_URL, Modifier.fillMaxWidth(), autoEdit = current.isEmpty(),
             imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = { onSave(url) },
             label = stringResource(CR.string.update_url),
         )

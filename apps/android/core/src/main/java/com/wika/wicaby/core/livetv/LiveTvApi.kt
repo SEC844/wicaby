@@ -37,7 +37,8 @@ class LiveApiException(val fail: Fail, val status: Int, message: String, cause: 
 
 /** The Live TV dialect of a server: Plex answers the non-Emby forms through its adapter. */
 val Api.liveKind: ServerKind get() = when (server.kind) {
-    "emby" -> ServerKind.EMBY
+    // IPTV (core/iptv/IptvApi.kt) answers the Emby forms: channel tags carry the playlist groups.
+    "emby", "iptv" -> ServerKind.EMBY
     "plex" -> ServerKind.PLEX
     else -> ServerKind.JELLYFIN
 }

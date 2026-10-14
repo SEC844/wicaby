@@ -1,6 +1,7 @@
 // Contract shared by the main process, the preload bridge and the renderer.
 // Everything that crosses the IPC boundary is declared here, so both sides
 // fail to compile when they drift apart (Emby used an untyped string frame).
+import type { AppUpdate } from './app-update';
 import type { LensRef, ZapEntry } from './livetv/model';
 import type { Lyrics } from './music';
 import type { QualityRow } from './quality-presets';
@@ -9,7 +10,8 @@ export type { LensRef, ZapEntry } from './livetv/model';
 
 // 'files': a local folder, WebDAV folder or SMB share (file-sources-spec, main/files).
 // 'plex': a Plex Media Server through the Plex dialect (plex-spec §3; shared/plex). Its server id is 40 hex.
-export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex';
+// 'iptv': a client-side IPTV source (an M3U playlist and an XMLTV guide, main/iptv) answering the Emby Live TV calls.
+export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex' | 'iptv';
 
 export interface ServerInfo {
   id: string;
@@ -312,6 +314,10 @@ export interface Settings {
     // Chromecast (CA-09, castProfile): HEVC on any model, AC3/EAC3 passed through.
     allowHevc: boolean;
     dolby: boolean;
+  };
+  // Desktop update notice (features/app-updates.ts): the GitHub release check at start and every 24 h.
+  updates: {
+    autoCheck: boolean;
   };
   // Live TV (§15): the keys the renderer shows; the rest of main's LiveSettings (core/settings.ts) stays main-side.
   live: {
@@ -1001,6 +1007,14 @@ export interface ServerEvent {
   serverId?: string;
 }
 
+// The desktop update check (features/app-updates.ts). offline and error stay silent outside Settings.
+export interface AppUpdateState {
+  status: 'idle' | 'checking' | 'current' | 'available' | 'offline' | 'error';
+  update: AppUpdate | null;
+  // "Later" on this version: no notice, Settings still shows it.
+  dismissed: boolean;
+}
+
 export interface Toast {
   kind: 'info' | 'success' | 'error';
   message: string;
@@ -1071,6 +1085,30 @@ export interface FileTestResult {
   cert?: { sha256: string; subject: string; issuer: string; validFrom: string; validTo: string; pinned?: string };
 }
 
+// ---- IPTV sources (main/iptv) ----
+
+// What the renderer sees of an IPTV source: never its URLs (they may carry Xtream credentials), only hosts.
+export interface IptvSourceInfo {
+  id: string;
+  name: string;
+  // Host of the playlist (or the file name), and of the guide when there is one.
+  display: string;
+  guide?: string;
+  channels: number;
+  programmes: number;
+  updatedAt: number;
+  state: 'loading' | 'ready' | 'error';
+  // The guide failed (the channels still work).
+  guideError?: boolean;
+}
+
+export interface IptvSourceInput {
+  name?: string;
+  // http(s) URL, or a path pickFile('playlist') returned.
+  playlist: string;
+  guide?: string;
+}
+
 // ---- The bridge exposed to the renderer as window.wicaby ----
 
 export type Unsubscribe = () => void;
@@ -1086,6 +1124,14 @@ export interface WicabyBridge {
     // Bytes used by the HTTP cache (images, API), the comic cache and the logs.
     storage(): Promise<StorageUsage>;
     clearStorage(kind: 'http' | 'logs'): Promise<StorageUsage>;
+  };
+  updates: {
+    state(): Promise<AppUpdateState>;
+    check(): Promise<AppUpdateState>;
+    // Main opens the URL it validated; the renderer never passes one.
+    open(target: 'notes' | 'download'): Promise<void>;
+    dismiss(): Promise<AppUpdateState>;
+    onState(cb: (state: AppUpdateState) => void): Unsubscribe;
   };
   window: {
     minimize(): Promise<void>;
@@ -1190,6 +1236,16 @@ export interface WicabyBridge {
     pickFolder(): Promise<string | null>;
     // Drops the listing cache of one source; a photo source also rescans its folder tree (in the background).
     refresh(id: string): Promise<void>;
+  };
+  iptv: {
+    list(): Promise<IptvSourceInfo[]>;
+    // Fetches and parses the playlist first: nothing is stored when that fails (the error says why).
+    add(input: IptvSourceInput): Promise<IptvSourceInfo>;
+    remove(id: string): Promise<void>;
+    // Playlist and guide again, now.
+    refresh(id: string): Promise<IptvSourceInfo>;
+    // Main shows the OS file picker; null when cancelled.
+    pickFile(kind: 'playlist' | 'guide'): Promise<string | null>;
   };
   photos: {
     // The slideshow keeps the display awake (powerSaveBlocker 'prevent-display-sleep') while on.
@@ -1312,6 +1368,11 @@ export const Channels = {
   appStorage: 'app:storage',
   appClearStorage: 'app:clear-storage',
   appLog: 'app:log',
+  updatesState: 'updates:state',
+  updatesCheck: 'updates:check',
+  updatesOpen: 'updates:open',
+  updatesDismiss: 'updates:dismiss',
+  updatesChanged: 'updates:changed',
   windowMinimize: 'window:minimize',
   windowToggleMaximize: 'window:toggle-maximize',
   windowClose: 'window:close',
@@ -1427,6 +1488,11 @@ export const Channels = {
   filesDiscover: 'files:discover',
   filesPickFolder: 'files:pick-folder',
   filesRefresh: 'files:refresh',
+  iptvList: 'iptv:list',
+  iptvAdd: 'iptv:add',
+  iptvRemove: 'iptv:remove',
+  iptvRefresh: 'iptv:refresh',
+  iptvPickFile: 'iptv:pick-file',
 } as const;
 
 export const MEDIA_SCHEME = 'wicaby-media';

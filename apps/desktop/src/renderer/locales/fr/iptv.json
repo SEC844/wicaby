@@ -1,0 +1,36 @@
+{
+  "source": "Source",
+  "refresh": "Actualiser la liste et le guide",
+  "refreshed": "{count, plural, one {# chaîne} other {# chaînes}} à jour",
+  "empty": {
+    "title": "Aucune source IPTV",
+    "body": "Ajoutez une liste de chaînes M3U, et un guide XMLTV si vous en avez un. Rien ne passe par votre serveur."
+  },
+  "add": {
+    "title": "Ajouter une source IPTV",
+    "blurb": "Une liste M3U ou M3U8 de votre fournisseur. Son adresse est rangée dans le coffre des identifiants.",
+    "playlist": "Liste de chaînes (M3U)",
+    "guide": "Guide des programmes (XMLTV, facultatif)",
+    "guideHint": "Laissé vide, le guide annoncé par la liste (url-tvg) est utilisé. Formats .xml et .xml.gz.",
+    "file": "Fichier…",
+    "name": "Nom",
+    "namePlaceholder": "Le nom du fournisseur, par défaut",
+    "limits": "Lecture en direct uniquement, avec mpv : pas d’enregistrement ni de replay.",
+    "save": "Ajouter",
+    "loading": "Chargement…",
+    "playlistRequired": "Indiquez l’adresse de la liste, ou choisissez un fichier",
+    "added": "{name} : {count, plural, one {# chaîne} other {# chaînes}}"
+  },
+  "manage": {
+    "kind": "IPTV",
+    "channels": "{count, plural, one {# chaîne} other {# chaînes}}",
+    "guide": "guide : {host}",
+    "noGuide": "sans guide",
+    "guideError": "guide indisponible",
+    "loading": "Chargement…",
+    "error": "Liste injoignable",
+    "refresh": "Actualiser",
+    "removeConfirm": "Retirer {name} ? Ses chaînes favorites sur cet ordinateur seront oubliées.",
+    "removed": "Source IPTV retirée"
+  }
+}

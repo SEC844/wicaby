@@ -3,7 +3,8 @@
 // Other, the only place the generic folder glyph remains. Checked by tools/checks/sidebar-groups-check.mjs.
 import type { IconName } from '../components/Icon.svelte';
 
-export const GROUPS = ['watch', 'live', 'music', 'photos', 'books', 'files', 'other'] as const;
+// live and iptv always have a row (Sidebar.svelte: a setup row, an add row); the others show only with rows.
+export const GROUPS = ['watch', 'live', 'iptv', 'music', 'photos', 'books', 'files', 'other'] as const;
 export type GroupId = (typeof GROUPS)[number];
 
 const TYPES: Record<string, [GroupId, IconName]> = {

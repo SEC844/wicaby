@@ -117,10 +117,21 @@ try {
   assert.deepEqual(Object.keys(gplayOnly), ['mobile-gplay']);
   // And a foss-only release leaves the gplay channel out (no jump to foss).
   assert.deepEqual(Object.keys(manifestFor([['mobile', `Wicaby-Mobile-${version}-arm64.apk`]])), ['mobile']);
+  // The GitHub release assets as uploaded (Wicaby-TV-foss-*, Wicaby-Mobile-foss-*, Wicaby-Mobile-gplay-*), all in one
+  // folder next to update.json (docs/release.md, manual step).
+  const tvVersion = /versionName\s*=\s*"([^"]+)"/.exec(read('apps/android/tv/build.gradle.kts'))[1];
+  const gh = manifestFor([
+    ['', `Wicaby-TV-foss-${tvVersion}-armv7.apk`], ['', `Wicaby-TV-foss-${tvVersion}-universal.apk`],
+    ['', `Wicaby-Mobile-foss-${version}-arm64.apk`], ['', `Wicaby-Mobile-gplay-${version}-arm64.apk`], ['', `Wicaby-${version}-x64-setup.exe`],
+  ]);
+  assert.deepEqual(Object.keys(gh).sort(), ['mobile', 'mobile-gplay', 'tv']);
+  assert.equal(gh.tv.apks['armeabi-v7a'].url, `https://example.org/r/Wicaby-TV-foss-${tvVersion}-armv7.apk`);
+  assert.equal(gh.mobile.apks['arm64-v8a'].url, `https://example.org/r/Wicaby-Mobile-foss-${version}-arm64.apk`);
+  assert.equal(gh['mobile-gplay'].apks['arm64-v8a'].url, `https://example.org/r/Wicaby-Mobile-gplay-${version}-arm64.apk`);
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }
-ok(`update.json: "mobile" lists only Wicaby-Mobile-*, "mobile-gplay" only Wicaby-Mobile-Cast-* (${version})`);
+ok(`update.json: "mobile" lists only Wicaby-Mobile(-foss)-*, "mobile-gplay" only Wicaby-Mobile-Cast/gplay-*, flat GitHub names too (${version})`);
 
 // 5. release.yml builds, names and publishes both flavours.
 const release = read('.github/workflows/release.yml');

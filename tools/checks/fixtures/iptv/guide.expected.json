@@ -1,0 +1,91 @@
+{
+ "playlist": "edge.m3u",
+ "from": "2026-10-14T06:00:00.000Z",
+ "to": "2026-10-21T12:00:00.000Z",
+ "channels": 4,
+ "seen": 12,
+ "kept": 7,
+ "skipped": 3,
+ "programmes": {
+  "c02b1af8e83cd43b": [
+   {
+    "start": "2026-10-14T10:00:00.000Z",
+    "stop": "2026-10-14T11:00:00.000Z",
+    "title": "Le journal & la météo",
+    "subTitle": "Édition de midi",
+    "desc": "Les <titres> du jour & plus",
+    "categories": [
+     "Infos",
+     "News"
+    ],
+    "episode": "S1E5"
+   },
+   {
+    "start": "2026-10-14T11:00:00.000Z",
+    "stop": "2026-10-14T12:00:00.000Z",
+    "title": "Le magazine éco — direct",
+    "episode": "S03E12"
+   }
+  ],
+  "010f8c7c1276fbfc": [
+   {
+    "start": "2026-10-14T10:00:00.000Z",
+    "stop": "2026-10-14T11:00:00.000Z",
+    "title": "Le journal & la météo",
+    "subTitle": "Édition de midi",
+    "desc": "Les <titres> du jour & plus",
+    "categories": [
+     "Infos",
+     "News"
+    ],
+    "episode": "S1E5"
+   },
+   {
+    "start": "2026-10-14T11:00:00.000Z",
+    "stop": "2026-10-14T12:00:00.000Z",
+    "title": "Le magazine éco — direct",
+    "episode": "S03E12"
+   }
+  ],
+  "5991e13b6a45a1c7": [
+   {
+    "start": "2026-10-14T12:00:00.000Z",
+    "stop": "2026-10-14T13:00:00.000Z",
+    "title": "Matinale"
+   }
+  ],
+  "eb2886a422500761": [
+   {
+    "start": "2026-10-14T15:00:00.000Z",
+    "stop": "2026-10-14T16:00:00.000Z",
+    "title": "Sans fuseau"
+   }
+  ],
+  "569c51df1d535714": [
+   {
+    "start": "2026-10-14T16:00:00.000Z",
+    "stop": "2026-10-14T17:00:00.000Z",
+    "title": "Partagé"
+   }
+  ],
+  "569c51df1d535714-2": [
+   {
+    "start": "2026-10-14T16:00:00.000Z",
+    "stop": "2026-10-14T17:00:00.000Z",
+    "title": "Partagé"
+   }
+  ],
+  "df89319f15fe083d": [
+   {
+    "start": "2026-10-14T17:00:00.000Z",
+    "stop": "2026-10-14T18:00:00.000Z",
+    "title": ""
+   },
+   {
+    "start": "2026-10-14T18:00:00.000Z",
+    "stop": "2026-10-14T18:30:00.000Z",
+    "title": "Chevauche"
+   }
+  ]
+ }
+}

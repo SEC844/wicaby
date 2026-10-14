@@ -39,27 +39,35 @@ const SERVER: ServerCaps = {
   homeOptIn: false,
 };
 
+const FILES: ServerCaps = {
+  admin: false,
+  liveTv: false,
+  sessionsRemote: false,
+  castReceiver: false,
+  favorites: false,
+  serverHubs: false,
+  hideFromResume: true,
+  subtitleSearch: false,
+  comics: false,
+  localUserData: true,
+  transcode: false,
+  castSend: false,
+  homeOptIn: true,
+};
+
 const TABLE: Record<ServerKind, ServerCaps> = {
   emby: SERVER,
   jellyfin: { ...SERVER, hideFromResume: false },
   // Favorites: the plex.tv watchlist (D-6).
   plex: { ...SERVER, admin: false, sessionsRemote: false, castReceiver: false, serverHubs: true, comics: false },
-  files: {
-    admin: false,
-    liveTv: false,
-    sessionsRemote: false,
-    castReceiver: false,
-    favorites: false,
-    serverHubs: false,
-    hideFromResume: true,
-    subtitleSearch: false,
-    comics: false,
-    localUserData: true,
-    transcode: false,
-    castSend: false,
-    homeOptIn: true,
-  },
+  files: FILES,
+  // IPTV (main/iptv): Live TV only, from this machine. Not a server: no admin, no Home, no cast receiver.
+  iptv: { ...FILES, liveTv: true, localUserData: false, homeOptIn: false },
 };
+
+// Sources that are not media servers (file and IPTV sources): left out of the server counts, the merged
+// server views and "disconnect all".
+export const isLocalSource = (kind: string | undefined): boolean => kind === 'files' || kind === 'iptv';
 
 // An unknown kind (a newer settings file, a missing session) gets the server row.
 export function caps(kind: string | undefined): ServerCaps {
@@ -68,5 +76,5 @@ export function caps(kind: string | undefined): ServerCaps {
 
 // The label next to a source's name. Brand names: not translated.
 export function kindLabel(kind: string | undefined, files = 'Files'): string {
-  return kind === 'jellyfin' ? 'Jellyfin' : kind === 'plex' ? 'Plex' : kind === 'files' ? files : 'Emby';
+  return kind === 'jellyfin' ? 'Jellyfin' : kind === 'plex' ? 'Plex' : kind === 'files' ? files : kind === 'iptv' ? 'IPTV' : 'Emby';
 }

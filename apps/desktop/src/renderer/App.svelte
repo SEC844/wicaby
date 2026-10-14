@@ -15,6 +15,8 @@
   import Sidebar from './components/Sidebar.svelte';
   import TitleBar from './components/TitleBar.svelte';
   import Toasts from './components/Toasts.svelte';
+  import UpdateNotice from './components/UpdateNotice.svelte';
+  import { initAppUpdate } from './lib/app-update.svelte';
   import { w } from './lib/bridge';
   import { initCast } from './lib/cast.svelte';
   import { t } from './lib/i18n.svelte';
@@ -79,9 +81,11 @@
     if (isOsd) return;
     const offNav = w.events.onNavigate((path) => void navigate(path));
     const offSpatial = initSpatialNav();
+    const offUpdate = initAppUpdate();
     return () => {
       offNav();
       offSpatial();
+      offUpdate();
     };
   });
 
@@ -173,6 +177,7 @@
           {:else if page.name === 'files'}<Files id={page.params.id} server={page.params.server} />
           {:else if page.name === 'immich'}<Photos lib={{ Id: page.params.id, Name: immich.sources.find((s) => s.id === page.params.id)?.name ?? 'Immich', Type: 'CollectionFolder' }} immich={page.params.id} />
           {:else if page.name === 'livetv'}<LiveTv />
+          {:else if page.name === 'iptv'}<LiveTv iptv />
           {:else if page.name === 'item'}<Item id={page.params.id} server={page.params.server} />
           {:else if page.name === 'search'}<Search />
           {:else if page.name === 'favorites'}<Favorites />
@@ -193,6 +198,7 @@
 
 <!-- Main is hidden while mpv plays: the OSD shows the toasts then (admin messages, errors). -->
 <Toasts />
+{#if !isOsd && !isMini && !playing && !nowPlaying && session.ready}<UpdateNotice />{/if}
 {#if !isOsd && !isMini}<ResumePrompt /><QueueMenu /><TrackMenu /><SelectionBar /><CastPicker /><MusicHost />{/if}
 {#if !isOsd && !isMini && lonePhoto.assets}<PhotoViewer assets={lonePhoto.assets} start={0} onclose={() => (lonePhoto.assets = null)} />{/if}
 {#if settings.value?.ui.fpsMeter}<FpsMeter />{/if}

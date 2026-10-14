@@ -1,0 +1,36 @@
+{
+  "source": "Source",
+  "refresh": "Refresh the playlist and guide",
+  "refreshed": "{count, plural, one {# channel} other {# channels}} up to date",
+  "empty": {
+    "title": "No IPTV source",
+    "body": "Add an M3U channel list, and an XMLTV guide if you have one. Nothing goes through your server."
+  },
+  "add": {
+    "title": "Add an IPTV source",
+    "blurb": "An M3U or M3U8 list from your provider. Its address is kept in the credential vault.",
+    "playlist": "Channel list (M3U)",
+    "guide": "Programme guide (XMLTV, optional)",
+    "guideHint": "Left empty, the guide named by the list (url-tvg) is used. .xml and .xml.gz files.",
+    "file": "File…",
+    "name": "Name",
+    "namePlaceholder": "The provider’s name, by default",
+    "limits": "Live viewing only, with mpv: no recording or catch-up.",
+    "save": "Add",
+    "loading": "Loading…",
+    "playlistRequired": "Enter the list’s address, or choose a file",
+    "added": "{name}: {count, plural, one {# channel} other {# channels}}"
+  },
+  "manage": {
+    "kind": "IPTV",
+    "channels": "{count, plural, one {# channel} other {# channels}}",
+    "guide": "guide: {host}",
+    "noGuide": "no guide",
+    "guideError": "guide unavailable",
+    "loading": "Loading…",
+    "error": "List unreachable",
+    "refresh": "Refresh",
+    "removeConfirm": "Remove {name}? Its favourite channels on this computer will be forgotten.",
+    "removed": "IPTV source removed"
+  }
+}

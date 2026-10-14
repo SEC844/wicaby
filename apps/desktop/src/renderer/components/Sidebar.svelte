@@ -3,13 +3,13 @@
   // grouped by media type in the scrolling middle, and a fixed foot (Administration, Settings, connection status).
   // Search lives in the title bar (Ctrl+K / Ctrl+F), so it has no row here.
   import { tick } from 'svelte';
-  import { caps, kindLabel } from '../../shared/server-caps';
+  import { caps, isLocalSource, kindLabel } from '../../shared/server-caps';
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath } from '../lib/api';
   import { navigate, router } from '../lib/router.svelte';
   import { carriesTracks, droppedTracks } from '../lib/music-ui.svelte';
   import { addTo, list as listPlaylists } from '../lib/playlists';
-  import { dataVersion, downloads, errorMessage, fileSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, toast, updateSettings } from '../lib/stores.svelte';
+  import { dataVersion, downloads, errorMessage, fileSessions, iptvSessions, libraries, liveTv, onlineSessions, photoSessions, session, settings, toast, updateSettings } from '../lib/stores.svelte';
   import { GROUPS, libraryRows, type GroupId } from '../lib/sidebar-groups';
   import Icon, { type IconName } from './Icon.svelte';
   import { t } from '../lib/i18n.svelte';
@@ -45,7 +45,7 @@
   const signedIn = $derived(listedServers().length);
   // Administration appears only when the user administers at least one signed-in server.
   const isAdmin = $derived(online.some((s) => s.user?.isAdmin && caps(s.server.kind).admin));
-  const down = $derived(session.value.sessions.filter((s) => s.status === 'offline' && s.server.kind !== 'files').length);
+  const down = $derived(session.value.sessions.filter((s) => s.status === 'offline' && !isLocalSource(s.server.kind)).length);
   const sources = $derived(fileSessions());
   const sourceIcon = (p?: string): IconName => (p === 'webdav' ? 'globe' : p === 'smb' ? 'server' : 'hardDrive');
   const photoSources = $derived(photoSessions());
@@ -74,11 +74,15 @@
   const LIVE = [['now', 'live', 'shell.sidebar.channels'], ['guide', 'calendar', 'livetv.tabs.guide'], ['recordings', 'record', 'livetv.tabs.recordings']] as const;
   // Several servers: Movies & Shows clusters by kind (films, then series...), so same-name rows sit together.
   const WATCH: IconName[] = ['film', 'tv', 'trailer', 'collection']; // i18n-ignore (icon names)
-  const liveTab = $derived.by(() => {
-    if (route.name !== 'livetv') return '';
+  const tabOf = (name: string): string => {
+    if (route.name !== name) return '';
     const tab = route.query.get('tab');
     return tab === 'guide' ? 'guide' : tab === 'recordings' || tab === 'scheduled' ? 'recordings' : 'now';
-  });
+  };
+  const liveTab = $derived(tabOf('livetv'));
+  // IPTV (client-side sources, main/iptv): Channels and Guide of the IPTV page; Add while there is no source.
+  const iptvTab = $derived(tabOf('iptv'));
+  const hasIptv = $derived(iptvSessions().length > 0);
 
   // Every content row, by group, in server order then the server's view order.
   const rows = $derived.by(() => {
@@ -90,6 +94,10 @@
       if (liveTv.available)
         for (const [id, icon, key] of LIVE) g.live.push({ key: id, label: t(key), icon, go: `/livetv?tab=${id}`, active: liveTab === id });
     }
+    // TV en direct is always there: without a server tuner (or offline) one row opens its setup page.
+    if (!g.live.length) g.live.push({ key: 'live-setup', label: t('shell.sidebar.liveSetup'), icon: 'live', go: '/livetv', active: route.name === 'livetv' });
+    if (hasIptv) for (const [id, icon, key] of LIVE.slice(0, 2)) g.iptv.push({ key: id, label: t(key), icon, go: `/iptv?tab=${id}`, active: iptvTab === id });
+    else g.iptv.push({ key: 'iptv-add', label: t('shell.sidebar.iptvAdd'), icon: 'plus', go: '/iptv', active: route.name === 'iptv' });
     for (const s of photoSources)
       g.photos.push({ key: s.server.id, label: s.server.name, icon: 'images', go: `/library/${s.server.id}/p.`, active: route.name === 'library' && route.params.server === s.server.id, off: s.status === 'offline', kind: 'photo' });
     for (const s of immichShown) g.photos.push({ key: s.id, label: s.name, icon: 'images', go: `/immich/${s.id}`, active: route.name === 'immich' && route.params.id === s.id, kind: 'immich' });
@@ -168,6 +176,7 @@
   $effect(() => {
     void route.path;
     void liveTab;
+    void iptvTab;
     void libraries.list;
     void collapsed;
     void tick().then(() => {

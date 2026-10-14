@@ -88,6 +88,40 @@ class UpdateLogicTest {
     }
 
     @Test
+    fun defaultManifestUrl() {
+        val d = "https://github.com/WicaebethTheo/wicaby/releases/latest/download/update.json"
+        assertEquals(d, UpdateLogic.DEFAULT_URL)
+        assertTrue(UpdateLogic.isAllowedUrl(UpdateLogic.DEFAULT_URL))
+        // Nothing stored (or blanks) = the default; a typed URL wins.
+        assertEquals(d, UpdateLogic.manifestUrl(""))
+        assertEquals(d, UpdateLogic.manifestUrl("   "))
+        assertEquals("https://example.org/update.json", UpdateLogic.manifestUrl(" https://example.org/update.json "))
+    }
+
+    @Test
+    fun flatGitHubNames() {
+        // make-update-manifest.mjs --flat without a base URL: bare asset names, next to update.json.
+        val m = UpdateLogic.parse(
+            """{ "tv": { "versionCode": 27, "versionName": "0.10.6",
+                 "apks": { "armeabi-v7a": {"url": "Wicaby-TV-foss-0.10.6-armv7.apk", "sha256": "$sha"} } },
+               "mobile-gplay": { "versionCode": 24, "versionName": "0.10.6",
+                 "apks": { "arm64-v8a": {"url": "Wicaby-Mobile-gplay-0.10.6-arm64.apk", "sha256": "$sha"} } } }""",
+        )
+        val base = "https://github.com/WicaebethTheo/wicaby/releases/latest/download/"
+        assertEquals(
+            ApkRef("${base}Wicaby-TV-foss-0.10.6-armv7.apk", sha),
+            UpdateLogic.usableApk(UpdateLogic.DEFAULT_URL, m.getValue("tv").apks.getValue("armeabi-v7a")),
+        )
+        assertEquals(
+            "${base}Wicaby-Mobile-gplay-0.10.6-arm64.apk",
+            UpdateLogic.usableApk(UpdateLogic.DEFAULT_URL, m.getValue("mobile-gplay").apks.getValue("arm64-v8a"))?.url,
+        )
+        // An absolute tag URL (manifest written with a base URL) is kept as it is.
+        val tag = "https://github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-TV-foss-0.10.6-armv7.apk"
+        assertEquals(tag, UpdateLogic.resolve(UpdateLogic.DEFAULT_URL, tag))
+    }
+
+    @Test
     fun archiveGate() {
         val mine = setOf("c1")
         fun ok(pkg: String? = "com.wika.wicaby.tv", code: Long = 7, expected: Long = 7, signers: Set<String> = mine, installed: Set<String> = mine) =

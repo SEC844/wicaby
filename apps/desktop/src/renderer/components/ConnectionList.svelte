@@ -2,6 +2,7 @@
   // Every connection the app holds (media servers, the VPN, qBittorrent), live from the pushed session, VPN and
   // torrents state: the sidebar status popover (ConnectionStatus) and the first-run setup's last step list it.
   import type { ServerSession, VpnStatus } from '../../shared/contract';
+  import { isLocalSource } from '../../shared/server-caps';
   import { t } from '../lib/i18n.svelte';
   import { session, settings } from '../lib/stores.svelte';
   import { torrents } from '../lib/torrents.svelte';
@@ -10,8 +11,8 @@
 
   const MESH = { tailscale: 'Tailscale', netbird: 'NetBird' } as const;
 
-  // File sources are listed in Settings › Library, not as connections.
-  export const listedServers = () => session.value.sessions.filter((s) => s.status !== 'server-selected' && s.server.kind !== 'files');
+  // File and IPTV sources are listed with the sources, not as connections.
+  export const listedServers = () => session.value.sessions.filter((s) => s.status !== 'server-selected' && !isLocalSource(s.server.kind));
   export const serverLevel = (s: ServerSession): Level =>
     s.status === 'offline' ? 'bad' : s.status === 'connecting' || s.socket === 'down' ? 'warn' : 'ok';
   // The embedded node when it is on, and installed clients that were found.

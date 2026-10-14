@@ -72,7 +72,6 @@
       "core/update_bad_checksum": "Fichier corrompu : l’empreinte SHA-256 ne correspond pas",
       "core/update_downloading": "Téléchargement… %1$d %%",
       "core/update_permission": "Pour installer la mise à jour, autorisez « Installer des applis inconnues » pour Wicaby dans les réglages Android, puis revenez ici.",
-      "core/update_url_hint": "Adresse d’un fichier update.json. Vide : désactivé.",
       "mobile/reader_loading": "Chargement du livre… %1$d %%",
       "tv/reader_loading": "Chargement du livre… %1$d %%"
     }

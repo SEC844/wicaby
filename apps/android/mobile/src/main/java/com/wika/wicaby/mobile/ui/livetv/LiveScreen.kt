@@ -120,9 +120,11 @@ fun rememberNow(repo: LiveTvRepository): State<Long> = produceState(repo.now(), 
     }
 }
 
+// [manage]: IPTV's sources (a chip after the tabs); IPTV has no recordings.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LiveScreen(api: Api, title: String, onBack: () -> Unit) {
+fun LiveScreen(api: Api, title: String, onBack: () -> Unit, manage: (() -> Unit)? = null) {
+    val iptv = api.server.kind == com.wika.wicaby.core.iptv.Iptv.KIND
     val context = LocalContext.current
     val repo = remember(api) { LiveRepos.of(context, api) }
     LaunchedEffect(repo) { repo.open() }
@@ -157,10 +159,13 @@ fun LiveScreen(api: Api, title: String, onBack: () -> Unit) {
                 Chip(stringResource(R.string.livetv_tabs_now), selected = tab == 0) { tab = 0 }
                 Chip(stringResource(R.string.livetv_tabs_guide), selected = tab == 1) { tab = 1 }
                 // M-3: Enregistrements, and Programmés with its conflict count (hidden when read-only and empty, §9.7).
-                Chip(stringResource(R.string.livetv_tabs_recordings), selected = tab == 2) { tab = 2 }
+                if (!iptv) Chip(stringResource(R.string.livetv_tabs_recordings), selected = tab == 2) { tab = 2 }
                 if (caps.canRecord || timers.isNotEmpty()) {
                     val wont = conflictCount(timers)
                     Chip(stringResource(R.string.livetv_tabs_scheduled) + if (wont > 0) "  $wont" else "", selected = tab == 3) { tab = 3 }
+                }
+                if (manage != null) {
+                    Chip(stringResource(CoreR.string.iptv_sources), selected = false, onClick = manage)
                 }
             }
         }
@@ -173,6 +178,8 @@ fun LiveScreen(api: Api, title: String, onBack: () -> Unit) {
                 repo.markGuideStale()
                 scope.launch {
                     try {
+                        // IPTV: the playlists and guides themselves, from their sources.
+                        if (iptv) com.wika.wicaby.core.iptv.Iptv.refreshAll()
                         repo.loadChannels(force = true)
                     } finally {
                         refreshing = false

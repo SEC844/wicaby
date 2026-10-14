@@ -11,6 +11,7 @@ import { PlexClient } from './connection/plex-client';
 import type { ComicService } from './comics/comic-service';
 import { logger } from './core/log';
 import { FilesClient } from './files/files-client';
+import { IptvClient } from './iptv/iptv-client';
 import type { DownloadManager } from './downloads/download-manager';
 import type { ImmichService } from './photos/immich';
 
@@ -262,6 +263,8 @@ export function handleProtocols(opts: {
         const rel = sid ? url.pathname.slice(first.length + 1) : url.pathname;
         // A file source answers from its backend (posters, the file for the HTML player, sidecar subtitles).
         if (api instanceof FilesClient) return await api.media(rel, req.method, req.headers.get('range') ?? undefined, url.searchParams, req.signal);
+        // An IPTV source answers its Live TV calls and channel logos itself.
+        if (api instanceof IptvClient) return await api.media(rel, req.method, url.searchParams);
         if (!rel.startsWith('/') || rel.startsWith('//') || !isServerOrigin(api, rel)) return new Response('Bad request', { status: 400, headers: CORS });
         return await fetchFromServer(api, rel + url.search, req.method, (h) => req.headers.get(h));
       }

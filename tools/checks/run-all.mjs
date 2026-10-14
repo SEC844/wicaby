@@ -17,6 +17,8 @@ const checks = [
   // Sidebar sections by media type (sidebar redesign spec §3.2).
   ['sidebar-groups-check.mjs'],
   ['livetv-check.mjs'],
+  // Client-side IPTV: M3U and XMLTV parsers, loader limits, the mock provider.
+  ['iptv-check.mjs'],
   ['tv-home-check.mjs'],
   ['play-on-check.mjs'],
   ['sessions-mock-check.mjs'],
@@ -71,6 +73,8 @@ const checks = [
   ['immich-check.mjs'],
   ['tiles-check.mjs'],
   ['release-check.mjs'],
+  // Desktop update notice: version compare, asset per install, GitHub answer at the trust boundary.
+  ['app-update-check.mjs'],
   ['licence-check.mjs'],
   ['flavour-check.mjs'],
   // File sources (file-sources-spec FS-00 to FS-05, FS-12 UNC).

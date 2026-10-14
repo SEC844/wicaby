@@ -492,7 +492,9 @@ async function body(req) {
 // ---- Live TV, playlists and collections (added for the Live TV / home work) ----
 // Views, guide data, timers and recordings live in memory; programs cover the
 // last 3 h and the next 24 h from server start.
-add({ Id: 'lib-livetv', Name: 'TV en direct', Type: 'CollectionFolder', CollectionType: 'livetv', IsFolder: true, ImageTags: { Primary: 't' } });
+// MOCK_LIVETV=off: a server without a tuner (no Live TV view, /LiveTv/Info IsEnabled false), for the setup page.
+const NO_LIVETV = process.env.MOCK_LIVETV === 'off';
+if (!NO_LIVETV) add({ Id: 'lib-livetv', Name: 'TV en direct', Type: 'CollectionFolder', CollectionType: 'livetv', IsFolder: true, ImageTags: { Primary: 't' } });
 add({ Id: 'lib-playlists', Name: 'Playlists', Type: 'CollectionFolder', CollectionType: 'playlists', IsFolder: true, ImageTags: { Primary: 't' } });
 add({ Id: 'lib-collections', Name: 'Collections', Type: 'CollectionFolder', CollectionType: 'boxsets', IsFolder: true, ImageTags: { Primary: 't' } });
 
@@ -629,7 +631,7 @@ async function extraRoutes(req, res, p, parts, q) {
   }
 
   // Live TV
-  if (p === '/LiveTv/Info') return reply(200, { IsEnabled: true, EnabledUsers: [USER.Id], Services: [{ Name: 'Mock Tuner', Status: 'Ok' }] });
+  if (p === '/LiveTv/Info') return reply(200, { IsEnabled: !NO_LIVETV, EnabledUsers: [USER.Id], Services: [{ Name: 'Mock Tuner', Status: 'Ok' }] });
   if (p === '/LiveTv/Channels') {
     const start = Number(q.get('StartIndex') ?? 0);
     const arr = CHANNELS.slice(start, start + Number(q.get('Limit') ?? 1000)).map(chanView);

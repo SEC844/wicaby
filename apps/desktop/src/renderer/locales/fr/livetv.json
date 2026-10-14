@@ -316,5 +316,15 @@
     "startOver": "Reprendre au début",
     "remindMe": "Me le rappeler",
     "cancelReminder": "Annuler le rappel"
+  },
+  "setup": {
+    "title": "Configurer la TV en direct",
+    "body": "La TV en direct vient d’un tuner (HDHomeRun, carte TNT…) ou d’une liste M3U déclarés sur votre serveur multimédia, dans son tableau de bord. Une fois ajoutés, les chaînes et le guide apparaissent ici.",
+    "openAdmin": "Réglages TV en direct sur {kind}",
+    "adminOnly": "Réservé aux administrateurs du serveur ; la page s’ouvre dans le navigateur.",
+    "noServer": "Aucun serveur connecté ne permet de régler la TV en direct depuis ici.",
+    "iptv": "Pas de serveur ou pas de tuner ? Ajoutez directement une liste IPTV.",
+    "openIptv": "Ouvrir l’IPTV",
+    "addIptv": "Ajouter une source IPTV"
   }
 }

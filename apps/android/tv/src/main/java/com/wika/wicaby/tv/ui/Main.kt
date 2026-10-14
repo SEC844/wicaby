@@ -156,7 +156,8 @@ fun MainScreen() {
     val snap = LocalSnapshot.current
     val activity = checkNotNull(LocalActivity.current)
     // TP-07: Home's rows need every library (music, Live TV…); the tabs only the browsable ones.
-    val libs = rememberLoad("views") { allViews(api) }.value.value.orEmpty()
+    val loadedLibs = rememberLoad("views") { allViews(api) }.value.value
+    val libs = loadedLibs.orEmpty()
     val views = tabViews(libs)
     val user = rememberLoad("me-${api.userId}") { api.get<User>("/Users/${api.userId}") }.value.value
     var tab by rememberSaveable { mutableStateOf("home") }
@@ -171,6 +172,9 @@ fun MainScreen() {
     val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
     val dests = buildList {
         add(Dest(TopTab("home", stringResource(R.string.tab_home))) { HomeTab(api, libs, it) })
+        // IPTV (core/iptv) comes right after Live TV; without a server tuner, Live TV stays on its setup page.
+        val iptv = Dest(TopTab("iptv", stringResource(com.wika.wicaby.core.R.string.iptv_title))) { com.wika.wicaby.tv.ui.livetv.IptvTab(top = 104.dp, onScrolled = it) }
+        val lastLive = views.lastOrNull { it.collectionType == "livetv" }
         views.forEach { v ->
             // TP-06: an extra server's library is its own tab, named after its server when a name repeats.
             val extra = Servers.extraOf(v.serverId)
@@ -180,6 +184,11 @@ fun MainScreen() {
                     else ServerScope(extra?.server?.id) { LibraryTab(extra ?: api, v, onScrolled = it) }
                 },
             )
+            if (v === lastLive) add(iptv)
+        }
+        if (lastLive == null && loadedLibs != null) {
+            add(Dest(TopTab("livetv-setup", stringResource(com.wika.wicaby.core.R.string.livesetup_title))) { com.wika.wicaby.tv.ui.livetv.LiveSetupTab(top = 104.dp, onIptv = { tab = "iptv" }) })
+            add(iptv)
         }
         // File sources (FS-10): after the libraries, once one exists (Réglages > Sources de fichiers adds the first).
         if (fileSources.isNotEmpty()) add(Dest(TopTab("files", stringResource(com.wika.wicaby.core.R.string.files_title))) { FilesTab(it) })
@@ -201,7 +210,10 @@ fun MainScreen() {
     // TV-3: the live player's GUIDE / Back lands on the Live TV tab, whose screen opens the Guide on the channel.
     val liveView = views.firstOrNull { it.collectionType == "livetv" }?.id
     LaunchedEffect(liveView) {
-        if (liveView != null) com.wika.wicaby.tv.ui.livetv.LiveTv.guideFor.collect { if (it != null) tab = "lib:$liveView" }
+        com.wika.wicaby.tv.ui.livetv.LiveTv.guideFor.collect { a ->
+            if (a == null) return@collect
+            if (com.wika.wicaby.tv.ui.livetv.LiveTv.serverId == com.wika.wicaby.core.iptv.Iptv.SERVER_ID) tab = "iptv" else if (liveView != null) tab = "lib:$liveView"
+        }
     }
 
     // The tab bar floats over the content, so plain geometric search cannot go down

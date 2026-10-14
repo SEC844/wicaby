@@ -8,42 +8,72 @@
   import type { PendingJump } from '../../shared/livetv/nav';
   import Guide from '../components/Guide.svelte';
   import Icon from '../components/Icon.svelte';
+  import IptvSourceSheet from '../components/IptvSourceSheet.svelte';
   import ChannelManager from '../components/livetv/ChannelManager.svelte';
   import DetailBand from '../components/livetv/DetailBand.svelte';
   import GuideSearch from '../components/livetv/GuideSearch.svelte';
   import GuideToolbar from '../components/livetv/GuideToolbar.svelte';
   import Segmented from '../components/Segmented.svelte';
   import { fmt, t } from '../lib/i18n.svelte';
-  import { currentLiveServer, liveServer, storeFor } from '../lib/livetv.svelte';
+  import { currentIptvSource, currentLiveServer, iptvSource, liveServer, storeFor } from '../lib/livetv.svelte';
   import type { LiveTvStore } from '../lib/livetv.svelte';
   import { scrollMemory } from '../lib/motion';
   import { router } from '../lib/router.svelte';
-  import { liveTv, serverName, toast } from '../lib/stores.svelte';
+  import { w } from '../lib/bridge';
+  import { errorMessage, iptvSessions, liveTv, serverName, toast } from '../lib/stores.svelte';
   import OnNow from './livetv/OnNow.svelte';
   import Recordings from './livetv/Recordings.svelte';
   import Scheduled from './livetv/Scheduled.svelte';
+  import Setup from './livetv/Setup.svelte';
 
   // Live TV (§3.1): four tabs, En direct · Guide · Enregistrements · Programmés. URL state
   // /livetv?tab=guide&lens=fav&cat=sports&day=2026-10-12&at=2100&ch=<id>&prog=<id>: lens, category
   // and day picks push a history entry and scrolling replaces the current one, so back and forward
   // restore the lens, the day and the time. ?tab=channels (the old tab) redirects to now.
+  //
+  // /iptv is the same page over an IPTV source (main/iptv): En direct and Guide only (no recording in V1), a
+  // source picker when there are several, Refresh and Add. Without a server tuner, /livetv shows the setup page.
+  let { iptv = false }: { iptv?: boolean } = $props();
   type Tab = 'now' | 'guide' | 'recordings' | 'scheduled';
-  const TABS: Tab[] = ['now', 'guide', 'recordings', 'scheduled'];
+  const TABS: Tab[] = $derived(iptv ? ['now', 'guide'] : ['now', 'guide', 'recordings', 'scheduled']);
   const query = $derived(router.route.query);
   const tab = $derived<Tab>(TABS.find((v) => v === query.get('tab')) ?? 'now');
 
-  const server = $derived(currentLiveServer());
-  const servers = $derived(liveTv.servers.map((id) => ({ value: id, label: serverName(id) })));
-  let store = $state.raw<LiveTvStore | null>(storeFor(currentLiveServer()));
+  const current = (): string | undefined => (iptv ? currentIptvSource() : currentLiveServer());
+  const server = $derived(current());
+  const servers = $derived(iptv ? iptvSessions().map((s) => ({ value: s.server.id, label: s.server.name })) : liveTv.servers.map((id) => ({ value: id, label: serverName(id) })));
+  // No source picked (no tuner, no IPTV source): no store, rather than the primary server's.
+  const storeOf = (sid: string | undefined): LiveTvStore | null => (sid ? storeFor(sid) : null);
+  let store = $state.raw<LiveTvStore | null>(storeOf(current()));
+  // The page itself: the setup page without a server tuner, the IPTV empty state without a source.
+  const setup = $derived(!iptv && !liveTv.available);
+  const noSource = $derived(iptv && !servers.length);
+  let addOpen = $state(false);
+  let refreshing = $state(false);
+
+  async function refreshSource(): Promise<void> {
+    if (!server || refreshing) return;
+    refreshing = true;
+    try {
+      const info = await w.iptv.refresh(server);
+      toast('success', t('iptv.refreshed', { count: info.channels }));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    } finally {
+      refreshing = false;
+    }
+  }
   let guide = $state<ReturnType<typeof Guide>>();
   let toolbarEl = $state<HTMLDivElement>();
   let opened: Promise<unknown> = Promise.resolve();
 
   onMount(scrollMemory);
+  // The sidebar's "Add an IPTV source" lands here: the sheet opens at once.
+  onMount(() => void (noSource && (addOpen = true)));
 
   $effect(() => {
     const sid = server;
-    const s = untrack(() => storeFor(sid));
+    const s = untrack(() => storeOf(sid));
     store = s;
     opened = s ? s.open().catch(() => undefined) : Promise.resolve();
   });
@@ -60,7 +90,7 @@
     const qs = next.toString();
     applied = qs;
     if (qs === router.route.query.toString()) return;
-    history[push ? 'pushState' : 'replaceState'](null, '', `#/livetv?${qs}`);
+    history[push ? 'pushState' : 'replaceState'](null, '', `#/${iptv ? 'iptv' : 'livetv'}?${qs}`);
     router.route = { ...router.route, query: next };
   }
 
@@ -237,18 +267,22 @@
 
 <div class="page live" class:full={tab === 'guide'}>
   <header>
-    <h1 class="page-title">{t('livetv.title')}</h1>
-    <div class="tabs" role="tablist" aria-label={t('livetv.tabs.label')}>
+    <h1 class="page-title">{iptv ? 'IPTV' : t('livetv.title')}</h1>
+    {#if !setup && !noSource}<div class="tabs" role="tablist" aria-label={t('livetv.tabs.label')}>
       {#each TABS as v (v)}
         <button role="tab" aria-selected={tab === v} class:on={tab === v} onclick={() => setTab(v)}>
           {t(`livetv.tabs.${v}`)}
           {#if v === 'scheduled' && conflicts > 0}<span class="badge mono" aria-label={t('livetv.scheduled.badgeAria', { count: conflicts })}>{conflicts}</span>{/if}
         </button>
       {/each}
-    </div>
+    </div>{/if}
     <span class="actions">
       {#if servers.length > 1 && server}
-        <Segmented label={t('livetv.server')} value={server} options={servers} onchange={(v) => (liveServer.id = v)} />
+        <Segmented label={t(iptv ? 'iptv.source' : 'livetv.server')} value={server} options={servers} onchange={(v) => (iptv ? (iptvSource.id = v) : (liveServer.id = v))} />
+      {/if}
+      {#if iptv && server}
+        <button class="btn icon" onclick={refreshSource} disabled={refreshing} aria-label={t('iptv.refresh')} title={t('iptv.refresh')}><Icon name="refresh" size={16} /></button>
+        <button class="btn icon" onclick={() => (addOpen = true)} aria-label={t('iptv.add.title')} title={t('iptv.add.title')}><Icon name="plus" size={16} /></button>
       {/if}
       {#if store && (tab === 'guide' || tab === 'now')}
         <button class="btn icon" onclick={() => (searchOpen = true)} aria-label={t('livetv.actions.search')} title={t('livetv.actions.search')}><Icon name="search" size={16} /></button>
@@ -257,7 +291,16 @@
     </span>
   </header>
 
-  {#if !store || !store.enabled}
+  {#if setup}
+    <Setup />
+  {:else if noSource}
+    <div class="state empty">
+      <Icon name="live" size={36} />
+      <p class="lead">{t('iptv.empty.title')}</p>
+      <p class="footnote">{t('iptv.empty.body')}</p>
+      <button class="btn primary" onclick={() => (addOpen = true)}>{t('iptv.add.title')}</button>
+    </div>
+  {:else if !store || !store.enabled}
     <div class="state"><Icon name="live" size={36} /><p class="footnote">{t('livetv.guide.noAccess')}</p></div>
   {:else if store.channelsState === 'error' && !store.channels.length}
     <div class="state">
@@ -301,6 +344,8 @@
     <ChannelManager {store} open={manageOpen} onclose={() => (manageOpen = false)} channelId={manageChannel} />
   {/if}
 </div>
+
+{#if iptv}<IptvSourceSheet open={addOpen} onclose={() => (addOpen = false)} />{/if}
 
 {#if menu && store}
   {@const s = store}
@@ -394,6 +439,18 @@
     gap: 8px;
     padding: 80px 0;
     color: var(--label-3);
+  }
+  .state.empty .lead {
+    margin: 4px 0 0;
+    color: var(--label);
+    font-size: var(--fs-headline);
+    font-weight: 600;
+  }
+  .state.empty .footnote {
+    max-width: 46ch;
+    margin: 0 0 8px;
+    color: var(--label-2);
+    text-align: center;
   }
   .menu {
     position: fixed;

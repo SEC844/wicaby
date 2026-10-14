@@ -138,5 +138,17 @@
     "tuneTimeout": "The channel isn’t responding.",
     "tunerBusy": "No tuner available.",
     "noStream": "This server offers no playable stream for this channel."
+  },
+  "iptv": {
+    "notFound": "IPTV source not found",
+    "notLoaded": "The channel list could not be loaded",
+    "invalidPlaylist": "Enter the http(s) address of an M3U playlist, or choose a file",
+    "invalidGuide": "Enter the http(s) address of an XMLTV guide, or choose a file",
+    "unreachable": "Playlist unreachable",
+    "http": "The playlist answered {status}",
+    "tooBig": "File too large",
+    "timeout": "The playlist is taking too long to answer",
+    "empty": "No playable channel in this playlist",
+    "needsMpv": "IPTV channels play in mpv: choose mpv as the player"
   }
 }

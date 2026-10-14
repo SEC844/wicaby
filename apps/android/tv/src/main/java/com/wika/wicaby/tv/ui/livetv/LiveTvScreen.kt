@@ -119,6 +119,9 @@ private const val MINUTE = 60_000L
 /** Process-wide Live TV state for the TV app: the repository of the signed-in server and user, logos. */
 object LiveTv {
     private var key: String? = null
+
+    /** The server of the current repository (Main opens its tab for the player's GUIDE). */
+    val serverId: String? get() = current?.api?.serverId
     private var current: LiveTvRepository? = null
 
     /** The rails of En direct, kept across visits so a warm open paints at once. */
@@ -177,7 +180,9 @@ object LiveTv {
     fun tune(context: Context, repo: LiveTvRepository, channelId: String, start: String? = null) {
         // shortcut: Récentes is noted at the tune request, not at adoption; TV-3 moves it to the player's adopted event.
         repo.noteTuned(channelId)
-        context.startActivity(Intent(context, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_ID, channelId).putExtra(PlayerActivity.EXTRA_LIVE_START, start))
+        // Another source than the primary server (IPTV): the player finds it by its id (Servers.of).
+        val server = repo.api.serverId.takeIf { com.wika.wicaby.core.data.Servers.extraOf(it) != null }
+        context.startActivity(Intent(context, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_ID, channelId).putExtra(PlayerActivity.EXTRA_LIVE_START, start).putExtra(PlayerActivity.EXTRA_SERVER, server))
     }
 
     /** TV-3: GUIDE (or Back, [viaBack]) in the player asks for the Guide tab focused on [channelId]; TP-12: the search, on a programme ([jump]). */
@@ -191,9 +196,10 @@ private enum class LiveTab(val label: Int) {
     NOW(R.string.livetv_tabs_now), GUIDE(R.string.livetv_tabs_guide), SCHEDULED(R.string.livetv_tabs_scheduled), RECORDINGS(R.string.livetv_tabs_recordings),
 }
 
+// [manage]: IPTV's sources sheet, a pill after Gérer les chaînes.
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LiveTvScreen(api: Api, top: Dp, onScrolled: (Boolean) -> Unit) {
+fun LiveTvScreen(api: Api, top: Dp, onScrolled: (Boolean) -> Unit, manage: (() -> Unit)? = null) {
     val context = LocalContext.current
     val repo = remember(api) { LiveTv.repo(context, api) }
     val rails = remember(repo) { LiveTv.rails!! }
@@ -344,6 +350,7 @@ fun LiveTvScreen(api: Api, top: Dp, onScrolled: (Boolean) -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(start = 48.dp, bottom = 18.dp)) {
                         LiveTab.entries.forEach { t ->
                             if (t == LiveTab.SCHEDULED && !caps.canRecord && timers.isEmpty()) return@forEach
+                            if (t == LiveTab.RECORDINGS && api.server.kind == com.wika.wicaby.core.iptv.Iptv.KIND) return@forEach
                             val label = stringResource(t.label)
                             val badge = if (t == LiveTab.SCHEDULED && conflicts > 0) pluralStringResource(R.plurals.livetv_scheduled_badge_aria, conflicts, conflicts) else null
                             TabPill(
@@ -352,6 +359,7 @@ fun LiveTvScreen(api: Api, top: Dp, onScrolled: (Boolean) -> Unit) {
                             )
                         }
                         TabPill(stringResource(R.string.livetv_manage_title), selected = false, onClick = { showChannelManager(overlay, api, repo) })
+                        if (manage != null) TabPill(stringResource(com.wika.wicaby.core.R.string.iptv_sources), selected = false, onClick = manage)
                     }
                 }
                 when (tab) {

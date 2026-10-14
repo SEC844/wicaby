@@ -22,7 +22,7 @@ const cases = {
 };
 for (const [type, want] of Object.entries(cases)) assert.deepEqual(libraryKind(type), want, type);
 for (const empty of [undefined, null, '']) assert.deepEqual(libraryKind(empty), ['watch', 'trailer'], String(empty));
-assert.deepEqual(GROUPS, ['watch', 'live', 'music', 'photos', 'books', 'files', 'other']);
+assert.deepEqual(GROUPS, ['watch', 'live', 'iptv', 'music', 'photos', 'books', 'files', 'other']);
 
 const lib = (Id, CollectionType, ServerId = 's1') => ({ Id, CollectionType, ServerId });
 // Live TV views are never rows; the playlists view is All Playlists' target when there is music, else an Other row.

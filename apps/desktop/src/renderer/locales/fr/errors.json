@@ -138,5 +138,17 @@
     "tuneTimeout": "La chaîne ne répond pas.",
     "tunerBusy": "Aucun tuner disponible.",
     "noStream": "Ce serveur ne propose aucun flux lisible pour cette chaîne."
+  },
+  "iptv": {
+    "notFound": "Source IPTV introuvable",
+    "notLoaded": "La liste de chaînes n’a pas pu être chargée",
+    "invalidPlaylist": "Indiquez une adresse http(s) de liste M3U, ou choisissez un fichier",
+    "invalidGuide": "Indiquez une adresse http(s) de guide XMLTV, ou choisissez un fichier",
+    "unreachable": "Liste injoignable",
+    "http": "La liste a répondu {status}",
+    "tooBig": "Fichier trop volumineux",
+    "timeout": "La liste met trop de temps à répondre",
+    "empty": "Aucune chaîne lisible dans cette liste",
+    "needsMpv": "Les chaînes IPTV se lisent avec mpv : choisissez mpv comme lecteur"
   }
 }

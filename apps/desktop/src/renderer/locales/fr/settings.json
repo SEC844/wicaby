@@ -766,7 +766,21 @@
       "label": "Journaux",
       "desc": "Utile pour signaler un problème."
     },
-    "trademarks": "DLNA et UPnP sont des marques de leurs propriétaires respectifs ; Wicaby n’est pas certifié."
+    "trademarks": "DLNA et UPnP sont des marques de leurs propriétaires respectifs ; Wicaby n’est pas certifié.",
+    "updates": {
+      "title": "Mises à jour",
+      "check": "Rechercher les mises à jour",
+      "auto": "Vérifier automatiquement les mises à jour",
+      "autoDesc": "Une fois par jour, sur GitHub. Rien n’est téléchargé sans vous.",
+      "status": {
+        "idle": "Pas encore vérifié.",
+        "checking": "Recherche…",
+        "current": "Wicaby est à jour.",
+        "available": "Wicaby {version} est disponible.",
+        "offline": "Hors ligne, vérification impossible.",
+        "error": "Vérification impossible pour le moment."
+      }
+    }
   },
   "torrents": {
     "connection": "Connexion",

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live TV entry without a server tuner, and client-side IPTV (core/iptv), French (the default). Shared by :tv and :mobile. -->
+<resources>
+    <string name="livesetup_title">TV en direct</string>
+    <string name="livesetup_body">La TV en direct vient d’un tuner (HDHomeRun…) ou d’une liste M3U configurés sur votre serveur multimédia : Emby, Jellyfin ou Plex. Aucun de vos serveurs n’en propose pour l’instant.</string>
+    <string name="livesetup_open">Configurer sur %1$s</string>
+    <string name="livesetup_url">Ouvrez cette adresse sur un ordinateur ou un téléphone :</string>
+    <string name="livesetup_iptv">Vous pouvez aussi ajouter une liste IPTV directement dans l’app, dans la section IPTV.</string>
+    <string name="livesetup_go_iptv">Aller à IPTV</string>
+    <string name="iptv_title">IPTV</string>
+    <string name="iptv_add">Ajouter une source IPTV</string>
+    <string name="iptv_empty_body">Ajoutez la liste M3U de votre fournisseur IPTV : les chaînes se lisent directement dans l’app, sans serveur.</string>
+    <string name="iptv_field_name">Nom (facultatif)</string>
+    <string name="iptv_field_url">Adresse de la liste M3U</string>
+    <string name="iptv_field_guide">Adresse du guide XMLTV (facultatif)</string>
+    <string name="iptv_guide_help">Laissé vide, le guide indiqué par la liste (url-tvg) est utilisé.</string>
+    <string name="iptv_private">Les adresses sont enregistrées chiffrées sur cet appareil.</string>
+    <string name="iptv_add_action">Ajouter</string>
+    <string name="iptv_adding">Chargement de la liste…</string>
+    <string name="iptv_error_url">Saisissez une adresse http:// ou https://.</string>
+    <string name="iptv_error_unreachable">La liste ne répond pas. Vérifiez l’adresse.</string>
+    <string name="iptv_error_empty">Aucune chaîne lisible dans cette liste.</string>
+    <string name="iptv_error_too_large">Cette liste est trop volumineuse.</string>
+    <string name="iptv_sources">Sources IPTV</string>
+    <string name="iptv_refresh">Actualiser les listes et le guide</string>
+    <string name="iptv_refreshing">Actualisation…</string>
+    <string name="iptv_refresh_failed">Certaines sources n’ont pas répondu ; les chaînes déjà chargées restent.</string>
+    <string name="iptv_remove">Supprimer</string>
+    <string name="iptv_remove_title">Supprimer « %1$s » ?</string>
+    <string name="iptv_no_dvr">Pas d’enregistrement ni de replay : les chaînes IPTV se regardent en direct.</string>
+    <plurals name="iptv_channels">
+        <item quantity="one">%1$d chaîne</item>
+        <item quantity="many">%1$d chaînes</item>
+        <item quantity="other">%1$d chaînes</item>
+    </plurals>
+</resources>

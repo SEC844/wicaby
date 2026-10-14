@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live TV entry without a server tuner, and client-side IPTV (core/iptv), English. Shared by :tv and :mobile. -->
+<resources>
+    <string name="livesetup_title">Live TV</string>
+    <string name="livesetup_body">Live TV comes from a tuner (HDHomeRun…) or an M3U list set up on your media server: Emby, Jellyfin or Plex. None of your servers offers it yet.</string>
+    <string name="livesetup_open">Set up on %1$s</string>
+    <string name="livesetup_url">Open this address on a computer or a phone:</string>
+    <string name="livesetup_iptv">You can also add an IPTV playlist right in the app, in the IPTV section.</string>
+    <string name="livesetup_go_iptv">Go to IPTV</string>
+    <string name="iptv_title">IPTV</string>
+    <string name="iptv_add">Add an IPTV source</string>
+    <string name="iptv_empty_body">Add the M3U playlist of your IPTV provider: channels play straight in the app, no server needed.</string>
+    <string name="iptv_field_name">Name (optional)</string>
+    <string name="iptv_field_url">M3U playlist address</string>
+    <string name="iptv_field_guide">XMLTV guide address (optional)</string>
+    <string name="iptv_guide_help">Left empty, the guide named by the playlist (url-tvg) is used.</string>
+    <string name="iptv_private">Addresses are stored encrypted on this device.</string>
+    <string name="iptv_add_action">Add</string>
+    <string name="iptv_adding">Loading the playlist…</string>
+    <string name="iptv_error_url">Enter an http:// or https:// address.</string>
+    <string name="iptv_error_unreachable">The playlist does not answer. Check the address.</string>
+    <string name="iptv_error_empty">No playable channel in this playlist.</string>
+    <string name="iptv_error_too_large">This playlist is too large.</string>
+    <string name="iptv_sources">IPTV sources</string>
+    <string name="iptv_refresh">Refresh playlists and guide</string>
+    <string name="iptv_refreshing">Refreshing…</string>
+    <string name="iptv_refresh_failed">Some sources did not answer; the channels already loaded stay.</string>
+    <string name="iptv_remove">Remove</string>
+    <string name="iptv_remove_title">Remove “%1$s”?</string>
+    <string name="iptv_no_dvr">No recording or replay: IPTV channels play live.</string>
+    <plurals name="iptv_channels">
+        <item quantity="one">%1$d channel</item>
+        <item quantity="other">%1$d channels</item>
+    </plurals>
+</resources>

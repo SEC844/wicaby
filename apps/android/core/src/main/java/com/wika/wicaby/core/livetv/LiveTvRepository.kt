@@ -104,7 +104,8 @@ class LiveTvRepository(
     @Volatile private var channelsAt = Long.MIN_VALUE
     @Volatile private var channelsFromServer = false
 
-    private val _caps = MutableStateFlow(defaultCaps(api.kind))
+    // IPTV records nothing (no server between the app and the streams).
+    private val _caps = MutableStateFlow(defaultCaps(api.kind).let { if (api.api.server.kind == com.wika.wicaby.core.iptv.Iptv.KIND) it.copy(canRecord = false) else it })
     val caps: StateFlow<LiveCaps> = _caps.asStateFlow()
 
     private val _timers = MutableStateFlow<List<TimerLite>>(emptyList())

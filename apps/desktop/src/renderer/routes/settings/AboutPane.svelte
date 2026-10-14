@@ -1,15 +1,18 @@
 <script lang="ts">
   import type { Component } from 'svelte';
+  import Toggle from '../../components/Toggle.svelte';
+  import { appUpdate, checkForUpdates } from '../../lib/app-update.svelte';
   import { w } from '../../lib/bridge';
   import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/stores.svelte';
-  import { copy, type SettingsData } from './shared.svelte';
+  import { copy, set, type SettingsData } from './shared.svelte';
 
   // Logo: optional, from the Settings shell's glob.
   let { data, Logo }: { data: SettingsData; Logo?: Component } = $props();
 
   const s = $derived(settings.value);
   const info = $derived(data.info);
+  const upd = $derived(appUpdate.value);
 </script>
 
 {#if s}
@@ -29,6 +32,26 @@
         </div>
       {/each}
     {/if}
+  </div>
+  <h3 class="gh">{t('settings.about.updates.title')}</h3>
+  <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.about.updates.check')}</div>
+        <div class="desc" aria-live="polite">{t(`settings.about.updates.status.${upd?.status ?? 'idle'}`, { version: upd?.update?.version ?? '' })}</div>
+      </div>
+      {#if upd?.update}
+        <button type="button" class="push" onclick={() => w.updates.open('download')}>{t('shell.update.download')}</button>
+      {/if}
+      <button type="button" class="push" disabled={upd?.status === 'checking'} onclick={() => void checkForUpdates()}>{t('settings.about.updates.check')}</button>
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.about.updates.auto')}</div>
+        <div class="desc">{t('settings.about.updates.autoDesc')}</div>
+      </div>
+      <Toggle label={t('settings.about.updates.auto')} checked={s.updates.autoCheck} onchange={(v) => set({ updates: { autoCheck: v } })} />
+    </div>
   </div>
   {#if info}
     <h3 class="gh">{t('settings.about.ids')}</h3>

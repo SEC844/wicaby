@@ -17,6 +17,10 @@
         "title": "Folder or Share",
         "body": "This computer, SMB or WebDAV"
       },
+      "iptv": {
+        "title": "IPTV",
+        "body": "An M3U channel list, no server needed"
+      },
       "photos": {
         "title": "Photos",
         "body": "Immich, or a photo folder"

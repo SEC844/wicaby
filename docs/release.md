@@ -4,14 +4,15 @@ Wicaby uses two GitHub repositories:
 
 | Repository | Visibility | Holds |
 |---|---|---|
-| `WicaebethTheo/wicaby` | private | the code, CI and the release workflow |
+| `WicaebethTheo/wicaby` | public | the code, CI, the release workflow, and today the releases (see below) |
 | `WicaebethTheo/wicaby-releases` | public | release assets only: installers, APKs, `update.json`, and the source archive and licence texts |
 
-The binaries live in a public repo so that the Android apps can download `update.json` and the APKs **without a token**. The update URL for public builds is below. Users enter it under Settings → About → "Update URL", or it becomes the default in `core/data/Prefs.kt`, which is empty (updates off) at the time of writing:
+The binaries live in a public repo so that the Android apps can download `update.json` and the APKs **without a token**. Releases are published today on the public code repo itself, `WicaebethTheo/wicaby`, and the apps read from there:
 
-```
-https://github.com/WicaebethTheo/wicaby-releases/releases/latest/download/update.json
-```
+- **Android**: the default update URL (`UpdateLogic.DEFAULT_URL` in `core/update/Updates.kt`) is `https://github.com/WicaebethTheo/wicaby/releases/latest/download/update.json`. Settings → About → "Update URL" overrides it; an empty field means the default. Without an `update.json` asset on the latest release, the apps find nothing (silently).
+- **Desktop**: `main/features/app-updates.ts` reads `https://api.github.com/repos/WicaebethTheo/wicaby/releases/latest` (`shared/app-update.ts`) about 30 s after start and every 24 h, and shows "Wicaby X.Y.Z is available" with links to the release page and to the installer for this kind of install (`Wicaby-X.Y.Z-x64-setup.exe`, `-x64-portable.exe`, then a Linux `.AppImage` or `.deb` named `Wicaby-…`). It only opens assets under `https://github.com/WicaebethTheo/wicaby/releases/download/<tag>/`, so keep the asset names and the repository. To see the notice in a development build, start it with `WICABY_FAKE_VERSION=0.1.0` (ignored by packaged builds).
+
+If releases move to another repository (for example `wicaby-releases` below), change both defaults.
 
 The release workflow only publishes there once the `RELEASES_REPO` [variable](#variables) and the `RELEASES_TOKEN` [secret](#secrets) are both set. Until then it publishes to the Releases of the private code repo, where the assets need a GitHub login: fine for archiving and testing, but the apps' updater cannot read that `update.json`. See [Where a release goes](#where-a-release-goes).
 
@@ -21,7 +22,6 @@ Before the first public release:
 
 - [ ] Delete the `MAINTAINER NOTE` comments at the top of `CHANGELOG.md`, `SECURITY.md` and `THIRD_PARTY_NOTICES.md` once their items are done.
 - [ ] Turn on private vulnerability reporting on `WicaebethTheo/wicaby-releases` (see the note in `SECURITY.md`).
-- [ ] Make the public `update.json` URL the default in `apps/android/core/src/main/java/com/wika/wicaby/core/data/Prefs.kt` (`updateUrl` is `""` today, so updates stay off until a user types the URL).
 - [ ] Do the [one-time setup](#one-time-setup) below.
 
 ## One-time setup
@@ -237,6 +237,16 @@ Rules:
 - **Never commit** the keystore, `keystore.properties` or `local.properties`. `.gitignore` covers them, but check `git ls-files` before a push. The desktop credential vault (`vault.bin`) lives in the user profile (`%APPDATA%\Wicaby`), never inside the repo.
 - **Back up the keystore and its passwords** outside GitHub. Without the same key, existing installs cannot update, and users must uninstall first, which loses their settings.
 - If `RELEASES_TOKEN` expires, the release job fails at the upload step. Create a new token with the same scope and update the secret.
+
+## Android update manifest for a hand-made release
+
+When the release assets are uploaded by hand to `WicaebethTheo/wicaby` (names `Wicaby-TV-foss-X.Y.Z-{armv7,arm64,universal}.apk`, `Wicaby-Mobile-{foss,gplay}-X.Y.Z-{armv7,arm64}.apk`), put the signed APKs in one folder, `release/<version>/`, and write `update.json` next to them:
+
+```sh
+node tools/release/make-update-manifest.mjs --flat --dir release/0.10.6
+```
+
+Then upload `release/0.10.6/update.json` as a release asset with the APKs (and list it in `SHA256SUMS.txt`). Without a base URL the APK entries are bare file names, which the apps resolve against the manifest URL (`…/releases/latest/download/<file>`). To pin them to the tag, put the tag URL first: `node tools/release/make-update-manifest.mjs https://github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/ --flat --dir release/0.10.6`. Notes come from `release/0.10.6/tv/NOTES.en.txt`-style files when present, or from `--notes-en` / `--notes-fr`. `versionCode` is read with `aapt2` (set `ANDROID_HOME`), else from `build.gradle.kts` when the `versionName` matches.
 
 ## Building a release by hand
 

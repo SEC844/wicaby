@@ -316,5 +316,15 @@
     "startOver": "Start Over",
     "remindMe": "Remind Me",
     "cancelReminder": "Cancel Reminder"
+  },
+  "setup": {
+    "title": "Set up live TV",
+    "body": "Live TV comes from a tuner (HDHomeRun, a TV card…) or an M3U list set up on your media server, in its dashboard. Once added, the channels and the guide show here.",
+    "openAdmin": "Live TV settings on {kind}",
+    "adminOnly": "For server administrators; the page opens in your browser.",
+    "noServer": "No connected server lets you set up live TV from here.",
+    "iptv": "No server or no tuner? Add an IPTV list directly.",
+    "openIptv": "Open IPTV",
+    "addIptv": "Add an IPTV source"
   }
 }

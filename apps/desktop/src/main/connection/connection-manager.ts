@@ -10,6 +10,7 @@ import type { VpnService } from '../vpn';
 import { isLanAddress } from '../../shared/network';
 import { raceWaves, rankConnections, type PlexConnection } from '../../shared/plex/connections';
 import { accountSubtitles } from '../../shared/plex/map';
+import { isLocalSource } from '../../shared/server-caps';
 import { addressCandidates, ApiClient, ApiError, credentialOrigin, probeFirst, probePlexIdentity, routed, tokenAllowed, type ClientIdentity, type ProbeResult } from './api-client';
 import { PlexTv, type PlexHomeUser, type PlexResource } from './plex-account';
 import { PlexClient, type PlexWatchlist } from './plex-client';
@@ -314,7 +315,7 @@ export class ConnectionManager extends EventEmitter {
 
   // Ids of the servers currently signed in (file sources are not servers: see putLocal).
   onlineIds(): string[] {
-    return [...this.conns].filter(([, c]) => c.state.status === 'signed-in' && c.state.server.kind !== 'files').map(([id]) => id);
+    return [...this.conns].filter(([, c]) => c.state.status === 'signed-in' && !isLocalSource(c.state.server.kind)).map(([id]) => id);
   }
 
   // A file source (files/sources.ts): a session of its own, always signed in as the local user, never
@@ -328,7 +329,7 @@ export class ConnectionManager extends EventEmitter {
   }
 
   dropLocal(id: string): void {
-    if (this.conns.get(id)?.state.server.kind !== 'files') return;
+    if (!isLocalSource(this.conns.get(id)?.state.server.kind)) return;
     this.conns.delete(id);
     this.publish();
   }
@@ -716,7 +717,7 @@ export class ConnectionManager extends EventEmitter {
   // up (alone, it stays signed in, as before). Its socket coming back restores it.
   async reportFailure(serverId: string): Promise<void> {
     const conn = this.conns.get(serverId);
-    if (conn?.state.status !== 'signed-in' || !conn.client || conn.state.server.kind === 'files' || this.onlineIds().length < 2) return;
+    if (conn?.state.status !== 'signed-in' || !conn.client || isLocalSource(conn.state.server.kind) || this.onlineIds().length < 2) return;
     if (await this.probeAt(conn.state.server.kind, conn.client.address).then(() => true, () => false)) return;
     if (this.conns.get(serverId) !== conn || conn.state.status !== 'signed-in') return;
     log.warn(`${conn.state.server.name} stopped answering`);
@@ -811,7 +812,7 @@ export class ConnectionManager extends EventEmitter {
   // One server (its session closes, the others stay), or all of them.
   disconnect(serverId?: string): SessionState {
     // "Every session" means the servers: file sources stay.
-    const ids = serverId ? [serverId] : [...this.conns].filter(([, c]) => c.state.server.kind !== 'files').map(([id]) => id);
+    const ids = serverId ? [serverId] : [...this.conns].filter(([, c]) => !isLocalSource(c.state.server.kind)).map(([id]) => id);
     for (const id of ids) this.close(id);
     this.store.update((doc) => {
       doc.activeIds = serverId ? (doc.activeIds ?? (doc.activeId ? [doc.activeId] : [])).filter((x) => x !== serverId) : [];
@@ -857,7 +858,7 @@ export class ConnectionManager extends EventEmitter {
     const rank = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length);
     const all = [...this.conns.values()].map((c) => this.live(c)).sort((a, b) => rank(a.server.id) - rank(b.server.id));
     // The aggregate follows the servers; file sources alone count only when there is no server session.
-    const servers = all.filter((s) => s.server.kind !== 'files');
+    const servers = all.filter((s) => !isLocalSource(s.server.kind));
     const basis = servers.length ? servers : all;
     const reached = (st: SessionStatus) => basis.some((s) => s.status === st);
     const status: SessionStatus =

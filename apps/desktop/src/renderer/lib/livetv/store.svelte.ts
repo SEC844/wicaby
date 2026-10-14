@@ -87,7 +87,7 @@ class VisibilityGate {
     document.addEventListener('visibilitychange', update);
     window.addEventListener('focus', update);
     window.addEventListener('blur', update);
-    const route = (): void => this.setSource('route', /^#\/livetv(?:[/?]|$)/.test(location.hash));
+    const route = (): void => this.setSource('route', /^#\/(?:livetv|iptv)(?:[/?]|$)/.test(location.hash));
     window.addEventListener('hashchange', route);
     route();
     this.was = { visible: this.visible, open: this.open };
@@ -897,9 +897,10 @@ const stores = new Map<string, LiveTvStore>();
 export function storeFor(serverId: string | undefined): LiveTvStore | null {
   const s = sessionFor(serverId);
   const uid = s?.user?.id;
-  // A file source has no Live TV (server-caps.ts liveTv: false).
-  const kind = s?.server.kind;
-  if (!s || !uid || !kind || kind === 'files') return null;
+  // A file source has no Live TV (server-caps.ts liveTv: false). An IPTV source speaks the Emby dialect (main/iptv).
+  const sk = s?.server.kind;
+  if (!s || !uid || !sk || sk === 'files') return null;
+  const kind = sk === 'iptv' ? 'emby' : sk;
   const scope = `${s.server.id}:${uid}`;
   let store = stores.get(scope);
   if (!store) {
@@ -907,6 +908,8 @@ export function storeFor(serverId: string | undefined): LiveTvStore | null {
     // would be owned by that component's effect and go stale once it unmounts.
     $effect.root(() => {
       store = new LiveTvStore(s.server.id, uid, kind);
+      // No recording on IPTV (V1): the record actions stay hidden from the start.
+      if (sk === 'iptv') store.dvr.canRecord = false;
     });
     stores.set(scope, store!);
     wire();

@@ -1,16 +1,19 @@
 // Writes release/update.json, the manifest the Android apps read for sideloaded updates
 // (core/update/Updates.kt). For each app it takes the newest Wicaby-<App>-<version>-<abi>.apk in
-// release/tv, release/mobile and release/mobile-gplay (abi = armv7, arm64 or universal), hashes it
-// and lists it.
-// Mobile flavours (cast spec CA-10): "mobile" is foss (Wicaby-Mobile-*.apk, the key installed 0.2.0
-// builds read), "mobile-gplay" is gplay (Wicaby-Mobile-Cast-*.apk). Both share applicationId and
-// versionCode, so each build reads only its own key and never updates into the other flavour.
+// release/tv, release/mobile and release/mobile-gplay, or in the release folder itself (abi = armv7,
+// arm64 or universal), hashes it and lists it. Both namings are read: the GitHub release assets
+// (Wicaby-TV-foss-*, Wicaby-Mobile-foss-*, Wicaby-Mobile-gplay-*) and release.yml's (Wicaby-TV-*,
+// Wicaby-Mobile-*, Wicaby-Mobile-Cast-*).
+// Mobile flavours (cast spec CA-10): "mobile" is foss (the key installed 0.2.0 builds read),
+// "mobile-gplay" is gplay. Both share applicationId and versionCode, so each build reads only its
+// own key and never updates into the other flavour.
 //
-//   node tools/release/make-update-manifest.mjs <base-url> [--flat] [--notes-fr "…"] [--notes-en "…"] [--dir <release dir>]
+//   node tools/release/make-update-manifest.mjs [<base-url>] [--flat] [--notes-fr "…"] [--notes-en "…"] [--dir <release dir>]
 //
 // <base-url> is where release/ is served, e.g. https://example.org/wicaby/ or a GitHub Releases
-// download URL; APK URLs are written as <base-url>tv/<file>. Without it they stay relative
-// (tv/<file>), which the apps resolve against the manifest's own URL.
+// download URL; APK URLs are written as <base-url>tv/<file>. Without it they stay relative (tv/<file>;
+// <file> with --flat or for an APK in the release folder itself), which the apps resolve against the
+// manifest's own URL: …/releases/latest/download/update.json -> …/releases/latest/download/<file>.
 // Notes: --notes-fr / --notes-en apply to both apps; release/<app>/NOTES.fr.txt and NOTES.en.txt
 // override them per app; otherwise the notes already in update.json are kept for the same version.
 // versionCode comes from `aapt2 dump badging` (ANDROID_HOME build-tools), else from
@@ -39,10 +42,11 @@ let base = args[0] ?? '';
 if (base && !base.endsWith('/')) base += '/';
 
 const ABIS = { armv7: 'armeabi-v7a', arm64: 'arm64-v8a', universal: 'universal' };
+// label: the name part after "Wicaby-": the GitHub release asset name, then release.yml's.
 const APPS = {
-  tv: { label: 'TV', module: 'tv' },
-  mobile: { label: 'Mobile', module: 'mobile' },
-  'mobile-gplay': { label: 'Mobile-Cast', module: 'mobile' },
+  tv: { label: 'TV-foss|TV', module: 'tv' },
+  mobile: { label: 'Mobile-foss|Mobile', module: 'mobile' },
+  'mobile-gplay': { label: 'Mobile-gplay|Mobile-Cast', module: 'mobile' },
 };
 
 const cmp = (a, b) => {
@@ -87,17 +91,20 @@ const manifest = {};
 
 for (const [app, { label }] of Object.entries(APPS)) {
   const dir = path.join(release, app);
-  if (!fs.existsSync(dir)) continue;
-  const re = new RegExp(`^Wicaby-${label}-(\\d+(?:\\.\\d+)*)-(armv7|arm64|universal)\\.apk$`, 'i');
-  const found = fs.readdirSync(dir).map((f) => [f, re.exec(f)]).filter(([, m]) => m);
+  const re = new RegExp(`^Wicaby-(?:${label})-(\\d+(?:\\.\\d+)*)-(armv7|arm64|universal)\\.apk$`, 'i');
+  // [folder, URL prefix]: release/<app>/ (flat or not), then the release folder itself (GitHub assets as downloaded).
+  const found = [[dir, flat ? '' : `${app}/`], [release, '']]
+    .filter(([d]) => fs.existsSync(d))
+    .flatMap(([d, prefix]) => fs.readdirSync(d).map((f) => [f, re.exec(f), d, prefix]))
+    .filter(([, m]) => m);
   if (!found.length) continue;
   const newest = found.map(([, m]) => m[1]).sort(cmp).at(-1);
   const apks = {};
   let code = 0;
-  for (const [file, m] of found.filter(([, m]) => m[1] === newest)) {
-    const full = path.join(dir, file);
+  for (const [file, m, d, prefix] of found.filter(([, m]) => m[1] === newest)) {
+    const full = path.join(d, file);
     code ||= versionCode(full, app, newest);
-    apks[ABIS[m[2].toLowerCase()]] = { url: `${base}${flat ? '' : `${app}/`}${encodeURIComponent(file)}`, sha256: sha256(full) };
+    apks[ABIS[m[2].toLowerCase()]] = { url: `${base}${prefix}${encodeURIComponent(file)}`, sha256: sha256(full) };
   }
   const read = (lang) => {
     for (const ext of ['txt', 'md']) {
@@ -117,7 +124,7 @@ for (const [app, { label }] of Object.entries(APPS)) {
 }
 
 if (!Object.keys(manifest).length) {
-  console.error('No Wicaby-*-{armv7,arm64,universal}.apk in release/tv, release/mobile or release/mobile-gplay');
+  console.error(`No Wicaby-*-{armv7,arm64,universal}.apk in ${release} or its tv, mobile and mobile-gplay folders`);
   process.exit(1);
 }
 fs.writeFileSync(outFile, JSON.stringify(manifest, null, 2) + '\n');

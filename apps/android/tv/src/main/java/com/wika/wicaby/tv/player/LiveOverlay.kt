@@ -829,7 +829,8 @@ class LiveControl(
 /** The player's live controller; null outside live or without a server. */
 @Composable
 fun rememberLiveControl(pb: Playback, player: Player, root: FocusRequester, onTracks: () -> Unit, onAspect: () -> Unit, onExit: () -> Unit, onQuality: () -> Unit = {}): LiveControl? {
-    val api = Wicaby.app.api ?: return null
+    // The playing channel's source: the signed-in server, or IPTV (core/iptv).
+    val api = pb.api.takeIf { Wicaby.app.api != null } ?: return null
     val context = LocalContext.current
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
@@ -857,7 +858,7 @@ private val digitStyle = Type.mono.copy(fontSize = 28.sp, lineHeight = 34.sp)
 @Composable
 fun LiveOverlay(ctl: LiveControl, buffering: Boolean, aspect: Aspect) {
     val s = ctl.pb.liveState ?: return
-    val api = Wicaby.app.api ?: return
+    val api = ctl.pb.api.takeIf { Wicaby.app.api != null } ?: return
     val repo = ctl.repo
     val context = LocalContext.current
     val view = LocalView.current
@@ -1096,7 +1097,7 @@ private fun ProgramLine(label: String, p: ProgramLite?, now: Long, recording: Bo
 /** Second INFO (§8.5): overview, the next 3 programmes and the actions (←/→, OK). */
 @Composable
 private fun DetailPanel(ctl: LiveControl, p: ProgramLite, after: List<ProgramLite>) {
-    val overview by produceState<String?>(null, p.id) { value = runCatching { Wicaby.app.api?.item(p.id)?.overview }.getOrNull() }
+    val overview by produceState<String?>(null, p.id) { value = runCatching { ctl.pb.api.item(p.id).overview }.getOrNull() }
     Column(Modifier.padding(top = 14.dp)) {
         overview?.let { Text(it, style = Type.body, color = C.label2, maxLines = 3, overflow = TextOverflow.Ellipsis) }
         after.forEach { n ->

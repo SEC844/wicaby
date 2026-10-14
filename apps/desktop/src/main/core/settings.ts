@@ -115,6 +115,7 @@ export function defaultSettings(): StoredSettings {
     trakt: { offServers: [] },
     remote: { allowControl: true },
     cast: { discovery: true, relay: true, allowHevc: false, dolby: false },
+    updates: { autoCheck: true },
     window: {},
     windows: { closeToTray: false, launchAtStartup: false, trayHintShown: false, notifyDownloads: true, notifyNewEpisodes: true, notifyAdmin: true },
     live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
@@ -414,6 +415,8 @@ function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
     .map(({ category, serverId, libraryId, libraryName }) => ({ category, serverId, libraryId, libraryName }));
   s.trakt = { offServers: ids(s.trakt?.offServers) };
   s.remote = { allowControl: s.remote?.allowControl !== false };
+  // Files from before 0.10.6 have no section: merge() fills the default (on).
+  s.updates = { autoCheck: s.updates?.autoCheck !== false };
   s.cast = { discovery: s.cast?.discovery !== false, relay: s.cast?.relay !== false, allowHevc: s.cast?.allowHevc === true, dolby: s.cast?.dolby === true };
   const m = s.photos?.map;
   s.photos = {

@@ -17,6 +17,10 @@
         "title": "Dossier ou partage",
         "body": "Cet ordinateur, SMB ou WebDAV"
       },
+      "iptv": {
+        "title": "IPTV",
+        "body": "Une liste de chaînes M3U, sans serveur"
+      },
       "photos": {
         "title": "Photos",
         "body": "Immich, ou un dossier de photos"

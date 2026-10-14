@@ -1,0 +1,30 @@
+﻿#EXTM3U url-tvg="http://guide.example/a.xml.gz,http://guide.example/b.xml" x-tvg-url="http://guide.example/b.xml" tvg-shift="0"
+#EXTINF:-1 tvg-id="news.fr" tvg-name="News FR" tvg-logo="http://logo.example/news.png" group-title="Infos" tvg-chno="5",News, the channel
+http://stream.example/live/news.m3u8
+#EXTINF:-1 tvg-id="news.fr" tvg-name="News FR HD" group-title="Infos" tvg-chno="5.1",News HD
+http://stream.example/live/news-hd.m3u8
+#EXTINF:-1 group-title="Sport;Live" catchup="default" catchup-days="7" tvg-chno="12",Sport "Plus"
+#EXTVLCOPT:http-user-agent=WicabyTest/1.0 (iptv)
+#EXTVLCOPT:http-referrer=http://ref.example/
+http://stream.example/sport.ts
+#EXTINF:-1,Bare channel
+https://stream.example/bare/index.m3u8?token=abc
+#EXTINF:-1 tvg-id='kids.fr' tvg-logo=http://logo.example/kids.png group-title=Jeunesse,Kids
+#EXTGRP:Ignored group
+http://stream.example/kids.ts
+#EXTINF:-1 tvg-name="Radio Une" radio="true" group-title="Radio",
+http://stream.example/radio1.aac
+#EXTINF:-1 group-title="Infos",Broken entry without URL
+#EXTINF:-1 group-title="Infos",UDP is skipped
+udp://@239.0.0.1:1234
+rtmp://stream.example/app/stream
+not a url at all
+#EXTGRP:Movies
+http://stream.example/movies/feature.m3u8
+#EXTINF:-1 tvg-id="dup" group-title="Infos",Twice
+http://stream.example/twice-a.ts
+#EXTINF:-1 tvg-id="dup" group-title="Infos",Twice
+http://stream.example/twice-b.ts
+#EXTINF:-1 tvg-logo="data:image/png;base64,iVBORw0KGgo=" group-title="Jeunesse" tvg-chno="abc",Data logo
+http://stream.example/data.ts
+#EXTINF:-1 group-title="Infos",Dangling at the end

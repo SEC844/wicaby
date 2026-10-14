@@ -1,0 +1,112 @@
+{
+ "edge.m3u": {
+  "guides": [
+   "http://guide.example/a.xml.gz",
+   "http://guide.example/b.xml"
+  ],
+  "channels": [
+   {
+    "id": "c02b1af8e83cd43b",
+    "name": "News, the channel",
+    "url": "http://stream.example/live/news.m3u8",
+    "number": "5",
+    "tvgId": "news.fr",
+    "tvgName": "News FR",
+    "logo": "http://logo.example/news.png",
+    "group": "Infos"
+   },
+   {
+    "id": "010f8c7c1276fbfc",
+    "name": "News HD",
+    "url": "http://stream.example/live/news-hd.m3u8",
+    "number": "5.1",
+    "tvgId": "news.fr",
+    "tvgName": "News FR HD",
+    "group": "Infos"
+   },
+   {
+    "id": "5549781fd8bd639d",
+    "name": "Sport \"Plus\"",
+    "url": "http://stream.example/sport.ts",
+    "number": "12",
+    "group": "Sport",
+    "userAgent": "WicabyTest/1.0 (iptv)",
+    "referrer": "http://ref.example/"
+   },
+   {
+    "id": "eb2886a422500761",
+    "name": "Bare channel",
+    "url": "https://stream.example/bare/index.m3u8?token=abc",
+    "number": ""
+   },
+   {
+    "id": "df89319f15fe083d",
+    "name": "Kids",
+    "url": "http://stream.example/kids.ts",
+    "number": "",
+    "tvgId": "kids.fr",
+    "logo": "http://logo.example/kids.png",
+    "group": "Jeunesse"
+   },
+   {
+    "id": "5991e13b6a45a1c7",
+    "name": "Radio Une",
+    "url": "http://stream.example/radio1.aac",
+    "number": "",
+    "tvgName": "Radio Une",
+    "group": "Radio",
+    "radio": true
+   },
+   {
+    "id": "d5d10938ecfb520b",
+    "name": "feature",
+    "url": "http://stream.example/movies/feature.m3u8",
+    "number": "",
+    "group": "Movies"
+   },
+   {
+    "id": "569c51df1d535714",
+    "name": "Twice",
+    "url": "http://stream.example/twice-a.ts",
+    "number": "",
+    "tvgId": "dup",
+    "group": "Infos"
+   },
+   {
+    "id": "569c51df1d535714-2",
+    "name": "Twice",
+    "url": "http://stream.example/twice-b.ts",
+    "number": "",
+    "tvgId": "dup",
+    "group": "Infos"
+   },
+   {
+    "id": "08c6611416c5050a",
+    "name": "Data logo",
+    "url": "http://stream.example/data.ts",
+    "number": "",
+    "logo": "data:image/png;base64,iVBORw0KGgo=",
+    "group": "Jeunesse"
+   }
+  ],
+  "skipped": 5
+ },
+ "plain.m3u": {
+  "guides": [],
+  "channels": [
+   {
+    "id": "355f0489cd17b9a9",
+    "name": "First",
+    "url": "http://a.example/1.ts",
+    "number": "1"
+   },
+   {
+    "id": "b9554e0dbbea04df",
+    "name": "Second",
+    "url": "http://a.example/2.ts",
+    "number": "2"
+   }
+  ],
+  "skipped": 0
+ }
+}

@@ -68,6 +68,8 @@ object Core {
             .addNetworkInterceptor(ServerAuthInterceptor({ transport }, { com.wika.wicaby.core.data.Servers.extra }) { api })
             // Immich photo source (photos spec PH-13): x-api-key for its own origin only, dropped on any other hop.
             .addNetworkInterceptor(com.wika.wicaby.core.photos.ImmichKeyInterceptor({ transport }) { com.wika.wicaby.core.photos.Immich.source })
+            // IPTV: the playing channel's EXTVLCOPT User-Agent and Referer, on its stream host only.
+            .addNetworkInterceptor(com.wika.wicaby.core.iptv.IptvHeaders)
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
