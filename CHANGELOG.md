@@ -18,6 +18,20 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.8] - 2026-10-15
+
+Smooth Playback off by default, an Android 6 fix for IPTV. Windows and Linux desktop **0.10.8**, Android TV app
+**0.10.8** (`versionCode` 29), Android mobile app **0.10.8** (`versionCode` 26).
+
+### Changed
+
+- Desktop: Smooth Playback is off by default (it was on in 0.10.7, and is turned off once on update); turn it on in
+  Settings → Playback if mpv drops a frame now and then.
+
+### Fixed
+
+- Android TV on Android 6: the IPTV screens no longer crash (a set type that needs Android 7).
+
 ## [0.10.7] - 2026-10-15
 
 History on Emby, Smooth Playback and pages centred on wide windows. Windows and Linux desktop **0.10.7**, Android TV

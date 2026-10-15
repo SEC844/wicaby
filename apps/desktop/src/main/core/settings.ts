@@ -67,7 +67,7 @@ export function defaultSettings(): StoredSettings {
       hdrPassthrough: true,
       hdrAutoSwitch: false,
       matchRefreshRate: false,
-      smoothMotion: true,
+      smoothMotion: false,
       audioExclusive: false,
       spdif: [],
       maxBitrateMbps: 120,
@@ -122,7 +122,7 @@ export function defaultSettings(): StoredSettings {
     live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
     photos: { map: { enabled: false, tileUrl: OSM_TILES, attribution: '© OpenStreetMap contributors' } },
     music: { replayGain: 'album', preampDb: 0, fallbackDb: -6, preventClipping: true, gapless: true, resumeQueue: true, lyricsProvider: 'server', eq: { bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], preampDb: 0 } },
-    defaultsVersion: 1,
+    defaultsVersion: 2,
   };
 }
 
@@ -130,7 +130,10 @@ export function defaultSettings(): StoredSettings {
 // French audio and subtitles (B04) become the server's preference, and the per-series subtitle delay
 // (B26) becomes off when no remember scope was touched. Values the user picked stay.
 function migrateDefaults(stored: DeepPartial<StoredSettings>, next: StoredSettings): void {
-  if (typeof stored.defaultsVersion === 'number' && stored.defaultsVersion >= 1) return;
+  const version = typeof stored.defaultsVersion === 'number' ? stored.defaultsVersion : 0;
+  // Version 2 (0.10.8): Smooth Playback shipped on in 0.10.7 and every file written then holds it; it is off now.
+  if (version < 2 && stored.playback?.smoothMotion === true) next.playback.smoothMotion = false;
+  if (version >= 1) return;
   const p = stored.playback;
   if (p?.preferredAudioLanguage === 'fre' && p.preferredSubtitleLanguage === 'fre') {
     next.playback.preferredAudioLanguage = '';
@@ -182,7 +185,7 @@ export class SettingsService extends EventEmitter {
     migrateDefaults(stored, next);
     // Onboarding spec 4: a file written before the wizard existed is an install that is already set up.
     if (stored.ui && typeof stored.ui === 'object' && !('onboarded' in stored.ui)) next.ui.onboarded = true;
-    next.defaultsVersion = 1;
+    next.defaultsVersion = 2;
     this.store.set(sanitize(next));
   }
 

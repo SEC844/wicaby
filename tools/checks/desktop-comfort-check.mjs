@@ -50,7 +50,8 @@ const d = defaultSettings();
 assert.equal(d.playback.preferredAudioLanguage, '', 'default audio language: the server preference');
 assert.equal(d.playback.preferredSubtitleLanguage, '', 'default subtitle language: the server preference');
 assert.equal(d.playback.rememberScopes.subtitleDelay, 'off', 'B26: subtitle delay not remembered by default');
-assert.equal(d.defaultsVersion, 1);
+assert.equal(d.defaultsVersion, 2);
+assert.equal(d.playback.smoothMotion, false, 'Smooth Playback off by default');
 
 const OLD_SCOPES = { speed: 'global', audioDelay: 'title', subtitleDelay: 'title', aspect: 'title' };
 let n = 0;
@@ -69,7 +70,7 @@ assert.equal(r.v.playback.preferredAudioLanguage, '');
 assert.equal(r.v.playback.preferredSubtitleLanguage, '');
 assert.equal(r.v.playback.subtitleMode, 'foreign');
 assert.equal(r.v.playback.rememberScopes.subtitleDelay, 'off');
-assert.equal(r.saved.defaultsVersion, 1);
+assert.equal(r.saved.defaultsVersion, 2);
 // Values the user picked stay.
 r = load({ playback: { preferredAudioLanguage: 'eng', preferredSubtitleLanguage: 'fre', rememberScopes: { ...OLD_SCOPES, speed: 'title' } } });
 assert.equal(r.v.playback.preferredAudioLanguage, 'eng');
@@ -79,6 +80,11 @@ assert.equal(r.v.playback.rememberScopes.subtitleDelay, 'title', 'a touched scop
 r = load({ defaultsVersion: 1, playback: { preferredAudioLanguage: 'fre', preferredSubtitleLanguage: 'fre', rememberScopes: OLD_SCOPES } });
 assert.equal(r.v.playback.preferredAudioLanguage, 'fre');
 assert.equal(r.v.playback.rememberScopes.subtitleDelay, 'title');
+// Version 2: the 0.10.7 files hold Smooth Playback on (its default then): turned off once, then the user's.
+r = load({ defaultsVersion: 1, playback: { smoothMotion: true } });
+assert.equal(r.v.playback.smoothMotion, false);
+r = load({ defaultsVersion: 2, playback: { smoothMotion: true } });
+assert.equal(r.v.playback.smoothMotion, true);
 
 // ---- B04 track selection with the server preference ----
 const a = (Index, Language, extra = {}) => ({ Index, Type: 'Audio', Language, ...extra });
