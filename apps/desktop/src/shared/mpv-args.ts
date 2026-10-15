@@ -154,7 +154,7 @@ export function mpvAtLeast(version: string | null, minor: number): boolean {
 // Renderer, decoder, colour and audio-output arguments for this platform. Windows ships its
 // own recent mpv (vendor/mpv): its arguments never depend on the version. Elsewhere the
 // system mpv may be older, so newer options are dropped below the release that added them.
-export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExclusive: boolean }, platform: string, version: string | null): string[] {
+export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExclusive: boolean; smoothMotion?: boolean }, platform: string, version: string | null): string[] {
   const win = platform === 'win32';
   const has = (minor: number) => win || mpvAtLeast(version, minor);
   const hwdec = win
@@ -185,6 +185,10 @@ export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExc
           ...(has(36) ? ['--hdr-contrast-recovery=0.30'] : []),
           '--gamut-mapping-mode=perceptual',
         ]),
+    // Smooth playback: with the default video-sync=audio, the small drift between the sound card's and the display's
+    // clocks makes mpv drop a frame every minute or so; display-resample times frames to the display and resamples
+    // the audio instead (mpv falls back to audio sync by itself for bitstreams). mpv.conf, read after, still wins.
+    ...(p.smoothMotion ? ['--video-sync=display-resample'] : []),
     win ? '--ao=wasapi' : '--ao=pipewire,pulse,alsa',
     `--audio-exclusive=${p.audioExclusive ? 'yes' : 'no'}`,
     // B06: DVR recordings, DVD rips and 1080i TS direct-play interlaced; auto only filters interlaced frames.

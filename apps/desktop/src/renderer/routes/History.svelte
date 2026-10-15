@@ -25,14 +25,13 @@
   onMount(scrollMemory);
 
   async function load(): Promise<void> {
-    // Emby and Jellyfin both sort on the user's last play date; never-played items come last and are dropped.
+    // Played and in-progress items, newest play first. Emby can sort never-played items before played ones on
+    // DatePlayed, so an unfiltered query may hold no history at all: the server filters, two queries per server.
+    const query = { Recursive: true, IncludeItemTypes: 'Movie,Episode', SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 200, Fields: `${LIST_FIELDS},Genres` };
     const found = await fanOut((a) =>
-      a.items({ Recursive: true, IncludeItemTypes: 'Movie,Episode', SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 200, Fields: `${LIST_FIELDS},Genres` }),
+      Promise.all([a.items({ ...query, Filters: 'IsPlayed' }), a.items({ ...query, Filters: 'IsResumable' })]).then(([p, r]) => [...(p.Items ?? []), ...(r.Items ?? [])]),
     );
-    const list = merge(
-      found.map((r) => r?.Items),
-      true,
-    );
+    const list = merge(found, true);
     // Episodes rarely carry genres: one lookup of their series per server.
     const missing = new Map<string, Set<string>>();
     for (const i of list) {

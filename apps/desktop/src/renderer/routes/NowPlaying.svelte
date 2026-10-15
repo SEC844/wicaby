@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { fade } from 'svelte/transition';
   import { audioBadge } from '../../shared/music-ui';
   import Icon from '../components/Icon.svelte';
@@ -54,13 +55,16 @@
 
   // The quality badge (C6): codec, bit depth / sample rate, bitrate, from the track's audio stream.
   let badge = $state('');
+  // Keyed on the ids: playback.value (and so `it`) is a new object on every position update.
+  const curId = $derived(it?.id);
+  const curServer = $derived(it?.serverId);
   $effect(() => {
-    const cur = it;
+    const id = curId;
+    const sid = curServer;
     badge = '';
-    if (!cur?.id) return;
+    if (!id) return;
     let live = true;
-    apiFor(cur.serverId)
-      .item(cur.id)
+    untrack(() => apiFor(sid).item(id))
       .then((full) => {
         const streams = full.MediaSources?.[0]?.MediaStreams ?? full.MediaStreams ?? [];
         if (live) badge = audioBadge(streams.find((x) => x.Type === 'Audio'), (n) => fmt.number(n));

@@ -72,10 +72,10 @@
     </div>
     <div class="row">
       <div class="txt">
-        <div class="lbl">{t('settings.general.updates.label')} <span class="tag">{t('common.status.soon')}</span></div>
-        <div class="desc">{t('settings.general.updates.desc')}</div>
+        <div class="lbl">{t('settings.about.updates.auto')}</div>
+        <div class="desc">{t('settings.about.updates.autoDesc')}</div>
       </div>
-      <Toggle label={t('settings.general.updates.label')} checked={false} disabled onchange={() => undefined} />
+      <Toggle label={t('settings.about.updates.auto')} checked={s.updates.autoCheck} onchange={(v) => set({ updates: { autoCheck: v } })} />
     </div>
   </div>
 
@@ -193,16 +193,6 @@
   }
   :global(.searching) .row:not([hidden]) ~ .row:not([hidden])::before {
     display: block;
-  }
-
-  /* ---- New controls ---- */
-  .tag {
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--fill-2);
-    font-size: var(--fs-caption);
-    font-weight: 500;
-    color: var(--label-2);
   }
 
   /* Compact density tightens these rows as well. */

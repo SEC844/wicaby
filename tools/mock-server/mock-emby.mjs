@@ -1068,6 +1068,7 @@ export async function handler(req, res) {
       if (q.get('Filters')?.includes('IsFavorite')) arr = arr.filter((x) => ud(x.Id).IsFavorite);
       if (q.get('Filters')?.includes('IsUnplayed')) arr = arr.filter((x) => !ud(x.Id).Played);
       if (q.get('Filters')?.includes('IsPlayed')) arr = arr.filter((x) => ud(x.Id).Played);
+      if (q.get('Filters')?.includes('IsResumable')) arr = arr.filter((x) => (ud(x.Id).PlaybackPositionTicks ?? 0) > 0 && !ud(x.Id).Played);
       // Premiere date bounds, compared on the wall-clock fields as the servers store an EXIF date (photos "on this day").
       const wall = (v) => String(v ?? '').slice(0, 19);
       if (q.get('MinPremiereDate')) arr = arr.filter((x) => x.PremiereDate && wall(x.PremiereDate) >= wall(q.get('MinPremiereDate')));
@@ -1087,8 +1088,9 @@ export async function handler(req, res) {
       if (dateKey) arr.sort((a, b) => (a[dateKey] ?? '') < (b[dateKey] ?? '') ? -1 : (a[dateKey] ?? '') > (b[dateKey] ?? '') ? 1 : a.Name < b.Name ? -1 : a.Name > b.Name ? 1 : 0);
       if (sort.startsWith('ProductionYear')) arr.sort((a, b) => (a.ProductionYear ?? 0) - (b.ProductionYear ?? 0));
       if (sort.startsWith('CommunityRating')) arr.sort((a, b) => (a.CommunityRating ?? 0) - (b.CommunityRating ?? 0));
-      // Never played sorts as the oldest date, as on both servers.
-      if (sort.startsWith('DatePlayed')) arr.sort((a, b) => (Date.parse(ud(a.Id).LastPlayedDate ?? '') || 0) - (Date.parse(ud(b.Id).LastPlayedDate ?? '') || 0));
+      // Never played sorts as the NEWEST date, as a real Emby 4.10 answered (History showed nothing): only a
+      // Filters=IsPlayed / IsResumable query is guaranteed to list played items first.
+      if (sort.startsWith('DatePlayed')) arr.sort((a, b) => (Date.parse(ud(a.Id).LastPlayedDate ?? '') || Infinity) - (Date.parse(ud(b.Id).LastPlayedDate ?? '') || Infinity));
       if (q.get('SortOrder') === 'Descending') arr.reverse();
       return send(res, 200, list(arr, q));
     }
@@ -1109,5 +1111,6 @@ if (process.argv[1] && path.resolve(process.argv[1]).toLowerCase() === fileURLTo
     if (!session) return sock.end('HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n');
     store.attach(req, sock, session);
   });
-  server.listen(PORT, () => console.log(`Mock Emby on http://127.0.0.1:${PORT} (user Wika / wicaby)${VIDEO ? `, video ${VIDEO}` : ''}`));
+  // Loopback only (MOCK_HOST widens it): a mock reachable from the LAN would show up in real clients.
+  server.listen(PORT, process.env.MOCK_HOST || '127.0.0.1', () => console.log(`Mock Emby on http://127.0.0.1:${PORT} (user Wika / wicaby)${VIDEO ? `, video ${VIDEO}` : ''}`));
 }

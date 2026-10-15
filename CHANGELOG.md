@@ -18,6 +18,28 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-10-15
+
+History on Emby, Smooth Playback and pages centred on wide windows. Windows and Linux desktop **0.10.7**, Android TV
+app **0.10.7** (`versionCode` 28), Android mobile app **0.10.7** (`versionCode` 25).
+
+### Added
+
+- Desktop: **Smooth Playback** in Settings → Playback, on by default. mpv times frames to the display
+  (`video-sync=display-resample`) instead of dropping one now and then to follow the sound card's clock; an ⓘ next to
+  it explains why.
+- Desktop: a GitHub link next to the avatar in the title bar. When a new version is out it becomes an **Update**
+  button that downloads it.
+
+### Fixed
+
+- History on Emby showed nothing: Emby can sort never-played items first on the last-played date, so Wicaby now asks
+  for played and in-progress items (desktop, Android TV and mobile).
+- Desktop full-screen player: the Similar tab no longer reloads with new songs while it is open, and the quality
+  badge loads once per track instead of on every position update.
+- Desktop: Settings, Administration and the Live TV setup page are centred on wide windows instead of hugging the
+  left edge; the update check switch in Settings → General works (it said "Coming Soon").
+
 ## [0.10.6] - 2026-10-14
 
 IPTV, Live TV always in the sidebar, and update notices. Windows and Linux desktop **0.10.6**, Android TV app
@@ -49,8 +71,6 @@ IPTV, Live TV always in the sidebar, and update notices. Windows and Linux deskt
   Sources are added with the TV's text fields or the phone's form, and use the existing channel list, guide grid,
   group lenses, favourites, number zapping and live player (HLS or MPEG-TS, with the list's user agent and referrer).
   Addresses and the cached list are kept in the app's encrypted vault.
-- Developer tools: an IPTV mock provider (`tools/mock-server/mock-iptv.mjs`: 10 channels in 3 groups, an XMLTV guide,
-  silent test-pattern streams) and `tools/checks/iptv-check.mjs` for the M3U and XMLTV parsers.
 
 ### Changed
 

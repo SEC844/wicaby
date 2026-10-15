@@ -20,10 +20,6 @@
       "favorites": "Favorites",
       "missing": "Library Not Found"
     },
-    "updates": {
-      "label": "Check for Updates",
-      "desc": "Will check for a new version at startup."
-    },
     "player": "Player",
     "startFullscreen": {
       "label": "Start in Full Screen",
@@ -397,6 +393,11 @@
     "hdrAuto": {
       "label": "Turn On Windows HDR Automatically",
       "desc": "Turns on Windows HDR when an HDR or Dolby Vision title starts in mpv, and restores it when playback stops."
+    },
+    "smooth": {
+      "label": "Smooth Playback",
+      "desc": "Times frames to the display’s refresh rate.",
+      "why": "Without it, the sound card’s and the display’s clocks drift slightly apart, so mpv now and then drops a frame to stay in sync with the sound, a small stutter. With it, frames follow the display and the sound is adjusted inaudibly. Always off for audio sent untouched to an amplifier."
     },
     "matchRefresh": {
       "label": "Match Frame Rate",

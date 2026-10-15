@@ -66,15 +66,17 @@ object WatchHistory {
     }
 
     // History.svelte's query: Recursive, Movie,Episode, DatePlayed descending, 200 (Api.items adds the list fields,
-    // Genres among them).
+    // Genres among them), once with Filters=IsPlayed and once with IsResumable. Emby can sort never-played items
+    // before played ones on DatePlayed, so an unfiltered query may hold no history at all.
     val QUERY = arrayOf<Pair<String, Any?>>("Recursive" to true, "IncludeItemTypes" to "Movie,Episode", "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to 200)
+    val FILTERS = listOf("IsPlayed", "IsResumable")
 
     // As History.svelte: that query on every signed-in server online (fanOut), merged newest first (merge(…, true));
     // never-played ones come last and are dropped. A server that fails is left out; all of them failing is an error.
     // Then one lookup per server of the series whose episodes carry no genres.
     suspend fun load(api: Api): HistoryData {
         val apis = listOf(api) + Servers.online.filter { it.server.id != api.server.id }
-        val found = Servers.fanOut(apis) { a -> a.items(*QUERY).items }
+        val found = Servers.fanOut(apis) { a -> FILTERS.flatMap { f -> a.items(*QUERY, "Filters" to f).items } }
         if (found.all { it == null }) throw java.io.IOException("history: no server answered")
         val list = Servers.merge(found, byDate = true)
         val missing = list.filter { it.genres.isEmpty() && it.seriesId != null && it.userData?.lastPlayedDate != null }

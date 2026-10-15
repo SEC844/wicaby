@@ -265,7 +265,7 @@
 
 <svelte:window onkeydown={(e) => menu && e.key === 'Escape' && (e.preventDefault(), closeMenu())} onpointerdown={(e) => menu && !menuEl?.contains(e.target as Node) && (menu = null)} />
 
-<div class="page live" class:full={tab === 'guide'}>
+<div class="page live" class:full={tab === 'guide'} class:narrow={setup || noSource}>
   <header>
     <h1 class="page-title">{iptv ? 'IPTV' : t('livetv.title')}</h1>
     {#if !setup && !noSource}<div class="tabs" role="tablist" aria-label={t('livetv.tabs.label')}>
@@ -420,6 +420,11 @@
   }
   .live.full {
     padding-bottom: 24px;
+  }
+  /* Setup and the IPTV empty state: the title shares the centred 560px column (livetv/Setup.svelte). */
+  .live.narrow {
+    max-width: calc(560px + 2 * var(--gutter));
+    margin-inline: auto;
   }
   .guide-wrap {
     height: max(360px, calc(100vh - var(--titlebar) - 230px));

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { TICKS_PER_MS } from '../../../shared/contract';
   import type { BaseItem } from '../../../shared/models';
   import { formatDuration } from '../../../shared/music';
@@ -12,13 +13,18 @@
   let { id, serverId }: { id: string; serverId?: string } = $props();
 
   let items = $state<BaseItem[] | null>(null);
+  // Only the track drives a new mix: InstantMix is random, so any other reactive read here (the session the query
+  // reads) would reload the list with new songs while it is open.
   $effect(() => {
     const cur = id;
-    items = null;
+    const sid = serverId;
     let live = true;
-    instantMix(cur, 21, serverId)
-      .then((r) => live && (items = (r.Items ?? []).filter((x) => x.Id !== cur).slice(0, 20)))
-      .catch(() => live && (items = []));
+    untrack(() => {
+      items = null;
+      instantMix(cur, 21, sid)
+        .then((r) => live && (items = (r.Items ?? []).filter((x) => x.Id !== cur).slice(0, 20)))
+        .catch(() => live && (items = []));
+    });
     return () => (live = false);
   });
 </script>

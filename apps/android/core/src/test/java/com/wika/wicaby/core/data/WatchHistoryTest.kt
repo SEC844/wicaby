@@ -84,8 +84,9 @@ class WatchHistoryTest {
     // Desktop History.svelte: fanOut over every server, merge(..., true), series genres looked up on each item's server.
     @Test
     fun loadCoversEveryServerAndLooksSeriesGenresUpOnTheirOwnServer() = runBlocking {
-        val sa = mock("""{"Items":[{"Id":"m1","Name":"M","Type":"Movie","Genres":["Drama"],"UserData":{"LastPlayedDate":"2026-10-10T10:00:00.0000000Z","Played":true}}]}""")
+        val sa = mock("""{"Items":[{"Id":"m1","Name":"M","Type":"Movie","Genres":["Drama"],"UserData":{"LastPlayedDate":"2026-10-10T10:00:00.0000000Z","Played":true}}]}""", """{"Items":[]}""")
         val sb = mock(
+            """{"Items":[]}""",
             """{"Items":[{"Id":"e1","Name":"E","Type":"Episode","SeriesId":"s1","UserData":{"LastPlayedDate":"2026-10-11T10:00:00.0000000Z"}}]}""",
             """{"Items":[{"Id":"s1","Name":"S","Type":"Series","Genres":["Comedy"]}]}""",
         )
@@ -96,8 +97,9 @@ class WatchHistoryTest {
         assertEquals(listOf("b:e1", "a:m1"), data.items.map(Servers::key))
         assertEquals(mapOf("s1" to listOf("Comedy")), data.seriesGenres)
         assertEquals("DatePlayed", sa.takeRequest().url.queryParameter("SortBy"))
-        assertEquals(1, sa.requestCount)
-        assertEquals("Movie,Episode", sb.takeRequest().url.queryParameter("IncludeItemTypes"))
+        assertEquals(2, sa.requestCount)
+        assertEquals("IsPlayed", sb.takeRequest().url.queryParameter("Filters"))
+        assertEquals("IsResumable", sb.takeRequest().url.queryParameter("Filters"))
         assertEquals("s1", sb.takeRequest().url.queryParameter("Ids"))
         assertEquals(listOf("Comedy", "Drama"), WatchHistory.stats(data.items, data.seriesGenres).genres)
     }
@@ -105,11 +107,13 @@ class WatchHistoryTest {
     // The desktop parameters on each server, and the error state only when no server answered.
     @Test
     fun loadSendsTheDesktopQueryAndFailsOnlyWhenNoServerAnswers() = runBlocking {
-        val sa = mock("""{"Items":[]}""")
+        val sa = mock("""{"Items":[]}""", """{"Items":[]}""")
         val a = api("a", sa)
         Core.api = a
         WatchHistory.load(a)
         val u = sa.takeRequest().url
+        assertEquals("IsPlayed", u.queryParameter("Filters"))
+        assertEquals("IsResumable", sa.takeRequest().url.queryParameter("Filters"))
         for ((k, v) in listOf("Recursive" to "true", "IncludeItemTypes" to "Movie,Episode", "SortBy" to "DatePlayed", "SortOrder" to "Descending", "Limit" to "200")) assertEquals(k, v, u.queryParameter(k))
         assertTrue(u.queryParameter("Fields")!!.split(',').contains("Genres"))
         val down = Api(Server("d", "D", "http://127.0.0.1:1", "jellyfin"), "dev", "t", "u")

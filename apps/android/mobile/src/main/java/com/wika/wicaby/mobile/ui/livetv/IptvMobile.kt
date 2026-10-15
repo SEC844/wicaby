@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -64,9 +65,9 @@ fun LiveSetupScreen(title: String, onBack: () -> Unit, onIptv: () -> Unit) {
     val context = LocalContext.current
     var shown by rememberSaveable { mutableStateOf<String?>(null) }
     val servers = remember { Servers.all.mapNotNull { a -> liveSetupUrl(a.server)?.let { a.server.name to it } } }
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         TopBar(title, onBack)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(CoreR.string.livesetup_body), style = Type.body, color = G.label2)
             servers.forEach { (name, url) ->
                 PillButton(stringResource(CoreR.string.livesetup_open, name), icon = Ic.External, onClick = {
@@ -97,9 +98,9 @@ fun IptvScreen(title: String, onBack: () -> Unit) {
             BackHandler { adding = false }
             AddIptvForm(onDone = { adding = false })
         }
-        sources.isEmpty() -> Column(Modifier.fillMaxSize()) {
+        sources.isEmpty() -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             TopBar(title, onBack)
-            Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(stringResource(CoreR.string.iptv_empty_body), style = Type.body, color = G.label2)
                 Row { PillButton(stringResource(CoreR.string.iptv_add), icon = Ic.Plus, onClick = { adding = true }) }
                 Text(stringResource(CoreR.string.iptv_no_dvr), style = Type.footnote, color = G.label2)
@@ -150,9 +151,9 @@ private fun AddIptvForm(onDone: () -> Unit) {
             }
         }
     }
-    Column(Modifier.fillMaxSize().imePadding()) {
+    Column(Modifier.fillMaxSize().imePadding(), horizontalAlignment = Alignment.CenterHorizontally) {
         TopBar(stringResource(CoreR.string.iptv_add), onDone)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp).fillMaxWidth().navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             WicabyField(url, { url = it.take(4096) }, stringResource(CoreR.string.iptv_field_url), keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
             WicabyField(guide, { guide = it.take(4096) }, stringResource(CoreR.string.iptv_field_guide), keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
             Text(stringResource(CoreR.string.iptv_guide_help), style = Type.footnote, color = G.label2)
@@ -172,9 +173,9 @@ private fun IptvSources(sources: List<IptvSource>, onBack: () -> Unit, onAdd: ()
     val changes by Iptv.changes.collectAsState()
     var status by remember { mutableStateOf<String?>(null) }
     var removing by remember { mutableStateOf<IptvSource?>(null) }
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         TopBar(stringResource(CoreR.string.iptv_sources), onBack)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(CoreR.string.iptv_no_dvr), style = Type.footnote, color = G.label2)
             sources.forEach { s ->
                 val n = remember(changes, s.id) { Iptv.channelCount(s.id) }

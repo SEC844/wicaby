@@ -86,8 +86,8 @@
     display: flex;
     align-items: center;
     gap: 24px;
-    max-width: 1180px;
-    margin-bottom: 20px;
+    max-width: 1184px;
+    margin: 0 auto 20px;
   }
   .title-row .page-title {
     margin: 0;
@@ -111,6 +111,8 @@
     grid-template-columns: 220px minmax(0, 920px);
     gap: 44px;
     align-items: start;
+    max-width: 1184px;
+    margin-inline: auto;
   }
 
   /* Section list: the same plain, monochrome rows as Settings. */

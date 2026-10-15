@@ -649,19 +649,26 @@ async function check6(c, rows) {
   ok(!overlay.has(movie.id), 'the cancelled one-off is still in the overlay');
 
   // Three overlapping one-offs on two tuners → exactly one ConflictedNotOk.
-  const t2 = atLocal(day + 4 * DAY + 2 * HOUR, 14, 10);
   const existing = TM.normalizeTimers(await timersNow(c)).map((t) => [t.start - t.prePaddingS * 1000, t.end + t.postPaddingS * 1000]);
   const pre = defs.PrePaddingSeconds * 1000;
   const post = defs.PostPaddingSeconds * 1000;
-  const picks = [];
-  for (const d of await airingAt(c, ids, t2)) {
-    const p = M.normalizeProgram(d, { kind });
-    if (!p || p.timerId || p.seriesTimerId || p.end - p.start > 4 * HOUR || picks.some((q) => q.channelId === p.channelId)) continue;
-    if (existing.some(([s, e]) => s < p.end + post && e > p.start - pre)) continue;
-    picks.push(p);
+  // Day + 4 at 14:10 first. The series rules made above follow the weekday, so on some days a timer already covers
+  // that slot (every programme then overlaps it): later slots are tried until one is free.
+  let picks = [];
+  let slot = '';
+  for (const [d4, h] of [[4, 14], [4, 10], [5, 14], [5, 10], [6, 14], [6, 10]]) {
+    picks = [];
+    slot = `day + ${d4}, ${h}:10`;
+    for (const d of await airingAt(c, ids, atLocal(day + d4 * DAY + 2 * HOUR, h, 10))) {
+      const p = M.normalizeProgram(d, { kind });
+      if (!p || p.timerId || p.seriesTimerId || p.end - p.start > 4 * HOUR || picks.some((q) => q.channelId === p.channelId)) continue;
+      if (existing.some(([s, e]) => s < p.end + post && e > p.start - pre)) continue;
+      picks.push(p);
+      if (picks.length === 3) break;
+    }
     if (picks.length === 3) break;
   }
-  ok(picks.length === 3, `found ${picks.length} free programmes airing at day + 4, 14:10`);
+  ok(picks.length === 3, `found ${picks.length} free programmes airing at ${slot}`);
   for (const p of picks) {
     const r = await c.exec(D.createTimer(kind, { body: TM.quickRecordBody(await defaultsFor(c, p.id)) }));
     ok(r.status < 300, `createTimer ${p.id} answered ${r.status}`);

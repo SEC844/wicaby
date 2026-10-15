@@ -20,10 +20,6 @@
       "favorites": "Favoris",
       "missing": "Bibliothèque introuvable"
     },
-    "updates": {
-      "label": "Rechercher les mises à jour",
-      "desc": "Vérifiera au démarrage si une nouvelle version est disponible."
-    },
     "player": "Lecteur",
     "startFullscreen": {
       "label": "Démarrer en plein écran",
@@ -397,6 +393,11 @@
     "hdrAuto": {
       "label": "Activer le HDR de Windows automatiquement",
       "desc": "Allume le HDR de Windows au lancement d’un titre HDR ou Dolby Vision lu avec mpv, puis le rétablit à l’arrêt."
+    },
+    "smooth": {
+      "label": "Lecture fluide",
+      "desc": "Cale les images sur la fréquence de l’écran.",
+      "why": "Sans ce réglage, l’horloge de la carte son et celle de l’écran dérivent légèrement : mpv saute alors une image de temps en temps pour rester synchro avec le son, ce qui fait une petite saccade. Avec, les images suivent l’écran et le son est ajusté de façon inaudible. Désactivé d’office pour le son envoyé tel quel à un ampli."
     },
     "matchRefresh": {
       "label": "Adapter la fréquence d’affichage",

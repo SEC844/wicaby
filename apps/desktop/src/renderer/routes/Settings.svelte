@@ -265,6 +265,9 @@
     grid-template-columns: 236px minmax(0, 660px);
     gap: 48px;
     align-items: start;
+    /* Centred on wide windows, like Sources, instead of hugging the left edge. */
+    max-width: 944px;
+    margin-inline: auto;
   }
 
   /* ---- Category list: plain, monochrome, no accent ---- */
@@ -375,7 +378,7 @@
     align-items: center;
     gap: 24px;
     max-width: 944px;
-    margin-bottom: 20px;
+    margin: 0 auto 20px;
   }
   .title-row .page-title {
     margin: 0;

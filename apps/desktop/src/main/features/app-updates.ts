@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { app, net, shell } from 'electron';
-import { RELEASES_LATEST_API, releaseUpdate, trimRelease, type InstallKind } from '../../shared/app-update';
+import { RELEASES_LATEST_API, releaseUpdate, REPO_PAGE, trimRelease, type InstallKind } from '../../shared/app-update';
 import type { AppUpdateState } from '../../shared/contract';
 import { JsonStore } from '../core/json-store';
 import { logger } from '../core/log';
@@ -90,8 +90,9 @@ export class AppUpdates extends EventEmitter {
     }
   }
 
-  // Only the URLs releaseUpdate() validated (github.com/WicaebethTheo/wicaby/releases/…).
-  async open(target: 'notes' | 'download'): Promise<void> {
+  // Only the URLs releaseUpdate() validated (github.com/WicaebethTheo/wicaby/releases/…), or the fixed repo page.
+  async open(target: 'notes' | 'download' | 'repo'): Promise<void> {
+    if (target === 'repo') return shell.openExternal(REPO_PAGE);
     const u = this.value.update;
     if (u) await shell.openExternal(target === 'notes' ? u.notesUrl : u.downloadUrl);
   }

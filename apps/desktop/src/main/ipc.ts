@@ -156,7 +156,7 @@ export function registerIpc(deps: IpcDeps): void {
   handle(Channels.updatesCheck, () => deps.updates.check(true));
   handle(Channels.updatesDismiss, () => deps.updates.dismiss());
   handle(Channels.updatesOpen, (_e, target: unknown) => {
-    if (target === 'notes' || target === 'download') return deps.updates.open(target);
+    if (target === 'notes' || target === 'download' || target === 'repo') return deps.updates.open(target);
   });
   handle(Channels.appStorage, () => deps.extras.storage());
   handle(Channels.appClearStorage, (_e, kind: unknown) => {

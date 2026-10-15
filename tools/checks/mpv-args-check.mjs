@@ -89,6 +89,10 @@ const WIN = [
 ];
 assert.deepEqual(out({}, 'win32'), WIN);
 assert.deepEqual(out({}, 'win32', '0.35.0'), WIN, 'Windows never gates by version');
+// Smooth Playback (on by default in the settings): display-resample, just before the audio output.
+const smooth = out({ smoothMotion: true }, 'win32');
+assert.equal(smooth[smooth.indexOf('--ao=wasapi') - 1], '--video-sync=display-resample');
+assert.ok(!out({ smoothMotion: false }, 'linux').some((a) => a.startsWith('--video-sync')));
 const hw = (hwdec, platform) => out({ hwdec }, platform).find((a) => a.startsWith('--hwdec='));
 assert.equal(hw('nvdec', 'win32'), '--hwdec=d3d11va,nvdec-copy,auto-safe');
 assert.equal(hw('d3d11va', 'win32'), '--hwdec=d3d11va,auto-safe');

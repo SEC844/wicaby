@@ -476,4 +476,5 @@ server.on('upgrade', (req, sock) => {
   if (!a.session) return fail('401 Unauthorized', 'SOCKET unauthorized');
   store.attach(req, sock, a.session);
 });
-server.listen(PORT, () => console.log(`Mock Jellyfin 12 on http://127.0.0.1:${PORT} (user Wika / wicaby)${E.VIDEO ? `, video ${E.VIDEO}` : ''}`));
+// Loopback only (MOCK_HOST widens it): a mock reachable from the LAN would show up in real clients.
+server.listen(PORT, process.env.MOCK_HOST || '127.0.0.1', () => console.log(`Mock Jellyfin 12 on http://127.0.0.1:${PORT} (user Wika / wicaby)${E.VIDEO ? `, video ${E.VIDEO}` : ''}`));

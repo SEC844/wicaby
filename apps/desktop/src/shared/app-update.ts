@@ -3,6 +3,7 @@
 
 export const RELEASES_LATEST_API = 'https://api.github.com/repos/WicaebethTheo/wicaby/releases/latest';
 const RELEASES_PAGE = 'https://github.com/WicaebethTheo/wicaby/releases/';
+export const REPO_PAGE = 'https://github.com/WicaebethTheo/wicaby';
 const DOWNLOAD_PREFIX = `${RELEASES_PAGE}download/`;
 
 // How this copy was installed, which picks the asset "Download" opens.

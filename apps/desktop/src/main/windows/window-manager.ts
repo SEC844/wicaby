@@ -131,7 +131,9 @@ export class WindowManager {
     wc.on('render-process-gone', (_e, details) => log.error(`renderer gone: ${details.reason}`));
     wc.on('console-message', (event) => {
       // A map tile address is a place (photos spec §6.1): never logged.
-      if (event.level === 'error') log.warn(`renderer: ${event.message.replace(/wicaby-media:\/\/tile\/[^\s'")]*/g, 'wicaby-media://tile/…')}`);
+      // The source file and line (no query string) say which code threw, e.g. an uncloneable value sent over IPC.
+      const where = event.sourceId ? ` @ ${event.sourceId.replace(/[?#].*$/, '').split('/').pop()}:${event.lineNumber}` : '';
+      if (event.level === 'error') log.warn(`renderer: ${event.message.replace(/wicaby-media:\/\/tile\/[^\s'")]*/g, 'wicaby-media://tile/…')}${where}`);
     });
   }
 

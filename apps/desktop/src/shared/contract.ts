@@ -208,6 +208,8 @@ export interface Settings {
     hdrPassthrough: boolean;
     hdrAutoSwitch: boolean;
     matchRefreshRate: boolean;
+    // mpv --video-sync=display-resample: frames follow the display's clock, the audio is resampled to match.
+    smoothMotion: boolean;
     audioExclusive: boolean;
     // Codecs sent as bitstream (mpv --audio-spdif); WASAPI then runs exclusive for them.
     spdif: string[];
@@ -1129,7 +1131,7 @@ export interface WicabyBridge {
     state(): Promise<AppUpdateState>;
     check(): Promise<AppUpdateState>;
     // Main opens the URL it validated; the renderer never passes one.
-    open(target: 'notes' | 'download'): Promise<void>;
+    open(target: 'notes' | 'download' | 'repo'): Promise<void>;
     dismiss(): Promise<AppUpdateState>;
     onState(cb: (state: AppUpdateState) => void): Unsubscribe;
   };

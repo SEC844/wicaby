@@ -69,6 +69,7 @@
     align-items: flex-start;
     gap: 12px;
     max-width: 560px;
+    margin-inline: auto;
     padding: 24px 0 48px;
     color: var(--label-2);
   }

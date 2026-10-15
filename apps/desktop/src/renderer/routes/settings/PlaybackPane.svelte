@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ASPECT_MODES, type ResumeMode, type Settings, type SkipMode, type TypePlayer } from '../../../shared/contract';
   import { isLanAddress } from '../../../shared/network';
+  import Icon from '../../components/Icon.svelte';
   import Picker from '../../components/Picker.svelte';
   import Segmented from '../../components/Segmented.svelte';
   import Toggle from '../../components/Toggle.svelte';
@@ -425,6 +426,16 @@
     {/if}
     <div class="row">
       <div class="txt">
+        <div class="lbl">
+          {t('settings.playback.smooth.label')}
+          <button type="button" class="why" aria-label={t('settings.playback.smooth.why')} title={t('settings.playback.smooth.why')}><Icon name="info" size={13} /></button>
+        </div>
+        <div class="desc">{t('settings.playback.smooth.desc')}</div>
+      </div>
+      <Toggle label={t('settings.playback.smooth.label')} checked={s.playback.smoothMotion} onchange={(v) => set({ playback: { smoothMotion: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
         <div class="lbl">{t('settings.playback.matchRefresh.label')}</div>
         <div class="desc">{t(refreshOk ? 'settings.playback.matchRefresh.desc' : 'settings.playback.matchRefresh.unavailable')}</div>
       </div>
@@ -434,6 +445,17 @@
 {/if}
 
 <style>
+  .why {
+    display: inline-grid;
+    place-items: center;
+    vertical-align: -2px;
+    margin-left: 4px;
+    color: var(--label-3);
+    cursor: help;
+  }
+  .why:is(:hover, :focus-visible) {
+    color: var(--label);
+  }
   .gh {
     margin: 30px 0 8px 2px;
     font-size: var(--fs-footnote);

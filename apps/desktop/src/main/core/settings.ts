@@ -67,6 +67,7 @@ export function defaultSettings(): StoredSettings {
       hdrPassthrough: true,
       hdrAutoSwitch: false,
       matchRefreshRate: false,
+      smoothMotion: true,
       audioExclusive: false,
       spdif: [],
       maxBitrateMbps: 120,
