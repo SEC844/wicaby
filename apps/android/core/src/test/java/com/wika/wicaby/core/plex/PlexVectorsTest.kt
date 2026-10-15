@@ -245,7 +245,8 @@ class PlexVectorsTest {
     fun raceRankNotSpeedInsideAWave() {
         val f = Fake(mapOf("https" to (40L to true), "http" to (5L to true)))
         assertEquals("https beats a faster http", "https", race(listOf(listOf("https", "http")), f).first)
-        assertEquals(listOf("https", "http"), f.started.toList())
+        // One wave starts its candidates together, so their start order is a race: both started is what counts.
+        assertEquals(setOf("https", "http"), f.started.toSet())
         val r = PlexConnections.rankConnections(
             listOf(
                 PlexConnection("http://192.168.1.5:32400", "http", "192.168.1.5", local = true),

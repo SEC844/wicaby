@@ -128,13 +128,12 @@ fun IptvTab(top: Dp, onScrolled: (Boolean) -> Unit) {
 /** Name, playlist URL, optional XMLTV URL; Add loads the playlist first and says why it failed. */
 @Composable
 fun AddIptvSheet(onDismiss: () -> Unit) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var name by rememberSaveable { mutableStateOf("") }
     var url by rememberSaveable { mutableStateOf("") }
     var guide by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<Int?>(null) }
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         delay(60)
@@ -143,7 +142,7 @@ fun AddIptvSheet(onDismiss: () -> Unit) {
     fun add() {
         if (busy) return
         busy = true
-        status = context.getString(CoreR.string.iptv_adding)
+        status = CoreR.string.iptv_adding
         scope.launch {
             try {
                 Iptv.add(name, url, guide)
@@ -151,7 +150,7 @@ fun AddIptvSheet(onDismiss: () -> Unit) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                status = context.getString(iptvErrorText(e))
+                status = iptvErrorText(e)
             } finally {
                 busy = false
             }
@@ -167,7 +166,7 @@ fun AddIptvSheet(onDismiss: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             TvTextField(name, { name = it.take(80) }, stringResource(CoreR.string.iptv_field_name), Modifier.fillMaxWidth(), onSubmit = ::add)
             Text(stringResource(CoreR.string.iptv_private), style = Type.footnote, color = C.label3, modifier = Modifier.padding(top = 10.dp))
-            status?.let { Text(it, style = Type.callout, color = C.label2, modifier = Modifier.padding(top = 12.dp)) }
+            status?.let { Text(stringResource(it), style = Type.callout, color = C.label2, modifier = Modifier.padding(top = 12.dp)) }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(stringResource(CoreR.string.iptv_add_action), icon = Ic.Plus, onClick = ::add)
@@ -185,7 +184,7 @@ fun IptvSourcesSheet(onDismiss: () -> Unit) {
     val overlay = LocalOverlay.current
     val sources by Iptv.sources.collectAsState()
     val changes by Iptv.changes.collectAsState()
-    var status by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<Int?>(null) }
     var confirm by remember { mutableStateOf<IptvSource?>(null) }
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -224,13 +223,13 @@ fun IptvSourcesSheet(onDismiss: () -> Unit) {
             }
             SheetButton(stringResource(CoreR.string.iptv_refresh), icon = Ic.Refresh, onClick = {
                 if (status == null) {
-                    status = context.getString(CoreR.string.iptv_refreshing)
-                    scope.launch { status = if (Iptv.refreshAll()) null else context.getString(CoreR.string.iptv_refresh_failed) }
+                    status = CoreR.string.iptv_refreshing
+                    scope.launch { status = if (Iptv.refreshAll()) null else CoreR.string.iptv_refresh_failed }
                 }
             })
             SheetButton(stringResource(CoreR.string.iptv_add), icon = Ic.Plus, onClick = { overlay.show { AddIptvSheet(onDismiss = overlay::close) } })
         }
-        status?.let { Text(it, style = Type.callout, color = C.label2, modifier = Modifier.padding(top = 12.dp)) }
+        status?.let { Text(stringResource(it), style = Type.callout, color = C.label2, modifier = Modifier.padding(top = 12.dp)) }
     }
 }
 

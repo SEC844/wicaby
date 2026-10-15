@@ -82,7 +82,8 @@ object Iptv {
     private val loaded = ConcurrentHashMap<String, Loaded>()
     private val locks = ConcurrentHashMap<String, Mutex>()
     private val guideLocks = ConcurrentHashMap<String, Mutex>()
-    private val refreshing: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    // newKeySet() needs API 24; the TV app runs from API 23.
+    private val refreshing: MutableSet<String> = java.util.Collections.newSetFromMap(ConcurrentHashMap())
 
     @Volatile
     private var started = false

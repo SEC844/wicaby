@@ -127,17 +127,16 @@ fun IptvScreen(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun AddIptvForm(onDone: () -> Unit) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var name by rememberSaveable { mutableStateOf("") }
     var url by rememberSaveable { mutableStateOf("") }
     var guide by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<Int?>(null) }
     fun add() {
         if (busy) return
         busy = true
-        status = context.getString(CoreR.string.iptv_adding)
+        status = CoreR.string.iptv_adding
         scope.launch {
             try {
                 Iptv.add(name, url, guide)
@@ -145,7 +144,7 @@ private fun AddIptvForm(onDone: () -> Unit) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                status = context.getString(iptvErrorText(e))
+                status = iptvErrorText(e)
             } finally {
                 busy = false
             }
@@ -159,7 +158,7 @@ private fun AddIptvForm(onDone: () -> Unit) {
             Text(stringResource(CoreR.string.iptv_guide_help), style = Type.footnote, color = G.label2)
             WicabyField(name, { name = it.take(80) }, stringResource(CoreR.string.iptv_field_name), onSubmit = ::add)
             Text(stringResource(CoreR.string.iptv_private), style = Type.footnote, color = G.label2)
-            status?.let { Text(it, style = Type.callout, color = G.label) }
+            status?.let { Text(stringResource(it), style = Type.callout, color = G.label) }
             Spacer(Modifier.height(4.dp))
             Row { PillButton(stringResource(CoreR.string.iptv_add_action), icon = Ic.Plus, onClick = ::add) }
         }
@@ -171,7 +170,7 @@ private fun IptvSources(sources: List<IptvSource>, onBack: () -> Unit, onAdd: ()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val changes by Iptv.changes.collectAsState()
-    var status by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<Int?>(null) }
     var removing by remember { mutableStateOf<IptvSource?>(null) }
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         TopBar(stringResource(CoreR.string.iptv_sources), onBack)
@@ -192,13 +191,13 @@ private fun IptvSources(sources: List<IptvSource>, onBack: () -> Unit, onAdd: ()
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PillButton(stringResource(CoreR.string.iptv_refresh), icon = Ic.Refresh, compact = true, onClick = {
                     if (status == null) {
-                        status = context.getString(CoreR.string.iptv_refreshing)
-                        scope.launch { status = if (Iptv.refreshAll()) null else context.getString(CoreR.string.iptv_refresh_failed) }
+                        status = CoreR.string.iptv_refreshing
+                        scope.launch { status = if (Iptv.refreshAll()) null else CoreR.string.iptv_refresh_failed }
                     }
                 })
             }
             Row { PillButton(stringResource(CoreR.string.iptv_add), icon = Ic.Plus, compact = true, onClick = onAdd) }
-            status?.let { Text(it, style = Type.callout, color = G.label2) }
+            status?.let { Text(stringResource(it), style = Type.callout, color = G.label2) }
         }
     }
     removing?.let { s ->

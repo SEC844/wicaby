@@ -139,12 +139,17 @@ func TestFilesListAndRange(t *testing.T) {
 func TestFilesRefusals(t *testing.T) {
 	s, base := serve(t, fixture())
 	other := "http://" + s.Addr() + "/" + strings.Repeat("0", 32)
+	// One character off: never the token's own last character (a random token ends in "0" one time in 16).
+	off := "0"
+	if strings.HasSuffix(base, "0") {
+		off = "1"
+	}
 	for _, c := range []struct {
 		method, u string
 		want      int
 	}{
-		{"GET", other + "/ls/", 404},               // unknown token
-		{"GET", base[:len(base)-1] + "0/ls/", 404}, // a token one character off
+		{"GET", other + "/ls/", 404},                    // unknown token
+		{"GET", base[:len(base)-1] + off + "/ls/", 404}, // a token one character off
 		{"POST", base + "/f/Films", 405},
 		{"PUT", base + "/ls/", 405},
 		{"HEAD", base + "/ls/", 405},
