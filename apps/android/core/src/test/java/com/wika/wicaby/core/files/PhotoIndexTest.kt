@@ -163,7 +163,8 @@ class PhotoIndexTest {
     @Test
     fun throughTheSmbGateway() = runBlocking {
         val root = tree()
-        val ranges = mutableListOf<String?>()
+        // Written from MockWebServer's threads while the index reads heads in parallel: a plain list loses entries.
+        val ranges = java.util.concurrent.CopyOnWriteArrayList<String?>()
         MockWebServer().use { gw ->
             gw.dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
