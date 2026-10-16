@@ -20,6 +20,12 @@ const log = logger.scope('mpv-player');
 // the app restarts; key on the resolved endpoint if the default device often changes to a receiver.
 const spdifRefused = new Set<string>();
 
+// Seconds buffered from the position: the end of the cached range that holds it ('?' when none does, e.g. right after a seek).
+const cacheAhead = (ranges: [number, number][] | undefined, posMs: number): string => {
+  const r = ranges?.find(([start, end]) => start <= posMs && posMs <= end);
+  return r ? String(Math.round((r[1] - posMs) / 1000)) : '?';
+};
+
 // Picture-in-guide tile as video-margin-ratio [left, right, top, bottom]: 30 % of the width, 2 % from the
 // right edge, 3 % from the top. GuideOverlay.svelte cuts its transparent hole at the same place.
 export const GUIDE_TILE = [0.68, 0.02, 0.03, 0.67] as const;
@@ -474,7 +480,7 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
         // Each burst is logged with where it happened: drops come from short mpv stalls, and the position, the
         // subtitle state and the cache say what was on screen (diagnosis of the 2-4 frame bursts).
         if (typeof value === 'number' && value > (this.stats.droppedFrames ?? 0) && !this.loading)
-          log.info(`dropped ${value - (this.stats.droppedFrames ?? 0)} frame(s) at ${Math.round(this.position / 1000)} s (total ${value}, cache ${this.cache ? Math.round(((this.cache.ranges.at(-1)?.[1] ?? 0) - this.position) / 1000) : '?'} s ahead)`);
+          log.info(`dropped ${value - (this.stats.droppedFrames ?? 0)} frame(s) at ${Math.round(this.position / 1000)} s (total ${value}, cache ${cacheAhead(this.cache?.ranges, this.position)} s ahead)`);
         this.stats.droppedFrames = typeof value === 'number' ? value : undefined;
         break;
       case 'video-bitrate':

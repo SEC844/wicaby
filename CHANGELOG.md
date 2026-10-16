@@ -18,6 +18,18 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.10] - 2026-10-16
+
+The NetBird sign-in fix from 0.10.9, now actually in the apps (the embedded mesh helper was not rebuilt in 0.10.9).
+Windows and Linux desktop **0.10.10**, Android TV app **0.10.10** (`versionCode` 31), Android mobile app **0.10.10**
+(`versionCode` 28).
+
+### Fixed
+
+- Remote access on Windows and Android: the NetBird helper shipped in 0.10.9 still predated the expired-sign-in fix,
+  so it kept retrying instead of offering to sign in again. It is rebuilt with the fix.
+- Desktop log: the dropped-frames line no longer shows a negative buffer right after a seek.
+
 ## [0.10.9] - 2026-10-16
 
 Smoother playback on Windows, NetBird sign-in and passthrough fixes. Windows and Linux desktop **0.10.9**, Android TV
