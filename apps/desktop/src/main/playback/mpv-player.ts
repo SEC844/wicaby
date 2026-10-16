@@ -15,6 +15,11 @@ import { EXIT_FADE_MS, EXIT_REVEAL_MS, type ActivePlayer, type LoadParams, type 
 
 const log = logger.scope('mpv-player');
 
+// Audio devices that refused the bitstream: a new mpv starts without --audio-spdif for them instead of failing at
+// the start of every AC3/DTS file. shortcut: keyed on the configured device ('auto' = the Windows default), kept until
+// the app restarts; key on the resolved endpoint if the default device often changes to a receiver.
+const spdifRefused = new Set<string>();
+
 // Picture-in-guide tile as video-margin-ratio [left, right, top, bottom]: 30 % of the width, 2 % from the
 // right edge, 3 % from the top. GuideOverlay.svelte cuts its transparent hole at the same place.
 export const GUIDE_TILE = [0.68, 0.02, 0.03, 0.67] as const;
@@ -225,7 +230,7 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
       `--volume-max=${p.volumeBoost ? 150 : 100}`,
       '--background-color=#000000',
       // dts-hd already covers the DTS core. WASAPI switches to exclusive mode for any bitstream.
-      ...(p.spdif.length ? [`--audio-spdif=${p.spdif.filter((c) => c !== 'dts' || !p.spdif.includes('dts-hd')).join(',')}`] : []),
+      ...(p.spdif.length && !spdifRefused.has(p.audioDevice) ? [`--audio-spdif=${p.spdif.filter((c) => c !== 'dts' || !p.spdif.includes('dts-hd')).join(',')}`] : []),
       `--audio-device=${p.audioDevice}`,
       ...(p.useMpvConfig && fs.existsSync(userConf) ? [`--include=${userConf}`] : []),
       // "Arguments mpv supplémentaires": after Wicaby's defaults, before the fixed embedding options.
@@ -317,6 +322,7 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
         // Not a passthrough refusal: the service retries a direct-play file once with a server transcode.
         if (!spdif) return void this.emit('decode-failure', 'audio output initialization failed');
         log.warn(`audio output refused passthrough (${spdif}); falling back to PCM`);
+        spdifRefused.add(this.audioDevice);
         await ctl.set('audio-spdif', '').catch(() => undefined);
         // The spdif choice is made when the decoder opens: re-select the track to rebuild the audio chain.
         const aid = await ctl.get<number | string | false>('aid').catch(() => false);
@@ -465,6 +471,10 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
         this.stats.displayFps = typeof value === 'number' ? Math.round(value * 100) / 100 : undefined;
         break;
       case 'frame-drop-count':
+        // Each burst is logged with where it happened: drops come from short mpv stalls, and the position, the
+        // subtitle state and the cache say what was on screen (diagnosis of the 2-4 frame bursts).
+        if (typeof value === 'number' && value > (this.stats.droppedFrames ?? 0) && !this.loading)
+          log.info(`dropped ${value - (this.stats.droppedFrames ?? 0)} frame(s) at ${Math.round(this.position / 1000)} s (total ${value}, cache ${this.cache ? Math.round(((this.cache.ranges.at(-1)?.[1] ?? 0) - this.position) / 1000) : '?'} s ahead)`);
         this.stats.droppedFrames = typeof value === 'number' ? value : undefined;
         break;
       case 'video-bitrate':

@@ -15,7 +15,21 @@ import (
 	"github.com/netbirdio/netbird/client/iface/netstack"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	gstatus "google.golang.org/grpc/status"
 )
+
+// An expired peer login reaches us as InvalidArgument (NetBird tries to register again without a setup key or
+// JWT): it must end the retry loop with a sign-in, not poll the server every minute forever.
+func TestExpiredLoginNeedsSignIn(t *testing.T) {
+	expired := fmt.Errorf("login: %w", gstatus.Error(codes.InvalidArgument, "invalid setup-key or no sso information provided, err: invalid UUID length: 0"))
+	if !needsLogin(expired) || !isAuthErr(expired) {
+		t.Fatal("expired login not treated as a sign-in")
+	}
+	if needsLogin(fmt.Errorf("login: %w", gstatus.Error(codes.Unavailable, "connection refused"))) {
+		t.Fatal("an unreachable server is not a sign-in")
+	}
+}
 
 func TestRetryBacksOffThenConnects(t *testing.T) {
 	m := &netbirdMesh{hub: &hub{}}

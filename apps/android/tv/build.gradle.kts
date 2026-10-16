@@ -20,8 +20,8 @@ android {
         applicationId = "com.wika.wicaby.tv"
         minSdk = libs.versions.minSdkTv.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 29
-        versionName = "0.10.8"
+        versionCode = 30
+        versionName = "0.10.9"
         // Photos spec PH-05/PH-06/PH-07: Compose tests on an emulator against the mock (tools/checks/photos-android-check.mjs).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -83,10 +83,11 @@ func (m *netbirdMesh) options() embed.Options {
 	}
 }
 
-// needsLogin reports a refused peer key: expired SSO session or deleted peer.
+// needsLogin reports a refused peer key: expired SSO session or deleted peer. NetBird turns an expired
+// login into InvalidArgument when it has neither a setup key nor a JWT to register again with.
 func needsLogin(err error) bool {
 	switch gstatus.Code(errors.Unwrap(err)) {
-	case codes.PermissionDenied, codes.Unauthenticated, codes.NotFound:
+	case codes.PermissionDenied, codes.Unauthenticated, codes.NotFound, codes.InvalidArgument:
 		return true
 	}
 	s := strings.ToLower(err.Error())

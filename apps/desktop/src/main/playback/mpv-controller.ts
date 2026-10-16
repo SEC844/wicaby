@@ -151,7 +151,10 @@ export class MpvController extends EventEmitter {
     // Checks only (WICABY_TEST_SILENT=1, dropped by index.ts in a packaged build): no audio device is ever opened.
     const full = [...args, ...(process.env.WICABY_TEST_SILENT === '1' ? ['--ao=null'] : []), `--input-ipc-server=${pipeName}`];
     log.info(`spawning ${this.exe}`);
-    this.proc = spawn(this.exe, full, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    // Windows: mpv's default per-wait 1 ms timer requests (hundreds per second) froze the whole player ~200 ms at a time
+    // (dropped frames, audio underruns); one request for the process lifetime does not. Ignored elsewhere.
+    const env = { ...process.env, MPV_HRT: process.env.MPV_HRT ?? 'always' };
+    this.proc = spawn(this.exe, full, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env });
     this.proc.stdout?.on('data', (d: Buffer) => this.logLines(d));
     this.proc.stderr?.on('data', (d: Buffer) => this.logLines(d));
     // Unix: the socket file (mpv removes it too) and our private temp folder, if one was made.

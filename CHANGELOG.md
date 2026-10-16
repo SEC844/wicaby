@@ -18,6 +18,27 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.9] - 2026-10-16
+
+Smoother playback on Windows, NetBird sign-in and passthrough fixes. Windows and Linux desktop **0.10.9**, Android TV
+app **0.10.9** (`versionCode` 30), Android mobile app **0.10.9** (`versionCode` 27).
+
+### Fixed
+
+- Desktop player on Windows: far fewer random freezes of about a quarter of a second (a few dropped frames and, on
+  longer ones, a short audio dropout). mpv now keeps one high-resolution timer for its whole run instead of requesting
+  and releasing it hundreds of times per second. On a real test bench, dropped frames went from about 70 to about 4
+  per 4 minutes, with and without subtitles, and audio dropouts from about 7 to none.
+- Remote access: an expired NetBird sign-in now asks you to sign in again; the helper used to retry the login every
+  minute without ever showing the sign-in link.
+- Desktop: an audio output that refuses passthrough (AC3, DTS, TrueHD to analog speakers) is remembered until Wicaby
+  restarts, so the next files start straight in PCM instead of restarting their audio after a failed attempt.
+
+### Changed
+
+- Desktop log: each burst of dropped video frames is logged with the position and how much is buffered, to find what
+  makes mpv stall.
+
 ## [0.10.8] - 2026-10-15
 
 Smooth Playback off by default, an Android 6 fix for IPTV. Windows and Linux desktop **0.10.8**, Android TV app
