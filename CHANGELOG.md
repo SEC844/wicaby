@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.11] - 2026-10-18
+
+Android TV contributions from SEC844: a reorderable tab bar, watched titles out of the hero, a clearer watched
+button. Windows and Linux desktop **0.10.11**, Android TV app **0.10.11** (`versionCode` 32), Android mobile app
+**0.10.11** (`versionCode` 29).
+
 ### Added
 
 - Android TV: Settings > Home > Hide Watched in Featured keeps watched movies and series out of the home
