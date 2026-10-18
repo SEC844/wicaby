@@ -535,6 +535,9 @@ private fun HomeGroup(api: Api) {
     fun save(p: HomeRows.Pref) = TvSettings.setHomeRows(user, p)
     Group(stringResource(R.string.group_home), stringResource(R.string.home_rows_hint)) {
         ToggleRow(stringResource(R.string.row_hero), TvSettings.rowHero.value) { TvSettings.rowHero.value = it }
+        if (TvSettings.rowHero.value) {
+            ToggleRow(stringResource(R.string.hero_hide_watched), TvSettings.heroHideWatched.value) { TvSettings.heroHideWatched.value = it }
+        }
         ToggleRow(stringResource(R.string.settings_merge_continue), TvSettings.mergeContinue.value) { TvSettings.mergeContinue.value = it }
         rows.forEachIndexed { i, id ->
             key(id) {

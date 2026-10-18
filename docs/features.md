@@ -64,7 +64,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 
 ## Android TV
 
-- Compose for TV interface with a floating tab bar, a hero carousel on the home screen, and a backdrop screensaver.
+- Compose for TV interface with a floating tab bar, a hero carousel on the home screen (Settings > Interface > Home can keep watched titles out of it), and a backdrop screensaver.
 - **Customizable home:** in Settings > Interface > Home, show, hide and reorder the rows (Continue Watching, Up Next, Upcoming, Live TV on now, Recently Added for every library, Because You Watched), and show each Recently Added row as posters or thumbnails.
 - **Look:** Dark or OLED (pure black) theme and eight accent colors, switched live in Settings > Interface > Appearance.
 - Runs on Android TV and Google TV from Android 6.0. It also installs on Fire TV, phones and tablets (landscape, touch-enabled).

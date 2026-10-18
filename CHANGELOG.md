@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Added
+
+- Android TV: Settings > Home > Hide Watched in Featured keeps watched movies and series out of the home
+  screen's hero carousel. It falls back to every title when nothing unwatched is left
+  ([#8](https://github.com/WicaebethTheo/wicaby/issues/8)).
+
 ### Fixed
 
 - Android TV: the details page's watched button now shows its state, like the favorite heart: a filled check

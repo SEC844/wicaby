@@ -336,6 +336,19 @@ private fun ProfileMenu(api: Api, user: User?, session: Session, onDismiss: () -
 // ---------------------------------------------------------------------------
 // Home: hero carousel over a full-bleed backdrop, then rows.
 
+// The hero's titles: random movies and series that have a backdrop. With hideWatched, unwatched ones only, falling
+// back to every title when none is left, so the carousel never goes empty.
+private suspend fun heroItems(api: Api, hideWatched: Boolean): List<Item> {
+    suspend fun pick(unwatched: Boolean) = Servers.merged(api) { a ->
+        a.items(
+            "IncludeItemTypes" to "Movie,Series", "Recursive" to true, "SortBy" to "Random", "Limit" to 8,
+            "ImageTypes" to "Backdrop", "EnableImageTypes" to "Primary,Backdrop,Logo,Thumb",
+            "Filters" to if (unwatched) "IsUnplayed" else null,
+        ).items
+    }.filter { it.backdropImageTags.isNotEmpty() }.take(6)
+    return if (hideWatched) pick(unwatched = true).ifEmpty { pick(unwatched = false) } else pick(unwatched = false)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) {
@@ -352,14 +365,8 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
     val memory = rememberFocusMemory()
     val overlay = LocalOverlay.current
     val scope = rememberCoroutineScope()
-    val hero = rememberLoad("hero", refresh = false) {
-        Servers.merged(api) { a ->
-            a.items(
-                "IncludeItemTypes" to "Movie,Series", "Recursive" to true, "SortBy" to "Random", "Limit" to 8,
-                "ImageTypes" to "Backdrop", "EnableImageTypes" to "Primary,Backdrop,Logo,Thumb",
-            ).items
-        }.filter { it.backdropImageTags.isNotEmpty() }.take(6)
-    }.value
+    val hideWatched = TvSettings.heroHideWatched.value
+    val hero = rememberLoad(if (hideWatched) "hero-unwatched" else "hero", refresh = false) { heroItems(api, hideWatched) }.value
     // X-01: one "Continuer à regarder" row (resume + next up) while merge_continue is on (the default).
     val cont = if (merged && showResume) rememberLoad("continue") { ContinueWatching.loadAll(api) }.value else null
     val resume = if (merged || !showResume) null else rememberLoad("resume") { Servers.merged(api, byDate = true) { it.resume() } }.value

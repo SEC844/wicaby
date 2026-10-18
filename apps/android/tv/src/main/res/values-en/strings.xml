@@ -193,6 +193,7 @@
     <string name="show_clock">Clock</string>
     <string name="group_home">Home</string>
     <string name="row_hero">Featured</string>
+    <string name="hero_hide_watched">Hide Watched in Featured</string>
     <string name="row_latest">Recently Added</string>
     <string name="row_upcoming">Upcoming</string>
     <string name="row_because">Because You Watched %1$s</string>
