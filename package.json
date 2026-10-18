@@ -6,7 +6,8 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/desktop"
+    "apps/desktop",
+    "apps/tv-web"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/desktop --",

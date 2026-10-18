@@ -1,0 +1,44 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { fileURLToPath } from 'node:url';
+import { defineConfig, type Plugin } from 'vite';
+
+// The oldest web engine this app supports: Samsung's 2020 sets (Tizen 5.5) and LG webOS 5 run Chromium 69.
+// The build lowers syntax to it; src/polyfills.ts fills in the missing APIs.
+export const ENGINE = 'chrome69';
+
+// `npm run dev` proxies the mock server (or a real one: WICABY_DEV_SERVER), so the browser build is same-origin and
+// needs no CORS preflight.
+const devServer = process.env.WICABY_DEV_SERVER ?? 'http://127.0.0.1:8096';
+
+// Packaged TV apps load from a local origin where old runtimes refuse module scripts: ship one classic, deferred
+// script (the bundle is a single IIFE chunk).
+const classicScript: Plugin = {
+  name: 'wicaby-classic-script',
+  apply: 'build',
+  transformIndexHtml: (html) => html.replace(/<script type="module" crossorigin/g, '<script defer').replace(/ crossorigin/g, ''),
+};
+
+export default defineConfig({
+  root: 'src',
+  base: './',
+  plugins: [svelte(), classicScript],
+  resolve: {
+    // Platform-neutral code shared with the desktop app (models, markers, HDR, track selection…).
+    alias: { $shared: fileURLToPath(new URL('../desktop/src/shared', import.meta.url)) },
+  },
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+    target: ENGINE,
+    // TVs load from local storage; one bundle avoids extra parse and request overhead.
+    modulePreload: false,
+    cssCodeSplit: false,
+    assetsInlineLimit: 4096,
+    rollupOptions: { output: { format: 'iife', inlineDynamicImports: true } },
+  },
+  server: {
+    port: 5299,
+    strictPort: true,
+    proxy: { '/dev-server': { target: devServer, changeOrigin: true, rewrite: (p) => p.replace(/^\/dev-server/, '') } },
+  },
+});
