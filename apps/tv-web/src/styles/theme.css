@@ -1,15 +1,15 @@
-/* Graphite for the TV web app, mirrored from the Android TV theme (apps/android/tv/.../ui/Theme.kt), itself mirrored
+/* Graphite for the TV web app, mirrored from the Android TV theme (apps/android/tv/.../ui/Theme.kt; fonts from :core), itself mirrored
    from apps/desktop/src/renderer/app.css (docs/design.md).
    Units: 1rem = 1 dp of the Android TV layout (a 960 × 540 dp screen), set by src/lib/screen.ts from the viewport
    width, so the Android sizes carry over as is and the UI scales to 720p, 1080p and 4K viewports alike.
    Chromium 53 syntax only: rgba(), no color-mix(), no grid, no flexbox gap, no backdrop-filter, no :focus-visible. */
 
-@font-face { font-family: Geist; font-weight: 400; src: url('../../../android/tv/src/main/res/font/geist_regular.ttf'); }
-@font-face { font-family: Geist; font-weight: 500; src: url('../../../android/tv/src/main/res/font/geist_medium.ttf'); }
-@font-face { font-family: Geist; font-weight: 600; src: url('../../../android/tv/src/main/res/font/geist_semibold.ttf'); }
-@font-face { font-family: Geist; font-weight: 700; src: url('../../../android/tv/src/main/res/font/geist_bold.ttf'); }
-@font-face { font-family: 'Geist Mono'; font-weight: 400; src: url('../../../android/tv/src/main/res/font/geist_mono_regular.ttf'); }
-@font-face { font-family: 'Geist Mono'; font-weight: 500; src: url('../../../android/tv/src/main/res/font/geist_mono_medium.ttf'); }
+@font-face { font-family: Geist; font-weight: 400; src: url('$android/core/src/main/res/font/geist_regular.ttf'); }
+@font-face { font-family: Geist; font-weight: 500; src: url('$android/core/src/main/res/font/geist_medium.ttf'); }
+@font-face { font-family: Geist; font-weight: 600; src: url('$android/core/src/main/res/font/geist_semibold.ttf'); }
+@font-face { font-family: Geist; font-weight: 700; src: url('$android/core/src/main/res/font/geist_bold.ttf'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 400; src: url('$android/core/src/main/res/font/geist_mono_regular.ttf'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 500; src: url('$android/core/src/main/res/font/geist_mono_medium.ttf'); }
 
 :root {
   --bg: #0b0b0d;

@@ -10,6 +10,12 @@ declare module 'virtual:strings' {
   export default catalogs;
 }
 
+declare module 'virtual:icons' {
+  // Names from object Ic in the Android TV ui/Theme.kt (Play, Pause, Check, Heart, Search, Gear…).
+  const icons: Record<string, string>;
+  export default icons;
+}
+
 declare const __APP_VERSION__: string;
 
 interface ImportMetaEnv {

@@ -486,6 +486,17 @@ ${[...Array(14)].map((_, i) => `<line x1="0" y1="${(i * H) / 14}" x2="${W}" y2="
 <text x="${W * 0.07}" y="${H * 0.12}" font-family="Consolas, monospace" font-size="${Math.round(W / 28)}" fill="#ece8e1" fill-opacity="0.6">0x${hash.toString(16).padStart(8, '0')}</text></svg>`;
 }
 
+// Browser clients (the TV web app, apps/tv-web) send a CORS preflight before any request carrying auth headers.
+function preflight(req, res) {
+  res.writeHead(204, {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': req.headers['access-control-request-headers'] ?? '*',
+    'Access-Control-Max-Age': '86400',
+  });
+  res.end();
+}
+
 function send(res, status, body, type = 'application/json') {
   res.writeHead(status, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' });
   res.end(type === 'application/json' && body !== undefined ? JSON.stringify(body) : body);
@@ -755,6 +766,7 @@ async function adminModules() {
 export async function handler(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const q = url.searchParams;
+  if (req.method === 'OPTIONS') return preflight(req, res);
   hooks.log(req.method, url.pathname + url.search);
   if (/^\/mock\/livetv(\/|$)/i.test(url.pathname) && liveTv()) return lt.control(req, res, url.pathname, q);
   const mp = url.pathname.replace(/^\/emby(?=\/)/i, '').split('/').filter(Boolean);
@@ -1117,7 +1129,7 @@ export async function handler(req, res) {
   return send(res, 404, 'Not found', 'text/plain');
 }
 
-export { items, ud, view, list, svg, send, body, chapterSvg, mediaSource, tokens, USER, SERVER_ID, MARKER_SPAN, TICKS_MIN, COMICS, cbz, PORT, VIDEO };
+export { items, ud, view, list, svg, send, preflight, body, chapterSvg, mediaSource, tokens, USER, SERVER_ID, MARKER_SPAN, TICKS_MIN, COMICS, cbz, PORT, VIDEO };
 
 if (process.argv[1] && path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()) {
   const server = http.createServer(handler);

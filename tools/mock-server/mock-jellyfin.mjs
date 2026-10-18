@@ -219,6 +219,7 @@ function avatarSvg() {
 const LEGACY_USER_ROUTES = new Set(['items', 'views', 'favoriteitems', 'playeditems', 'images', 'suggestions', 'homesections']);
 
 async function route(req, res) {
+  if (req.method === 'OPTIONS') return E.preflight(req, res);
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const q = url.searchParams;
   const p = url.pathname;

@@ -137,13 +137,18 @@ export class Api {
 
 // --- Finding a server from what the user typed ---
 
-// "192.168.1.20", "nas:8920", "https://media.example.org/jellyfin" → candidate base URLs, most likely first.
+// The Android Api.candidates (core Emby.kt): "192.168.1.20", "nas:8920", "https://media.example.org/jellyfin" →
+// base URLs to try. 8920 / 8096 are the Emby and Jellyfin default HTTPS / HTTP ports.
 export function candidates(input: string): string[] {
-  const raw = input.trim().replace(/\/+$/, '');
+  let raw = input.trim().replace(/\/+$/, '');
   if (!raw) return [];
   if (/^https?:\/\//i.test(raw)) return [raw];
-  const hasPort = /:\d+(\/|$)/.test(raw);
-  return hasPort ? [`http://${raw}`, `https://${raw}`] : [`http://${raw}:8096`, `https://${raw}:8920`, `https://${raw}`, `http://${raw}`];
+  raw = raw.replace(/^\/+/, '');
+  const slash = raw.indexOf('/');
+  const host = slash < 0 ? raw : raw.slice(0, slash);
+  if (/:\d+$/.test(host)) return [`https://${raw}`, `http://${raw}`];
+  const tail = slash < 0 ? '' : raw.slice(slash);
+  return [`https://${raw}`, `https://${host}:8920${tail}`, `http://${host}:8096${tail}`, `http://${raw}`];
 }
 
 export interface FoundServer {
@@ -152,19 +157,42 @@ export interface FoundServer {
   info: SystemInfoPublic;
 }
 
-// Emby answers on /emby/System/Info/Public and on /System/Info/Public; Jellyfin only on the latter.
-export async function probe(input: string): Promise<FoundServer | null> {
-  for (const address of candidates(input)) {
+// Android Api.probeOne: /emby first (Emby only), then the root. No HTTP answer at all (refused, TLS failure) ends the
+// address: the root path would not do better.
+async function probeOne(address: string): Promise<FoundServer> {
+  for (const prefix of ['/emby', '']) {
+    let res: Response;
     try {
-      const res = await fetchWithTimeout(`${address}/System/Info/Public`, { headers: { Accept: 'application/json' } }, 6_000);
-      if (!res.ok) continue;
-      const info = (await res.json()) as SystemInfoPublic & { ProductName?: string };
-      if (!info?.Id) continue;
-      const kind: ServerKind = /jellyfin/i.test(info.ProductName ?? '') ? 'jellyfin' : 'emby';
-      return { address, kind, info };
+      res = await fetchWithTimeout(`${address}${prefix}/System/Info/Public`, { headers: { Accept: 'application/json' } }, 6_000);
     } catch {
-      // next candidate
+      break;
     }
+    const info = res.ok ? ((await res.json().catch(() => null)) as (SystemInfoPublic & { ProductName?: string }) | null) : null;
+    if (!info?.Id) continue;
+    const product = info.ProductName ?? '';
+    const kind: ServerKind = /jellyfin/i.test(product) ? 'jellyfin' : prefix === '/emby' || /emby/i.test(product) ? 'emby' : 'jellyfin';
+    return { address, kind, info };
   }
-  return null;
+  throw new Error('not a server');
+}
+
+// The first address of [list] that answers, or null.
+function race(list: string[]): Promise<FoundServer | null> {
+  if (!list.length) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let pending = list.length;
+    for (const a of list)
+      probeOne(a).then(resolve, () => {
+        if (--pending === 0) resolve(null);
+      });
+  });
+}
+
+// Android Api.probe: HTTPS and plain HTTP are probed at once, but an HTTP answer is used only once every HTTPS
+// candidate has failed, so a faster HTTP answer never wins over HTTPS.
+export async function probe(input: string): Promise<FoundServer | null> {
+  const list = candidates(input);
+  const secure = race(list.filter((a) => /^https:/i.test(a)));
+  const plain = race(list.filter((a) => !/^https:/i.test(a)));
+  return (await secure) ?? (await plain);
 }

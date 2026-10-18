@@ -1,55 +1,56 @@
 <script lang="ts">
-  // Milestone 0 (walking skeleton): proves the toolchain on the oldest target engine. Shows the engine, the remote
-  // keys as they arrive, and plays a test stream through the platform player. Replaced by the real shell next.
+  // The app shell (Android TV MainActivity): the screen stack, the remote keys and the dialog layer.
   import { onMount } from 'svelte';
-  import { createPlayer, exitApp, platform } from './platform';
-  import { keyOf, type Key } from './platform/keys';
-  import type { VideoPlayer } from './platform/player';
+  import AlertDialog from './components/AlertDialog.svelte';
+  import Screen from './components/Screen.svelte';
+  import { move, select } from './lib/focus';
+  import { t } from './lib/i18n.svelte';
+  import { handleBack, nav, stack } from './lib/nav.svelte';
+  import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
+  import { prefs } from './lib/session.svelte';
+  import { exitApp } from './platform';
+  import { keyOf } from './platform/keys';
+  import Login from './screens/Login.svelte';
+  import Main from './screens/Main.svelte';
+  import Servers from './screens/Servers.svelte';
 
-  const TEST_STREAM =
-    import.meta.env.VITE_TEST_STREAM ??
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  // MainActivity's start route: the session, else the saved server's sign-in, else the server screen.
+  if (prefs.session) nav.reset({ name: 'main' });
+  else if (prefs.server) nav.reset({ name: 'login', server: prefs.server });
+  else nav.reset({ name: 'servers' });
 
-  let video: HTMLVideoElement;
-  let player: VideoPlayer | undefined;
-  let lastKey = $state<Key | '—'>('—');
-  let status = $state('idle');
-  let position = $state(0);
-  let playing = $state(false);
-  const engine = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] ?? '?';
-
-  async function start(): Promise<void> {
-    player ??= createPlayer(video);
-    player.on('time', (ms) => (position = ms));
-    player.on('error', (m) => (status = `error: ${m}`));
-    player.on('ended', () => { status = 'ended'; playing = false; });
-    status = 'opening';
-    try {
-      await player.open(TEST_STREAM);
-      player.play();
-      playing = true;
-      status = `playing (${player.audioTracks().length} audio, ${player.textTracks().length} text tracks)`;
-    } catch (e) {
-      status = `error: ${(e as Error).message}`;
-    }
+  function confirmQuit(): void {
+    showAlert({
+      title: t('quit_title'),
+      actions: [
+        { label: t('quit'), destructive: true, run: exitApp },
+        { label: t('cancel'), run: () => {} },
+      ],
+      focusIndex: 1,
+    });
   }
 
-  $effect(() => {
-    document.body.classList.toggle('playing', playing);
-  });
+  // In a text field, Left/Right move the caret until it reaches an end; then they move the focus like elsewhere.
+  function caretKeeps(e: KeyboardEvent, dir: 'left' | 'right'): boolean {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement)) return false;
+    const at = el.selectionStart ?? 0;
+    return dir === 'left' ? at > 0 : at < el.value.length;
+  }
 
   onMount(() => {
     const onKey = (e: KeyboardEvent) => {
-      const k = keyOf(e);
-      if (!k) return;
+      const key = keyOf(e);
+      if (!key) return;
+      if ((key === 'left' || key === 'right') && caretKeeps(e, key)) return;
+      // Backspace edits text; only Escape and the remote's Back key go back from a field.
+      if (key === 'back' && e.keyCode === 8 && e.target instanceof HTMLInputElement) return;
       e.preventDefault();
-      lastKey = k;
-      if (k === 'ok' && !playing) void start();
-      else if (k === 'playPause' || k === 'pause' || k === 'play') player?.[player.paused ? 'play' : 'pause']();
-      else if (k === 'right') player?.seek(player.positionMs + 10_000);
-      else if (k === 'left') player?.seek(player.positionMs - 10_000);
-      else if (k === 'back') {
-        if (playing) { player?.stop(); playing = false; status = 'stopped'; } else exitApp();
+      if (key === 'up' || key === 'down' || key === 'left' || key === 'right') move(key);
+      else if (key === 'ok') select();
+      else if (key === 'back') {
+        if (overlay.alert) closeAlert();
+        else if (!handleBack()) confirmQuit();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -57,31 +58,15 @@
   });
 </script>
 
-<video bind:this={video} class:hidden={!playing}></video>
-<main class:playing>
-  <h1>Wicaby</h1>
-  <p>platform {platform} · Chromium {engine}</p>
-  <p>last key: <b>{lastKey}</b></p>
-  <p>player: {status} · {Math.round(position / 1000)} s</p>
-  <p class="hint">OK: play test stream · ◀ ▶: seek 10 s · Back: stop / exit</p>
-</main>
-
-<style>
-  :global(html, body) {
-    margin: 0;
-    width: 1920px;
-    height: 1080px;
-    overflow: hidden;
-    background: #0b0b0d;
-    color: #f5f5f7;
-    font: 32px/1.4 system-ui, sans-serif;
-  }
-  /* AVPlay draws behind the page: the page must be see-through while it plays (:has() is Chromium 105+). */
-  :global(body.playing) { background: transparent; }
-  video { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; }
-  video.hidden { display: none; }
-  main { position: relative; padding: 96px; }
-  main.playing { background: linear-gradient(rgba(0, 0, 0, 0.6), transparent 40%); }
-  h1 { margin: 0 0 24px; font-size: 64px; }
-  .hint { opacity: 0.6; }
-</style>
+{#each stack as entry, i (entry.key)}
+  <Screen key={entry.key} top={i === stack.length - 1}>
+    {#if entry.route.name === 'servers'}
+      <Servers add={entry.route.add} />
+    {:else if entry.route.name === 'login'}
+      <Login server={entry.route.server} add={entry.route.add} />
+    {:else if entry.route.name === 'main'}
+      <Main />
+    {/if}
+  </Screen>
+{/each}
+{#if overlay.alert}<AlertDialog alert={overlay.alert} />{/if}

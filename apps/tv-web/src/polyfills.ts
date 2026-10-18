@@ -72,10 +72,21 @@ if (!g.structuredClone) g.structuredClone = (<T>(v: T): T => (v === undefined ? 
 // AbortController (66): the API surface for callers; fetch() before 66 ignores the signal, so lib/http.ts also races
 // the request against the signal's abort event.
 if (!g.AbortController) {
-  class Signal extends EventTarget {
+  // Not a subclass of EventTarget: its constructor is "illegal" to call before Chromium 64.
+  class Signal {
     aborted = false;
     reason: unknown = undefined;
     onabort: ((e: Event) => void) | null = null;
+    private readonly listeners: ((e: Event) => void)[] = [];
+    addEventListener(_type: string, fn: (e: Event) => void): void { this.listeners.push(fn); }
+    removeEventListener(_type: string, fn: (e: Event) => void): void {
+      const i = this.listeners.indexOf(fn);
+      if (i >= 0) this.listeners.splice(i, 1);
+    }
+    dispatchEvent(e: Event): boolean {
+      this.listeners.slice().forEach((fn) => fn(e));
+      return true;
+    }
     throwIfAborted(): void { if (this.aborted) throw this.reason; }
   }
   class Controller {

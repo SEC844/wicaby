@@ -1,7 +1,9 @@
 // Smoke test of the built app (dist/) on each pinned engine (scripts/engines.mjs), through the DevTools protocol.
 // Loads dist/index.html from file://, like a packaged TV app, sends remote keys, saves screenshots to
 // .dev/smoke/<major>/ and fails on any console error or uncaught exception.
-// Usage: npm run smoke [-- --engine 53 --keys 39,38,13 --wait 1500]
+// Usage: npm run smoke [-- --engine 53 --steps 39,38,13,text:wicaby,wait:2000 --wait 1500]
+// --probe <js>: an expression evaluated at the end, printed (debugging).
+// Steps: a keyCode (sends the key), text:<chars> (types into the focused field; no commas), wait:<ms>.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,12 +13,12 @@ import { pathToFileURL } from 'node:url';
 import { ENGINES, engineExe } from './engines.mjs';
 
 const { values: opts } = parseArgs({
-  options: { engine: { type: 'string', multiple: true }, keys: { type: 'string', default: '' }, wait: { type: 'string', default: '1500' } },
+  options: { engine: { type: 'string', multiple: true }, steps: { type: 'string', default: '' }, probe: { type: 'string' }, wait: { type: 'string', default: '1500' } },
 });
 const app = path.resolve(import.meta.dirname, '..');
 const index = path.join(app, 'dist', 'index.html');
 if (!fs.existsSync(index)) throw new Error('dist/index.html missing: run npm run build first');
-const keys = opts.keys.split(',').filter(Boolean).map(Number);
+const steps = opts.steps.split(',').filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function run(major, port) {
@@ -57,10 +59,24 @@ async function run(major, port) {
     await sleep(Number(opts.wait));
     const shot = async (name) => fs.writeFileSync(path.join(out, `${name}.png`), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
     await shot('00-start');
-    for (const [i, keyCode] of keys.entries()) {
-      for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, windowsVirtualKeyCode: keyCode, nativeVirtualKeyCode: keyCode });
+    for (const [i, step] of steps.entries()) {
+      const name = String(i + 1).padStart(2, '0');
+      if (step.startsWith('wait:')) { await sleep(Number(step.slice(5))); continue; }
+      // Typed key by key: Input.insertText does not exist in the protocol of the old engines.
+      if (step.startsWith('text:')) for (const ch of step.slice(5)) {
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', text: ch, unmodifiedText: ch, key: ch });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: ch });
+      }
+      else for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, windowsVirtualKeyCode: Number(step), nativeVirtualKeyCode: Number(step) });
       await sleep(300);
-      await shot(`${String(i + 1).padStart(2, '0')}-key-${keyCode}`);
+      await shot(`${name}-${step.replace(/[^\w]+/g, '_')}`);
+    }
+    if (opts.probe) {
+      // awaitPromise is unknown to the oldest engines' protocol (error, no result): evaluate plainly there.
+      const r =
+        (await send('Runtime.evaluate', { expression: opts.probe, returnByValue: true, awaitPromise: true })) ??
+        (await send('Runtime.evaluate', { expression: opts.probe, returnByValue: true }));
+      console.log(`Chromium ${major} probe: ${JSON.stringify(r?.result?.value ?? r?.exceptionDetails?.text)}`);
     }
     ws.close();
     return errors;

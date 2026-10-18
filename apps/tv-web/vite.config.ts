@@ -1,6 +1,7 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
+import androidIcons from './scripts/android-icons.mjs';
 import androidStrings from './scripts/android-strings.mjs';
 import pkg from './package.json' with { type: 'json' };
 
@@ -25,10 +26,14 @@ export default defineConfig({
   root: 'src',
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: './',
-  plugins: [svelte(), androidStrings(), classicScript],
+  plugins: [svelte(), androidStrings(), androidIcons(), classicScript],
   resolve: {
     // Platform-neutral code shared with the desktop app (models, markers, HDR, track selection…).
-    alias: { $shared: fileURLToPath(new URL('../desktop/src/shared', import.meta.url)) },
+    alias: {
+      $shared: fileURLToPath(new URL('../desktop/src/shared', import.meta.url)),
+      // Assets shared with the Android TV app (the Geist fonts).
+      $android: fileURLToPath(new URL('../android', import.meta.url)),
+    },
   },
   build: {
     outDir: '../dist',
@@ -42,6 +47,7 @@ export default defineConfig({
   },
   server: {
     port: 5299,
+    fs: { allow: [fileURLToPath(new URL('../..', import.meta.url))] },
     strictPort: true,
     proxy: { '/dev-server': { target: devServer, changeOrigin: true, rewrite: (p) => p.replace(/^\/dev-server/, '') } },
   },
