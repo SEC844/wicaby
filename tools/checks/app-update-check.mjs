@@ -81,7 +81,7 @@ assert.match(svc, /net\.isOnline\(\)/);
 assert.match(svc, /shortcut: .*electron-updater/);
 const main = read('apps/desktop/src/main/index.ts');
 assert.match(main, /if \(app\.isPackaged\) \{[^}]*delete process\.env\.WICABY_FAKE_VERSION;/, 'WICABY_FAKE_VERSION is dropped in packaged builds');
-assert.match(read('apps/desktop/src/main/core/settings.ts'), /updates: \{ autoCheck: true \}/);
+assert.match(read('apps/desktop/src/shared/default-settings.ts'), /updates: \{ autoCheck: true \}/);
 assert.match(read('apps/desktop/src/main/ipc.ts'), /target === 'notes' \|\| target === 'download'/);
 
 console.log('app-update-check: ok');

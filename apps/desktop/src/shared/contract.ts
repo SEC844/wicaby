@@ -10,8 +10,9 @@ export type { LensRef, ZapEntry } from './livetv/model';
 
 // 'files': a local folder, WebDAV folder or SMB share (file-sources-spec, main/files).
 // 'plex': a Plex Media Server through the Plex dialect (plex-spec §3; shared/plex). Its server id is 40 hex.
+// 'navidrome': an OpenSubsonic music server (Navidrome, gonic…) through the Subsonic dialect (shared/subsonic).
 // 'iptv': a client-side IPTV source (an M3U playlist and an XMLTV guide, main/iptv) answering the Emby Live TV calls.
-export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex' | 'iptv';
+export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex' | 'iptv' | 'navidrome';
 
 export interface ServerInfo {
   id: string;
@@ -346,6 +347,8 @@ export interface Settings {
     lyricsProvider: 'server' | 'server+lrclib';
     // MU-11: the mpv player's equalizer (shared/equalizer.ts); flat = no filter.
     eq: { bands: number[]; preampDb: number };
+    // "Source de la musique" (shared/music-source.ts): the server id whose music libraries Music shows; '' = all.
+    source: string;
   };
 }
 

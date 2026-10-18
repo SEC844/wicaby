@@ -109,6 +109,15 @@ class IptvParityTest {
         assertEquals(16, stableId("").length)
     }
 
+    // OkHttp throws on such a header value inside the IptvHeaders interceptor: the parser drops it instead.
+    @Test
+    fun headerValuesOkHttpRejectsAreDropped() {
+        val ch = parseM3u("#EXTM3U\n#EXTINF:-1,A\n#EXTVLCOPT:http-user-agent=Lecteur é\n#EXTVLCOPT:http-referrer=http://r.example/\u0007\nhttp://s.example/a\n" +
+            "#EXTINF:-1,B\n#EXTVLCOPT:http-user-agent=Ok/1.0\thi\nhttp://s.example/b").channels
+        assertEquals(listOf(null, "Ok/1.0\thi"), ch.map { it.userAgent })
+        assertEquals(null, ch[0].referrer)
+    }
+
     @Test
     fun oversizedElementIsSkippedNotBuffered() {
         val c = collectGuide(emptyList(), 0, Long.MAX_VALUE)

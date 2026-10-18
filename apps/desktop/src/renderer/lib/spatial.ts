@@ -106,13 +106,31 @@ function reveal(el: HTMLElement): void {
   const smooth: ScrollBehavior = still ? 'auto' : 'smooth';
   let row: HTMLElement | null = el.parentElement;
   while (row && !scrollsX(row)) row = row.parentElement;
-  el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth });
+  // TV look (apps/webtv, CSS zoom 1.5): Chromium 79-85 ignores scrollIntoView there, so the page's scroller is
+  // scrolled by hand. clientHeight / rect height turns rect px into scroll px (current Chromium zooms rects, old not).
+  const tv = document.documentElement.hasAttribute('data-tv');
+  const page = tv ? el.closest<HTMLElement>('#main-scroller') : null;
+  if (page) {
+    const p = page.getBoundingClientRect();
+    const e = el.getBoundingClientRect();
+    const k = page.clientHeight / p.height || 1;
+    const pad = 56 / k; // App.svelte's scroll-margin, in rect px
+    const dy = e.top < p.top + pad ? e.top - p.top - pad : e.bottom > p.bottom - pad ? e.bottom - p.bottom + pad : 0;
+    if (dy) page.scrollBy({ top: dy * k, behavior: smooth });
+  } else el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth });
   if (!row) return;
   const r = row.getBoundingClientRect();
   const e = el.getBoundingClientRect();
-  const left = row.scrollLeft + (e.left - r.left) - (r.width - e.width) / 2;
+  const kx = tv ? row.clientWidth / r.width || 1 : 1;
+  const left = row.scrollLeft + ((e.left - r.left) - (r.width - e.width) / 2) * kx;
   row.scrollTo({ left: Math.max(0, Math.min(left, row.scrollWidth - row.clientWidth)), behavior: smooth });
 }
+
+// TV remotes' Back key: LG webOS sends keyCode 461, Samsung Tizen 10009 (e.key is not standard on either).
+export const isBackKey = (e: KeyboardEvent): boolean => e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009;
+
+// Older Chromium (webOS 6, Tizen 6.5) returns a GamepadList, which is not an array.
+const gamepads = () => Array.from(navigator.getGamepads?.() ?? []);
 
 const KEY_DIR: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
 
@@ -128,7 +146,7 @@ export function initSpatialNav(): () => void {
     if (!enabled() || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     const active = document.activeElement;
     const typing = isTextInput(active);
-    if (e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing)) {
+    if (isBackKey(e) || (e.key === 'Backspace' && !typing)) {
       e.preventDefault();
       back();
       return;
@@ -151,8 +169,7 @@ export function initSpatialNav(): () => void {
 
   const poll = (t: number) => {
     raf = 0;
-    const pads = navigator.getGamepads?.() ?? [];
-    const pad = pads.find((p) => p && p.connected);
+    const pad = gamepads().find((p) => p && p.connected);
     if (!pad) return;
     if (enabled() || reading()) {
       const go = (d: Dir) => (reading() ? key(DIR_KEY[d]) : move(d));
@@ -192,7 +209,7 @@ export function initSpatialNav(): () => void {
     if (!raf) raf = requestAnimationFrame(poll);
   };
   window.addEventListener('gamepadconnected', start);
-  if ((navigator.getGamepads?.() ?? []).some((p) => p?.connected)) start();
+  if (gamepads().some((p) => p?.connected)) start();
 
   return () => {
     window.removeEventListener('keydown', onKey);

@@ -6,7 +6,7 @@ import { msToTicks, playablePart, ticksToMs, toMediaSources } from './map';
 import { itemKey } from './query';
 import type { PlexContainer, PlexMeta } from './types';
 
-// The parts of an Emby DeviceProfile (main/playback/device-profile.ts) the decision reads.
+// The parts of an Emby DeviceProfile (shared/device-profile.ts) the decision reads.
 export interface EmbyProfile {
   DirectPlayProfiles?: { Type?: string; Container?: string; VideoCodec?: string; AudioCodec?: string }[];
   TranscodingProfiles?: { Type?: string; Container?: string; VideoCodec?: string; AudioCodec?: string; Protocol?: string }[];

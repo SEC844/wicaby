@@ -7,7 +7,7 @@ import type { BaseItem, MediaStream } from '../../shared/models';
 import { JsonStore } from '../core/json-store';
 import type { Current, PlaybackDeps } from './playback-model';
 import { readScoped, writeScoped, type ScopeCtx, type ScopedProp, type ScopesDoc } from './scoped-prefs';
-import { rememberChoice, type TrackMemoryDoc } from './track-selection';
+import { rememberChoice, type TrackMemoryDoc } from '../../shared/track-selection';
 
 export class PlayerMemory {
   // X-05: speed, delays and aspect at the scope set in Réglages (scoped-prefs.ts), and the current item's keys.

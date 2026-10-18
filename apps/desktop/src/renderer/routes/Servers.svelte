@@ -27,6 +27,7 @@
   import VpnPanel from '../components/VpnPanel.svelte';
   import { w } from '../lib/bridge';
   import { plainHttpToPublic } from '../lib/address';
+  import { web } from '../lib/platform';
   import { immich, watchImmichSources } from '../lib/photos/immich.svelte';
   import { fmt, t, tParts } from '../lib/i18n.svelte';
   import { navigate } from '../lib/router.svelte';
@@ -67,12 +68,14 @@
   let plexAccounts = $state<PlexAccount[]>([]);
   let plexPin = $state<(PlexLinkPin & { expired?: boolean }) | null>(null);
   let plexTimer: ReturnType<typeof setTimeout> | undefined;
+  // False once the page is gone: a poll or wake retry that resolves later does nothing.
+  let alive = true;
   const plexQr = $derived(plexPin ? qrPath(plexPin.url) : null);
   // Hidden Plex servers stay stored (and listed in their account's sheet), out of the list.
   const shown = $derived(saved.filter((s) => !s.plex?.hidden));
 
   // The add sheet: a type picker, then one form at a time.
-  type Step = 'pick' | 'server' | 'plex' | 'photos' | 'remote';
+  type Step = 'pick' | 'server' | 'plex' | 'navidrome' | 'photos' | 'remote';
   let addOpen = $state(false);
   let step = $state<Step>('pick');
   let stepEl = $state<HTMLDivElement>();
@@ -224,7 +227,7 @@
     if (!plexPin || plexPin.expired) return;
     try {
       const r = await w.servers.plexPoll();
-      if (!plexPin) return;
+      if (!plexPin || !alive) return;
       if (r.status === 'waiting') plexTimer = setTimeout(plexPoll, 2000);
       else if (r.status === 'expired') plexPin = { ...plexPin, expired: true };
       else {
@@ -356,7 +359,7 @@
         return;
       }
       toast('success', t('onboarding.servers.toast.wakeSent', { seconds: WAKE_RETRY_S }));
-      setTimeout(() => void select(server), WAKE_RETRY_S * 1000);
+      setTimeout(() => alive && void select(server), WAKE_RETRY_S * 1000);
     } catch (err) {
       toast('error', errorMessage(err));
     }
@@ -615,7 +618,9 @@
     step = 'pick';
   }
 
-  function pickType(k: 'server' | 'plex' | 'files' | 'iptv' | 'photos' | 'remote') {
+  function pickType(k: 'server' | 'plex' | 'navidrome' | 'files' | 'iptv' | 'photos' | 'remote') {
+    // Navidrome: the address form (no Emby Connect); its sign-in is the user name and password form.
+    if (k === 'navidrome') mode = 'address';
     if (k === 'files') openFiles('files');
     else if (k === 'iptv') {
       fileFrom = addOpen ? step : null;
@@ -626,7 +631,8 @@
     else openAdd(k);
   }
 
-  const TYPES = ['server', 'plex', 'files', 'iptv', 'photos', 'remote'] as const;
+  // The web TV app adds Emby and Jellyfin servers only (Plex, Navidrome, file, IPTV, photo and mesh sources need the desktop's main).
+  const TYPES = web ? (['server'] as const) : (['server', 'plex', 'navidrome', 'files', 'iptv', 'photos', 'remote'] as const);
   const stepTitle = $derived(step === 'pick' ? t('sources.add.button') : t(`sources.add.types.${step}.title`));
   const stepBack = () => (plexCancel(), void goStep('pick'));
   // The file sheet replaces the add sheet; its back chevron reopens the add sheet where it was left.
@@ -659,6 +665,7 @@
     }
     // The Plex poll stops with the page.
     return () => {
+      alive = false;
       clearTimeout(plexTimer);
       clearTimeout(timer);
       off?.();
@@ -716,7 +723,7 @@
 
 {#snippet methods()}
   <div class="method">
-    {#if section !== 'lan'}
+    {#if section !== 'lan' && step !== 'navidrome' && !web}
       <Segmented
         value={mode}
         options={[
@@ -734,7 +741,7 @@
         <input
           id="source-address"
           class="field"
-          placeholder={section === 'public' ? t('welcome.where.public.placeholder') : t('onboarding.servers.address.placeholder')}
+          placeholder={step === 'navidrome' ? 'http://…:4533' : section === 'public' ? t('welcome.where.public.placeholder') : t('onboarding.servers.address.placeholder')}
           bind:value={address}
           oninput={() => (formError = '')}
           spellcheck="false"
@@ -922,6 +929,7 @@
         {/if}
 
         <!-- Remote access: one row with the source rows' anatomy; it opens the add sheet's remote step, which works signed out too. -->
+        {#if !web}
         <button class="row remote" onclick={() => openAdd('remote')} title={mesh?.state === 'error' ? (mesh.lastError?.message ?? mesh.error) : undefined}>
           <span class="dot {meshDot(mesh)}" aria-hidden="true"></span>
           <span class="meta">
@@ -940,6 +948,7 @@
           <span class="kind remote-state" class:bad={mesh?.state === 'error'}>{mesh ? vpnStateLabel(mesh) : t('shell.status.vpn.off')}</span>
           <span class="go"><Icon name="chevronRight" size={16} /></span>
         </button>
+        {/if}
       {/if}
     </div>
   </div>
@@ -958,7 +967,7 @@
         <div class="step" bind:this={stepEl} in:fly={{ x: step === 'pick' ? -12 : 12, duration: 260 * tempo(), easing: cubicOut }}>
           {#if step === 'pick'}
             {@render picker()}
-          {:else if step === 'server'}
+          {:else if step === 'server' || step === 'navidrome'}
             {@render methods()}
           {:else if step === 'plex'}
             <p class="lead">{t('plex.link.body')}</p>

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { hdrChip, hdrFromStream } from '../../apps/desktop/src/shared/hdr.ts';
 import { embyMarkers, jellyfinMarkers } from '../../apps/desktop/src/shared/markers.ts';
-import { selectTracks } from '../../apps/desktop/src/main/playback/track-selection.ts';
+import { selectTracks } from '../../apps/desktop/src/shared/track-selection.ts';
 import { itemKey, merge } from '../../apps/desktop/src/renderer/lib/items.ts';
 
 const cases = (name) => JSON.parse(readFileSync(path.join(import.meta.dirname, 'fixtures', `${name}.json`), 'utf8')).cases;

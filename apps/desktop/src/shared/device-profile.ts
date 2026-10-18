@@ -1,4 +1,4 @@
-import type { ServerKind } from '../../shared/contract';
+import type { ServerKind } from './contract';
 
 // DeviceProfile sent with PlaybackInfo. The server uses it to decide between
 // direct play, direct stream and transcoding.
@@ -24,7 +24,7 @@ function resolutionCap(maxHeight: number): Record<string, unknown>[] {
   ];
 }
 
-export function buildDeviceProfile(player: 'mpv' | 'html', maxBitrate: number, server: ServerKind, maxHeight = 0): Record<string, unknown> {
+export function buildDeviceProfile(player: 'mpv' | 'html' | 'tv', maxBitrate: number, server: ServerKind, maxHeight = 0): Record<string, unknown> {
   const base = {
     Name: `Wicaby ${player}`,
     MaxStreamingBitrate: maxBitrate,
@@ -76,6 +76,8 @@ export function buildDeviceProfile(player: 'mpv' | 'html', maxBitrate: number, s
     };
   }
 
+  if (player === 'tv') return tvProfile(base, maxHeight);
+
   // Chromium's <video>: MP4/WebM with web codecs; everything else goes HLS.
   return {
     ...base,
@@ -107,6 +109,46 @@ export function buildDeviceProfile(player: 'mpv' | 'html', maxBitrate: number, s
     SubtitleProfiles: [
       { Format: 'vtt', Method: 'External' },
       { Format: 'webvtt', Method: 'External' },
+    ],
+  };
+}
+
+// webOS 6+ / Tizen 6.5+ <video> (apps/webtv): the TV's hardware decoders take MKV, TS and HEVC, and pass AC3/EAC3.
+// Modelled on jellyfin-web's browserDeviceProfile.js webOS/Tizen branches
+// (https://github.com/jellyfin/jellyfin-web/blob/master/src/scripts/browserDeviceProfile.js), kept conservative:
+// no DTS (only some models) and no TrueHD; ASS/SSA and image subtitles are burnt in by the server.
+// shortcut: one profile for every model, no webOS.deviceInfo() probe (Dolby Vision, DTS, 4K); upgrade with real TVs.
+function tvProfile(base: Record<string, unknown>, maxHeight: number): Record<string, unknown> {
+  const video = 'h264,hevc';
+  const audio = 'aac,mp3,ac3,eac3,flac,opus';
+  return {
+    ...base,
+    CodecProfiles: resolutionCap(maxHeight),
+    DirectPlayProfiles: [
+      { Container: 'mp4,m4v,mkv,ts,m2ts,mov', Type: 'Video', VideoCodec: video, AudioCodec: audio },
+      { Container: 'webm', Type: 'Video', VideoCodec: 'vp9,vp8', AudioCodec: 'opus,vorbis' },
+      { Container: 'mp3', Type: 'Audio' },
+      { Container: 'aac,m4a', Type: 'Audio', AudioCodec: 'aac' },
+      { Container: 'flac', Type: 'Audio' },
+      { Container: 'wav', Type: 'Audio' },
+    ],
+    TranscodingProfiles: [
+      {
+        Container: 'ts',
+        Type: 'Video',
+        VideoCodec: 'h264',
+        AudioCodec: 'aac,ac3,eac3',
+        Context: 'Streaming',
+        Protocol: 'hls',
+        MaxAudioChannels: '6',
+        MinSegments: 1,
+        BreakOnNonKeyFrames: true,
+      },
+      { Container: 'mp3', Type: 'Audio', AudioCodec: 'mp3', Context: 'Streaming', Protocol: 'http', MaxAudioChannels: '2' },
+    ],
+    SubtitleProfiles: [
+      ...['vtt', 'webvtt', 'srt', 'subrip'].map((Format) => ({ Format, Method: 'External' })),
+      ...['ass', 'ssa', 'pgs', 'pgssub', 'dvdsub', 'dvbsub', 'vobsub', 'sub', 'idx'].map((Format) => ({ Format, Method: 'Encode' })),
     ],
   };
 }

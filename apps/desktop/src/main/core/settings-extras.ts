@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { session } from 'electron';
 import type { AudioDevice, StorageUsage } from '../../shared/contract';
+import { folderBytes } from '../comics/comic-service';
 import type { MpvPlayer } from '../playback/mpv-player';
 import { logger } from './log';
 import { isSafeMpvPath } from './settings';
@@ -46,10 +47,19 @@ function dirSize(dir: string, filter: (name: string) => boolean = () => true): n
   }
 }
 
+function comicFolders(dir: string): number {
+  try {
+    return fs.readdirSync(dir).filter((f) => f.endsWith('.d')).reduce((n, f) => n + folderBytes(path.join(dir, f)), 0);
+  } catch {
+    return 0;
+  }
+}
+
 export function createSettingsExtras(opts: { mpvExe: () => string | null; runningMpv: () => MpvPlayer | null; comicsDir: string; logDir: string; currentLog: () => string }): SettingsExtras {
   const storage = async (): Promise<StorageUsage> => ({
     http: await session.defaultSession.getCacheSize().catch(() => 0),
-    comics: dirSize(opts.comicsDir, (f) => f.endsWith('.cbz')),
+    // Cached books and the folders RAR, 7z and tar books are extracted to (covers are not counted).
+    comics: dirSize(opts.comicsDir, (f) => /\.(book|cbz)$/.test(f)) + comicFolders(opts.comicsDir),
     logs: dirSize(opts.logDir),
   });
   return {

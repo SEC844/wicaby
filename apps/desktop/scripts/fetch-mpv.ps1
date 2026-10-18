@@ -18,11 +18,11 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Bump checklist: run tools/checks/music-engine-check.mjs (music spec MU-02 AC2, AC5: gapless and per-file options).
-$MpvTag = '20261011'
-$MpvCommit = 'accb7b2821'
+$MpvTag = '20261018'
+$MpvCommit = '01e2533f31'
 $Sha256 = @{
-  'x86_64-v3' = 'e9c8b59884094d3e10d01d76dc869261b66686e4179be2f74df9825f550ae1b3'
-  'x86_64'    = 'afdf8a0422510f0dd375196ef406607984d3861cf033fc9e74ed7997c8db4700'
+  'x86_64-v3' = '80aa8cfdc66f9ea92a3f4092deb58f97fe809c1ff0eb09429f7785ff164612dc'
+  'x86_64'    = 'd7157567a2fd88e46f739d2e8b8e6c02d2ad812db04547b45c59a2800821991f'
 }
 
 # vendor/ sits at the repo root, three levels above apps/desktop/scripts.

@@ -212,8 +212,15 @@ func OpenFiles(host string, port int, share, user, pass, domain string) (string,
 	if port > 65535 || host == "" || share == "" {
 		return "", fmt.Errorf("notfound: invalid share")
 	}
-	n, _ := current()
-	b, err := mesh.NewSMBBackend(mesh.SMBConfig{Host: host, Port: port, Share: share, User: user, Pass: pass, Domain: domain, Dial: n.FilesDialer(host)})
+	// The node is looked up on every dial: a mesh restarted (or started) after the share opened is used.
+	dial := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		n, _ := current()
+		if d := n.FilesDialer(host); d != nil {
+			return d(ctx, network, addr)
+		}
+		return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, addr)
+	}
+	b, err := mesh.NewSMBBackend(mesh.SMBConfig{Host: host, Port: port, Share: share, User: user, Pass: pass, Domain: domain, Dial: dial})
 	if err != nil {
 		return "", err
 	}

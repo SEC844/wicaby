@@ -67,7 +67,7 @@ class ComicReader(
     private val thumbs = mutableStateMapOf<Int, Bitmap>()
     private val jobs = HashMap<Int, Job>()
     private val thumbJobs = HashMap<Int, Job>()
-    private var archive: ComicArchive? = null
+    private var archive: ComicBook? = null
     private var readPage = -1
     private var savedPage = -1
     private var saveJob: Job? = null
@@ -181,6 +181,7 @@ class ComicReader(
     private fun decode(i: Int, reqW: Int, maxPixels: Int): Bitmap? {
         val a = archive ?: return null
         return try {
+            a.render(i, reqW, maxPixels)?.let { return it }
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             a.open(i).use { BitmapFactory.decodeStream(it, null, bounds) }
             val w = bounds.outWidth
@@ -200,7 +201,7 @@ class ComicReader(
     }
 
     // Short on memory: half the resolution rather than a blank page.
-    private fun sampled(a: ComicArchive, i: Int, s: Int): Bitmap? = try {
+    private fun sampled(a: ComicBook, i: Int, s: Int): Bitmap? = try {
         a.open(i).use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = s }) }
     } catch (e: OutOfMemoryError) {
         if (s < 16) sampled(a, i, s * 2) else null

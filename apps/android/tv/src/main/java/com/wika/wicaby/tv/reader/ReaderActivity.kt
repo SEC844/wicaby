@@ -4,7 +4,6 @@ import com.wika.wicaby.tv.ui.dpadEdges
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -90,6 +89,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.tv.material3.Text
 import com.wika.wicaby.core.comics.ComicPages
 import com.wika.wicaby.core.comics.ComicReader
+import com.wika.wicaby.core.comics.ReaderAwake
 import com.wika.wicaby.tv.R
 import com.wika.wicaby.tv.TvCanvas
 import com.wika.wicaby.tv.Wicaby
@@ -131,6 +131,12 @@ class ReaderActivity : ComponentActivity() {
     }
 
     private var reader: ComicReader? = null
+    private val awake by lazy { ReaderAwake(window) }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        awake.poke()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -146,8 +152,7 @@ class ReaderActivity : ComponentActivity() {
         reader = r
         r.start(intent.getBooleanExtra(EXTRA_FROM_START, false))
         goFullscreen()
-        // Reading means long stretches without a key press.
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        awake.poke()
         setContent {
             WicabyTheme(Accents[Wicaby.app.accent.coerceIn(Accents.indices)]) {
                 ReaderScreen(r, onExit = ::finish)
@@ -162,6 +167,7 @@ class ReaderActivity : ComponentActivity() {
 
     // Back (or Home and the system killing us later) saves the last page.
     override fun onDestroy() {
+        awake.stop()
         reader?.close()
         super.onDestroy()
     }

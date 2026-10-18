@@ -27,7 +27,7 @@
     <string name="music_repeat_one">Repeat one</string>
     <string name="music_shuffle_on">Shuffle on</string>
     <string name="music_shuffle_off">Shuffle off</string>
-    <string name="music_now_playing">Now playing</string>
+    <string name="music_now_playing">Now Playing</string>
     <string name="music_album_artists_only">Album artists only</string>
     <string name="music_pause">Pause</string>
     <string name="music_next">Next</string>
@@ -77,7 +77,7 @@
     <string name="music_release_single">Single</string>
     <string name="music_release_compilation">Compilation</string>
     <string name="music_more_from">More by %1$s</string>
-    <string name="music_similar_artists">Similar artists</string>
+    <string name="music_similar_artists">Similar Artists</string>
     <string name="music_clear_selection">Deselect</string>
     <plurals name="music_selected">
         <item quantity="one">%1$d song selected</item>

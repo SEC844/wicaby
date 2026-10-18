@@ -131,7 +131,7 @@ export class MusicPlayback {
   private async albumGain(albumId: string): Promise<number | undefined> {
     if (this.albumGains.has(albumId)) return this.albumGains.get(albumId);
     const api = this.api();
-    if (api?.kind !== 'jellyfin') return undefined;
+    if (api?.kind !== 'jellyfin' && api?.kind !== 'navidrome') return undefined;
     const album = await userItem<BaseItem>(api, this.userId(), albumId).catch(() => null);
     const db = typeof album?.NormalizationGain === 'number' ? album.NormalizationGain : undefined;
     this.albumGains.set(albumId, db);

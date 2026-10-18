@@ -145,6 +145,7 @@ class Bif private constructor(private val data: ByteArray, private val times: Lo
     }
 
     companion object {
+        private const val BIF_CAP = 64L shl 20
         private val MAGIC = byteArrayOf(0x89.toByte(), 0x42, 0x49, 0x46, 0x0D, 0x0A, 0x1A, 0x0A)
 
         private fun u32(b: ByteArray, at: Int): Long =
@@ -154,7 +155,7 @@ class Bif private constructor(private val data: ByteArray, private val times: Lo
             if (b.size < 64 || !b.copyOf(8).contentEquals(MAGIC)) return null
             val n = u32(b, 12).toInt()
             val mult = u32(b, 16).let { if (it == 0L) 1000L else it }
-            if (n <= 0 || 64 + (n + 1) * 8 > b.size) return null
+            if (n <= 0 || 64L + (n + 1L) * 8 > b.size) return null
             val times = LongArray(n) { u32(b, 64 + it * 8) * mult }
             val offsets = IntArray(n + 1) { u32(b, 64 + it * 8 + 4).toInt() }
             return Bif(b, times, offsets)
@@ -166,8 +167,9 @@ class Bif private constructor(private val data: ByteArray, private val times: Lo
             runCatching {
                 val req = Request.Builder().url(api.bifUrl(itemId, width)).apply { api.authHeaders().forEach { (k, v) -> header(k, v) } }.build()
                 Core.http.newCall(req).execute().use { r ->
-                    // A feature-length BIF at 320 px is a few MB; refuse anything absurd.
-                    if (!r.isSuccessful || r.body.contentLength() > 64L shl 20) null else parse(r.body.bytes())
+                    // A feature-length BIF at 320 px is a few MB; refuse anything absurd, chunked replies included.
+                    val src = r.body.source()
+                    if (!r.isSuccessful || src.request(BIF_CAP + 1)) null else parse(src.buffer.readByteArray())
                 }
             }.getOrNull()
         }

@@ -1,0 +1,73 @@
+{
+  "about": "Navidrome (OpenSubsonic) dialect vectors (music-feishin-navidrome spec §4.B): desktop shared/subsonic/map.ts + main SubsonicClient (tools/checks/subsonic-check.mjs) and Android core/subsonic (SubsonicVectorsTest) read the same file.",
+  "auth": [
+    { "name": "OpenSubsonic docs example", "password": "sesame", "salt": "c19b2d", "token": "26719a1196d2a940705a59634eb18eab" },
+    { "name": "mock user", "password": "mock-pass", "salt": "abc123", "token": "e586f11db551dbc4cc2ccc4548ed8cac" }
+  ],
+  "ids": [
+    { "kind": "al", "raw": "3Lw5QpWGkFMCnyzIvrIeR6", "id": "al_3Lw5QpWGkFMCnyzIvrIeR6" },
+    { "kind": "tr", "raw": "track-0-0-1", "id": "tr_track-0-0-1" },
+    { "kind": "mf", "raw": "1", "id": "mf_1" },
+    { "kind": "pe", "raw": "12", "id": "pe_12" },
+    { "kind": "ge", "raw": "Électro", "id": "ge__w4lsZWN0cm8" },
+    { "kind": "ge", "raw": "Hip-Hop/Rap", "id": "ge__SGlwLUhvcC9SYXA" },
+    { "kind": "ar", "raw": "a b/c", "id": "ar__YSBiL2M" }
+  ],
+  "badIds": ["", "al", "al_", "xx_abc", "al_a b", "Al_abc", "track-0-0-1"],
+  "albumList": [
+    { "query": {}, "args": { "type": "alphabeticalByName" } },
+    { "query": { "SortBy": "SortName", "SortOrder": "Ascending" }, "args": { "type": "alphabeticalByName" } },
+    { "query": { "SortBy": "DateCreated,SortName", "SortOrder": "Descending" }, "args": { "type": "newest" } },
+    { "query": { "SortBy": "PlayCount,SortName" }, "args": { "type": "frequent" } },
+    { "query": { "SortBy": "Random" }, "args": { "type": "random" } },
+    { "query": { "SortBy": "AlbumArtist,SortName" }, "args": { "type": "alphabeticalByArtist" } },
+    { "query": { "SortBy": "ProductionYear,SortName", "SortOrder": "Descending" }, "args": { "type": "byYear", "fromYear": "9999", "toYear": "0" } },
+    { "query": { "Filters": "IsFavorite", "SortBy": "SortName" }, "args": { "type": "starred" } },
+    { "query": { "Genres": "Chanson" }, "args": { "type": "byGenre", "genre": "Chanson" } },
+    { "query": { "GenreIds": "ge__w4lsZWN0cm8" }, "args": { "type": "byGenre", "genre": "Électro" } },
+    { "query": { "Years": "2020,2021,2022,2023,2024,2025,2026,2027,2028,2029" }, "args": { "type": "byYear", "fromYear": "2020", "toYear": "2029" } }
+  ],
+  "scrobble": [
+    { "positionS": 0, "runTimeS": 200, "due": false },
+    { "positionS": 99, "runTimeS": 200, "due": false },
+    { "positionS": 100, "runTimeS": 200, "due": true },
+    { "positionS": 240, "runTimeS": 900, "due": true },
+    { "positionS": 239, "runTimeS": 900, "due": false },
+    { "positionS": 300, "runTimeS": 0, "due": true },
+    { "positionS": 30, "runTimeS": 0, "due": false }
+  ],
+  "lyrics": [
+    {
+      "name": "synced, offset +250 ms (sooner)",
+      "structured": [{ "lang": "fra", "synced": true, "offset": 250, "line": [{ "start": 0, "value": "Ligne 1" }, { "start": 1500, "value": "Ligne 2" }] }],
+      "expected": { "Metadata": { "IsSynced": true }, "Lyrics": [{ "Text": "Ligne 1", "Start": 0 }, { "Text": "Ligne 2", "Start": 12500000 }] }
+    },
+    {
+      "name": "synced preferred over plain",
+      "structured": [{ "synced": false, "line": [{ "value": "plain" }] }, { "synced": true, "line": [{ "start": 1000, "value": "timed" }] }],
+      "expected": { "Metadata": { "IsSynced": true }, "Lyrics": [{ "Text": "timed", "Start": 10000000 }] }
+    },
+    {
+      "name": "legacy getLyrics text",
+      "legacy": "Première ligne\nDeuxième ligne",
+      "expected": { "Metadata": { "IsSynced": false }, "Lyrics": [{ "Text": "Première ligne" }, { "Text": "Deuxième ligne" }] }
+    },
+    { "name": "none", "structured": [], "legacy": "", "expected": null }
+  ],
+  "song": {
+    "record": { "id": "s1", "title": "Fil", "album": "Lignes claires", "albumId": "a1", "artist": "Nora Vale", "artistId": "r1", "track": 2, "discNumber": 1, "year": 2024, "genre": "Chanson", "duration": 12, "suffix": "FLAC", "bitRate": 90, "coverArt": "al-a1_0", "starred": "2026-01-02T03:04:05Z", "playCount": 3, "replayGain": { "trackGain": -4.5, "albumGain": -6.25 } },
+    "expected": { "Id": "tr_s1", "Name": "Fil", "Type": "Audio", "MediaType": "Audio", "Album": "Lignes claires", "AlbumId": "al_a1", "IndexNumber": 2, "ParentIndexNumber": 1, "RunTimeTicks": 120000000, "Container": "flac", "Primary": "al-a1_0", "IsFavorite": true, "PlayCount": 3, "NormalizationGain": -4.5, "ArtistId": "ar_r1" }
+  },
+  "redact": [
+    { "input": "GET http://nd.example/rest/stream?id=x&u=wika&t=26719a1196d2a940705a59634eb18eab&s=c19b2d&v=1.16.1", "expected": "GET http://nd.example/rest/stream?id=x&u=***&t=***&s=***&v=1.16.1" },
+    { "input": "ping?p=enc:736573616d65&f=json", "expected": "ping?p=***&f=json" }
+  ],
+  "musicSourceViews": [{ "ServerId": "emby1", "CollectionType": "movies", "Id": "m" }, { "ServerId": "emby1", "CollectionType": "music", "Id": "em" }, { "ServerId": "emby1", "CollectionType": "playlists", "Id": "ep" }, { "ServerId": "nd1", "CollectionType": "music", "Id": "mf_1" }, { "ServerId": "jf1", "CollectionType": "tvshows", "Id": "tv" }],
+  "musicSource": [
+    { "name": "auto keeps everything", "source": "", "expected": ["m", "em", "ep", "mf_1", "tv"] },
+    { "name": "navidrome for music, video untouched", "source": "nd1", "expected": ["m", "mf_1", "tv"] },
+    { "name": "emby drops the other music views", "source": "emby1", "expected": ["m", "em", "ep", "tv"] },
+    { "name": "an offline or removed source changes nothing", "source": "gone", "expected": ["m", "em", "ep", "mf_1", "tv"] },
+    { "name": "a source without music changes nothing", "source": "jf1", "expected": ["m", "em", "ep", "mf_1", "tv"] }
+  ]
+}

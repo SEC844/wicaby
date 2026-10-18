@@ -13,7 +13,7 @@ export const isMusicItem = (item: BaseItem) => MUSIC_TYPES.has(item.Type) || (it
 
 const resolver = coverResolver((kind, item) =>
   apiFor(item.ServerId)
-    .items(lookupQuery(kind, item.Id, sessionFor(item.ServerId)?.server.kind !== 'jellyfin'))
+    .items(lookupQuery(kind, item.Id, !['jellyfin', 'navidrome'].includes(sessionFor(item.ServerId)?.server.kind ?? '')))
     .then((r) => r.Items[0]),
 );
 

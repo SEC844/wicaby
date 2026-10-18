@@ -28,6 +28,9 @@ import com.wika.wicaby.core.livetv.liveLinkQuery
 import com.wika.wicaby.core.livetv.resolveLiveLink
 import com.wika.wicaby.tv.ui.livetv.LiveTv
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import com.wika.wicaby.tv.music.tracksOf
 import androidx.annotation.RequiresApi
 import androidx.activity.ComponentActivity
@@ -122,8 +125,10 @@ class MainActivity : ComponentActivity() {
         setContent { TvCanvas { App() } }
         lifecycleScope.launch { Reminders.askPermission.collect { askNotify.launch(Manifest.permission.POST_NOTIFICATIONS) } }
         // "Play on Wicaby" from another app: the player comes to the front over whatever is showing
-        // (reader, settings, another player); Playback takes the position and tracks (RemoteControl.take).
-        lifecycleScope.launch { RemoteControl.plays.collect { playRemote(this@MainActivity, it) } }
+        // (reader, settings, another player), or a notification offers it in the background (RemotePlays); Playback
+        // takes the position and tracks (RemoteControl.take).
+        RemotePlays.install(this)
+        if (savedInstanceState == null) acceptRemotePlay(intent)
         // B10: Home and every screen on show reload after a server change, on return, every 5 min (HomeRefresh).
         val auto = HomeRefresh()
         lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { auto.run(Core.socketMessages) { Cache.changed() } } }
@@ -176,7 +181,15 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        acceptRemotePlay(intent)
         openDeepLink(this)
+    }
+
+    // The remote Play notification tapped.
+    private fun acceptRemotePlay(intent: Intent) {
+        if (intent.action != RemotePlays.ACTION_PLAY) return
+        intent.action = null
+        RemotePlays.accept(this)
     }
 }
 
@@ -218,10 +231,10 @@ fun playRemote(context: Context, r: RemotePlay): Boolean {
             com.wika.wicaby.tv.music.Music.play(context, api, tracks, tracks.indexOfFirst { it.id == r.itemId }.coerceAtLeast(0), r.startMs ?: 0)
             return@launch
         }
-        context.startActivity(
-            Intent(context, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_ID, r.itemId)
-                .putStringArrayListExtra(PlayerActivity.EXTRA_QUEUE, ArrayList(r.queue)),
-        )
+        if (RemotePlays.canStart()) return@launch RemotePlays.start(context, r)
+        // In the background (Android 10+): a notification offers it, from the sender's user when the server names it.
+        val who = r.controller?.let { id -> runCatching { api.get<JsonObject>("/Users/$id")["Name"]?.jsonPrimitive?.contentOrNull }.getOrNull() }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RemotePlays.notify(context, r, who ?: api.server.name, item?.name)
     }
     return true
 }
@@ -431,6 +444,7 @@ private fun App() {
     val askBrowsable = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
     LaunchedEffect(api, snap.session == null) {
         if (api != null) openDeepLink(activity)
+        if (api != null) WatchNext.follow(activity, "${api.server.id}|${api.userId}")
         // The launcher rows follow the session: this user's channels, or nothing once signed out (kept while locked;
         // their links wait for the picker, see openDeepLink).
         // A new channel past the first needs the viewer's yes (system dialog); asked once, when it is created.

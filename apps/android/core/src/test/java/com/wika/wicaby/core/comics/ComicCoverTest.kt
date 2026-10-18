@@ -31,7 +31,7 @@ class ComicCoverTest {
     private val page1 = ByteArray(5000) { (it % 7).toByte() }
     private val page2 = ByteArray(3000) { (it % 5).toByte() }
     private val filler = Random(1).nextBytes(400 * 1024)
-    private val archive = zip(
+    private var archive = zip(
         "Tome/10.png" to filler, // the biggest page, last in reading order
         "Tome/2.png" to page2,
         "__MACOSX/Tome/._1.png" to byteArrayOf(1),
@@ -113,6 +113,26 @@ class ComicCoverTest {
     }
 
     @Test
+    fun anEpubCoverIsItsManifestCoverElseItsFirstSpinePage() = runBlocking {
+        val container = "<container><rootfiles><rootfile full-path=\"OPS/book.opf\"/></rootfiles></container>"
+        fun opf(cover: Boolean) = "<package><manifest><item id=\"i1\" href=\"img/z.png\"${if (cover) " properties=\"cover-image\"" else ""}/>" +
+            "<item id=\"p1\" href=\"p/1.xhtml\"/><item id=\"p2\" href=\"p/2.xhtml\"/></manifest><spine><itemref idref=\"p2\"/><itemref idref=\"p1\"/></spine></package>"
+        fun epub(cover: Boolean) = zip(
+            "mimetype" to "application/epub+zip".toByteArray(),
+            "META-INF/container.xml" to container.toByteArray(),
+            "OPS/book.opf" to opf(cover).toByteArray(),
+            "OPS/p/1.xhtml" to "<body><img src=\"../img/a.png\"/></body>".toByteArray(),
+            "OPS/p/2.xhtml" to "<body><img src=\"../img/b.png\"/></body>".toByteArray(),
+            "OPS/img/a.png" to page1, "OPS/img/b.png" to page2, "OPS/img/z.png" to filler,
+        )
+        archive = epub(cover = true)
+        assertArrayEquals(filler, ComicCovers.firstPage(http, url()))
+        // No cover-image: the first spine page, not the first image by name.
+        archive = epub(cover = false)
+        assertArrayEquals(page2, ComicCovers.firstPage(http, url()))
+    }
+
+    @Test
     fun firstPageReadsTheTailAndOneEntryOnly() = runBlocking {
         val bytes = ComicCovers.firstPage(http, url())
         assertArrayEquals(page1, bytes)
@@ -165,7 +185,10 @@ class ComicCoverTest {
         assertEquals("d1", cover.version)
         assertEquals("e1", ComicCovers.of(api, book.copy(etag = "e1"))!!.version)
         assertNull("the server cover wins", ComicCovers.of(api, book.copy(imageTags = mapOf("Primary" to "t"))))
-        assertNull("not a CBZ", ComicCovers.of(api, book.copy(container = "epub")))
+        assertEquals(listOf("cbz", "srv1", "b1"), listOf(cover.ext, cover.sid, cover.id))
+        // Every format the reader opens, and books that do not say; not the others.
+        for (ext in listOf("epub", "cbr", "cb7", "cbt", "pdf", "")) assertEquals(ext, ext, ComicCovers.of(api, book.copy(container = ext))?.ext)
+        assertNull("not a comic format", ComicCovers.of(api, book.copy(container = "mobi")))
         assertNull(ComicCovers.of(api, book.copy(type = "Movie")))
         // The cache key changes with the server, the item and the version.
         val key = ComicCoverKeyer.key(cover)

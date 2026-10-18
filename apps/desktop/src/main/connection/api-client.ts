@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { net } from 'electron';
 import type { MeshPath, Query, ServerKind } from '../../shared/contract';
@@ -255,7 +256,7 @@ export type ServerFetch = { response: Response } | { foreign: string };
 export function fetchServer(
   api: Pick<ApiClient, 'address'>,
   url: string,
-  init: { method: string; headers: Record<string, string>; timeoutMs?: number },
+  init: { method: string; headers: Record<string, string>; timeoutMs?: number; signal?: AbortSignal },
 ): Promise<ServerFetch> {
   return new Promise((resolve, reject) => {
     let done = false;
@@ -285,7 +286,27 @@ export function fetchServer(
     request.on('abort', () => settle(() => reject(new Error('aborted'))));
     if (init.timeoutMs) timer = setTimeout(() => (settle(() => reject(new Error('timeout'))), request.abort()), init.timeoutMs);
     request.end();
+    // The signal also cuts a body still streaming (abort destroys the response).
+    const { signal } = init;
+    if (!signal) return;
+    const onAbort = () => request.abort();
+    if (signal.aborted) return onAbort();
+    signal.addEventListener('abort', onAbort, { once: true });
+    request.on('close', () => signal.removeEventListener('abort', onAbort));
   });
+}
+
+// fetchServer as a plain Response: `auth` goes to the server only, a hop to another
+// origin is fetched again with `headers` alone (at most 5 hops). Null past that.
+export async function fetchFollowing(
+  api: Pick<ApiClient, 'address'>,
+  url: string,
+  init: { method: string; headers: Record<string, string>; auth: Record<string, string>; signal?: AbortSignal },
+): Promise<Response | null> {
+  const plain = { method: init.method, headers: init.headers, signal: init.signal };
+  let hop = await fetchServer(api, url, { ...plain, headers: { ...init.headers, ...init.auth } });
+  for (let n = 0; 'foreign' in hop && n < 5; n++) hop = await fetchServer({ address: hop.foreign }, hop.foreign, plain);
+  return 'response' in hop ? hop.response : null;
 }
 
 // Token binding (ConnectionManager): a server token is only ever sent to an
@@ -344,6 +365,9 @@ async function probeOne(address: string, timeoutMs: number): Promise<ProbeResult
     // A Plex Media Server (plex-spec §3.3): /identity, no auth, names it by its machineIdentifier.
     const plex = await identityOf(address, controller.signal);
     if (plex) return plex;
+    // A Navidrome (or any OpenSubsonic) server: /rest/ping answers a subsonic-response even without auth.
+    const nd = await subsonicPing(address, controller.signal);
+    if (nd) return nd;
     throw new Error(t('errors.connection.notAServer'));
   } finally {
     clearTimeout(timer);
@@ -356,6 +380,21 @@ async function identityOf(address: string, signal: AbortSignal): Promise<ProbeRe
     const c = res.ok ? ((await res.json()) as { MediaContainer?: { machineIdentifier?: string; version?: string } })?.MediaContainer : undefined;
     const id = c?.machineIdentifier ?? '';
     return /^[0-9a-f]{40}$/i.test(id) ? { address, kind: 'plex', info: { Id: id, ServerName: '', Version: c?.version ?? '', ProductName: 'Plex Media Server' } } : null;
+  } catch (err) {
+    if (signal.aborted) throw err;
+    return null;
+  }
+}
+
+async function subsonicPing(address: string, signal: AbortSignal): Promise<ProbeResult | null> {
+  try {
+    const res = await net.fetch(routed(`${address}/rest/ping.view?v=1.16.1&c=Wicaby&f=json`), { headers: { Accept: 'application/json' }, signal, redirect: 'error' });
+    const r = res.ok ? ((await res.json()) as { 'subsonic-response'?: { type?: string; serverVersion?: string; version?: string } })?.['subsonic-response'] : undefined;
+    if (!r) return null;
+    // Subsonic has no server id: one derived from the origin (the same address → the same server).
+    const id = `nd${createHash('sha256').update(credentialOrigin(address) ?? address).digest('hex').slice(0, 16)}`;
+    const product = r.type ? r.type[0].toUpperCase() + r.type.slice(1) : 'Subsonic';
+    return { address, kind: 'navidrome', info: { Id: id, ServerName: product, Version: r.serverVersion ?? r.version ?? '', ProductName: product } };
   } catch (err) {
     if (signal.aborted) throw err;
     return null;

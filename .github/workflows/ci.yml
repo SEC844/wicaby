@@ -8,6 +8,8 @@ name: CI
 #     Windows-specific file changed; the Linux desktop job covers every other pull request;
 #   - a new push to the same branch or pull request cancels the run in progress (main included: only
 #     the newest commit of main needs a verdict; re-run an older one by hand before tagging it);
+#   - release.yml only takes a commit whose Android and Linux desktop jobs passed, not skipped: when the
+#     path filters skipped them, Run workflow on main runs every job;
 #   - npm, Go and Gradle caches; per-job timeouts.
 # Tags do not run this workflow: release.yml builds them, after checking that the CI of the tagged
 # commit on main is green.
@@ -212,8 +214,9 @@ jobs:
           go-version-file: packages/mesh/go.mod
           cache-dependency-path: packages/mesh/go.sum
 
+      # -race: the SMB and node code share sessions across goroutines.
       - name: Test
-        run: go test ./...
+        run: go test -race ./...
 
       # NetBird keeps AGPL code in management/, signal/, relay/ and combined/; none may be
       # linked into the desktop helper or the Android AAR (same guard as build-vpn-helper.mjs
@@ -253,7 +256,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'

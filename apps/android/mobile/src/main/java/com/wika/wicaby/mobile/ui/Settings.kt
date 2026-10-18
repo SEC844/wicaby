@@ -1,6 +1,7 @@
 package com.wika.wicaby.mobile.ui
 
 import com.wika.wicaby.core.music.MusicPrefs
+import com.wika.wicaby.core.music.MusicSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -222,6 +223,26 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
             // Music spec MU-13: lrclib.net when the server has no lyrics. Off by default: it learns what is playing.
             Eyebrow(stringResource(R.string.music_settings_title))
             Group {
+                // "Source de la musique": which signed-in server the Music section shows (core MusicSource).
+                val sources = MusicSource.choices(stringResource(com.wika.wicaby.core.R.string.music_source_auto))
+                val chosen = remember(MusicSource.version) { MusicSource.current() }
+                var sourceMenu by remember { mutableStateOf(false) }
+                Box {
+                    GroupRow(
+                        stringResource(com.wika.wicaby.core.R.string.music_source), { sourceMenu = true },
+                        trailing = sources.firstOrNull { it.first == chosen }?.second ?: sources.first().second,
+                    )
+                    androidx.compose.material3.DropdownMenu(sourceMenu, { sourceMenu = false }, containerColor = G.elevated2) {
+                        sources.forEach { (id, label) ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(label, style = Type.body, color = G.label) },
+                                trailingIcon = { if (id == chosen) Icon(Ic.Check, null, tint = accent, modifier = Modifier.size(18.dp)) },
+                                onClick = { sourceMenu = false; MusicSource.set(id) },
+                            )
+                        }
+                    }
+                }
+                GroupDivider()
                 GroupRow(
                     stringResource(R.string.music_lyrics_online), { MusicPrefs.setLyricsOnline(context, !MusicPrefs.lyricsOnline) },
                     subtitle = stringResource(R.string.music_lyrics_online_hint), chevron = false,

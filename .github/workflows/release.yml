@@ -18,8 +18,12 @@ name: Release
 # A tag push never builds unsigned APKs: the preflight job fails in seconds, before the long build
 # jobs start, and names every missing secret (never its value) when the tag is not vX.Y.Z[-pre],
 # the tagged commit is not on main, the latest CI run of that commit is not green (still running
-# counts as not green: re-run this workflow once CI has passed), a signing secret is missing, or
+# counts as not green: re-run this workflow once CI has passed) or skipped its Android or Linux
+# desktop job (path filters: run CI by hand on main), a signing secret is missing, or
 # APK_CERT_SHA256 is not set.
+#
+# The build jobs restore no Go or Gradle cache: ordinary CI runs write those, and a release signs
+# what it builds.
 #
 # Secrets (Settings > Secrets and variables > Actions), see docs/release.md#secrets:
 #   KEYSTORE_BASE64    base64 of the release keystore (base64 -w0 wicaby-release.jks)
@@ -142,8 +146,9 @@ jobs:
           fi
           echo "Target: $target"
 
-          # A release already published for this tag (by hand) is left alone.
-          if [ "$dry" = false ] && gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          # A release already published for this tag (by hand) is left alone, looked up where it is published.
+          view_token="$GH_TOKEN"; [ "$external" = false ] || view_token="$RELEASES_TOKEN"
+          if [ "$dry" = false ] && GH_TOKEN="$view_token" gh release view "$tag" -R "$target" >/dev/null 2>&1; then
             skip=true
             echo "::notice::$tag is already released: nothing to do"
           fi
@@ -151,8 +156,18 @@ jobs:
           if [ "$dry" = false ] && [ "$skip" = false ]; then
             # The newest CI (ci.yml) run of this exact commit must have finished green.
             ci="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=1" \
-              --jq '.workflow_runs[0] // {} | "\(.status) \(.conclusion) \(.html_url)"')"
-            [[ "$ci" == "completed success "* ]] || err "CI of $GITHUB_SHA is not green ($ci); wait for it to pass, then re-run this workflow"
+              --jq '.workflow_runs[0] // {} | "\(.status) \(.conclusion) \(.html_url) \(.id)"')"
+            if [[ "$ci" == "completed success "* ]]; then
+              # The path filters skip a job whose files did not change since the previous push, and a
+              # skipped job still reads as green: the release needs these jobs to have passed on this commit.
+              passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/${ci##* }/jobs?per_page=100" \
+                --jq '.jobs[] | select(.conclusion == "success") | .name')"
+              for job in 'Desktop / Linux' 'Android'; do
+                grep -q "^$job " <<< "$passed" || err "CI of $GITHUB_SHA did not run the '$job' job (path filters); run CI by hand (Actions > CI > Run workflow) on main, or on a branch at this commit if main has moved on, then re-run this workflow"
+              done
+            else
+              err "CI of $GITHUB_SHA is not green ($ci); wait for it to pass, then re-run this workflow"
+            fi
             # Only commits already on main are released (a tag on another branch is refused).
             git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
             git merge-base --is-ancestor "$GITHUB_SHA" origin/main || err "$tag ($GITHUB_SHA) is not on main; tag a commit of main whose CI is green"
@@ -186,7 +201,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/mesh/go.mod
-          cache-dependency-path: packages/mesh/go.sum
+          cache: false
 
       - name: Install
         run: npm ci
@@ -244,7 +259,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/mesh/go.mod
-          cache-dependency-path: packages/mesh/go.sum
+          cache: false
 
       - name: Install
         run: npm ci
@@ -287,7 +302,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
@@ -295,7 +310,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/mesh/go.mod
-          cache-dependency-path: packages/mesh/go.sum
+          cache: false
 
       # No `gomobile init`: `gomobile bind` only needs gobind on PATH, and init would replace the
       # pinned gobind with gobind@latest (x/mobile cmd/gomobile/init.go), which
@@ -337,8 +352,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          cache-provider: basic
-          cache-read-only: true
+          cache-disabled: true
 
       - name: Assemble release APKs
         working-directory: apps/android

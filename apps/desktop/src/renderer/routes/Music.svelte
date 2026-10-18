@@ -14,10 +14,10 @@
   import { isMusicItem, placeholderBg } from '../lib/music-art';
   import { scrollMemory } from '../lib/motion';
   import { albums, artists, genres, years } from '../lib/music';
-  import { playMix, playTracks } from '../lib/music-ui.svelte';
+  import { musicSourceOptions, playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue } from '../lib/queue.svelte';
   import { navigate, router } from '../lib/router.svelte';
-  import { errorMessage } from '../lib/stores.svelte';
+  import { errorMessage, libraries, settings, updateSettings } from '../lib/stores.svelte';
 
   // A music library (music-spec MU-03, §4.3): Albums, Artists, Songs, Genres, Playlists and Folders tabs. The tab,
   // the album sort and view, and the artists toggle are kept per library (restored on the way back).
@@ -208,6 +208,15 @@
     else navigate(itemPath(it));
   }
 
+  // Quick switch of the music source (Settings > Music) when several servers have music: sets it, then opens the
+  // chosen server's first music library (Auto: the first of all).
+  const sources = $derived(musicSourceOptions());
+  async function switchSource(v: string): Promise<void> {
+    await updateSettings({ music: { source: v } });
+    const to = libraries.all.find((l) => l.CollectionType === 'music' && (!v || l.ServerId === v));
+    if (to && to.Id !== lib.Id) navigate(itemPath(to, 'library'));
+  }
+
   const sortLabel = $derived(SORTS.find((s) => s.key === prefs.sort)?.label() ?? t('browse.library.sort.name'));
 </script>
 
@@ -215,6 +224,15 @@
   <header class="head">
     <h1 class="large-title">{lib.Name}</h1>
     <div class="spacer"></div>
+    {#if sources.length > 2}
+      <BrowseMenu
+        label={sources.find((o) => o.value === (settings.value?.music.source ?? ''))?.label ?? ''}
+        icon="server"
+        align="end"
+        options={sources.map((o) => ({ value: o.value, label: o.label, checked: o.value === (settings.value?.music.source ?? '') }))}
+        onselect={(v) => void switchSource(v)}
+      />
+    {/if}
     {#if genre}
       <button class="btn mix" data-genre-mix onclick={() => genre && playMix(genre)}><Icon name="sparkles" size={15} /> {t('music.actions.mix')}</button>
     {/if}

@@ -20,7 +20,6 @@
       "browse.search.noResults.title": "Aucun résultat pour « {term} »",
       "browse.search.unreachable": "Recherche impossible : aucun serveur ne répond",
       "errors.comics.notDownloaded": "Hors ligne : ce livre n’est pas téléchargé",
-      "errors.comics.unsupported": "Format non pris en charge : seules les bandes dessinées CBZ sont lisibles pour le moment (pas encore de CBR, PDF ni EPUB).",
       "errors.connection.invalidMac": "Adresse MAC invalide : {mac}",
       "errors.ipc.invalidUrlScheme": "Adresse invalide : http:// ou https:// attendu",
       "errors.torrents.serverSaid": "qBittorrent a répondu : {message}",
@@ -34,7 +33,6 @@
       "main.playback.mpvHung": "mpv ne répond plus : reprise avec le lecteur intégré",
       "player.aspect.zoomPercent": "Zoom {percent} %",
       "player.notice.delay": "{kind, select, audio {Décalage audio} other {Décalage des sous-titres}} : {value} ms",
-      "player.notice.passthroughRefused": "Passthrough refusé par la sortie audio : son décodé",
       "player.upNext.stillWatching": "Toujours là ?",
       "settings.advanced.hwAccel.desc": "Désactivée, l’interface est dessinée sans le GPU : à essayer en cas d’écran noir ou de scintillement. La vidéo mpv n’est pas concernée.",
       "settings.advanced.mpvArgs.desc": "Options mpv séparées par des espaces, appliquées au prochain lancement de mpv. Exemple : {example}",
@@ -66,10 +64,6 @@
       "torrents.remove.title": "Supprimer ce torrent ?"
     },
     "android": {
-      "core/aspect_value": "Format de l’image : %1$s",
-      "core/reader_unsupported": "Format non pris en charge : seules les bandes dessinées CBZ sont lisibles pour le moment (pas encore de CBR, PDF ni EPUB).",
-      "core/server_insecure": "Connexion non chiffrée (HTTP) : le jeton d’accès et le mot de passe circulent en clair sur le réseau.",
-      "core/update_bad_checksum": "Fichier corrompu : l’empreinte SHA-256 ne correspond pas",
       "core/update_downloading": "Téléchargement… %1$d %%",
       "core/update_permission": "Pour installer la mise à jour, autorisez « Installer des applis inconnues » pour Wicaby dans les réglages Android, puis revenez ici.",
       "mobile/reader_loading": "Chargement du livre… %1$d %%",

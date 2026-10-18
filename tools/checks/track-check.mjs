@@ -1,9 +1,9 @@
-// Self-check for the track-selection engine (src/main/playback/track-selection.ts).
+// Self-check for the track-selection engine (src/shared/track-selection.ts).
 // Run: node tools/checks/track-check.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { matchIntent, migrateChoice, normLang, pickAudio, pickSubtitle, rememberChoice, sameLang, selectTracks } from '../../apps/desktop/src/main/playback/track-selection.ts';
+import { matchIntent, migrateChoice, normLang, pickAudio, pickSubtitle, rememberChoice, sameLang, selectTracks } from '../../apps/desktop/src/shared/track-selection.ts';
 import { readScoped, writeScoped } from '../../apps/desktop/src/main/playback/scoped-prefs.ts';
 
 const a = (Index, Language, extra = {}) => ({ Index, Type: 'Audio', Language, ...extra });

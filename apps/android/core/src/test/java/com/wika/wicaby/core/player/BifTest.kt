@@ -47,4 +47,11 @@ class BifTest {
         val truncated = bif(50).copyOf(100)
         assertNull(Bif.parse(truncated))
     }
+
+    @Test
+    fun hugeCountDoesNotOverflowTheBoundsCheck() {
+        // 0x1FFFFFFF frames: (n + 1) * 8 wraps to 0 in Int.
+        val b = bif(1).also { ByteBuffer.wrap(it).order(ByteOrder.LITTLE_ENDIAN).putInt(12, 0x1FFFFFFF) }
+        assertNull(Bif.parse(b))
+    }
 }

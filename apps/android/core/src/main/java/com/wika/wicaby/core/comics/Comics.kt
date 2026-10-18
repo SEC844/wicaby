@@ -6,6 +6,7 @@ import com.wika.wicaby.core.R
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Item
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -21,14 +22,13 @@ import java.util.TimeZone
 // A message the reader shows as is (unsupported format, no pages, no permission).
 class ComicException(message: String) : IOException(message)
 
-// The comic backend shared by both apps: the CBZ is fetched once through /Items/{id}/File
-// (Core.http, so the mesh transport and auth apply) into cacheDir/comics, read with ZipFile,
-// and the page is written back to the server as UserData.
+// The comic backend shared by both apps: the book is fetched once through /Items/{id}/File
+// (Core.http, so the mesh transport and auth apply) into cacheDir/comics, read by format
+// (ComicArchive, ComicFolder, ComicPdf), and the page is written back to the server as UserData.
 object Comics {
     // Least recently opened archives go once the cache passes this.
     const val CACHE_CAP = 1L shl 30
 
-    private val ARCHIVES = setOf("cbz", "zip")
     // Item and server ids name cache files: only the shapes Emby (digits) and Jellyfin (hex) use.
     private val ID = Regex("^[A-Za-z0-9-]{1,64}$")
 
@@ -58,34 +58,78 @@ object Comics {
     // The item with the fields the reader needs (Path and Container are not in the list views).
     suspend fun item(api: Api, id: String): Item = api.get("/Users/${api.userId}/Items/$id", "Fields" to "Path,MediaSources")
 
-    // Opens the book: fetch (or reuse) the archive, then read its directory.
-    suspend fun open(api: Api, item: Item, onProgress: (Float) -> Unit = {}): ComicArchive {
+    private fun refused(e: ComicRefused) = ComicException(
+        Core.str(
+            when (e.reason) {
+                ComicRefused.Reason.ENCRYPTED -> R.string.reader_encrypted
+                ComicRefused.Reason.TEXT_BOOK -> R.string.reader_text_book
+                ComicRefused.Reason.TOO_LARGE -> R.string.reader_too_large
+            },
+        ),
+    )
+
+    // Opens the book: fetch (or reuse) the file, then read it by what its first bytes say. RAR, 7z and tar are
+    // extracted once into <sid>-<id>.d (their natural order; solid archives allow nothing else) and the archive
+    // is dropped; later opens read that folder and need no network.
+    suspend fun open(api: Api, item: Item, onProgress: (Float) -> Unit = {}): ComicBook {
         val ext = extension(item)
-        if (ext.isNotEmpty() && ext !in ARCHIVES) throw unsupported()
+        if (ext.isNotEmpty() && ComicFormats.ofExt(ext) == null) throw unsupported()
+        val folder = local(api.server.id, item.id, ".d")
+        if (folder.isDirectory) {
+            folder.setLastModified(System.currentTimeMillis())
+            return withContext(Dispatchers.IO) { checked(ComicFolder(folder)) }
+        }
         val file = fetch(api, item.id, onProgress)
         return withContext(Dispatchers.IO) {
-            val archive = try {
-                ComicArchive(file)
-            } catch (e: Exception) {
-                // A cached copy that does not parse would fail forever; drop it so a later open refetches.
+            try {
+                when (val format = ComicFormats.sniff(file)) {
+                    ComicFormat.ZIP, ComicFormat.EPUB -> ComicArchive(file, epub = format == ComicFormat.EPUB)
+                    ComicFormat.PDF -> ComicPdf(file)
+                    ComicFormat.RAR, ComicFormat.SEVEN_Z, ComicFormat.TAR -> {
+                        val ctx = coroutineContext
+                        // A TV has little storage: a decompression bomb must not fill it (half the free space at most).
+                        val limits = ComicFormats.Limits(maxTotal = minOf(ComicFormats.MAX_TOTAL, folder.parentFile!!.usableSpace / 2))
+                        ComicLibarchive.entries(file, format) { ComicFormats.extract(it, folder, limits) { ctx.ensureActive() } }
+                        file.delete()
+                        ComicFolder(folder)
+                    }
+                    null -> throw unsupported()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // A cached copy that does not open would fail forever; drop it so a later open refetches.
+                // Throwable: a missing native library (LinkageError) is an unreadable book, not a crash.
                 file.delete()
-                throw unsupported()
-            }
-            if (archive.pageCount == 0) {
-                archive.close()
-                throw ComicException(Core.str(R.string.reader_no_pages))
-            }
-            archive
+                folder.deleteRecursively()
+                throw when (e) {
+                    is ComicRefused -> refused(e)
+                    is ComicException -> e
+                    else -> unsupported()
+                }
+            }.let(::checked)
         }
+    }
+
+    private fun checked(book: ComicBook): ComicBook {
+        if (book.pageCount == 0) {
+            book.close()
+            throw ComicException(Core.str(R.string.reader_no_pages))
+        }
+        return book
     }
 
     private fun dir() = File(Core.app.cacheDir, "comics")
 
-    private suspend fun fetch(api: Api, id: String, onProgress: (Float) -> Unit): File = withContext(Dispatchers.IO) {
-        val sid = api.server.id
+    // The cache entry of a book: <sid>-<id>.book (the file as served) or <sid>-<id>.d (an extracted archive).
+    internal fun local(sid: String, id: String, suffix: String): File {
         require(ID.matches(id) && ID.matches(sid)) { "bad id" }
+        return File(dir(), "$sid-$id$suffix")
+    }
+
+    private suspend fun fetch(api: Api, id: String, onProgress: (Float) -> Unit): File = withContext(Dispatchers.IO) {
+        val file = local(api.server.id, id, ".book")
         val dir = dir().apply { mkdirs() }
-        val file = File(dir, "$sid-$id.cbz")
         if (file.isFile && file.length() > 0) {
             // mtime is the LRU clock.
             file.setLastModified(System.currentTimeMillis())
@@ -134,13 +178,18 @@ object Comics {
         return Core.http.newCall(req.build()).execute()
     }
 
+    // Books (.book, legacy .cbz) and extracted folders (.d), least recently opened first out; leftovers of an
+    // interrupted download or extraction (.part) always go.
     private fun prune(keep: File) {
-        val files = dir().listFiles { f -> f.name.endsWith(".cbz") || f.name.endsWith(".part") }.orEmpty()
-            .sortedByDescending { it.lastModified() }
+        val all = dir().listFiles().orEmpty()
+        all.filter { it.name.endsWith(".part") && it != keep }.forEach { it.deleteRecursively() }
+        val books = all.filter { it.name.endsWith(".book") || it.name.endsWith(".cbz") || (it.isDirectory && it.name.endsWith(".d")) }
+            .map { it to if (it.isDirectory) it.walk().sumOf { f -> f.length() } else it.length() }
+            .sortedByDescending { it.first.lastModified() }
         var total = 0L
-        for (f in files) {
-            total += f.length()
-            if (total > CACHE_CAP && f != keep) f.delete()
+        for ((f, size) in books) {
+            total += size
+            if (total > CACHE_CAP && f != keep) f.deleteRecursively()
         }
     }
 

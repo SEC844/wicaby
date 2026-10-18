@@ -127,6 +127,7 @@ import com.wika.wicaby.core.player.SegmentKind
 import com.wika.wicaby.core.player.SkipRange
 import com.wika.wicaby.core.player.SleepTimer
 import com.wika.wicaby.core.player.qualityLabel
+import com.wika.wicaby.core.player.qualityShortLabel
 import com.wika.wicaby.core.player.upNextAt
 import com.wika.wicaby.mobile.R
 import com.wika.wicaby.mobile.cast.CastButton
@@ -785,7 +786,7 @@ private fun Osd(
             RoundIcon(Ic.Info, stringResource(com.wika.wicaby.core.R.string.stats_title), { PlaybackStats.visible = !PlaybackStats.visible }, on = PlaybackStats.visible)
             RoundIcon(Ic.Gauge, stringResource(com.wika.wicaby.core.R.string.speed), onSpeed)
             RoundIcon(Ic.Scan, stringResource(com.wika.wicaby.core.R.string.aspect_value, stringResource(aspect.label)), onAspect)
-            // X-02: the gear plus the current label ("Originale", "720p · 2 Mb/s").
+            // X-02: the gear plus the current value ("Originale", "720p"); the bitrate stays in the sheet.
             if (onQuality != null) {
                 val source = remember { MutableInteractionSource() }
                 Row(
@@ -794,7 +795,7 @@ private fun Osd(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(Ic.Settings, stringResource(com.wika.wicaby.core.R.string.quality), tint = Color.White, modifier = Modifier.size(22.dp))
-                    Text(qualityLabel(LocalContext.current, qualityCap), style = Type.footnote, color = Color.White, maxLines = 1)
+                    Text(qualityShortLabel(LocalContext.current, qualityCap), style = Type.footnote, color = Color.White, maxLines = 1)
                 }
             }
             if (onSleep != null) {

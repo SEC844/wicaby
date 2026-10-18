@@ -37,7 +37,7 @@
       queueModes(item).includes('next') && { kind: 'next' as const, label: t('item.menu.playNext'), icon: 'playNext' as const },
       queueModes(item).includes('last') && { kind: 'last' as const, label: t('item.menu.addToQueue'), icon: 'queue' as const },
       !can.localUserData && PLAYLISTABLE.includes(item.Type) && { kind: 'playlist' as const, label: t('item.menu.addToPlaylist'), icon: 'listPlus' as const },
-      !can.localUserData && COLLECTABLE.includes(item.Type) && { kind: 'collection' as const, label: t('item.menu.addToCollection'), icon: 'collection' as const },
+      !can.localUserData && sessionFor(item.ServerId)?.server.kind !== 'navidrome' && COLLECTABLE.includes(item.Type) && { kind: 'collection' as const, label: t('item.menu.addToCollection'), icon: 'collection' as const },
       item.Type === 'Episode' && Boolean(item.SeriesId) && { kind: 'previous' as const, label: t('item.actions.markPreviousPlayed'), icon: 'check' as const },
     ].filter((a) => a !== false),
   );

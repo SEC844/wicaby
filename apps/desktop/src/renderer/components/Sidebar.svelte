@@ -17,6 +17,7 @@
   import { immich, watchImmichSources } from '../lib/photos/immich.svelte';
   import ConnectionStatus from './ConnectionStatus.svelte';
   import { listedServers, type Level } from './ConnectionList.svelte';
+  import { web } from '../lib/platform';
 
   interface Row {
     key: string;
@@ -62,10 +63,11 @@
   const nav = $derived<Row[]>([
     { key: 'home', label: t('shell.nav.home'), icon: 'home', go: '/home', active: isActive('home'), disabled: offline },
     { key: 'favorites', label: t('shell.nav.favorites'), icon: 'heart', go: '/favorites', active: isActive('favorites'), disabled: offline },
-    { key: 'downloads', label: t('shell.nav.downloads'), icon: 'download', go: '/downloads', active: isActive('downloads'), badge: activeDownloads },
+    // The web TV app has no downloads, IPTV, file sources or administration (they need the desktop's main process).
+    ...(web ? [] : [{ key: 'downloads', label: t('shell.nav.downloads'), icon: 'download' as const, go: '/downloads', active: isActive('downloads'), badge: activeDownloads }]),
   ]);
   const foot = $derived<Row[]>([
-    ...(isAdmin && !offline ? [{ key: 'admin', label: t('admin.title'), icon: 'admin' as const, go: '/admin', active: isActive('admin') }] : []),
+    ...(isAdmin && !offline && !web ? [{ key: 'admin', label: t('admin.title'), icon: 'admin' as const, go: '/admin', active: isActive('admin') }] : []),
     { key: 'settings', label: t('shell.nav.settings'), icon: 'settings', go: '/settings', active: isActive('settings') },
   ]);
 
@@ -91,12 +93,15 @@
       for (const { group, icon, lib } of libraryRows(libraries.list, musicLib?.ServerId))
         g[group].push({ key: itemKey(lib), label: lib.Name ?? '', icon, go: itemPath(lib, 'library'), active: isActive('library', lib), server: serverName(lib.ServerId) });
       if (multi) g.watch.sort((a, b) => WATCH.indexOf(a.icon) - WATCH.indexOf(b.icon));
-      if (liveTv.available)
+      // Live TV needs the desktop's tuner handling (zap lists, reminders): not on the web TV app yet.
+      if (liveTv.available && !web)
         for (const [id, icon, key] of LIVE) g.live.push({ key: id, label: t(key), icon, go: `/livetv?tab=${id}`, active: liveTab === id });
     }
     // TV en direct is always there: without a server tuner (or offline) one row opens its setup page.
-    if (!g.live.length) g.live.push({ key: 'live-setup', label: t('shell.sidebar.liveSetup'), icon: 'live', go: '/livetv', active: route.name === 'livetv' });
-    if (hasIptv) for (const [id, icon, key] of LIVE.slice(0, 2)) g.iptv.push({ key: id, label: t(key), icon, go: `/iptv?tab=${id}`, active: iptvTab === id });
+    if (!g.live.length && !web) g.live.push({ key: 'live-setup', label: t('shell.sidebar.liveSetup'), icon: 'live', go: '/livetv', active: route.name === 'livetv' });
+    if (web) {
+      // No client-side IPTV on the web TV app.
+    } else if (hasIptv) for (const [id, icon, key] of LIVE.slice(0, 2)) g.iptv.push({ key: id, label: t(key), icon, go: `/iptv?tab=${id}`, active: iptvTab === id });
     else g.iptv.push({ key: 'iptv-add', label: t('shell.sidebar.iptvAdd'), icon: 'plus', go: '/iptv', active: route.name === 'iptv' });
     for (const s of photoSources)
       g.photos.push({ key: s.server.id, label: s.server.name, icon: 'images', go: `/library/${s.server.id}/p.`, active: route.name === 'library' && route.params.server === s.server.id, off: s.status === 'offline', kind: 'photo' });
@@ -195,14 +200,15 @@
   let railText = $state('');
   function showTip(e: Event): void {
     const b = (e.target as HTMLElement).closest<HTMLElement>('.link');
-    if (!collapsed || !railTip || !b || (e.type === 'focusin' && !b.matches(':focus-visible'))) return;
+    // No popover API (Chromium before 114, the web TV app on older TVs): no tooltip, and no :popover-open selector to throw.
+    if (!collapsed || !railTip?.showPopover || !b || (e.type === 'focusin' && !b.matches(':focus-visible'))) return;
     const r = b.getBoundingClientRect();
     railText = b.getAttribute('aria-label') ?? '';
     railTip.style.left = `${r.right + 8}px`;
     railTip.style.top = `${r.top + r.height / 2}px`;
     if (!railTip.matches(':popover-open')) railTip.showPopover();
   }
-  const hideTip = () => void (railTip?.matches(':popover-open') && railTip.hidePopover());
+  const hideTip = () => void (railTip?.hidePopover && railTip.matches(':popover-open') && railTip.hidePopover());
   $effect(() => {
     if (!collapsed) hideTip();
   });

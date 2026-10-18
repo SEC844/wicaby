@@ -1,0 +1,4 @@
+{
+  "extends": "../desktop/tsconfig.json",
+  "include": ["src/**/*.ts", "../desktop/src/renderer/**/*.ts", "../desktop/src/renderer/**/*.svelte", "../desktop/src/shared/**/*.ts"]
+}

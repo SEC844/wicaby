@@ -193,7 +193,7 @@
     <ProgramSheet />
   </div>
 {/if}
-{#if !isOsd && playing && session.ready && status !== 'connecting'}<Player />{/if}
+{#if !isOsd && playing && session.ready}<Player />{/if}
 {#if !isOsd && nowPlaying && session.ready && status === 'signed-in'}<NowPlaying />{/if}
 
 <!-- Main is hidden while mpv plays: the OSD shows the toasts then (admin messages, errors). -->

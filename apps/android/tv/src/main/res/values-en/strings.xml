@@ -63,7 +63,7 @@
     <string name="badge_subtitles">SUB</string>
     <string name="season_n">Season %1$d</string>
     <string name="episode_short">E%1$d</string>
-    <string name="episode_code">S%1$d, E%2$d</string>
+    <string name="episode_code">S%1$d E%2$d</string>
     <string name="seasons">Seasons</string>
     <string name="episodes">Episodes</string>
     <string name="specials">Specials</string>
@@ -73,7 +73,7 @@
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_oled">OLED (pure black)</string>
-    <string name="settings_bitrate">Maximum Streaming Bitrate</string>
+    <string name="settings_bitrate">Maximum Bitrate</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="switch_user">Switch User</string>
     <string name="switch_server">Switch Server</string>
@@ -82,10 +82,10 @@
     <string name="mbps">%1$d Mbps</string>
     <string name="settings_display_mode">Match Frame Rate</string>
     <string name="display_mode_off">Off</string>
-    <string name="display_mode_rate">Frame Rate</string>
+    <string name="display_mode_rate">Frame Rate Only</string>
     <string name="display_mode_rate_res">Frame Rate and Resolution</string>
-    <string name="display_mode_hint">Switches the screen to the video’s frame rate (24 Hz for a film) during playback.</string>
-    <string name="settings_livetv_match_frame_rate">Match Refresh Rate for Live TV</string>
+    <string name="display_mode_hint">Switches the screen to the video’s frame rate (24 Hz for a movie) during playback.</string>
+    <string name="settings_livetv_match_frame_rate">Match Frame Rate for Live TV</string>
     <string name="settings_livetv_pip">Picture-in-Picture When Leaving</string>
 
     <!-- Player -->
@@ -101,7 +101,7 @@
     <string name="up_next_in">In %1$d s</string>
     <string name="still_watching">Are you still watching?</string>
     <string name="still_watching_sub">Playback is paused.</string>
-    <string name="keep_watching">Continue</string>
+    <string name="keep_watching">Keep Watching</string>
     <string name="stop_watching">Stop</string>
 
     <!-- Top bar, quit, profile -->
@@ -122,8 +122,8 @@
     <!-- Settings: Playback -->
     <string name="net_ethernet">Ethernet</string>
     <string name="net_wifi">Wi‑Fi</string>
-    <string name="net_remote">Away from Home</string>
-    <string name="bitrate_hint">The bitrate applies to the network in use when playback starts. “Away from Home” covers connections through Remote Access.</string>
+    <string name="net_remote">Remote</string>
+    <string name="bitrate_hint">Wicaby uses the limit for the connection in use when playback starts. “Remote” applies outside your local network.</string>
     <string name="group_episodes">Episodes</string>
     <string name="autoplay_next">Autoplay Next Episode</string>
     <string name="countdown">Countdown</string>
@@ -172,7 +172,7 @@
     <string name="sub_pos_slightly_raised">Slightly Raised</string>
     <string name="sub_pos_raised">Raised</string>
     <string name="subtitle_override_ass">Apply to ASS Subtitles</string>
-    <string name="subtitle_hint">Languages and display are saved to your server account. The style applies to text subtitles (SRT, WebVTT); ASS subtitles keep their own styling, except their size with “Apply to ASS Subtitles”.</string>
+    <string name="subtitle_hint">Languages and display are saved to your server account. The style applies to text subtitles; ASS subtitles keep their own style unless “Apply to ASS Subtitles” is on.</string>
     <string name="server_pref_failed">The server didn’t accept the change.</string>
     <string name="lang_auto">Automatic</string>
     <string name="lang_fre">French</string>
@@ -193,13 +193,13 @@
     <string name="show_clock">Clock</string>
     <string name="group_home">Home</string>
     <string name="row_hero">Featured</string>
-    <string name="hero_hide_watched">Hide Watched in Featured</string>
+    <string name="hero_hide_watched">Hide Watched Titles in Featured</string>
     <string name="row_latest">Recently Added</string>
     <string name="row_upcoming">Upcoming</string>
     <string name="row_because">Because You Watched %1$s</string>
     <string name="row_because_any">Because You Watched…</string>
     <string name="row_live_now">Live TV</string>
-    <string name="home_rows_hint">Press OK on a row to show or hide it, move it, or choose posters or thumbnails.</string>
+    <string name="home_rows_hint">Select a row and press OK to show, hide or move it, or to choose between posters and thumbnails.</string>
     <string name="home_row_shown">Shown</string>
     <string name="home_row_hidden">Hidden</string>
     <string name="home_row_show">Show</string>
@@ -210,7 +210,7 @@
     <string name="home_row_thumbs">Thumbnails</string>
     <string name="home_rows_reset">Reset Home Rows</string>
     <string name="group_tab_bar">Tab Bar</string>
-    <string name="tab_bar_hint">Press OK on a tab to show or hide it, or move it. Home, Search and Settings always stay.</string>
+    <string name="tab_bar_hint">Select a tab and press OK to show, hide or move it. Home, Search and Settings always stay visible.</string>
     <string name="tab_shown">Shown</string>
     <string name="tab_hidden">Hidden</string>
     <string name="tab_bar_reset">Reset Tab Bar</string>
@@ -218,12 +218,13 @@
     <string name="screensaver_after">Start After</string>
     <string name="never">Never</string>
     <string name="minutes">%1$d min</string>
-    <string name="screensaver_hint">Shows artwork from your libraries, or your photos, while the remote is idle. Press any button to close it. Some TVs also offer it as the system screen saver (Android Settings > Screen saver); Google TV no longer lets you pick it.</string>
+    <string name="screensaver_hint">Shows artwork from your libraries or your photos while the remote is idle. Press any button to close it. On some TVs you can also pick it in Android Settings > Screen Saver.</string>
 
     <!-- Settings: About -->
     <string name="version_full">Version %1$s (%2$d)</string>
     <string name="licence_ffmpeg">FFmpeg (audio decoding)</string>
     <string name="licence_libass">libass (ASS subtitles)</string>
+    <string name="licence_libarchive">libarchive (CBR, CB7, CBT comics)</string>
     <string name="codec_fps">%1$d fps</string>
     <string name="codec_10bit">10-bit</string>
     <string name="group_licences">Licenses</string>
@@ -323,21 +324,22 @@
     <string name="player_live_recording_scheduled">Recording scheduled</string>
     <string name="player_live_already_scheduled">This recording is already scheduled.</string>
     <string name="player_live_record_forbidden">Your account can’t manage recordings.</string>
-    <string name="player_live_record_premiere">The server refused to record. Emby requires Emby Premiere for DVR.</string>
+    <string name="player_live_record_premiere">The server refused to record: Emby Premiere is required for recordings.</string>
     <string name="player_live_record_failed">The recording couldn’t be scheduled.</string>
     <string name="player_live_reminder_set">Reminder set</string>
     <string name="player_live_favorite_added">%1$s added to Favorites</string>
     <string name="player_live_favorite_removed">%1$s removed from Favorites</string>
     <string name="player_live_watch">Watch</string>
     <string name="player_live_details">Details</string>
-    <string name="player_live_watch_from_start">Watch From the Start (%1$s ago)</string>
+    <string name="player_live_watch_from_start">Start Over (started %1$s ago)</string>
     <string name="player_live_watch_live">Watch Live</string>
     <string name="player_live_start_unavailable">The recording in progress isn’t available.</string>
     <!-- X-06: player chips and remote control. -->
     <string name="chip_chapters">Chapters</string>
     <string name="chip_speed">Speed</string>
+    <string name="chip_sleep">Sleep Timer</string>
     <!-- X-01: merged Continue Watching -->
-    <string name="settings_merge_continue">Merge “Continue” and “Up Next”</string>
+    <string name="settings_merge_continue">Merge Continue Watching and Up Next</string>
     <!-- TP-05: item actions ("…" on the item page) -->
     <string name="item_more">More Actions</string>
     <string name="mark_previous_played">Mark Previous Episodes as Watched</string>
@@ -375,14 +377,14 @@
     <string name="pin_change">Change PIN</string>
     <string name="pin_remove">Remove PIN</string>
     <string name="profile_pin">Profile PIN</string>
-    <string name="profile_skip_single">Skip with only one account</string>
-    <string name="profiles_hint">At startup, Wicaby asks who is watching. The PIN is asked when this account is picked on this TV.</string>
+    <string name="profile_skip_single">Skip When There’s Only One Account</string>
+    <string name="profiles_hint">At startup, Wicaby asks who’s watching. The PIN is required when this account is chosen on this TV.</string>
     <string name="profile_expired">Session expired: enter the password.</string>
     <string name="music_albums">Albums</string>
     <string name="music_artists">Artists</string>
     <string name="music_songs">Songs</string>
     <!-- Music now playing (MU-09). -->
-    <string name="music_now_playing">Now playing</string>
+    <string name="music_now_playing">Now Playing</string>
     <string name="music_pause">Pause</string>
     <string name="music_next">Next</string>
     <string name="music_previous">Previous</string>
@@ -396,14 +398,14 @@
     <string name="music_mix">Mix</string>
     <string name="music_mix_none">No mix for this song.</string>
     <string name="music_position">Position in the song</string>
-    <string name="music_row_recent_albums">Recent albums</string>
-    <string name="music_row_recently_played">Recently played</string>
+    <string name="music_row_recent_albums">Recent Albums</string>
+    <string name="music_row_recently_played">Recently Played</string>
     <string name="music_row_playlists">Playlists</string>
     <string name="music_row_artists">Artists</string>
     <string name="music_row_genres">Genres</string>
     <string name="music_shuffle">Shuffle</string>
     <string name="music_singles">Singles &amp; EPs</string>
-    <string name="music_appears_on">Appears on</string>
+    <string name="music_appears_on">Appears On</string>
     <string name="music_queue_edit">Move</string>
     <string name="music_queue_edit_hint">← →: move · OK: done · hold OK: remove</string>
 
@@ -422,14 +424,14 @@
     <string name="screensaver_album">Album</string>
     <string name="screensaver_album_all">All Photos</string>
     <!-- Plex on TV (plex-spec §5, §8): link with a code, the server choice (D-3, D-10), Plex Pass explained. -->
-    <string name="plex_tv_account">Plex account</string>
-    <string name="plex_tv_link_start">Link with a code</string>
-    <string name="plex_tv_link_title">Link a Plex account</string>
+    <string name="plex_tv_account">Plex Account</string>
+    <string name="plex_tv_link_start">Link with a Code</string>
+    <string name="plex_tv_link_title">Link a Plex Account</string>
     <string name="plex_tv_link_lead">On a phone or a computer, open plex.tv/link and enter this code, or scan the QR code: your Plex servers, and the ones shared with you, join Wicaby.</string>
     <string name="plex_tv_link_waiting">Waiting for the code to be entered on plex.tv…</string>
     <string name="plex_tv_link_expired">This code expired.</string>
-    <string name="plex_tv_link_new_code">New code</string>
-    <string name="plex_tv_servers_title">Choose a server</string>
+    <string name="plex_tv_link_new_code">New Code</string>
+    <string name="plex_tv_servers_title">Choose a Server</string>
     <string name="plex_tv_servers_hint">The servers shown join Wicaby; a hidden server stays stored.</string>
     <string name="plex_tv_owned">Yours</string>
     <string name="plex_tv_shared_by">Shared by %1$s</string>
@@ -443,13 +445,13 @@
     <string name="plex_tv_show_server">Show %1$s</string>
     <string name="plex_tv_confirm_title">Use this local address?</string>
     <string name="plex_tv_confirm_body">This server only answers at %1$s, an unencrypted address. Wicaby sends your Plex access there only if you agree: accept only on the server’s network.</string>
-    <string name="plex_tv_confirm">Use this address</string>
+    <string name="plex_tv_confirm">Use This Address</string>
     <string name="plex_tv_linked_as">Linked as %1$s</string>
     <string name="plex_tv_pass_on">Plex Pass active on this account.</string>
     <string name="plex_tv_pass_off">Without Plex Pass on its owner’s account, a server offers no live TV, no “Skip intro” buttons and no hardware transcoding; playing away from its network needs a Plex Pass or a Remote Watch Pass.</string>
-    <string name="plex_tv_unlink">Unlink the Plex account</string>
+    <string name="plex_tv_unlink">Unlink Plex Account</string>
     <string name="plex_tv_unlink_body">Its servers, its profiles and their access leave this TV.</string>
-    <string name="plex_tv_refresh">Refresh metadata</string>
+    <string name="plex_tv_refresh">Refresh Metadata</string>
     <string name="plex_tv_refreshed">Refresh requested from the server.</string>
     <string name="plex_tv_not_affiliated">Plex is a trademark of Plex, Inc. Wicaby is an unofficial client, not affiliated with or endorsed by Plex.</string>
     <!-- Feishin-inspired library UI (music-feishin-navidrome spec C4, C7). -->
@@ -458,5 +460,9 @@
     <string name="music_release_single">Single</string>
     <string name="music_release_compilation">Compilation</string>
     <string name="music_more_from">More by %1$s</string>
-    <string name="music_similar_artists">Similar artists</string>
+    <string name="music_similar_artists">Similar Artists</string>
+    <!-- "Play on Wicaby" while the app is in the background (RemotePlays). -->
+    <string name="remote_play_request_title">Playback requested by %1$s</string>
+    <string name="remote_play_action">Play</string>
+    <string name="remote_channel_name">Remote Control</string>
 </resources>

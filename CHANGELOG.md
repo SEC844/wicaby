@@ -18,6 +18,125 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Added
+
+- Desktop: the comic reader opens CBR (RAR 4 and RAR 5), CB7 (7z), CBT (tar), PDF and image EPUB books, as well
+  as CBZ. The file's contents decide the format, so a CBR named .cbz still opens. RAR, 7z and tar are read by
+  libarchive (BSD) in a separate worker, with the same page, size and entry limits as CBZ; no UnRAR code is
+  used. PDF pages are drawn by pdf.js. Password-protected archives and DRM books show a clear message, and so do
+  text EPUBs (novels), which the reader does not open.
+- Desktop: books without a server cover show their first page in every format: CBZ, EPUB, CBR and CBT are read
+  with a few Range requests (a CBR or CBT cover needs at most its first 8 MiB), PDF draws page 1. A CB7 shows
+  its cover once it has been opened.
+- Android TV and mobile: the comic reader opens the same formats, CBR (RAR 4 and RAR 5), CB7, CBT, PDF and image
+  EPUB, as well as CBZ. RAR, 7z and tar are read by libarchive (BSD, through libarchive-android) and extracted
+  once into the comic cache with the same limits; PDF pages are drawn by Android's own PDF renderer. Covers:
+  CBZ, EPUB, CBR and CBT from the server with Range requests, CB7 and PDF once the book has been opened.
+- Web TV app (preview, not released): the desktop interface for LG webOS 6+ and Samsung Tizen 6.5+ TVs, with Emby
+  and Jellyfin, remote navigation (arrows, OK, Back, media keys) and the TV's own video decoders. Every push to main
+  builds an LG `.ipk` and an unsigned Samsung `.wgt` as workflow artifacts, and a browser demo with a built-in demo
+  server on GitHub Pages. See docs/webtv.md.
+- Web TV demo: the first visit opens signed in to the built-in demo server, with a Demo badge and a
+  "Connect your server" button.
+- Web TV app: a 10-foot look on TVs (the layout drawn 1.5 times larger, an always visible focus ring, no
+  scrollbars), also in a browser with `?tv=webos`; the CSS is rewritten for Chromium 79 to 85 so component styles,
+  focus states and item backdrops survive on webOS 6 and Tizen 6.5 (checked in Chromium 79 and 85 snapshots).
+- Web TV app: a title the TV has to transcode resumes at its resume point (it restarted at 0:00 and reported that
+  position back); the remote's focus scrolls into view on Chromium 79 to 85; glass buttons get an opaque fill
+  without blur; flex gaps are replaced by margins on webOS 6; the search field's Ctrl K hint is hidden on TVs. On
+  the Pages demo a real server's sign-in is kept for the browser tab only (the github.io origin is shared).
+
+### Security
+
+- Desktop: downloads and comic books from a server that redirects them to another host (a .strm file, a remote
+  path) no longer send your server sign-in along; the other host is asked without it.
+- Desktop: when the server does not say in time whether a stream redirects, the player asks once more and, without an
+  answer, shows "The server didn't answer, try again" instead of risking sending your server sign-in to another host.
+- Desktop: the Emby Connect sign-in no longer follows redirects with its access key.
+- Mesh file shares (Windows, Linux, Android): an SMB share opened with a user name now requires signed replies, so
+  someone on the same network cannot change what you read. A share that only allows guest access must be added
+  with the user name guest.
+
+### Fixed
+
+- Android: an IPTV channel whose playlist sets a user agent or referrer with accented or control characters no
+  longer stops playback; that value is ignored.
+- Android TV: the recordings list of a Plex server with 500 recordings or more no longer loads forever.
+- Android mobile: a crash while a download was saved no longer makes the app forget every download.
+- Desktop: seeking often in a video from a WebDAV share no longer piles up connections until playback stalls.
+- Desktop: a settings or server file that cannot be read is kept beside the original (`.corrupt-` and the time)
+  instead of being overwritten, and a file emptied to `{}` no longer stops the app from starting.
+- Desktop: a failed save (full disk, locked file) no longer crashes the app, and is tried again; quitting saves
+  everything else even when one save fails.
+- Mesh: browser sign-in to a NetBird server that cannot be reached for a moment is tried again, instead of stopping
+  with "this NetBird server offers no browser sign-in".
+- Android TV: "Play on Wicaby" from another device now works when you have left the app or it is in the
+  background (for example while music plays): a notification offers to play it.
+- Android TV: switching to another profile in "Who is watching?" clears the previous profile's titles from the
+  launcher's "Watch Next" row.
+- Android: adding a server or changing networks no longer waits about 6 seconds for an address that does not
+  answer when another one already did.
+- Android: leaving the player during a quality or subtitle change no longer shows a "failed" message on the next
+  screen.
+- Android: SMB shares on a Tailscale or NetBird device work again after Remote Access is turned off and on.
+- Mesh file shares: two requests that reconnect an SMB share at the same time no longer break each other's
+  playback.
+- Mesh: a network hiccup during NetBird browser sign-in no longer replaces the code on screen while you confirm it.
+- Mesh: offline NetBird devices are no longer shown as online, and server discovery no longer waits on them.
+- Desktop: a video playing in the built-in player no longer restarts from the beginning when a server comes back
+  online.
+- Desktop: removing the server that is playing now stops playback, without waiting long on a server that does not
+  answer.
+- Desktop: switching subtitles quickly in the built-in player no longer shows two subtitle tracks at once.
+- Desktop: error messages raised in a dialog are now read by screen readers and their buttons can be clicked
+  while the dialog is open.
+- Desktop: a server that fails to list its libraries once (still waking up, busy) no longer leaves them missing
+  from the sidebar and Home until you reconnect.
+- Desktop: leaving the Servers page while linking a Plex account with a code stops checking for the link.
+- Desktop: a comic book download that stalls now fails after a minute instead of hanging until restart, and a
+  book larger than 8 GB (or than the comics cache, if larger) is refused instead of filling the disk.
+- Android: the comic book reader lets the screen turn off (or the TV screensaver start) after 10 minutes without
+  a page turn or key press.
+- Android: keeping the playback stats open with Remote Access on no longer moves a NetBird network server's
+  traffic onto the mesh for the rest of the session.
+- Mesh file shares: browsing posters while a film plays no longer fails with "HTTP 503"; requests wait for a free
+  slot, and a paused player that holds a connection gives it back after a minute.
+
+### Added
+
+- Navidrome (and other OpenSubsonic servers): add one in Sources > Add a Source > Navidrome with its address, then
+  your user name and password. Its music opens in the usual music player, with your favourites (Navidrome's stars)
+  and playlists kept on the server, lyrics, the queue and plays sent to Navidrome. Desktop, Android TV and mobile.
+  The password is kept in the app's encrypted storage and never sent itself (token and salt sign-in); casting
+  Navidrome music works from the desktop through the cast relay only.
+- Settings > Audio > Music source (desktop), Settings > Music (phone) and Settings > Playback (TV): choose which
+  server the Music section shows (Emby, Jellyfin, Plex or Navidrome), or Automatic for all of them. On desktop, the
+  Music page also has a quick switch when several servers have music.
+
+### Changed
+
+- Android TV: the player's quality control now reads "Quality · Original" or "Quality · 1080p" instead of a bare
+  "Original" or "1080p · 8 Mbps", and the sleep timer control reads "Minuterie" in French.
+- Android TV and phones: clearer wording across the app, mostly in French: "Lecture directe" instead of "Direct" in
+  the Quality sheet, "Débit maximal" and "À distance" in the bitrate settings, "Adapter la fréquence d’affichage",
+  "Continuer à regarder" when the app asks if you're still watching, "Épisodes spéciaux" for season 0, one episode
+  code format (S1 É2), shorter setting descriptions, and Title Case for English row and button labels.
+- Desktop and phones: the same episode code format (kept on one line), "Lecture directe" / "Direct Play" tag,
+  "Reste 42 min" in French, "Keep Watching" under "Are you still watching?", one name for the "Merge Continue Watching
+  and Up Next" setting, and Title Case for "Now Playing" and "Similar Artists".
+- Android TV: clearer French hints for the home rows, tab bar, subtitle and bitrate settings, "Fréquence seule" in the
+  display mode options, and a plainer message when recording needs Emby Premiere.
+- Desktop: moving the keyboard or gamepad focus across cards no longer loads every title's details and backdrop
+  on the way; only the card you stop on is preloaded, like with the mouse.
+- Desktop: item, Favorites and History pages no longer reload on every background connection update.
+- Desktop: generated comic book covers no longer slow down the app while you scroll a large comics library.
+- Android TV: the player redraws less often during playback, which helps on low-end TVs.
+- Mesh file shares: very large SMB folders are listed without reading every entry first.
+- Desktop: Electron updated to 44.9.0.
+- Mesh helper (Windows, Linux, Android): NetBird client updated to 0.81.2, with pion/dtls v3 3.1.14 and quic-go
+  0.64.0.
+- Desktop: bundled mpv player updated to the shinchiro build `20261018` (mpv `git-01e2533f31`).
+
 ## [0.10.12] - 2026-10-18
 
 Security updates in the mesh helper. Windows and Linux desktop **0.10.12**, Android TV app **0.10.12** (`versionCode`

@@ -9,7 +9,8 @@ import { sessionFor } from './stores.svelte';
 
 export { move as playlistMove, remove as playlistRemove } from './playlists';
 
-const jellyfin = (sid?: string) => sessionFor(sid)?.server.kind === 'jellyfin';
+// Navidrome's adapter (main/connection/subsonic-client.ts) answers in the Jellyfin dialect.
+const jellyfin = (sid?: string) => ['jellyfin', 'navidrome'].includes(sessionFor(sid)?.server.kind ?? '');
 const userQuery = (sid?: string): Query => {
   const id = sessionFor(sid)?.user?.id ?? '';
   return jellyfin(sid) ? { userId: id } : { UserId: id };

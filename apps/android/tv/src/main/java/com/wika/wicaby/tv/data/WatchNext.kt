@@ -11,6 +11,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.wika.wicaby.tv.BuildConfig
 import com.wika.wicaby.tv.MainActivity
@@ -127,5 +128,14 @@ object WatchNext {
     // Sign-out: the next user must not inherit this one's row. The provider only lets us touch our own programs.
     suspend fun clear(context: Context) = withContext(Dispatchers.IO) {
         if (supported(context)) runCatching { context.contentResolver.delete(WatchNextPrograms.CONTENT_URI, null, null) }
+    }
+
+    // A profile switch (no sign-out in between): the account before's rows go too. True when it cleared.
+    suspend fun follow(context: Context, account: String): Boolean {
+        val prefs = context.getSharedPreferences("watch_next", Context.MODE_PRIVATE)
+        if (prefs.getString("account", null) == account) return false
+        clear(context)
+        prefs.edit { putString("account", account) }
+        return true
     }
 }

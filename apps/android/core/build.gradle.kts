@@ -11,6 +11,7 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdkTv.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -58,6 +59,9 @@ dependencies {
     api(libs.okhttp)
     // ComicCoverFetcher/Keyer (comics/ComicCover.kt): both apps register them in their ImageLoader.
     implementation(libs.coil.core)
+    // Comics in RAR (4 and 5), 7z and tar (comics/ComicLibarchive.kt): libarchive's own BSD readers (see THIRD_PARTY_NOTICES.md).
+    // JNI, about 1 MB per ABI in the APK; its consumer ProGuard rules keep the classes the native code calls.
+    implementation(libs.libarchive)
     api(libs.kotlinx.serialization.json)
     api(libs.androidx.datastore.preferences)
     // TorrentsViewModel (qBittorrent): both apps get a ready, polling StateFlow.
@@ -74,6 +78,10 @@ dependencies {
     testImplementation(libs.kxml2)
     // MusicSessionTest (music spec MU-07): a real ExoPlayer, never prepared, under Robolectric.
     testImplementation(libs.robolectric)
+
+    // ComicNativeTest: libarchive (JNI) and PdfRenderer only run on a device (:core:connectedDebugAndroidTest).
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.junit)
 }
 
 // CK/fixtures/cast/ onto the unit-test classpath as /cast/* (cast spec CA-08 checks): DlnaTest, CastProfilesTest and
@@ -101,3 +109,15 @@ androidComponents {
     }
 }
 tasks.matching { it.name.startsWith("process") && it.name.endsWith("UnitTestJavaRes") }.configureEach { dependsOn(copyCastFixtures, copyFilesFixtures) }
+
+// The mocks' comic books, every format (tools/mock-server/write-comic-fixtures.mjs, needs node), as the device test's
+// assets/comics/*: ComicNativeTest reads the very bytes the mocks serve.
+val comicFixtures = tasks.register<Exec>("comicFixtures") {
+    val out = layout.buildDirectory.dir("comicFixtures/comics").get().asFile
+    outputs.dir(out)
+    commandLine("node", rootProject.file("../../tools/mock-server/write-comic-fixtures.mjs").path, out.path)
+}
+androidComponents {
+    onVariants { v -> v.androidTest?.sources?.assets?.addStaticSourceDirectory(layout.buildDirectory.dir("comicFixtures").get().asFile.path) }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("AndroidTestAssets") }.configureEach { dependsOn(comicFixtures) }

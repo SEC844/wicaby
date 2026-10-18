@@ -118,6 +118,11 @@ export class LoopbackRelay {
     try {
       const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
       const r = await play.backend.open(rel, range, req.method === 'HEAD');
+      // mpv dropped the request (a seek) while open() ran: 'close' already fired, so nothing else frees the stream.
+      if (req.destroyed || res.destroyed) {
+        r.body?.destroy();
+        return;
+      }
       res.writeHead(r.status, r.headers);
       if (!r.body) {
         res.end();

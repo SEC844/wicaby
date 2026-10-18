@@ -114,7 +114,9 @@ export class SessionReporter {
     const played = duration > 0 && (pos / duration >= 0.9 || (credits !== undefined && pos >= credits));
     // Resume points only between 5 % and 90 %, and never on items under 5 min.
     const keepResume = !played && duration >= 300_000 && pos / duration >= 0.05;
-    const body = this.body(duration > 0 && !played && !keepResume ? { PositionTicks: 0 } : {}, c);
+    // Navidrome keeps no resume point and scrobbles from the stop position (half the track), so it gets the real one.
+    const navidrome = c ? host.deps.connection.onlineApi(c.serverId)?.kind === 'navidrome' : false;
+    const body = this.body(duration > 0 && !played && !keepResume && !navidrome ? { PositionTicks: 0 } : {}, c);
     if (c === host.current) host.current = null;
     if (!c) return;
     // releaseLive: the ledger releases each LiveStreamId once (a stream never adopted is closed, not stopped).

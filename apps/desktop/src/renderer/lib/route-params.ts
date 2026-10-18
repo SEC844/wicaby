@@ -2,9 +2,10 @@
 // jump list entry, a wicaby:// link or a page link can set, and end up in server API paths:
 // only plain ids are accepted. Dependency-free so tools/checks/desktop-hardening-check.mjs runs it.
 
-// Item, library, section and user ids: Emby numbers, Jellyfin hex, GUIDs with dashes; file source ids
+// Item, library, section and user ids: Emby numbers, Jellyfin hex, GUIDs with dashes, Navidrome typed ids (al_…, tr_…,
+// base64url after __, shared/subsonic/map.ts); file source ids
 // ('p.' + base64url of a guarded path, shared/files/ids.ts FILES_ID; repeated here to stay dependency-free).
-const ID = /^[A-Za-z0-9-]{1,64}$/;
+const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const FILES_ID = /^p\.[A-Za-z0-9_-]{0,1000}$/;
 // Server ids are the server's SystemId: hex with or without dashes on both servers.
 const SERVER_ID = /^[A-Za-z0-9-]{1,64}$/;

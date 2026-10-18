@@ -31,6 +31,20 @@ func TestExpiredLoginNeedsSignIn(t *testing.T) {
 	}
 }
 
+// Only a server without a device flow ends browser sign-in for good; a network failure is retried.
+func TestFlowErrRetriesTransportFailures(t *testing.T) {
+	for _, err := range []error{gstatus.Error(codes.Unavailable, "connection refused"), gstatus.Error(codes.DeadlineExceeded, "timeout"), errors.New("no connection to management")} {
+		if isAuthErr(flowErr(err)) {
+			t.Fatalf("%v: treated as final", err)
+		}
+	}
+	for _, c := range []codes.Code{codes.NotFound, codes.Unimplemented} {
+		if !isAuthErr(flowErr(gstatus.Error(c, "no flow"))) {
+			t.Fatalf("%v: retried", c)
+		}
+	}
+}
+
 func TestRetryBacksOffThenConnects(t *testing.T) {
 	m := &netbirdMesh{hub: &hub{}}
 	var seen []string

@@ -112,6 +112,8 @@ class CastController(
         this.index = ids.indexOf(id)
         // A renderer's URLs carry the token, and the Plex token never goes in a URL: casting Plex is the Cast workflow's.
         if (api.server.kind == "plex") throw IOException("casting a Plex server is not supported yet")
+        // Navidrome signs URLs with the password's token: no relay on Android, so nothing is sent to a renderer.
+        if (api.server.kind == "navidrome") throw IOException(com.wika.wicaby.core.Core.str(com.wika.wicaby.core.R.string.navidrome_cast_unsupported))
         try {
             start(api.item(id), positionTicks ?: 0, msid, audio, sub)
         } catch (e: Exception) {

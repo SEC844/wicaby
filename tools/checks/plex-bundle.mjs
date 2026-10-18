@@ -11,7 +11,7 @@ import { build } from 'esbuild';
 
 const desktop = path.resolve(import.meta.dirname, '..', '..', 'apps', 'desktop', 'src');
 
-const electronStub = {
+export const electronStub = {
   name: 'electron-stub',
   setup(b) {
     b.onResolve({ filter: /^electron$/ }, () => ({ path: 'electron', namespace: 'stub' }));

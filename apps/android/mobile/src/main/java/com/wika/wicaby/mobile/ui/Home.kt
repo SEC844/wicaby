@@ -101,7 +101,7 @@ fun HomeScreen(api: Api, nav: NavController, openTab: (Tab) -> Unit) {
     val context = LocalContext.current
     var nonce by rememberSaveable { mutableIntStateOf(0) }
     var pulled by remember { mutableStateOf(false) }
-    val views = rememberLoad("views", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
+    val views = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
     val hero = rememberLoad("hero", nonce) {
         Servers.merged(api) { a ->
             a.items(

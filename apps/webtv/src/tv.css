@@ -1,0 +1,72 @@
+/* TV look (docs/webtv.md): no backdrop blur on TV GPUs, a focus ring that always shows at 3 m, and the desktop
+   layout drawn at 1280x720 on a 1920x1080 screen so text and hit targets are 1.5 times larger. */
+html[data-tv] *,
+html[data-tv] *::before,
+html[data-tv] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html[data-tv] :focus {
+  outline: 3px solid var(--accent, #0a84ff) !important;
+  outline-offset: 2px !important;
+}
+/* Without blur the glass controls over artwork (Item, Hero) need an opaque fill to read at 3 m. */
+html[data-tv] .glass:not(.on),
+html[data-tv] .selectors .trigger,
+html[data-tv] .seasons {
+  background: rgba(28, 28, 30, 0.78) !important;
+}
+html[data-tv] .face .initials {
+  color: var(--label, #fff);
+}
+/* No keyboard on a TV. */
+html[data-tv] .search kbd {
+  display: none;
+}
+/* The demo badge keeps clear of the last row. */
+html.webtv-demo-on[data-tv] #main-scroller {
+  padding-bottom: 64px;
+}
+html[data-tv] ::-webkit-scrollbar {
+  display: none;
+}
+/* vh and vw in the app's CSS go through these (scripts/legacy-css.mjs): zoom would scale them as well. */
+:root {
+  --vh: 1vh;
+  --vw: 1vw;
+}
+@media (min-width: 1800px) {
+  html[data-tv] {
+    zoom: 1.5;
+    --vh: calc(1vh / 1.5);
+    --vw: calc(1vw / 1.5);
+  }
+}
+/* Pages demo badge (main.ts startDemo). */
+.webtv-demo {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  background: rgba(20, 20, 22, 0.92);
+  color: #fff;
+  font: 600 14px/1.2 'Geist Variable', system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.webtv-demo[hidden] {
+  display: none;
+}
+.webtv-demo button {
+  margin-left: 12px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  cursor: pointer;
+}

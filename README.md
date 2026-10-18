@@ -273,7 +273,7 @@ cd apps/android; ./gradlew :tv:assembleDebug :mobile:assembleDebug
 
 No server at hand? `node tools/mock-server/mock-emby.mjs 8104` starts a mock (user `Wika`, password `wicaby`).
 
-Everything else lives in [docs/](docs/): [features](docs/features.md), [desktop](docs/desktop.md), [Android](docs/android.md), [remote access](docs/remote-access.md), [design](docs/design.md), [translations](docs/i18n.md), [releases](docs/release.md) and [architecture](docs/architecture.md) (in French). To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability, [SECURITY.md](SECURITY.md).
+Everything else lives in [docs/](docs/): [features](docs/features.md), [desktop](docs/desktop.md), [Android](docs/android.md), [web TV preview (LG, Samsung)](docs/webtv.md), [remote access](docs/remote-access.md), [design](docs/design.md), [translations](docs/i18n.md), [releases](docs/release.md) and [architecture](docs/architecture.md) (in French). To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability, [SECURITY.md](SECURITY.md).
 
 ## License
 

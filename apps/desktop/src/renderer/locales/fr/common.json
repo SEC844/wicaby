@@ -75,7 +75,7 @@
     "Folder": "Dossier"
   },
   "time": {
-    "remaining": "{time} restantes",
+    "remaining": "Reste {time}",
     "endsAt": "Fin à {time}",
     "yearContinuing": "{year} – en cours",
     "justNow": "À l’instant"

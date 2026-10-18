@@ -64,7 +64,7 @@
     "duration": "Duration"
   },
   "bar": {
-    "label": "Now playing",
+    "label": "Now Playing",
     "play": "Play",
     "pause": "Pause",
     "next": "Next",
@@ -86,7 +86,7 @@
     "output": "Audio output"
   },
   "queue": {
-    "nowPlaying": "Now playing",
+    "nowPlaying": "Now Playing",
     "upNext": "Up next",
     "upNextSummary": "{count, plural, one {# song} other {# songs}} · {duration}",
     "clearUpcoming": "Clear upcoming",
@@ -167,7 +167,7 @@
     "enlarge": "Enlarge cover"
   },
   "artistPage": {
-    "similar": "Similar artists"
+    "similar": "Similar Artists"
   },
   "barExtra": {
     "timeToggle": "Show remaining time or duration",

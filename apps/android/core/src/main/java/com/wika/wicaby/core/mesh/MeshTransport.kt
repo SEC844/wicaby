@@ -197,6 +197,9 @@ class MeshTransport(context: Context, deviceName: String) : ServerTransport {
 
     override fun failed(origin: String) = directFirst.failed(origin)
 
+    /** Whether [origin]'s traffic already goes through the node. Never dials: safe on the main thread (stats overlay). */
+    fun forwarding(origin: String): Boolean = running != null && _status.value.state == MeshState.Connected && routes.containsKey(origin)
+
     // ---- Control (all asynchronous; watch [status]) ----
 
     /** Restarts the node at app start if the user left it on. */

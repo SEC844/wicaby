@@ -57,11 +57,11 @@
   "upNext": {
     "title": "Épisode suivant",
     "countdown": "Épisode suivant dans {seconds} s",
-    "code": "S{season}, É{episode}",
+    "code": "S{season} É{episode}",
     "watchNow": "Regarder maintenant",
     "stillWatching": "Toujours là ?",
     "pausedNote": "La lecture est en pause. Elle reprendra avec l’épisode suivant.",
-    "continue": "Continuer",
+    "continue": "Continuer à regarder",
     "stop": "Arrêter"
   },
   "tracks": {
@@ -198,7 +198,7 @@
     "cancel": "Annuler la minuterie",
     "stillWatching": "Vous regardez toujours ?",
     "pausingIn": "Pause dans {seconds} s",
-    "continue": "Continuer",
+    "continue": "Continuer à regarder",
     "pause": "Pause"
   },
   "quality": {
@@ -208,7 +208,7 @@
     "original": "Originale",
     "preset": "{height}p · {bitrate}",
     "size": "{size} ({percent} %)",
-    "direct": "Direct",
+    "direct": "Lecture directe",
     "transcode": "Transcodage",
     "switched": "Qualité : {label}",
     "failed": "Impossible de changer la qualité",

@@ -25,10 +25,10 @@
     "customize": "Customize Home",
     "card": {
       "timeLeft": "{time} left",
-      "nextEpisode": "Next: S{season}·E{episode}"
+      "nextEpisode": "Next: S{season} E{episode}"
     },
     "sheet": {
-      "mergeContinue": "Merge “Continue” and “Up Next”"
+      "mergeContinue": "Merge Continue Watching and Up Next"
     }
   },
   "library": {

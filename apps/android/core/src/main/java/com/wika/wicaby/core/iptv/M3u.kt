@@ -165,7 +165,8 @@ class M3uParser {
                 }
                 upper.startsWith("#EXTVLCOPT:") -> {
                     val parts = line.substring(11).split('=')
-                    val v = jsTrim(parts.drop(1).joinToString("=")).take(1024)
+                    // Sent as an HTTP header: a value OkHttp would reject (non-ASCII, control characters) is dropped.
+                    val v = jsTrim(parts.drop(1).joinToString("=")).take(1024).takeIf { it.all { c -> c == '\t' || c in ' '..'~' } }.orEmpty()
                     val key = jsTrim(parts[0]).lowercase(Locale.ROOT)
                     if (v.isNotEmpty() && key == "http-user-agent") userAgent = v
                     else if (v.isNotEmpty() && (key == "http-referrer" || key == "http-referer")) referrer = v

@@ -6,6 +6,7 @@
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
   import { imageUrl } from '../lib/images';
+  import { installMediaHandlers } from '../lib/media-session.svelte';
   import { back } from '../lib/router.svelte';
   import { htmlPlayer, playback, settings } from '../lib/stores.svelte';
 
@@ -17,6 +18,7 @@
   let pendingSeekMs = 0;
   let trackUrl: string | null = null;
   let trackEl: HTMLTrackElement | null = null;
+  let subSeq = 0;
   let lastTimeEmit = 0;
   let statsTimer: ReturnType<typeof setInterval> | null = null;
   let hlsRecoveries = 0;
@@ -24,7 +26,6 @@
   let bufferedMs = $state(0);
 
   const emit = (ev: HtmlPlayerEvent) => w.htmlPlayer.emit(ev);
-  const cmd = (c: Parameters<typeof w.playback.command>[0]) => void w.playback.command(c).catch(() => undefined);
 
   function emitTime(force = false): void {
     const v = video;
@@ -74,6 +75,7 @@
   }
 
   function clearTrack(): void {
+    subSeq++; // a subtitle fetch still in flight is stale now
     trackEl?.remove();
     trackEl = null;
     if (trackUrl) URL.revokeObjectURL(trackUrl);
@@ -85,10 +87,12 @@
     const v = video;
     const sub = index === null ? undefined : current?.subtitles.find((s) => s.index === index);
     if (!v || !sub) return;
+    const mine = subSeq;
     try {
       const res = await fetch(sub.url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
+      if (mine !== subSeq) return;
       trackUrl = URL.createObjectURL(new Blob([text], { type: 'text/vtt' }));
       const t = document.createElement('track');
       t.kind = 'subtitles';
@@ -209,24 +213,8 @@
     setTimeout(() => (entered = true), 600);
     offCommand = w.htmlPlayer.onCommand(onCommand);
     statsTimer = setInterval(emitStats, 2000);
-    const ms = navigator.mediaSession;
-    const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
-      try {
-        ms.setActionHandler(action, handler);
-      } catch {
-        // Not supported.
-      }
-    };
-    set('play', () => cmd({ type: 'resume' }));
-    set('pause', () => cmd({ type: 'pause' }));
-    set('stop', () => cmd({ type: 'stop' }));
-    set('nexttrack', () => cmd({ type: 'next' }));
-    set('previoustrack', () => cmd({ type: 'previous' }));
-    set('seekbackward', (d) => cmd({ type: 'seek-relative', deltaMs: -(d.seekOffset ?? settings.value?.playback.seekShortS ?? 10) * 1000 }));
-    set('seekforward', (d) => cmd({ type: 'seek-relative', deltaMs: (d.seekOffset ?? settings.value?.playback.seekShortS ?? 10) * 1000 }));
-    set('seekto', (d) => {
-      if (d.seekTime !== undefined) cmd({ type: 'seek', positionMs: d.seekTime * 1000 });
-    });
+    const step = settings.value?.playback.seekShortS ?? 10;
+    installMediaHandlers(step, step);
   });
 
   onDestroy(() => {

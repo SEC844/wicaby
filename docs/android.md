@@ -207,18 +207,21 @@ Both apps trust the system CA store and the CAs the user installed (Android sett
 
 ## Comic reader
 
-Both apps read CBZ books (Emby/Jellyfin `Book` items) with shared logic in `core/comics/`:
+Both apps read CBZ, CBR (RAR 4 and 5), CB7, CBT, PDF and image EPUB books (Emby/Jellyfin `Book` items) with shared logic in `core/comics/`:
 
 | File | Role |
 |---|---|
-| `Comics.kt` | Backend: fetches the archive once from `/Items/{id}/File` (falling back to `/Download`) through `Core.http` into `cacheDir/comics` (LRU, about 1 GB), opens it, and writes progress back. Unsupported formats (CBR, PDF, EPUB) raise a `ComicException` the reader shows as is. |
-| `ComicArchive.kt` | Random access over the ZIP: the central directory is read once and pages are inflated on demand. It handles CP437 names and ComicInfo `Page` indexes ("Deleted" pages are skipped). |
+| `Comics.kt` | Backend: fetches the archive once from `/Items/{id}/File` (falling back to `/Download`) through `Core.http` into `cacheDir/comics` (LRU, about 1 GB), opens it by its magic bytes, and writes progress back. RAR, 7z and tar books are extracted once into `<sid>-<id>.d` and the archive dropped. Other formats (MOBI…), text EPUBs, encrypted books and books over the limits raise a `ComicException` the reader shows as is. |
+| `ComicFormats.kt` | Pure JVM, mirrored from desktop `formats.ts`: magic bytes, extraction names (`index#path`, nothing climbs out), EPUB container/OPF/spine parsing, and the extraction walk with the limits (64 MiB per page, 8 GiB per book, 209 715 entries, encrypted entries refused). |
+| `ComicLibarchive.kt` | RAR, 7z and tar through libarchive (libarchive-android, JNI): one pass in order, reading the file itself. No UnRAR code. |
+| `ComicPdf.kt` | PDF through the platform `PdfRenderer`: pages are drawn at the size the reader asks for. |
+| `ComicArchive.kt` | `ComicBook`, the interface the reader uses; `ComicArchive`, random access over a ZIP or an EPUB (pages from its spine); `ComicFolder`, an extracted archive. ZIP: the central directory is read once and pages are inflated on demand. It handles CP437 names and ComicInfo `Page` indexes ("Deleted" pages are skipped). |
 | `ComicPages.kt` | Pure JVM rules mirrored from the desktop (`apps/desktop/src/main/comics/`). Natural page order. Komga-style spreads: the cover, the last page and wide pages stand alone. Long-strip detection (ComicInfo `Format=Web`, or a median height/width above 2.5). ComicInfo parsing (manga = right to left). Progress ticks. |
 | `ComicReader.kt` | Observed state of one open book: page window decoding (2 pages each side on TV, 3 on mobile), downsampling sized for a ×2 zoom, thumbnails, direction and mode. |
 
 Progress is stored in `PlaybackPositionTicks` as `page × 10 000`, the jellyfin-web comics convention, so clients resume each other's position. It goes through `UserData` (`/UserItems/{id}/UserData` on Jellyfin 10.9+, the per-user route otherwise) and never through `Sessions/Playing`: the server would mark a runtime-less item played and reset it.
 
-The screens are `tv/…/reader/ReaderActivity.kt` (D-pad: spreads on 16:9, ←/→ turn, OK opens the bar) and `mobile/…/reader/ReaderActivity.kt` (swipe, pinch and double-tap zoom, two-page spreads on landscape tablets, vertical strip for webtoons). The unit tests run against `core/src/test/resources/comics/fixture.cbz`.
+The screens are `tv/…/reader/ReaderActivity.kt` (D-pad: spreads on 16:9, ←/→ turn, OK opens the bar) and `mobile/…/reader/ReaderActivity.kt` (swipe, pinch and double-tap zoom, two-page spreads on landscape tablets, vertical strip for webtoons). The unit tests run against `core/src/test/resources/comics/fixture.cbz` and the mocks' books in every format (`tools/mock-server/write-comic-fixtures.mjs`, when node is on the PATH). libarchive and `PdfRenderer` only run on a device: `./gradlew :core:connectedDebugAndroidTest` (`ComicNativeTest`). Covers of books without a server image: CBZ and EPUB by Range requests, CBR and CBT from their first 8 MiB, CB7 and PDF from the cached copy once opened.
 
 ## i18n
 

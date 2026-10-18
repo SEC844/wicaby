@@ -9,121 +9,14 @@ import { isMpvPathShape } from '../../shared/mpv-args';
 import { validateImport } from '../../shared/shortcuts';
 import { t } from '../i18n';
 import { JsonStore } from './json-store';
+import { defaultSettings as sharedDefaults, merge, OSM_TILES, type LiveSettings, type StoredSettings } from '../../shared/default-settings';
 
-// Live TV (livetv-spec-final.md §15). Main-side; contract.ts Settings.live types the keys the renderer
-// shows (the reminder rows in Settings).
-export interface LiveSettings {
-  // "Libérer le tuner avant de changer de chaîne": auto learns break-before-make per server.
-  release: 'auto' | 'always' | 'never';
-  // Learned per server (Auto): break-before-make until this epoch (7 days).
-  releaseFirst: Record<string, { until: number }>;
-  // "Mise en pause du direct" (§8.8): the timeshift window in minutes, 0 = off.
-  timeshiftMinutes: 0 | 15 | 30 | 60 | 120;
-  // Reminders (§9.6): minutes before the start, and "Changer de chaîne au rappel".
-  reminderLeadMin: 0 | 1 | 2 | 5 | 10;
-  reminderAutoTune: boolean;
-}
-
-// What the settings file holds: the shared Settings plus the main-only sections.
-// defaultsVersion: the last one-time migration of changed defaults run on this file (see SettingsService).
-export type StoredSettings = Settings & { live: LiveSettings; defaultsVersion: number };
+export type { LiveSettings, StoredSettings } from '../../shared/default-settings';
+export { OSM_TILES } from '../../shared/default-settings';
 
 export function defaultSettings(): StoredSettings {
-  return {
-    ui: {
-      theme: 'dark',
-      accent: 'blue',
-      reduceMotion: false,
-      reduceTransparency: false,
-      sidebarCollapsed: false,
-      homeRows: [],
-      startPage: 'home',
-      confirmQuitDuringPlayback: false,
-      density: 'comfortable',
-      posterSize: 100,
-      cardRatings: false,
-      cardAges: false,
-      cardQuality: false,
-      cardTitles: true,
-      heroEnabled: true,
-      heroAutoplay: true,
-      zoom: 100,
-      libraryView: 'poster',
-      librarySort: 'SortName',
-      librarySortDesc: false,
-      fpsMeter: false,
-      language: 'auto',
-      mergeContinue: true,
-      filesOnHome: false,
-      continueHidden: [],
-      shortcuts: {},
-      onboarded: false,
-    },
-    playback: {
-      player: 'auto',
-      mpvPath: '',
-      useMpvConfig: false,
-      hwdec: 'auto-safe',
-      hdrPassthrough: true,
-      hdrAutoSwitch: false,
-      matchRefreshRate: false,
-      smoothMotion: false,
-      audioExclusive: false,
-      spdif: [],
-      maxBitrateMbps: 120,
-      maxResolution: 0,
-      forceTranscode: false,
-      volumeBoost: false,
-      nightMode: false,
-      dialogueBoost: false,
-      subtitleStyle: { size: 100, font: 'Geist', color: '#FFFFFF', border: 'outline', position: 100, overrideAss: false, scaleWithVideo: false },
-      // '' = the server user's preference (B04).
-      preferredAudioLanguage: '',
-      preferredSubtitleLanguage: '',
-      subtitleSearchLanguage: '',
-      subtitleMode: 'foreign',
-      autoPlayNext: true,
-      startFullscreen: true,
-      skipIntro: 'ask',
-      skipCredits: 'ask',
-      skipRecap: 'ask',
-      skipPreview: 'ask',
-      skipCommercial: 'ask',
-      maxBitrateRemoteMbps: 120,
-      defaultSpeed: 1,
-      upNextSeconds: 10,
-      resume: 'resume',
-      seekShortS: 10,
-      seekLongS: 60,
-      pauseOnMinimize: false,
-      playerByType: { movie: 'default', episode: 'default', music: 'default', live: 'default' },
-      audioDevice: 'auto',
-      normalize: false,
-      alwaysForced: true,
-      mpvArgs: '',
-      aspect: 'fit',
-      cinemaMode: false,
-      // B26: subtitle sync belongs to a file; "per series" is a choice, not the default.
-      rememberScopes: { speed: 'global', audioDelay: 'title', subtitleDelay: 'off', aspect: 'title' },
-    },
-    downloads: {
-      // Linux: the XDG videos folder (XDG_VIDEOS_DIR, localised), which may not be ~/Videos.
-      folder: process.platform === 'win32' ? path.join(os.homedir(), 'Videos', 'Wicaby') : path.join(app.getPath('videos'), 'Wicaby'),
-      maxConcurrent: 2,
-    },
-    system: { hardwareAcceleration: true, comicCacheGb: 2, plainTextVault: false },
-    torrents: { url: '', username: '', notifyOnComplete: true, scanOnComplete: true, magnetHandler: false, libraryMap: [] },
-    trakt: { offServers: [] },
-    remote: { allowControl: true },
-    cast: { discovery: true, relay: true, allowHevc: false, dolby: false },
-    updates: { autoCheck: true },
-    window: {},
-    windows: { closeToTray: false, launchAtStartup: false, trayHintShown: false, notifyDownloads: true, notifyNewEpisodes: true, notifyAdmin: true },
-    live: { release: 'auto', releaseFirst: {}, timeshiftMinutes: 15, reminderLeadMin: 2, reminderAutoTune: false },
-    photos: { map: { enabled: false, tileUrl: OSM_TILES, attribution: '© OpenStreetMap contributors' } },
-    music: { replayGain: 'album', preampDb: 0, fallbackDb: -6, preventClipping: true, gapless: true, resumeQueue: true, lyricsProvider: 'server', eq: { bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], preampDb: 0 } },
-    defaultsVersion: 2,
-  };
+  // Linux: the XDG videos folder (XDG_VIDEOS_DIR, localised), which may not be ~/Videos.
+  return sharedDefaults(process.platform === 'win32' ? path.join(os.homedir(), 'Videos', 'Wicaby') : path.join(app.getPath('videos'), 'Wicaby'));
 }
 
 // Version 1 (0.4.2): files written before it still hold the old defaults the user never changed.
@@ -154,7 +47,6 @@ export function isSafeMpvPath(p: unknown): p is string {
   }
 }
 
-export const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 // A map tile template main may fetch: http(s), a host, no credentials, {z} {x} {y} each once in the path or query.
 export function isTileTemplate(v: unknown): v is string {
@@ -253,22 +145,6 @@ function keepShortcuts(patch: unknown, current: Settings['ui']['shortcuts']): Se
   return ui && 'shortcuts' in ui ? (ui.shortcuts as Settings['ui']['shortcuts']) : current;
 }
 
-function merge<T>(base: T, patch: DeepPartial<T> | undefined): T {
-  if (!patch || typeof patch !== 'object') return base;
-  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
-  for (const [key, value] of Object.entries(patch)) {
-    // Ignore unknown keys from the renderer; the optional window keys have no default.
-    if (!(key in out) && key !== 'bounds' && key !== 'maximized' && key !== 'mini') continue;
-    const current = out[key];
-    if (value && typeof value === 'object' && !Array.isArray(value) && current && typeof current === 'object' && !Array.isArray(current)) {
-      out[key] = merge(current, value as DeepPartial<typeof current>);
-    } else if (value !== undefined) {
-      out[key] = value;
-    }
-  }
-  return out as T;
-}
-
 function clamp(n: unknown, min: number, max: number, fallback: number): number {
   return typeof n === 'number' && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
@@ -280,7 +156,7 @@ function oneOf<T>(v: unknown, allowed: readonly T[], fallback: T): T {
 // Fields added with the expanded settings panes.
 function sanitizeExtras(s: Settings, d: Settings): void {
   const u = s.ui;
-  u.startPage = typeof u.startPage === 'string' && /^(home|favorites|library:[A-Za-z0-9-]{1,64})$/.test(u.startPage) ? u.startPage : 'home';
+  u.startPage = typeof u.startPage === 'string' && /^(home|favorites|library:[A-Za-z0-9_-]{1,64})$/.test(u.startPage) ? u.startPage : 'home';
   u.density = oneOf(u.density, ['comfortable', 'compact'] as const, 'comfortable');
   u.posterSize = Math.round(clamp(u.posterSize, 80, 130, d.ui.posterSize));
   u.zoom = Math.round(clamp(u.zoom, 90, 125, d.ui.zoom));
@@ -441,6 +317,7 @@ function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
     resumeQueue: mu.resumeQueue !== false,
     lyricsProvider: oneOf(mu.lyricsProvider, ['server', 'server+lrclib'] as const, 'server'),
     eq: sanitizeEq(mu.eq),
+    source: typeof mu.source === 'string' && mu.source.length <= 128 ? mu.source : '',
   };
   return s;
 }

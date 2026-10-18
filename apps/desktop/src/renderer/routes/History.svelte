@@ -5,7 +5,7 @@
 </script>
 
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { daysAgo, groupByDay, watchStats } from '../../shared/history';
   import type { BaseItem } from '../../shared/models';
   import Card from '../components/Card.svelte';
@@ -54,10 +54,12 @@
     loading = false;
   }
 
+  // Only the server count re-runs the load, not every session push.
+  const online = $derived(onlineSessions().length);
   $effect(() => {
     void dataVersion.userData;
-    void onlineSessions().length;
-    void load();
+    void online;
+    untrack(() => void load());
   });
 
   const groups = $derived(groupByDay(items));

@@ -9,6 +9,7 @@
     "noMediaSource": "No media source",
     "liveStreamFailed": "Couldn’t open the live stream",
     "noPlayMethod": "The server doesn’t offer a compatible way to play this item",
+    "unreachable": "The server didn’t answer, try again",
     "fileError": "Playback failed ({reason})",
     "fileErrorUnknown": "Playback failed (mpv error)",
     "mpvExited": "mpv quit unexpectedly",
@@ -19,12 +20,16 @@
     "connectionLost": "Lost the connection to the server, playback stopped"
   },
   "comics": {
-    "unsupported": "Unsupported format: only CBZ comics can be read for now (CBR, PDF, and EPUB aren’t supported yet).",
+    "unsupported": "Unsupported format or unreadable file. The reader opens CBZ, CBR, CB7, CBT, PDF, and image EPUB books.",
+    "encrypted": "This book is protected (password or DRM) and can’t be opened",
+    "textBook": "Text EPUBs aren’t supported: only image EPUBs (comics, manga) open in the reader",
     "invalidServer": "Invalid server",
     "invalidId": "Invalid ID",
     "notDownloaded": "You’re offline and this book isn’t downloaded",
     "noPages": "No pages were found in this archive",
-    "notAllowed": "This user isn’t allowed to read this book"
+    "notAllowed": "This user isn’t allowed to read this book",
+    "tooLarge": "This book is too large to open",
+    "stalled": "The server stopped sending this book"
   },
   "ipc": {
     "invalidServer": "Invalid server",
@@ -59,9 +64,15 @@
     "invalidFolder": "Invalid folder",
     "unknownAction": "Unknown action"
   },
+  "web": {
+    "demo": "Demo",
+    "demoConnect": "Connect your server",
+    "notAvailable": "Not available in the TV app",
+    "blocked": "The server didn’t let this app in. Check its address, its certificate and that it accepts other web apps (CORS)."
+  },
   "connection": {
     "timeout": "The request timed out",
-    "notAServer": "Not an Emby or Jellyfin server",
+    "notAServer": "Not an Emby, Jellyfin, Plex or Navidrome server",
     "noAddress": "No address",
     "unreachable": "Server can’t be reached",
     "noServerConnected": "No server connected",
@@ -150,5 +161,10 @@
     "timeout": "The playlist is taking too long to answer",
     "empty": "No playable channel in this playlist",
     "needsMpv": "IPTV channels play in mpv: choose mpv as the player"
+  },
+  "navidrome": {
+    "tokenUnsupported": "This server refuses token sign-in (LDAP accounts on Navidrome): Wicaby never sends the password in clear.",
+    "castNeedsRelay": "To cast from Navidrome, turn on “Stream through this computer” in the casting settings: Wicaby never puts the Navidrome password in an address.",
+    "notOwner": "This playlist belongs to another user: only its owner can change it."
   }
 }

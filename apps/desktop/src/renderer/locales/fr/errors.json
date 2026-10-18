@@ -9,6 +9,7 @@
     "noMediaSource": "Aucune source média",
     "liveStreamFailed": "Impossible d’ouvrir le flux en direct",
     "noPlayMethod": "Le serveur ne propose aucun mode de lecture compatible",
+    "unreachable": "Le serveur n’a pas répondu, réessayez",
     "fileError": "Lecture impossible ({reason})",
     "fileErrorUnknown": "Lecture impossible (erreur mpv)",
     "mpvExited": "mpv a quitté de façon inattendue",
@@ -19,12 +20,16 @@
     "connectionLost": "Connexion au serveur perdue : lecture interrompue"
   },
   "comics": {
-    "unsupported": "Format non pris en charge : seules les bandes dessinées CBZ sont lisibles pour le moment (pas encore de CBR, PDF ni EPUB).",
+    "unsupported": "Format non pris en charge ou fichier illisible. Formats lus : CBZ, CBR, CB7, CBT, PDF et EPUB d’images.",
+    "encrypted": "Ce livre est protégé (mot de passe ou DRM) et ne peut pas être ouvert",
+    "textBook": "EPUB texte non pris en charge : seuls les EPUB d’images (BD, mangas) s’ouvrent dans le lecteur",
     "invalidServer": "Serveur invalide",
     "invalidId": "Identifiant invalide",
     "notDownloaded": "Hors ligne : ce livre n’est pas téléchargé",
     "noPages": "Aucune page trouvée dans cette archive",
-    "notAllowed": "Lecture non autorisée pour cet utilisateur"
+    "notAllowed": "Lecture non autorisée pour cet utilisateur",
+    "tooLarge": "Ce livre est trop volumineux pour être ouvert",
+    "stalled": "Le serveur a cessé d’envoyer ce livre"
   },
   "ipc": {
     "invalidServer": "Serveur invalide",
@@ -59,9 +64,15 @@
     "invalidFolder": "Dossier invalide",
     "unknownAction": "Action inconnue"
   },
+  "web": {
+    "demo": "Démo",
+    "demoConnect": "Connecter votre serveur",
+    "notAvailable": "Indisponible dans l’app TV",
+    "blocked": "Le serveur a refusé cette app. Vérifiez son adresse, son certificat et qu’il accepte les autres apps web (CORS)."
+  },
   "connection": {
     "timeout": "Délai dépassé",
-    "notAServer": "Pas un serveur Emby/Jellyfin",
+    "notAServer": "Pas un serveur Emby, Jellyfin, Plex ou Navidrome",
     "noAddress": "Aucune adresse",
     "unreachable": "Serveur injoignable",
     "noServerConnected": "Aucun serveur connecté",
@@ -150,5 +161,10 @@
     "timeout": "La liste met trop de temps à répondre",
     "empty": "Aucune chaîne lisible dans cette liste",
     "needsMpv": "Les chaînes IPTV se lisent avec mpv : choisissez mpv comme lecteur"
+  },
+  "navidrome": {
+    "tokenUnsupported": "Ce serveur refuse la connexion par jeton (comptes LDAP sur Navidrome) : Wicaby n’envoie jamais le mot de passe en clair.",
+    "castNeedsRelay": "Pour diffuser depuis Navidrome, activez « Faire passer le flux par cet ordinateur » dans les réglages de diffusion : Wicaby ne met jamais le mot de passe Navidrome dans une adresse.",
+    "notOwner": "Cette playlist appartient à un autre utilisateur : seul son propriétaire peut la modifier."
   }
 }

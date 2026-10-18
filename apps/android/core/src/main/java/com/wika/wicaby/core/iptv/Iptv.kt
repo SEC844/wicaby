@@ -373,8 +373,9 @@ object IptvHeaders : Interceptor {
         val req = chain.request()
         val h = byHost[req.url.host.lowercase()] ?: return chain.proceed(req)
         val b = req.newBuilder()
-        h.first?.let { b.header("User-Agent", it) }
-        h.second?.let { b.header("Referer", it) }
+        // A value OkHttp rejects (a channel cached before the parser dropped those) is left out, not thrown.
+        h.first?.let { runCatching { b.header("User-Agent", it) } }
+        h.second?.let { runCatching { b.header("Referer", it) } }
         return chain.proceed(b.build())
     }
 }

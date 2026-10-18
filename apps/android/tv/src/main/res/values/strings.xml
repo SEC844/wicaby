@@ -5,7 +5,7 @@
     <string name="app_name" translatable="false">Wicaby</string>
 
     <!-- Serveur -->
-    <string name="welcome">Bienvenue sur Wicaby</string>
+    <string name="welcome">Bienvenue dans Wicaby</string>
     <string name="welcome_sub">Choisissez un serveur Emby ou Jellyfin sur votre réseau.</string>
     <string name="searching_lan">Recherche sur le réseau local…</string>
     <string name="no_server_found">Aucun serveur trouvé sur le réseau.</string>
@@ -21,7 +21,7 @@
 
     <!-- Utilisateurs -->
     <string name="who_is_watching">Qui regarde ?</string>
-    <string name="other_user">Autre</string>
+    <string name="other_user">Autre utilisateur</string>
     <string name="username">Nom d’utilisateur</string>
     <string name="password">Mot de passe</string>
     <string name="sign_in">Se connecter</string>
@@ -66,29 +66,29 @@
     <string name="badge_subtitles">ST</string>
     <string name="season_n">Saison %1$d</string>
     <string name="episode_short">É%1$d</string>
-    <string name="episode_code">S%1$d, É%2$d</string>
+    <string name="episode_code">S%1$d É%2$d</string>
     <string name="seasons">Saisons</string>
     <string name="episodes">Épisodes</string>
-    <string name="specials">Bonus</string>
+    <string name="specials">Épisodes spéciaux</string>
 
     <!-- Réglages -->
     <string name="settings_accent">Couleur d’accentuation</string>
     <string name="settings_theme">Thème</string>
     <string name="settings_theme_dark">Sombre</string>
     <string name="settings_theme_oled">OLED (noir pur)</string>
-    <string name="settings_bitrate">Débit maximal en streaming</string>
+    <string name="settings_bitrate">Débit maximal</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="switch_user">Changer d’utilisateur</string>
     <string name="switch_server">Changer de serveur</string>
     <string name="sign_out">Se déconnecter</string>
     <string name="about">À propos</string>
     <string name="mbps">%1$d Mb/s</string>
-    <string name="settings_display_mode">Fréquence d’affichage</string>
-    <string name="display_mode_off">Désactivée</string>
-    <string name="display_mode_rate">Adapter la fréquence</string>
-    <string name="display_mode_rate_res">Fréquence et définition</string>
+    <string name="settings_display_mode">Adapter la fréquence d’affichage</string>
+    <string name="display_mode_off">Désactivé</string>
+    <string name="display_mode_rate">Fréquence seule</string>
+    <string name="display_mode_rate_res">Fréquence et résolution</string>
     <string name="display_mode_hint">Bascule l’écran sur la fréquence d’images de la vidéo (24 Hz pour un film) pendant la lecture.</string>
-    <string name="settings_livetv_match_frame_rate">Adapter la fréquence d’affichage en direct</string>
+    <string name="settings_livetv_match_frame_rate">Adapter la fréquence pour la TV en direct</string>
     <string name="settings_livetv_pip">Image dans l’image en quittant</string>
 
     <!-- Lecteur -->
@@ -104,7 +104,7 @@
     <string name="up_next_in">Dans %1$d s</string>
     <string name="still_watching">Toujours là ?</string>
     <string name="still_watching_sub">La lecture est en pause.</string>
-    <string name="keep_watching">Continuer</string>
+    <string name="keep_watching">Continuer à regarder</string>
     <string name="stop_watching">Arrêter</string>
 
     <!-- Barre du haut, quitter, profil -->
@@ -125,8 +125,8 @@
     <!-- Réglages : Lecture -->
     <string name="net_ethernet">Ethernet</string>
     <string name="net_wifi">Wi‑Fi</string>
-    <string name="net_remote">Hors du domicile</string>
-    <string name="bitrate_hint">Le débit choisi s’applique au réseau utilisé au lancement de la lecture. « Hors du domicile » concerne la connexion par l’accès à distance.</string>
+    <string name="net_remote">À distance</string>
+    <string name="bitrate_hint">Wicaby applique la limite de débit de la connexion utilisée au lancement de la lecture. « À distance » concerne les connexions hors de votre réseau local.</string>
     <string name="group_episodes">Épisodes</string>
     <string name="autoplay_next">Enchaîner l’épisode suivant</string>
     <string name="countdown">Compte à rebours</string>
@@ -175,7 +175,7 @@
     <string name="sub_pos_slightly_raised">Légèrement relevés</string>
     <string name="sub_pos_raised">Relevés</string>
     <string name="subtitle_override_ass">Appliquer aux sous-titres ASS</string>
-    <string name="subtitle_hint">Langues et affichage sont enregistrés sur votre compte du serveur. Le style s’applique aux sous-titres texte (SRT, WebVTT) ; les sous-titres ASS gardent leur mise en forme, sauf leur taille avec « Appliquer aux sous-titres ASS ».</string>
+    <string name="subtitle_hint">Les langues et l’affichage sont enregistrés sur votre compte du serveur. Le style s’applique aux sous-titres texte ; les sous-titres ASS gardent leur propre style, sauf si « Appliquer aux sous-titres ASS » est activé.</string>
     <string name="server_pref_failed">Le serveur n’a pas accepté la modification.</string>
     <string name="lang_auto">Automatique</string>
     <string name="lang_fre">Français</string>
@@ -198,13 +198,13 @@
     <string name="show_clock">Horloge</string>
     <string name="group_home">Accueil</string>
     <string name="row_hero">À la une</string>
-    <string name="hero_hide_watched">Masquer les titres vus à la une</string>
+    <string name="hero_hide_watched">Masquer les titres vus dans « À la une »</string>
     <string name="row_latest">Ajouts récents</string>
     <string name="row_upcoming">À venir</string>
     <string name="row_because">Parce que vous avez regardé %1$s</string>
     <string name="row_because_any">Parce que vous avez regardé…</string>
     <string name="row_live_now">TV en direct</string>
-    <string name="home_rows_hint">OK sur une rangée pour l’afficher ou la masquer, la déplacer, ou choisir entre affiches et vignettes.</string>
+    <string name="home_rows_hint">Sélectionnez une rangée et appuyez sur OK pour l’afficher, la masquer, la déplacer ou choisir entre affiches et vignettes.</string>
     <string name="home_row_shown">Affichée</string>
     <string name="home_row_hidden">Masquée</string>
     <string name="home_row_show">Afficher</string>
@@ -215,7 +215,7 @@
     <string name="home_row_thumbs">Vignettes</string>
     <string name="home_rows_reset">Rétablir les rangées par défaut</string>
     <string name="group_tab_bar">Barre d’onglets</string>
-    <string name="tab_bar_hint">OK sur un onglet pour l’afficher ou le masquer, ou le déplacer. Accueil, Recherche et Réglages restent toujours affichés.</string>
+    <string name="tab_bar_hint">Sélectionnez un onglet et appuyez sur OK pour l’afficher, le masquer ou le déplacer. Accueil, Recherche et Réglages restent affichés.</string>
     <string name="tab_shown">Affiché</string>
     <string name="tab_hidden">Masqué</string>
     <string name="tab_bar_reset">Rétablir les onglets par défaut</string>
@@ -223,7 +223,7 @@
     <string name="screensaver_after">Démarrer après</string>
     <string name="never">Jamais</string>
     <string name="minutes">%1$d min</string>
-    <string name="screensaver_hint">Fait défiler les images de vos bibliothèques, ou vos photos, quand la télécommande reste inactive. Une touche le ferme. Certains téléviseurs le proposent aussi comme économiseur d’écran du système (Paramètres Android > Économiseur d’écran) ; Google TV ne permet plus de le choisir.</string>
+    <string name="screensaver_hint">Affiche les images de vos bibliothèques ou vos photos quand la télécommande reste inactive. Appuyez sur une touche pour le fermer. Sur certains téléviseurs, vous pouvez aussi le choisir dans Paramètres Android > Économiseur d’écran.</string>
 
 
     <!-- Réglages : À propos -->
@@ -233,6 +233,7 @@
     <string name="licence_geist" translatable="false">Geist, Geist Mono</string>
     <string name="licence_androidx" translatable="false">AndroidX Media3, Compose</string>
     <string name="licence_coil" translatable="false">Coil, OkHttp</string>
+    <string name="licence_libarchive">libarchive (BD CBR, CB7, CBT)</string>
     <string name="codec_fps">%1$d i/s</string>
     <string name="codec_10bit">10 bits</string>
     <string name="group_licences">Licences</string>
@@ -313,7 +314,7 @@
     <!-- Lecteur en direct (spec livetv §8.4–§8.8, §13.4) -->
     <string name="player_live_now">Maintenant</string>
     <string name="player_live_next">Ensuite</string>
-    <string name="player_live_tuning">Réglage…</string>
+    <string name="player_live_tuning">Ouverture de la chaîne…</string>
     <string name="player_live_lens_position">%1$s · %2$d/%3$d</string>
     <string name="player_live_no_match">Aucune chaîne</string>
     <string name="player_live_no_channel">Aucune chaîne %1$s</string>
@@ -333,7 +334,7 @@
     <string name="player_live_recording_scheduled">Enregistrement programmé</string>
     <string name="player_live_already_scheduled">Cet enregistrement est déjà programmé.</string>
     <string name="player_live_record_forbidden">Votre compte ne peut pas gérer les enregistrements.</string>
-    <string name="player_live_record_premiere">Le serveur refuse l’enregistrement. Emby demande Emby Premiere pour le DVR.</string>
+    <string name="player_live_record_premiere">Le serveur refuse l’enregistrement : Emby Premiere est nécessaire pour enregistrer.</string>
     <string name="player_live_record_failed">L’enregistrement n’a pas pu être programmé.</string>
     <string name="player_live_reminder_set">Rappel programmé</string>
     <string name="player_live_favorite_added">%1$s ajoutée aux favoris</string>
@@ -346,8 +347,9 @@
     <!-- X-06: player chips and remote control. -->
     <string name="chip_chapters">Chapitres</string>
     <string name="chip_speed">Vitesse</string>
+    <string name="chip_sleep">Minuterie</string>
     <!-- X-01: merged Continue Watching -->
-    <string name="settings_merge_continue">Fusionner « Reprendre » et « À suivre »</string>
+    <string name="settings_merge_continue">Fusionner « Continuer » et « À suivre »</string>
     <!-- TP-05: item actions ("…" on the item page) -->
     <string name="item_more">Plus d’actions</string>
     <string name="mark_previous_played">Marquer les épisodes précédents comme vus</string>
@@ -386,7 +388,7 @@
     <string name="pin_change">Changer le code PIN</string>
     <string name="pin_remove">Supprimer le code PIN</string>
     <string name="profile_pin">Code PIN du profil</string>
-    <string name="profile_skip_single">Passer s’il n’y a qu’un compte</string>
+    <string name="profile_skip_single">Ne pas demander s’il n’y a qu’un compte</string>
     <string name="profiles_hint">Au démarrage, Wicaby demande qui regarde. Le code PIN est demandé quand ce compte est choisi sur ce téléviseur.</string>
     <string name="profile_expired">Session expirée : entrez le mot de passe.</string>
     <string name="music_albums">Albums</string>
@@ -470,4 +472,8 @@
     <string name="music_release_compilation">Compilation</string>
     <string name="music_more_from">Plus de %1$s</string>
     <string name="music_similar_artists">Artistes similaires</string>
+    <!-- "Play on Wicaby" while the app is in the background (RemotePlays). -->
+    <string name="remote_play_request_title">Lecture demandée par %1$s</string>
+    <string name="remote_play_action">Lire</string>
+    <string name="remote_channel_name">Contrôle à distance</string>
 </resources>

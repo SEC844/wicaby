@@ -22,7 +22,7 @@ class ServerCapsTest {
     @Test
     fun everyKindMatchesTheSharedTable() {
         val kinds = table.keys.filterNot { it.startsWith("$") || it.startsWith("_") }
-        assertEquals(setOf("emby", "jellyfin", "plex", "files"), kinds.toSet())
+        assertEquals(setOf("emby", "jellyfin", "plex", "files", "navidrome"), kinds.toSet())
         for (kind in kinds) {
             val expect = table.getValue(kind).jsonObject
             for (probed in listOf(false, true)) {

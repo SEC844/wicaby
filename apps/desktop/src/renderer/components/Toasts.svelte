@@ -7,6 +7,9 @@
 
   const ICON = { info: 'info', success: 'check', error: 'exclamation' } as const;
 
+  // On <body>, outside #app: an open Sheet makes #app inert, and toasts must stay announced and clickable.
+  const toBody = (node: HTMLElement) => void document.body.appendChild(node);
+
   function dismiss(id: number) {
     toasts.list = toasts.list.filter((x) => x.id !== id);
   }
@@ -34,7 +37,7 @@
   }
 </script>
 
-<div class="toasts" aria-live="polite">
+<div class="toasts" aria-live="polite" use:toBody>
   {#each [...toasts.list].reverse() as toast (toast.id)}
     <div class="toast {toast.kind}" role="status" animate:flip={{ duration: 360 * tempo(), easing: cubicOut }} in:drop out:lift>
       <span class="glyph"><Icon name={ICON[toast.kind]} size={15} stroke={2.1} /></span>

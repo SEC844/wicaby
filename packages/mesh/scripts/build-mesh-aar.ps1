@@ -202,7 +202,8 @@ try {
     }
   }
   Set-Content -Path (Join-Path $target 'wicaby-mesh-THIRD_PARTY_LICENSES.txt') -Value $out.ToString() -Encoding utf8
-  if ($missing) { Write-Warning "No licence file found for: $($missing -join ', ')" }
+  # A module without a licence file would ship without its notice: stop the build.
+  if ($missing) { throw "No licence file found for: $($missing -join ', ')" }
   Remove-Item -Recurse -Force $work
 
   # Per-ABI size of the native library inside the AAR.

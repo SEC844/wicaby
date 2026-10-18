@@ -301,7 +301,7 @@ func (m *netbirdMesh) report() {
 	for _, p := range fs.Peers {
 		fqdn := strings.TrimSuffix(p.FQDN, ".")
 		name, _, _ := strings.Cut(fqdn, ".")
-		pp := Peer{Name: name, DNSName: fqdn, Online: true}
+		pp := Peer{Name: name, DNSName: fqdn, Online: p.Mux != nil} // the copy of an offline peer has no Mux
 		for _, ip := range []string{p.IP, p.IPv6} {
 			if ip != "" {
 				pp.IPs = append(pp.IPs, stripCIDR(ip))
@@ -345,6 +345,14 @@ func (m *netbirdMesh) managementClient(ctx context.Context, key wgtypes.Key) (*m
 	return mgm.NewClient(ctx, host, key, u.Scheme == "https")
 }
 
+// flowErr: only a server answering that it has no device flow is final; an unreachable or slow one is retried.
+func flowErr(err error) error {
+	if c := gstatus.Code(err); c == codes.NotFound || c == codes.Unimplemented {
+		return authErr{fmt.Errorf("this NetBird server offers no browser sign-in (%v); use a setup key", err)}
+	}
+	return fmt.Errorf("browser sign-in: %w", err)
+}
+
 // deviceLogin runs the OAuth device authorization flow (RFC 8628) that
 // `netbird login` uses on headless machines, against the IdP the management
 // server advertises, and returns the JWT to register with.
@@ -361,7 +369,7 @@ func (m *netbirdMesh) deviceLogin(ctx context.Context) (string, error) {
 	flow, err := mc.GetDeviceAuthorizationFlow()
 	_ = mc.Close()
 	if err != nil {
-		return "", authErr{fmt.Errorf("this NetBird server offers no browser sign-in (%v); use a setup key", err)}
+		return "", flowErr(err)
 	}
 	pc := flow.GetProviderConfig()
 	if pc == nil || pc.GetDeviceAuthEndpoint() == "" || pc.GetTokenEndpoint() == "" {
@@ -399,7 +407,7 @@ func (m *netbirdMesh) deviceLogin(ctx context.Context) (string, error) {
 		}
 		form := url.Values{"client_id": {pc.GetClientID()}, "grant_type": {"urn:ietf:params:oauth:grant-type:device_code"}, "device_code": {code.DeviceCode}}
 		if err := postForm(ctx, pc.GetTokenEndpoint(), form, &tok); err != nil {
-			return "", err
+			continue // a network blip keeps polling the code on screen (a new one would void the user's sign-in)
 		}
 		switch tok.Error {
 		case "":

@@ -137,7 +137,7 @@ export function toTrack(s: MediaStream): Track {
 // Item ids as both servers issue them (Emby: digits, Jellyfin: 32 hex), and file source ids ('p.' + base64url,
 // shared/files/ids.ts). Checked before an id is put in a URL path: '../<other server id>/...' would otherwise
 // reach another server.
-export const validId = (id: unknown): id is string => typeof id === 'string' && (/^[A-Za-z0-9-]{1,64}$/.test(id) || isFilesId(id));
+export const validId = (id: unknown): id is string => typeof id === 'string' && (/^[A-Za-z0-9_-]{1,64}$/.test(id) || isFilesId(id));
 
 // The protocol handler adds the auth headers: no token parameter ever reaches the renderer.
 // A path with a dot segment, a backslash or an encoded slash is refused (throws).
@@ -155,18 +155,23 @@ export function mediaApiUrl(rel: string, serverId?: string): string {
   return `${MEDIA_SCHEME}://api${serverId ? `/${serverId}` : ''}${clean.startsWith('/') ? clean : `/${clean}`}`;
 }
 
-// The final URL of a direct-play stream when the server redirects it to another origin
-// (http(s) only, token parameters removed); null when it does not redirect, or does not
-// answer HEAD in time (FFmpeg then gets the URL as is). A redirect to any other scheme
-// refuses playback.
+// The URL to play without the auth header: the final URL of a direct-play stream the server
+// redirects to another origin (http(s) only, token parameters removed). Null when it does not
+// redirect. When HEAD fails or times out, a one-byte GET asks again; when that fails too,
+// playback fails (it might redirect, FFmpeg would follow with the header). A redirect to any
+// other scheme refuses playback.
 export async function redirectTarget(api: ApiClient, url: string): Promise<string | null> {
-  try {
-    const hop = await fetchServer(api, url, { method: 'HEAD', headers: api.authHeaders(), timeoutMs: 5000 });
-    return 'foreign' in hop ? hop.foreign : null;
-  } catch (err) {
-    if (err instanceof Error && err.message === 'redirect refused') throw new Error(t('errors.playback.noPlayMethod'));
-    return null;
+  for (const [method, headers] of [['HEAD', {}], ['GET', { Range: 'bytes=0-0' }]] as const) {
+    try {
+      const hop = await fetchServer(api, url, { method, headers: { ...api.authHeaders(), ...headers }, timeoutMs: 5000 });
+      if ('foreign' in hop) return hop.foreign;
+      hop.response.body?.cancel().catch(() => undefined);
+      return null;
+    } catch (err) {
+      if (err instanceof Error && err.message === 'redirect refused') throw new Error(t('errors.playback.noPlayMethod'));
+    }
   }
+  throw new Error(t('errors.playback.unreachable'));
 }
 
 // A server subtitle URL for the player, or null when it cannot be one (a path the

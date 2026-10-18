@@ -499,7 +499,11 @@
       "resumeQueue": "Reprendre la file au démarrage",
       "fallbackNote": "Le lecteur intégré ne prend pas en charge la lecture sans blanc ni les gains ReplayGain des fichiers.",
       "lyricsOnline": "Chercher les paroles en ligne (LRCLIB)",
-      "lyricsOnlineHint": "Envoie l’artiste, le titre et l’album à lrclib.net quand le serveur n’a pas de paroles."
+      "lyricsOnlineHint": "Envoie l’artiste, le titre et l’album à lrclib.net quand le serveur n’a pas de paroles.",
+      "source": "Source de la musique",
+      "sourceHint": "Le serveur dont la section Musique affiche les bibliothèques et les playlists. Automatique : tous les serveurs. Navidrome garde vos favoris (étoiles) et vos playlists.",
+      "sourceAuto": "Automatique",
+      "sourceMissing": "Serveur hors ligne"
     }
   },
   "subtitles": {

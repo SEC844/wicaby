@@ -1,4 +1,4 @@
-// DeviceProfiles for direct casting (cast-spec §2.6.5-6), in the shape of playback/device-profile.ts. Pure and
+// DeviceProfiles for direct casting (cast-spec §2.6.5-6), in the shape of shared/device-profile.ts. Pure and
 // golden-tested (tools/checks/fixtures/cast/profiles.json, which the :core CastProfilesTest reads too).
 import type { ServerKind } from '../../shared/contract';
 

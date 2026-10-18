@@ -24,11 +24,11 @@
     },
     "customize": "Personnaliser l’accueil",
     "card": {
-      "timeLeft": "{time} restantes",
-      "nextEpisode": "Suivant : S{season}·É{episode}"
+      "timeLeft": "Reste {time}",
+      "nextEpisode": "Suivant : S{season} É{episode}"
     },
     "sheet": {
-      "mergeContinue": "Fusionner « Reprendre » et « À suivre »"
+      "mergeContinue": "Fusionner « Continuer » et « À suivre »"
     }
   },
   "library": {

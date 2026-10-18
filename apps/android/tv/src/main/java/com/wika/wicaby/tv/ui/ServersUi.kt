@@ -86,7 +86,7 @@ private fun ServerPicker(title: String, copies: List<Item>, current: String, onD
 suspend fun allViews(api: Api): List<Item> {
     val others = Servers.online.filter { it.server.id != api.server.id }
     if (others.isEmpty()) return api.views()
-    return api.views() + Servers.fanOut(others) { it.views() }.flatMap { it.orEmpty() }.filter { it.collectionType != "livetv" }
+    return com.wika.wicaby.core.music.MusicSource.apply(api.views() + Servers.fanOut(others) { it.views() }.flatMap { it.orEmpty() }.filter { it.collectionType != "livetv" })
 }
 
 // "Films · Home" when another server has a library of the same name (desktop Home.svelte libLabel).

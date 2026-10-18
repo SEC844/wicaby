@@ -1,6 +1,4 @@
-// The mocks' WebSocket server side (RFC 6455, text frames only), shared by mock-emby.mjs and mock-jellyfin.mjs.
-// mock-livetv.mjs keeps its own copy (cast spec CA-01 risk note); mock-emby.mjs no longer routes /embywebsocket to it,
-// its events reach Emby clients through the emit hook instead. shortcut: drop that copy when the Live TV mock is next edited.
+// The mocks' WebSocket server side (RFC 6455, text frames only), shared by mock-emby.mjs, mock-jellyfin.mjs and mock-livetv.mjs.
 import crypto from 'node:crypto';
 
 export const messageId = () => crypto.randomUUID().replace(/-/g, '');
@@ -37,9 +35,10 @@ export function acceptSocket(req, sock, { deviceId = '', onMessage = () => {}, o
     while (buf.length >= 2) {
       const op = buf[0] & 15;
       let len = buf[1] & 127;
-      let off = 2;
-      if (len === 126) [len, off] = [buf.readUInt16BE(2), 4];
-      else if (len === 127) [len, off] = [Number(buf.readBigUInt64BE(2)), 10];
+      const off = len === 126 ? 4 : len === 127 ? 10 : 2;
+      if (buf.length < off) return; // extended length still in the next chunk
+      if (len === 126) len = buf.readUInt16BE(2);
+      else if (len === 127) len = Number(buf.readBigUInt64BE(2));
       const masked = buf[1] & 128;
       const total = off + (masked ? 4 : 0) + len;
       if (buf.length < total) return;

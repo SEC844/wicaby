@@ -104,6 +104,7 @@ const agpl = deps.filter((d) => /github\.com\/netbirdio\/netbird\/(management|si
 if (agpl.length) fail(`AGPL NetBird packages linked: ${agpl.join(', ')}`);
 // Set-Content -Encoding utf8 (Windows PowerShell) wrote a BOM and a final newline.
 fs.writeFileSync(path.join(target, 'THIRD_PARTY_LICENSES.txt'), (goos === 'windows' ? '\uFEFF' : '') + out + NL);
-if (missing.length) console.warn(`WARNING: No licence file found for: ${missing.join(', ')}`);
+// A module without a licence file would ship without its notice: stop the build.
+if (missing.length) fail(`no licence file found for: ${missing.join(', ')}`);
 
 console.log(`OK: ${exe} (${(fs.statSync(exe).size / 1024 ** 2).toFixed(1)} MB), ${mods.length} modules`);

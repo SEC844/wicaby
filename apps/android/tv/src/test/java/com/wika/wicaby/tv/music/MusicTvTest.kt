@@ -197,7 +197,7 @@ class MusicTvTest {
         waitFor { shown("Genre test") && shown("Liste test") && shown("Groupe test") && shown("Titre 4") && shown("Album test") }
         rule.onNodeWithTag("music-home").assertExists()
         for ((tag, title) in listOf(
-            "recent-albums" to "Recent albums", "recently-played" to "Recently played", "playlists" to "Playlists", "artists" to "Artists", "genres" to "Genres",
+            "recent-albums" to "Recent Albums", "recently-played" to "Recently Played", "playlists" to "Playlists", "artists" to "Artists", "genres" to "Genres",
         )) {
             rule.onNodeWithTag("music-row-$tag").assert(hasAnyDescendant(hasText(title)))
         }

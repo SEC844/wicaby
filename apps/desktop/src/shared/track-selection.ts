@@ -1,5 +1,5 @@
-import type { SubtitleMode } from '../../shared/contract';
-import type { MediaStream } from '../../shared/models';
+import type { SubtitleMode } from './contract';
+import type { MediaStream } from './models';
 
 // The one place that picks the audio and subtitle tracks of every start: first play,
 // next episode, remote Play, restart. Pure, so tools/checks/track-check.mjs can run it.

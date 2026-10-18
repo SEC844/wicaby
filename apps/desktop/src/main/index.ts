@@ -9,6 +9,7 @@ import { CastManager } from './cast/cast-manager';
 import { EphemeralTokens } from './cast/ephemeral-token';
 import type { SocketMessage } from './connection/server-socket';
 import { ComicService } from './comics/comic-service';
+import { PdfPages } from './comics/pdf-pages';
 import { ConnectionManager } from './connection/connection-manager';
 import { watchNetwork } from './connection/network-watch';
 import { JsonStore } from './core/json-store';
@@ -210,7 +211,14 @@ async function bootstrap(): Promise<void> {
   const hdr = new HdrModeSwitcher(userData);
   void hdr.restoreAfterCrash();
   const comicsDir = path.join(userData, 'cache', 'comics');
-  const comics = new ComicService(comicsDir, connection, downloads, () => settings.value.system.comicCacheGb * 1024 ** 3);
+  const pdfPages = new PdfPages(() => windows.pageUrl('pdf.html'));
+  // The archive worker is started from its source (main reads app.asar; a worker thread may not), read once.
+  let archiveWorker: { script: string; evaluate: boolean; wasm: Uint8Array } | undefined;
+  const comics = new ComicService(comicsDir, connection, downloads, () => settings.value.system.comicCacheGb * 1024 ** 3, {
+    archiveWorker: () =>
+      (archiveWorker ??= { script: fs.readFileSync(path.join(__dirname, 'archive-worker.cjs'), 'utf8'), evaluate: true, wasm: fs.readFileSync(path.join(__dirname, 'libarchive.wasm')) }),
+    pdf: pdfPages,
+  });
   const torrents = new TorrentService(path.join(userData, 'torrents.json'), settings, vault, connection, windows);
   const trakt = new TraktService(vault, settings, connection);
 
@@ -492,17 +500,14 @@ async function bootstrap(): Promise<void> {
         // A credential change still being encrypted reaches the disk before exit.
         if (vault.busy) await Promise.race([vault.flush(), new Promise((r) => setTimeout(r, 2000))]);
       } finally {
-        settings.flush();
-        reminders.flush();
-        connection.flush();
-        files.shutdown();
-        iptv.shutdown();
-        downloads.flush();
-        torrents.flush();
-        adminAlerts.flush();
-        updates.flush();
-        vpn.dispose();
-        desktop.dispose();
+        // One failing step must not skip the others' writes, nor app.quit().
+        for (const step of [() => settings.flush(), () => reminders.flush(), () => connection.flush(), () => files.shutdown(), () => iptv.shutdown(), () => downloads.flush(), () => torrents.flush(), () => adminAlerts.flush(), () => updates.flush(), () => vpn.dispose(), () => desktop.dispose(), () => pdfPages.close()]) {
+          try {
+            step();
+          } catch (err) {
+            log.warn('quit step failed', err);
+          }
+        }
         log.info('==== Wicaby exiting ====');
         app.quit();
       }

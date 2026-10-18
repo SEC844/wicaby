@@ -84,4 +84,21 @@ assert.match(notices, /## Plex\r?\n\r?\nPlex is a trademark of Plex, Inc\. Wicab
 assert.match(notices, /TODO\(owner\)[^]*plex\.tv Terms of Service/, 'THIRD_PARTY_NOTICES.md: the D-8 ToS reading is listed');
 ok('Plex: not-affiliated line in About (fr, en) and the notices; D-8 TODO listed');
 
+// 8. Comics: RAR is read by libarchive's own BSD code. Nothing derived from UnRAR (its licence forbids recreating
+//    the RAR compressor, which the GPL cannot accept): no junrar, unrar, node-unrar-js or 7z-wasm, npm or Gradle.
+const unrar = (lock, gradle = '') => [
+  ...Object.keys(lock.packages ?? {}).filter((k) => /(^|\/)(junrar|unrar[\w.-]*|node-unrar[\w.-]*|7z-wasm)$/i.test(k)),
+  ...(/junrar|unrar|sevenzipjbinding/i.test(gradle) ? ['gradle: unrar'] : []),
+];
+assert.deepEqual(unrar({ packages: { 'node_modules/node-unrar-js': {}, 'node_modules/libarchive-wasm': {} } }), ['node_modules/node-unrar-js'], 'self-test: node-unrar-js caught');
+assert.deepEqual(unrar({}, 'implementation("com.github.junrar:junrar:7.5.5")'), ['gradle: unrar'], 'self-test: junrar caught');
+assert.deepEqual(unrar(JSON.parse(read('package-lock.json')), gradle), [], 'an UnRAR-derived dependency');
+assert.match(notices, /\|\s*\[libarchive-wasm\][^\n]*\|\s*1\.2\.0\s*\|\s*MIT/, 'THIRD_PARTY_NOTICES.md: libarchive-wasm');
+assert.match(notices, /No UnRAR code is used anywhere in Wicaby/, 'THIRD_PARTY_NOTICES.md: the no-UnRAR line');
+assert.match(notices, /\|\s*\[pdf\.js\][^\n]*\|\s*6\.4\.299\s*\|\s*Apache-2\.0/, 'THIRD_PARTY_NOTICES.md: pdf.js');
+assert.match(notices, /\|\s*\[libarchive-android\][^\n]*\|\s*1\.1\.6\s*\|\s*Apache-2\.0/, 'THIRD_PARTY_NOTICES.md: libarchive-android');
+assert.match(gradle, /libarchive = "1\.1\.6"/, 'the Android catalog pins the libarchive-android version the notices name');
+assert.match(read('tools/release/licenses/libarchive-wasm.txt'), /Grzegorz Antoniak|Tim Kientzle/, 'libarchive-wasm.txt carries libarchive\'s copyright');
+ok('comics: no UnRAR-derived dependency; libarchive-wasm, pdf.js and libarchive-android in the notices');
+
 console.log(`licence-check: ${n} checks passed`);

@@ -57,11 +57,11 @@
   "upNext": {
     "title": "Next Episode",
     "countdown": "Next episode in {seconds}s",
-    "code": "S{season}, E{episode}",
+    "code": "S{season} E{episode}",
     "watchNow": "Watch Now",
     "stillWatching": "Are you still watching?",
     "pausedNote": "Playback is paused. It will resume with the next episode.",
-    "continue": "Continue",
+    "continue": "Keep Watching",
     "stop": "Stop"
   },
   "tracks": {
@@ -198,7 +198,7 @@
     "cancel": "Cancel Timer",
     "stillWatching": "Still Watching?",
     "pausingIn": "Pausing in {seconds}s",
-    "continue": "Continue",
+    "continue": "Keep Watching",
     "pause": "Pause"
   },
   "quality": {
@@ -208,7 +208,7 @@
     "original": "Original",
     "preset": "{height}p · {bitrate}",
     "size": "{size} ({percent}%)",
-    "direct": "Direct",
+    "direct": "Direct Play",
     "transcode": "Transcoding",
     "switched": "Quality: {label}",
     "failed": "Couldn’t change the quality",

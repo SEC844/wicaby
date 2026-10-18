@@ -151,6 +151,8 @@ class AddressSwitch(val inner: ServerTransport, private val servers: () -> List<
                 use(server.id, origin, u?.takeUnless { address.equals(server.address.trimEnd('/'), true) }?.let { altBase(stored, it) }, address)
                 return@launch
             }
+            // shortcut: a Navidrome server keeps the address it was added with (it has no /System/Info/Public to race).
+            if (server.kind == "navidrome") return@launch
             val list = candidates(server.address, known(server.id))
             val (address, info) = firstAnswering(list, server.id) { probe(server, it) } ?: return@launch
             val u = address.toHttpUrlOrNull()
@@ -166,10 +168,10 @@ class AddressSwitch(val inner: ServerTransport, private val servers: () -> List<
     private suspend fun probe(server: Server, address: String): PublicInfo? = withContext(Dispatchers.IO) {
         val req = Request.Builder().url("$address${if (server.isEmby) "/emby" else ""}/System/Info/Public")
             .header("Accept", "application/json").tag(AsAddressed::class.java, AsAddressed).build()
-        client.newCall(req).execute().use { r -> if (r.isSuccessful) json.decodeFromString(PublicInfo.serializer(), r.body.string()) else null }
+        client.newCall(req).await().use { r -> if (r.isSuccessful) json.decodeFromString(PublicInfo.serializer(), r.body.string()) else null }
     }
 
-    private val client by lazy { Core.http.newBuilder().callTimeout(6, TimeUnit.SECONDS).build() }
+    private val client by lazy { Core.http.newBuilder().dispatcher(probeDispatcher).callTimeout(6, TimeUnit.SECONDS).build() }
 
     // Unit tests have no Application: no store, no picks.
     private fun prefs() = runCatching { Core.app.getSharedPreferences("server_addresses", Context.MODE_PRIVATE) }.getOrNull()

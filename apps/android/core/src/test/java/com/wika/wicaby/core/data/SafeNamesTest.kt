@@ -16,6 +16,8 @@ class SafeNamesTest {
     fun ids() {
         assertTrue(SafeNames.isValidId("12345"))
         assertTrue(SafeNames.isValidId("a1b2c3d4-e5f6-7890-abcd-ef0123456789"))
+        assertTrue(SafeNames.isValidId("tr_3f9a")) // Navidrome typed ids (SubsonicMap)
+        assertTrue(SafeNames.isValidId("al__YS9i"))
         assertFalse(SafeNames.isValidId(null))
         assertFalse(SafeNames.isValidId(""))
         assertFalse(SafeNames.isValidId("../index"))

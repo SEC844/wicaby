@@ -8,9 +8,9 @@
     <string name="no_playable_source">Le serveur ne propose aucun mode de lecture compatible.</string>
 
     <!-- Serveur -->
-    <string name="not_a_server">Pas un serveur Emby ou Jellyfin</string>
+    <string name="not_a_server">Pas un serveur Emby, Jellyfin, Plex ou Navidrome</string>
     <string name="server_unreachable_probe">Serveur injoignable</string>
-    <string name="server_insecure">Connexion non chiffrée (HTTP) : le jeton d’accès et le mot de passe circulent en clair sur le réseau.</string>
+    <string name="server_insecure">Connexion non chiffrée (HTTP) : le jeton d’accès et le mot de passe circulent en clair sur le réseau.</string>
 
     <!-- Durées, tailles -->
     <string name="duration_days_hours">%1$d j %2$d h</string>
@@ -63,7 +63,10 @@
     <string name="qbit_bad_response">Réponse illisible</string>
     <string name="qbit_torrent_refused">qBittorrent a refusé ce torrent</string>
     <!-- Comic reader -->
-    <string name="reader_unsupported">Format non pris en charge : seules les bandes dessinées CBZ sont lisibles pour le moment (pas encore de CBR, PDF ni EPUB).</string>
+    <string name="reader_unsupported">Format non pris en charge ou fichier illisible. Formats lus : CBZ, CBR, CB7, CBT, PDF et EPUB d’images.</string>
+    <string name="reader_encrypted">Ce livre est protégé (mot de passe ou DRM) et ne peut pas être ouvert</string>
+    <string name="reader_text_book">EPUB texte non pris en charge : seuls les EPUB d’images (BD, mangas) s’ouvrent dans le lecteur</string>
+    <string name="reader_too_large">Ce livre est trop volumineux pour être ouvert</string>
     <string name="reader_no_pages">Aucune page trouvée dans cette archive</string>
     <string name="reader_forbidden">Lecture non autorisée pour cet utilisateur</string>
     <string name="reader_load_error">Impossible d’ouvrir ce livre</string>
@@ -78,7 +81,7 @@
     <string name="trailer_qr_title">Bande-annonce</string>
     <string name="trailer_qr_body">Aucune app de ce téléviseur ne peut ouvrir ce lien. Scannez le code avec votre téléphone.</string>
     <string name="aspect">Format de l’image</string>
-    <string name="aspect_value">Format de l’image : %1$s</string>
+    <string name="aspect_value">Format de l’image : %1$s</string>
     <string name="aspect_fit">Ajuster</string>
     <string name="aspect_fill">Remplir l’écran</string>
     <string name="aspect_stretch">Étirer</string>
@@ -139,7 +142,7 @@
     <string name="update_check_failed">Impossible de vérifier les mises à jour</string>
     <string name="update_no_apk">Aucun APK pour cet appareil (%1$s)</string>
     <string name="update_download_failed">Échec du téléchargement</string>
-    <string name="update_bad_checksum">Fichier corrompu : l’empreinte SHA-256 ne correspond pas</string>
+    <string name="update_bad_checksum">Fichier corrompu : l’empreinte SHA-256 ne correspond pas</string>
     <string name="update_install_failed">L’installation a échoué</string>
 
     <!-- Android 17 : accès au réseau local (ACCESS_LOCAL_NETWORK) -->
@@ -198,8 +201,8 @@
     <string name="remove_from_continue">Retirer de « Continuer à regarder »</string>
     <string name="removed_from_continue">Retiré de « Continuer à regarder »</string>
     <string name="undo">Annuler</string>
-    <string name="next_episode_short">Suivant : S%1$d·É%2$d</string>
-    <string name="continue_time_left">%1$s restantes</string>
+    <string name="next_episode_short">Suivant : S%1$d É%2$d</string>
+    <string name="continue_time_left">Reste %1$s</string>
     <!-- X-04: player input and timers -->
     <string name="ends_at">Fin à %1$s</string>
     <string name="sleep_timer">Minuterie de mise en veille</string>
@@ -238,7 +241,7 @@
     <string name="subsearch_forbidden">Votre compte ne peut pas télécharger de sous-titres</string>
     <string name="subsearch_added">Sous-titre ajouté</string>
     <string name="subsearch_failed">Impossible d’ajouter le sous-titre</string>
-    <string name="play_method_direct">Direct</string>
+    <string name="play_method_direct">Lecture directe</string>
     <string name="play_method_transcode">Transcodage</string>
     <!-- X-05: remembered tracks and player settings. -->
     <string name="tracks_applied">Pistes de l’épisode précédent appliquées</string>
@@ -503,4 +506,10 @@
     <string name="plex_error_no_access">Ce profil n’a pas accès à ce serveur Plex.</string>
     <string name="plex_error_confirm_http">Cette adresse du serveur Plex n’est pas chiffrée (HTTP) : confirmez-la avant d’y envoyer le jeton d’accès.</string>
     <string name="plex_link_no_servers">Ce compte Plex n’a accès à aucun serveur.</string>
+    <string name="music_source">Source de la musique</string>
+    <string name="music_source_auto">Automatique</string>
+    <string name="music_source_hint">Le serveur dont la section Musique affiche les bibliothèques et les playlists. Navidrome garde vos favoris (étoiles) et vos playlists.</string>
+    <string name="navidrome_token_unsupported">Ce serveur refuse la connexion par jeton (comptes LDAP sur Navidrome) : Wicaby n’envoie jamais le mot de passe en clair.</string>
+    <string name="navidrome_not_owner">Cette playlist appartient à un autre utilisateur : seul son propriétaire peut la modifier.</string>
+    <string name="navidrome_cast_unsupported">La diffusion de musique Navidrome se fait depuis Wicaby pour PC (relais de diffusion).</string>
 </resources>

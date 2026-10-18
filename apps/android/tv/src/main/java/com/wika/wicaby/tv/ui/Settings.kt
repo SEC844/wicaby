@@ -407,6 +407,12 @@ private fun PlaybackSection(api: Api) {
     if (api.server.caps.castReceiver) Group(null, stringResource(CoreR.string.settings_remote_control_summary)) {
         ToggleRow(stringResource(CoreR.string.settings_remote_control), TvSettings.remoteControl.value) { TvSettings.remoteControl.value = it }
     }
+    // "Source de la musique": which signed-in server the Music tab shows (core MusicSource).
+    val sources = com.wika.wicaby.core.music.MusicSource.choices(stringResource(CoreR.string.music_source_auto))
+    val chosen = remember(com.wika.wicaby.core.music.MusicSource.version) { com.wika.wicaby.core.music.MusicSource.current() }
+    Group(null, stringResource(CoreR.string.music_source_hint)) {
+        ChoiceRow(stringResource(CoreR.string.music_source), sources.map { it.second }, sources.indexOfFirst { it.first == chosen }.coerceAtLeast(0), { com.wika.wicaby.core.music.MusicSource.set(sources[it].first) })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -787,6 +793,7 @@ private val LICENCES = listOf(
     R.string.licence_geist to "SIL OFL 1.1",
     R.string.licence_androidx to "Apache 2.0",
     R.string.licence_coil to "Apache 2.0",
+    R.string.licence_libarchive to "BSD 2",
 )
 
 @Composable

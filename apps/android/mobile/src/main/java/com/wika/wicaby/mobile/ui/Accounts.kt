@@ -56,7 +56,7 @@ import kotlinx.serialization.json.Json
 // Every signed-in server's libraries, the primary's first.
 suspend fun allViews(api: Api): List<Item> {
     val others = Servers.online.filter { it.server.id != api.server.id }
-    return api.views() + Servers.fanOut(others) { it.views() }.flatMap { it.orEmpty() }
+    return com.wika.wicaby.core.music.MusicSource.apply(api.views() + Servers.fanOut(others) { it.views() }.flatMap { it.orEmpty() })
 }
 
 // Every signed-in account from the saved prefs, also before WicabyRoot has set Core.api and Servers.extra

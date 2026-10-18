@@ -19,7 +19,7 @@
 
     <!-- Users -->
     <string name="who_is_watching">Who’s Watching?</string>
-    <string name="other_user">Other</string>
+    <string name="other_user">Other User</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="sign_in">Sign In</string>
@@ -80,9 +80,9 @@
     <string name="download">Download</string>
     <string name="downloaded">Downloaded</string>
     <string name="resume_time_left">Resume · %1$s left</string>
-    <string name="play_episode">Play S%1$d, E%2$d</string>
+    <string name="play_episode">Play S%1$d E%2$d</string>
     <string name="season_n">Season %1$d</string>
-    <string name="episode_code">S%1$d, E%2$d</string>
+    <string name="episode_code">S%1$d E%2$d</string>
     <string name="cast">Cast</string>
     <string name="similar">More Like This</string>
     <string name="more">More</string>
@@ -135,7 +135,7 @@
     <string name="settings_language">Language</string>
     <string name="language_system">System Default</string>
     <string name="settings_playback">Playback</string>
-    <string name="settings_bitrate">Maximum Streaming Bitrate</string>
+    <string name="settings_bitrate">Maximum Bitrate</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="mbps">%1$d Mbps</string>
     <string name="settings_downloads">Downloads</string>
@@ -157,7 +157,7 @@
     <string name="up_next_in">Starts in %1$ds</string>
     <string name="still_watching">Are you still watching?</string>
     <string name="still_watching_sub">Playback is paused.</string>
-    <string name="keep_watching">Continue</string>
+    <string name="keep_watching">Keep Watching</string>
     <string name="stop_watching">Stop</string>
     <string name="seek_back_seconds">−%1$ds</string>
     <string name="seek_forward_seconds">+%1$ds</string>

@@ -273,7 +273,7 @@ cd apps/android; ./gradlew :tv:assembleDebug :mobile:assembleDebug
 
 Pas de serveur sous la main ? `node tools/mock-server/mock-emby.mjs 8104` lance un faux serveur (utilisateur `Wika`, mot de passe `wicaby`).
 
-Tout le reste est dans [docs/](docs/) : [fonctionnalités](docs/features.md), [Windows](docs/desktop.md), [Android](docs/android.md), [accès à distance](docs/remote-access.md), [design](docs/design.md), [traductions](docs/i18n.md), [releases](docs/release.md) et [architecture](docs/architecture.md) (en français). Pour contribuer, lisez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une faille, [SECURITY.md](SECURITY.md).
+Tout le reste est dans [docs/](docs/) : [fonctionnalités](docs/features.md), [Windows](docs/desktop.md), [Android](docs/android.md), [app TV web en aperçu (LG, Samsung)](docs/webtv.md), [accès à distance](docs/remote-access.md), [design](docs/design.md), [traductions](docs/i18n.md), [releases](docs/release.md) et [architecture](docs/architecture.md) (en français). Pour contribuer, lisez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une faille, [SECURITY.md](SECURITY.md).
 
 ## Licence
 

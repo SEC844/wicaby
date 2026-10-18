@@ -82,6 +82,21 @@ if (lan) {
   });
   ok(refused, 'a connection to a LAN address of this machine is refused');
 } else console.log('files-playback-check: no LAN address here, LAN refusal not tested');
+// mpv drops a request (a seek) while the backend is still opening: the stream it opens is freed, not leaked.
+{
+  const { PassThrough } = await import('node:stream');
+  const body = new PassThrough();
+  let gone;
+  const aborted = new Promise((r) => (gone = r));
+  const slow = { open: async () => (await aborted, await new Promise((r) => setTimeout(r, 50)), { status: 200, headers: {}, body }) };
+  const [url] = await relay.register(slow, ['x']);
+  const req = http.get(url).on('error', () => {});
+  await new Promise((r) => setTimeout(r, 100));
+  req.destroy();
+  gone();
+  await new Promise((r) => setTimeout(r, 200));
+  ok(body.destroyed, 'a request dropped while the backend opens frees the opened stream');
+}
 relay.close();
 const again = await client.playTarget(id, 'mpv', () => '');
 ok((await get(target.url.replace(/:\d+\//, `:${relay.address.port}/`))) === 404, 'an expired token (relay restarted): 404');

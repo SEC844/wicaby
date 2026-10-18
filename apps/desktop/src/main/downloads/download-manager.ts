@@ -9,6 +9,7 @@ import frMain from '../../renderer/locales/fr/main.json';
 import type { DownloadEntry } from '../../shared/contract';
 import { formatMessage, type Lang } from '../../shared/i18n-core';
 import type { BaseItem, ItemsResult, MediaSource } from '../../shared/models';
+import { fetchFollowing } from '../connection/api-client';
 import type { ConnectionManager } from '../connection/connection-manager';
 import { postUserData, userItem, userItems } from '../connection/user-routes';
 import { JsonStore } from '../core/json-store';
@@ -233,10 +234,10 @@ export class DownloadManager extends EventEmitter {
       const api = this.connection.apiFor(rec.serverId);
       fs.mkdirSync(path.dirname(final), { recursive: true });
       const have = fs.existsSync(part) ? fs.statSync(part).size : 0;
-      const headers: Record<string, string> = { ...api.authHeaders() };
-      if (have > 0) headers.Range = `bytes=${have}-`;
-      const res = await net.fetch(api.url(`/Items/${rec.itemId}/Download`, { mediaSourceId: rec.mediaSourceId }), { headers, signal: controller.signal });
-      if (!res.ok || !res.body) throw new Error(res.status === 403 ? FORBIDDEN : `HTTP ${res.status}`);
+      const headers: Record<string, string> = have > 0 ? { Range: `bytes=${have}-` } : {};
+      // A strm or remote file can redirect elsewhere: the token stays with the server.
+      const res = await fetchFollowing(api, api.url(`/Items/${rec.itemId}/Download`, { mediaSourceId: rec.mediaSourceId }), { method: 'GET', headers, auth: api.authHeaders(), signal: controller.signal });
+      if (!res?.ok || !res.body) throw new Error(res?.status === 403 ? FORBIDDEN : `HTTP ${res?.status ?? 502}`);
       const resumed = res.status === 206;
       const length = Number(res.headers.get('content-length') ?? 0);
       rec.receivedBytes = resumed ? have : 0;

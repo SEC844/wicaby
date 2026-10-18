@@ -2,6 +2,7 @@
 // objects are updated from its push events.
 import type { DownloadEntry, HtmlPlayerLoad, PlaybackState, ServerSession, SessionState, Settings, Toast } from '../../shared/contract';
 import type { BaseItem } from '../../shared/models';
+import { musicViews } from '../../shared/music-source';
 import { isLocalSource } from '../../shared/server-caps';
 import { w } from './bridge';
 import { setLanguage } from './i18n.svelte';
@@ -11,7 +12,11 @@ export const settings = $state<{ value: Settings | null }>({ value: null });
 export const playback = $state<{ value: PlaybackState | null }>({ value: null });
 export const downloads = $state<{ list: DownloadEntry[] }>({ list: [] });
 // Views of every signed-in server, primary first; each carries its ServerId.
-export const libraries = $state<{ list: BaseItem[] }>({ list: [] });
+// all: every signed-in server's views; list: the same with the music source applied (shared/music-source.ts).
+export const libraries = $state<{ list: BaseItem[]; all: BaseItem[] }>({ list: [], all: [] });
+function applyMusicSource(): void {
+  libraries.list = musicViews(libraries.all, settings.value?.music.source ?? '');
+}
 // Live TV is offered only when a server has a tuner/guide set up for this user (servers: their ids).
 export const liveTv = $state({ available: false, servers: [] as string[] });
 
@@ -97,7 +102,9 @@ export function errorMessage(err: unknown): string {
 export const dataVersion = $state({ userData: 0, library: 0 });
 
 function applySettings(s: Settings): void {
+  const source = settings.value?.music.source;
   settings.value = s;
+  if (source !== undefined && source !== s.music.source) applyMusicSource();
   setLanguage(s.ui.language);
   const root = document.documentElement;
   root.dataset.theme = s.ui.theme;
@@ -111,7 +118,7 @@ function applySettings(s: Settings): void {
   root.toggleAttribute('data-hide-card-titles', !s.ui.cardTitles);
 }
 
-async function serverViews(s: ServerSession): Promise<{ views: BaseItem[]; live: boolean }> {
+async function serverViews(s: ServerSession): Promise<{ views: BaseItem[]; live: boolean; failed?: boolean }> {
   const uid = s.user!.id;
   const sid = s.server.id;
   // Jellyfin 10.9+ moved the per-user route to /UserViews (see userRoute in api.ts).
@@ -120,8 +127,9 @@ async function serverViews(s: ServerSession): Promise<{ views: BaseItem[]; live:
     : w.api.get<{ Items: BaseItem[] }>(`/Users/${uid}/Views`, undefined, sid)
   ).then(
     (r) => r.Items ?? [],
-    () => [] as BaseItem[],
+    () => null,
   );
+  if (!views) return { views: [], live: false, failed: true };
   for (const v of views) v.ServerId = sid;
   // The Live TV view can be hidden from "My media"; /LiveTv/Info still knows.
   const live =
@@ -142,9 +150,12 @@ async function loadLibraries(): Promise<void> {
   librariesKey = key;
   const results = await Promise.all(list.map(serverViews));
   if (key !== librariesKey) return;
-  libraries.list = results.flatMap((r) => r.views);
+  libraries.all = results.flatMap((r) => r.views);
+  applyMusicSource();
   liveTv.servers = list.filter((_, i) => results[i].live).map((s) => s.server.id);
   liveTv.available = liveTv.servers.length > 0;
+  // A failed server is asked again on the next session change instead of staying without libraries.
+  if (results.some((r) => r.failed)) librariesKey = '';
 }
 
 // Servers whose socket dropped or that went offline: their data may have changed meanwhile.

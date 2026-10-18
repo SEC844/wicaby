@@ -14,6 +14,7 @@ import { isLocalSource } from '../../shared/server-caps';
 import { addressCandidates, ApiClient, ApiError, credentialOrigin, probeFirst, probePlexIdentity, routed, tokenAllowed, type ClientIdentity, type ProbeResult } from './api-client';
 import { PlexTv, type PlexHomeUser, type PlexResource } from './plex-account';
 import { PlexClient, type PlexWatchlist } from './plex-client';
+import { SubsonicClient, SubsonicError } from './subsonic-client';
 import { hintAddress, sendWakeOnLan } from './discovery';
 import { connectAuthenticate, connectExchange, connectServers } from './emby-connect';
 import { ServerSocket, type SocketMessage } from './server-socket';
@@ -192,6 +193,7 @@ export class ConnectionManager extends EventEmitter {
   private migrateCredentials(): void {
     if (this.store.value.tokenBinding === TOKEN_BINDING) return;
     this.store.update((doc) => {
+      doc.servers ??= []; // A file reduced to {} has neither field.
       // A stored server whose Id is not a plain identifier (another subsystem's vault key, say) is dropped.
       const dropped = doc.servers.filter((s) => !isServerId(s.id)).map((s) => s.id);
       if (dropped.length) log.warn(`dropping ${dropped.length} stored server(s) with an invalid Id`);
@@ -604,6 +606,8 @@ export class ConnectionManager extends EventEmitter {
       if (!server.plex) throw new Error(t('plex.errors.relink'));
       return this.plexUsers(server.plex.account);
     }
+    // Subsonic lists no users before sign-in: the name and password form.
+    if (server?.kind === 'navidrome') return [];
     const users = await this.apiFor(serverId).get<UserDto[]>('/Users/Public').catch(() => [] as UserDto[]);
     return users.map((u) => ({
       id: u.Id,
@@ -624,6 +628,7 @@ export class ConnectionManager extends EventEmitter {
       if (!server.plex) throw new Error(t('plex.errors.relink'));
       return this.plexLogin(server, server.plex.account, username, password);
     }
+    if (server.kind === 'navidrome') return this.subsonicLogin(conn, server, client as SubsonicClient, username, password);
     let result: AuthenticationResult;
     try {
       result = await client.post<AuthenticationResult>('/Users/AuthenticateByName', undefined, { Username: username, Pw: password });
@@ -643,6 +648,28 @@ export class ConnectionManager extends EventEmitter {
     return this.state;
   }
 
+  // Token+salt needs the password itself: it is the vaulted token (never sent: t = md5(password + salt)).
+  private async subsonicLogin(conn: Conn, server: StoredServer, client: SubsonicClient, username: string, password: string): Promise<SessionState> {
+    client.token = password;
+    client.userId = username;
+    try {
+      await client.call('ping');
+    } catch (err) {
+      client.token = undefined;
+      client.userId = undefined;
+      if (err instanceof SubsonicError && err.code === 41) throw new Error(t('errors.navidrome.tokenUnsupported'));
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) throw new Error(t('errors.connection.wrongCredentials'));
+      throw err;
+    }
+    this.bindCredential(server.id, { userId: username, userName: username, token: password }, client.address);
+    this.store.update((doc) => {
+      const s = doc.servers.find((x) => x.id === server.id);
+      if (s) s.lastAddress = client.address;
+    });
+    await this.onSignedIn(conn, server, { Id: username, Name: username } as UserDto);
+    return this.state;
+  }
+
   private async onSignedIn(conn: Conn, server: StoredServer, user: UserDto): Promise<void> {
     const client = conn.client!;
     this.setConn(conn, {
@@ -652,6 +679,8 @@ export class ConnectionManager extends EventEmitter {
       user: { id: user.Id, name: user.Name, isAdmin: Boolean(user.Policy?.IsAdministrator), imageTag: user.PrimaryImageTag },
     });
     log.info(`signed in as ${user.Name} on ${server.name}`);
+    // Subsonic has no capabilities, wake-on-LAN or socket.
+    if (server.kind === 'navidrome') return;
 
     // Posted before each socket connect (ServerSocket beforeConnect), or alone without a socket.
     const capabilities = () => this.postCapabilities(client);
@@ -892,6 +921,8 @@ export class ConnectionManager extends EventEmitter {
 
   // The client of a server: a PlexClient for a Plex one (the Plex dialect), else the Emby/Jellyfin client.
   private makeClient(server: StoredServer, address: string, kind: ServerKind, cred: BoundCredential | undefined): ApiClient {
+    // Navidrome: the token slot holds the password (token+salt auth needs it), userId the user name.
+    if (kind === 'navidrome') return new SubsonicClient(address, this.identity, cred?.token, cred?.userId);
     if (kind !== 'plex') return new ApiClient(address, kind, this.identity, cred?.token, cred?.userId);
     const p = server.plex;
     return new PlexClient(address, this.identity, cred?.token, cred?.userId, {

@@ -103,6 +103,8 @@ export async function deviceUrls(d: { api: ApiClient; relay: Relay | null; seed:
   }
   // A Plex token never goes into a URL (plex-spec §2): Plex casts through the relay only.
   if (api.kind === 'plex') throw new CastFailure('plex.errors.castNeedsRelay');
+  // Same for Navidrome: its URLs would carry the password's token (t, s), so the relay signs them on this machine.
+  if (api.kind === 'navidrome') throw new CastFailure('errors.navidrome.castNeedsRelay');
   // The mesh forwarder (127.0.0.1:<port>/tok/) is never a URL for a TV.
   const base = await lanServerBase(api, d.seed);
   if (!base) throw new CastFailure('cast.error.lanOnly');

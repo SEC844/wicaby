@@ -2,12 +2,27 @@
 // the full-screen player (music-spec MU-03 to MU-06). Main owns the queue (PlaybackState.music); this file only
 // keeps what the pages show: the queue's items by id, the open panel and the track menu.
 import type { BaseItem } from '../../shared/models';
+import { musicSources } from '../../shared/music-source';
 import { selectIds } from '../../shared/music-ui';
+import { kindLabel } from '../../shared/server-caps';
 import { apiFor, LIST_FIELDS } from './api';
 import { w } from './bridge';
 import { t } from './i18n.svelte';
 import { instantMix } from './music';
-import { dataVersion, errorMessage, playback, toast } from './stores.svelte';
+import { dataVersion, errorMessage, libraries, playback, sessionFor, settings, toast } from './stores.svelte';
+
+// "Source de la musique" (shared/music-source.ts): Auto, each signed-in server with a music library, and the chosen
+// one while it is offline (it then changes nothing until it is back).
+export function musicSourceOptions(): { value: string; label: string }[] {
+  const label = (id: string) => {
+    const s = sessionFor(id)?.server;
+    return s ? `${s.name} · ${kindLabel(s.kind)}` : t('settings.audio.music.sourceMissing');
+  };
+  const ids = musicSources(libraries.all);
+  const chosen = settings.value?.music.source ?? '';
+  if (chosen && !ids.includes(chosen)) ids.push(chosen);
+  return [{ value: '', label: t('settings.audio.music.sourceAuto') }, ...ids.map((id) => ({ value: id, label: label(id) }))];
+}
 
 export const musicUi = $state<{
   queue: boolean;

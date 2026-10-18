@@ -38,10 +38,13 @@ assMedia = "0.5.1"                  # built against Media3 1.8.0 (pulls media3-e
 okhttp = "5.5.0"
 kotlinxSerialization = "1.11.0"     # 1.12.0 is RC only
 coil = "3.6.3"
+libarchive = "1.1.6"                # libarchive 3.8.1 (BSD-2): CBR (RAR4/RAR5), CB7, CBT comics with its own BSD RAR readers.
+                                    # shortcut: 1.1.7 (libarchive 3.8.8) needs compileSdk 37.2; move to it with the next compileSdk bump.
 
 # Misc
 zxing = "3.5.4"                     # was 3.5.3
 junit = "4.13.2"
+androidxTestRunner = "1.7.0"          # core ComicNativeTest (libarchive, PdfRenderer) on a device
 robolectric = "4.17"                # mobile notification tests (CA-05); tests pin @Config(sdk = 34)
 
 [libraries]
@@ -98,6 +101,8 @@ coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 # Misc
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 junit = { module = "junit:junit", version.ref = "junit" }
+libarchive = { module = "me.zhanghai.android.libarchive:library", version.ref = "libarchive" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 # The XmlPullParser Android ships, for :core JVM tests (cast/Dlna.kt; android.util.Xml is a stub there).
 kxml2 = { module = "net.sf.kxml:kxml2", version = "2.3.0" }

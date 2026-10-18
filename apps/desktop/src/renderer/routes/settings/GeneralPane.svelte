@@ -6,7 +6,7 @@
   import Toggle from '../../components/Toggle.svelte';
   import { libraryRef } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
-  import { linux } from '../../lib/platform';
+  import { linux, web } from '../../lib/platform';
   import { navigate } from '../../lib/router.svelte';
   import { libraries, multiServer, serverName, session, settings } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
@@ -63,6 +63,8 @@
         onchange={(v) => set({ ui: { language: v } })}
       />
     </div>
+    <!-- The web TV app (lib/platform.ts): no setup wizard, no updater, no desktop player windows or shortcuts. -->
+    {#if !web}
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.general.setup.label')}</div>
@@ -77,7 +79,10 @@
       </div>
       <Toggle label={t('settings.about.updates.auto')} checked={s.updates.autoCheck} onchange={(v) => set({ updates: { autoCheck: v } })} />
     </div>
+    {/if}
   </div>
+
+  {#if !web}
 
   <h3 class="gh">{t('settings.general.player')}</h3>
   <div class="group">
@@ -104,6 +109,7 @@
   <h3 class="gh">{t('settings.general.shortcuts.title')}</h3>
   <!-- X-04: the editor (VOD actions) and the read-only "TV en direct" list (shared/shortcuts.ts). -->
   <ShortcutEditor />
+  {/if}
 {/if}
 
 <style>

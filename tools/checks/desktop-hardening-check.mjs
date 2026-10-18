@@ -110,6 +110,8 @@ assert.ok(!isRouteId(''));
 assert.ok(!isRouteId('../../Users'));
 assert.ok(!isRouteId('1?api_key=x'));
 assert.ok(!isRouteId('a'.repeat(65)));
+// Navidrome typed ids (shared/subsonic/map.ts): a prefix and '_', or base64url after '__'.
+assert.ok(isRouteId('mf_0') && isRouteId('al_3f9a') && isRouteId('tr__YS9i'));
 // File source ids (shared/files/ids.ts): 'p.' + base64url, never a dot segment or a slash.
 assert.ok(isRouteId('p.') && isRouteId('p.RmlsbXM'));
 assert.ok(!isRouteId('p..') && !isRouteId('p./x') && !isRouteId('p.a+b') && !isRouteId(`p.${'A'.repeat(1001)}`));

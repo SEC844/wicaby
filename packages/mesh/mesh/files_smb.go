@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -76,7 +77,10 @@ func (b *smbBackend) mount() (*smb2.Share, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errOffline, err)
 	}
-	d := &smb2.Dialer{Initiator: &smb2.NTLMInitiator{User: b.cfg.User, Password: b.cfg.Pass, Domain: b.cfg.Domain}}
+	d := &smb2.Dialer{
+		Negotiator: smb2.Negotiator{RequireMessageSigning: smbSigns(b.cfg.User)},
+		Initiator:  &smb2.NTLMInitiator{User: b.cfg.User, Password: b.cfg.Pass, Domain: b.cfg.Domain},
+	}
 	sess, err := d.DialContext(ctx, conn)
 	if err != nil {
 		_ = conn.Close()
@@ -146,7 +150,9 @@ func (b *smbBackend) with(fn func(*smb2.Share) error) error {
 		return smbError(err)
 	}
 	b.mu.Lock()
-	b.drop()
+	if b.share == sh { // another request may have reconnected already: keep its fresh session
+		b.drop()
+	}
 	sh, err = b.mount()
 	b.mu.Unlock()
 	if err != nil {
@@ -157,7 +163,17 @@ func (b *smbBackend) with(fn func(*smb2.Share) error) error {
 
 func (b *smbBackend) ReadDir(rel string) (out []fs.FileInfo, err error) {
 	err = b.with(func(sh *smb2.Share) error {
-		out, err = sh.ReadDir(rel)
+		// Not sh.ReadDir: it reads the whole folder first. Only what ls can return (plus "." and "..").
+		d, err := sh.Open(rel)
+		if err != nil {
+			return err
+		}
+		defer d.Close()
+		out, err = d.Readdir(filesMaxList + 2)
+		if err == io.EOF {
+			err = nil
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].Name() < out[j].Name() })
 		return err
 	})
 	return out, err
@@ -213,6 +229,11 @@ const (
 	statusNotSupported      = 0xC00000BB
 )
 
+// Signed replies are required for a signed-in user (every SMB2 server can sign; a LAN attacker could
+// otherwise rewrite reads). A session the user chose as guest has no key to sign with, so it stays
+// unsigned (go-smb2 refuses an empty user name). Any other name the server maps to guest still fails.
+func smbSigns(user string) bool { return !strings.EqualFold(user, "guest") }
+
 // smbError names a go-smb2 failure with the kinds of files.go (auth, notfound, smb1, offline).
 func smbError(err error) error {
 	if err == nil {
@@ -237,6 +258,10 @@ func smbError(err error) error {
 	var inv *smb2.InvalidResponseError
 	if errors.As(err, &inv) && strings.Contains(strings.ToLower(err.Error()), "protocol") {
 		return fmt.Errorf("%w: %v", errSMB1, err)
+	}
+	// A user the server does not know, signed in as guest ("map to guest = bad user"): no signing, refused.
+	if errors.As(err, &inv) && (strings.Contains(err.Error(), "guest account") || strings.Contains(err.Error(), "anonymous account")) {
+		return fmt.Errorf("%w: %v", errAuth, err)
 	}
 	if isTransport(err) {
 		return fmt.Errorf("%w: %v", errOffline, err)

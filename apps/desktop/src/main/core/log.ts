@@ -98,6 +98,9 @@ const AUTH_KEYS = /(?<pre>(?:\/|%2F)Auth(?:\/|%2F)Keys(?:\/|%2F))(?:(?!%2F|%3F|%
 // IPTV (Xtream) addresses carry the account in the query or the path: get.php?username=U&password=P,
 // /live/U/P/1.ts. Both are masked wherever an address reaches a line (an mpv error naming the stream).
 const QUERY_ACCOUNT = /([?&](?:password|passwd|pwd|pass|username|user)=)[^&\s"'#]+/gi;
+// Subsonic (Navidrome) signs requests in the query: u (user), t (token), s (salt), p (password). Over-redacts any
+// other one-letter u/t/s/p parameter, by design.
+const SUBSONIC_AUTH = /([?&](?:t|s|p|u)=)[^&\s"'#]+/gi;
 const XTREAM_PATH = /(\/(?:live|movie|series|timeshift)\/)[^/\s"'?#]+\/[^/\s"'?#]+\//gi;
 
 type Groups = Record<string, string | undefined>;
@@ -122,6 +125,7 @@ export function redact(text: string): string {
     .replace(TOKEN_PAIR, maskPair)
     .replace(AUTH_PAIR, maskPair)
     .replace(QUERY_ACCOUNT, '$1***')
+    .replace(SUBSONIC_AUTH, '$1***')
     .replace(XTREAM_PATH, '$1***/***/');
 }
 

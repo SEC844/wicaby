@@ -134,7 +134,7 @@ The fallback is used when mpv is not found or the user chooses it, globally (`pl
 
 - `playback/html-player.ts` implements the same `ActivePlayer` interface as mpv. It sends `html-player:load` and `html-player:command` to the main window and receives `html-player:event` (`time`, `volume`, `stats`, `ended`, `error`) back. Reporting, queueing, taskbar buttons and remote control therefore share one code path.
 - `routes/Player.svelte` plays through hls.js or a plain `src`, always via `wicaby-media://`.
-- `playback/device-profile.ts` has two profiles:
+- `shared/device-profile.ts` has three profiles (the third, `tv`, is the web TV app's, [webtv.md](webtv.md)):
   - `mpv` direct-plays almost everything;
   - `html` direct-plays MP4 and WebM and asks for HLS otherwise. An audio track other than the default forces a remux, because `<video>` cannot switch tracks.
 - **Limits:** Chromium's Matroska support is partial (`.mkv` is served as `video/webm`). There is no HDR passthrough and no audio bitstreaming.

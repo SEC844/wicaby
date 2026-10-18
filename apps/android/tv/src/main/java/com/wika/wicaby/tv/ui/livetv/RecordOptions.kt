@@ -103,6 +103,24 @@ internal fun JsonObject.num(k: String): Long = (this[k] as? JsonPrimitive)?.doub
 internal fun JsonObject.flag(k: String): Boolean = (this[k] as? JsonPrimitive)?.booleanOrNull == true
 private fun JsonElement?.items(): List<JsonObject> = ((this as? JsonObject)?.get("Items") as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
 
+/**
+ * Every item of a list paged by [size]: ends at a short page, at the first page's TotalRecordCount, or when a page
+ * starts over (a route that ignores StartIndex, as Plex's answers everything at once), and after [maxPages] at most.
+ */
+internal suspend fun pageAll(size: Int = 500, maxPages: Int = 20, fetch: suspend (start: Int) -> JsonElement?): List<JsonObject> {
+    val all = ArrayList<JsonObject>()
+    var total = 0L
+    for (i in 0 until maxPages) {
+        val res = fetch(all.size)
+        val page = res.items()
+        if (i == 0) total = (res as? JsonObject)?.num("TotalRecordCount") ?: 0L
+        else if (page.isNotEmpty() && page[0]["Id"] == all[0]["Id"]) break
+        all += page
+        if (page.size < size || total in 1..all.size) break
+    }
+    return all
+}
+
 /** A DVR failure, already mapped (§9.1). */
 class DvrFailure(val code: DvrError, val status: Int, message: String) : Exception(message)
 
@@ -214,13 +232,7 @@ class TvDvr(val repo: LiveTvRepository) {
 
     /** One recordings call paged by 500 (§9.5); in-progress ones come with it (Status). */
     suspend fun loadRecordings() {
-        val all = ArrayList<JsonObject>()
-        while (true) {
-            val page = call(DvrOp.RECORDINGS, Dialect.recordings(kind, live.userId, startIndex = all.size, limit = 500)).items()
-            all += page
-            if (page.size < 500) break
-        }
-        recordings = all
+        recordings = pageAll { start -> call(DvrOp.RECORDINGS, Dialect.recordings(kind, live.userId, startIndex = start, limit = 500)) }
     }
 
     /** Jellyfin answers 404/405 on the Live TV route for some recordings: DELETE /Items/{id} then. */

@@ -130,7 +130,9 @@ Emby and Jellyfin photo libraries, and home-video libraries, open in a Photos ti
 
 ## Music
 
-Emby and Jellyfin music libraries open in a music player instead of a poster grid.
+Emby, Jellyfin, Plex and Navidrome music libraries open in a music player instead of a poster grid.
+
+- **Music source:** Settings › Audio › Music source (desktop), Settings › Music (phone) or Settings › Playback (TV) picks the server whose music and playlists the Music section shows; Automatic keeps all of them. On Android the choice is kept per profile. A chosen server that is offline or has no music library changes nothing. On desktop, the Music page has a quick switch when several servers have music.
 
 - **Library:** Albums (grid or list, sorts, favourite and genre filters), Artists (with an "album artists only" toggle), Songs, Genres and Playlists. Album pages show disc headers, the track count and length; artist pages add top songs and split the discography into albums and "appears on".
 - **Covers:** an album the server keeps no cover for (Emby, when the only art is embedded in the tracks) shows its first track's art, and an artist without an image shows the art of one of its albums. Each is looked up once, a few at a time, and kept for the session. With no art at all, a tile shows the initials on a colour taken from the name. Album pages, the full-screen player and the TV now-playing screen take a tint from the cover.
@@ -158,6 +160,16 @@ Emby and Jellyfin music libraries open in a music player instead of a poster gri
 - **Android mobile:** a music section with five tabs, a mini player above the navigation, a full-screen now playing with lyrics, the queue and the equalizer (the same presets and 10 bands; it works on decoded audio, so it is off, and says why, while the sound goes to an amplifier in passthrough), and lock-screen and notification controls. Long-press a track on an album page to select several.
 - **Android Auto** (the Google Play build only): Recent, Playlists, Albums and Artists to browse in the car; picking a song plays its album or list from there. Only Android Auto may browse the library.
 - **Android TV:** music rows (recent albums, recently played, playlists, artists, genres), a now-playing screen built for the remote with queue editing (`←`/`→` to move, hold OK to remove), and music that keeps playing after Home or Back. The screen is allowed to sleep: after 2 minutes without a key it turns to an ambient view, which the screensaver also shows while music plays.
+
+## Navidrome
+
+On desktop (Windows and Linux), Android TV and Android mobile. Wicaby talks to Navidrome, and to other OpenSubsonic or Subsonic servers (gonic, Airsonic), through the documented Subsonic API; the label says Navidrome for all of them.
+
+- **Adding it:** Sources › Add a Source › Navidrome (desktop), or the server address in Setup (Android): the address, then your user name and password. Wicaby checks them with the server before saving. Navidrome's default port is 4533, so type it (for example `http://nas:4533`).
+- **Sign-in:** token and salt (`t = md5(password + salt)`, a new salt per request); the password itself is never sent, and is kept in the app's encrypted storage (Windows DPAPI, the Android Keystore) because the token needs it. URLs with the token never appear in logs, and on Android, images and streams are signed on the way out so cached addresses carry no credentials. An LDAP account on Navidrome refuses token sign-in: Wicaby says so and does not fall back to sending the password.
+- **What works:** artists, albums, songs, genres and playlists in the music player; favourites are Navidrome's stars (on songs, albums and artists) and show in every Subsonic app; playlists can be created (also from the queue), added to, reordered and edited (only by their owner); lyrics from the server (synced with OpenSubsonic's songLyrics); mix from similar songs; plays are scrobbled to Navidrome (now playing, then one play past half the song or 4 minutes).
+- **Casting:** from the desktop through the cast relay only ("Stream through this computer" in the casting settings, on by default), which signs the requests on this computer: the TV never gets the password's token. With the relay off, and on Android, casting Navidrome music is refused with a message.
+- **Not supported:** videos, Live TV, the Admin panel, "Play on", renaming or deleting a playlist from Wicaby, ratings, Navidrome's saved play queue, and a server reached at another address than the one it was added with.
 
 ## File sources
 

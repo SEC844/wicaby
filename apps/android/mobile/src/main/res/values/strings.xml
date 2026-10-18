@@ -22,7 +22,7 @@
 
     <!-- Utilisateurs -->
     <string name="who_is_watching">Qui regarde ?</string>
-    <string name="other_user">Autre</string>
+    <string name="other_user">Autre utilisateur</string>
     <string name="username">Nom d’utilisateur</string>
     <string name="password">Mot de passe</string>
     <string name="sign_in">Se connecter</string>
@@ -85,10 +85,10 @@
     <string name="watched">Vu</string>
     <string name="download">Télécharger</string>
     <string name="downloaded">Téléchargé</string>
-    <string name="resume_time_left">Reprendre · %1$s restantes</string>
-    <string name="play_episode">Lire · S%1$d, É%2$d</string>
+    <string name="resume_time_left">Reprendre · Reste %1$s</string>
+    <string name="play_episode">Lire · S%1$d É%2$d</string>
     <string name="season_n">Saison %1$d</string>
-    <string name="episode_code">S%1$d, É%2$d</string>
+    <string name="episode_code">S%1$d É%2$d</string>
     <string name="episode_numbered" translatable="false">%1$d. %2$s</string>
     <string name="cast">Distribution</string>
     <string name="similar">Vous aimerez aussi</string>
@@ -151,7 +151,7 @@
     <string name="language_fr" translatable="false">Français</string>
     <string name="language_en" translatable="false">English</string>
     <string name="settings_playback">Lecture</string>
-    <string name="settings_bitrate">Débit maximal en streaming</string>
+    <string name="settings_bitrate">Débit maximal</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="mbps">%1$d Mb/s</string>
     <string name="settings_downloads">Téléchargements</string>
@@ -173,7 +173,7 @@
     <string name="up_next_in">Dans %1$d s</string>
     <string name="still_watching">Toujours là ?</string>
     <string name="still_watching_sub">La lecture est en pause.</string>
-    <string name="keep_watching">Continuer</string>
+    <string name="keep_watching">Continuer à regarder</string>
     <string name="stop_watching">Arrêter</string>
     <string name="seek_back_seconds">−%1$d s</string>
     <string name="seek_forward_seconds">+%1$d s</string>

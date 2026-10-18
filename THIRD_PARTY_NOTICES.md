@@ -48,15 +48,16 @@ the only exception is the small part of electron-builder that does ship (the NSI
     libraries);
   - `resources/licenses/`: `LICENSE.txt` (Wicaby; also the GPL-3.0 text), this
     `THIRD_PARTY_NOTICES.md`, the GPL-2.0 and LGPL-2.1 texts that cover mpv and the libraries
-    linked into it, and `npm-licenses.txt`, the licence files of the renderer libraries (Svelte,
-    clsx, esm-env, hls.js, Lucide, Geist) and of their npm dependencies;
+    linked into it, `npm-licenses.txt`, the licence files of the renderer libraries (Svelte,
+    clsx, esm-env, hls.js, Lucide, Geist, pdf.js) and of their npm dependencies, and
+    `libarchive-wasm.txt`, the texts for libarchive-wasm and the C libraries in its WebAssembly;
   - `resources/vpn-helper/THIRD_PARTY_LICENSES.txt`: every Go module linked into the mesh
     helper.
 - **Linux app** (AppImage, deb or tar.gz; the deb installs to `/opt/Wicaby`): the same files,
   next to the `wicaby` executable and in `resources/`, except mpv, which is not bundled (see
   [mpv on Linux](#mpv-on-linux)).
 - **Android apps:** Settings → About lists the main licences (the TV app shows a short list:
-  FFmpeg, libass, Geist, AndroidX, Coil; the mobile app shows one line, which in the `gplay`
+  FFmpeg, libass, Geist, AndroidX, Coil, libarchive; the mobile app shows one line, which in the `gplay`
   flavour names Google Play services instead of FFmpeg, followed by the section 7 permission). The only full licence
   text inside the APK is the Geist licence (`assets/OFL-Geist.txt`). The complete texts are
   published with every release on
@@ -116,13 +117,24 @@ long as that release is offered:
 | [hls.js](https://github.com/video-dev/hls.js) | 1.7.3 | Apache-2.0 | HLS in the fallback HTML player. The package has no `NOTICE` file; its licence text ships in `resources/licenses/`. |
 | [Lucide](https://github.com/lucide-icons/lucide) (`@lucide/svelte`) | 1.55.0 | ISC, Copyright (c) 2026 Lucide Icons and Contributors | Icons. The icons derived from [Feather](https://github.com/feathericons/feather) are MIT, Copyright (c) 2013-present Cole Bemis. |
 | [Geist and Geist Mono](https://github.com/vercel/geist-font) (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`) | 5.3.0 | SIL Open Font License 1.1 | Copyright 2024 The Geist Project Authors. Also copied into mpv's font folder for subtitles. |
+| [pdf.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) | 6.4.299 | Apache-2.0, Copyright Mozilla Foundation | Draws the pages of PDF comics in a hidden window (`pdf.html`, with its worker `pdf.worker.min.mjs`). No CMaps or standard fonts are shipped. The package has no `NOTICE` file; its licence text ships in `resources/licenses/`. |
 | [Leaflet](https://github.com/Leaflet/Leaflet) | 1.9.4 | BSD-2-Clause, Copyright (c) 2010-2023 Volodymyr Agafonkin, Copyright (c) 2010-2011 CloudMade | The opt-in photo map. Its map tiles are not part of Wicaby: they come from the tile server set in the settings (OpenStreetMap by default, © OpenStreetMap contributors, ODbL), shown with their attribution. |
+
+### Main process (bundled into `out/main` by esbuild)
+
+| Component | Version | Licence | Notes |
+|---|---|---|---|
+| [libarchive-wasm](https://github.com/ofk/libarchive-wasm) (`out/main/archive-worker.cjs`, `out/main/libarchive.wasm`) | 1.2.0 | MIT, Copyright (c) 2021 ofk | Reads RAR (4 and 5), 7z and tar comics in a worker thread. Its WebAssembly build links the libraries below; their texts are in `resources/licenses/libarchive-wasm.txt`. |
+| ↳ [libarchive](https://github.com/libarchive/libarchive) | 3.7.7 | BSD-2-Clause (a few files: BSD-3-Clause, public domain, or CC0-1.0/OpenSSL/Apache-2.0) | The RAR 4 and RAR 5 readers are libarchive's own BSD code (RAR 5: Copyright (c) 2018 Grzegorz Antoniak). No UnRAR code is used anywhere in Wicaby: the UnRAR licence is not GPL compatible. |
+| ↳ [zlib](https://zlib.net/) | 1.3.1 | Zlib | |
+| ↳ [bzip2](https://sourceware.org/bzip2/) | 1.0.8 | bzip2-1.0.6 | |
+| ↳ [XZ Utils](https://tukaani.org/xz/) (liblzma) | 5.6.4 | 0BSD | 7z LZMA and LZMA2. |
 
 ### mpv (`resources/mpv`)
 
 | Component | Version | Licence | Notes |
 |---|---|---|---|
-| [mpv](https://github.com/mpv-player/mpv) | git master as built by shinchiro, release `20261011` (`git-accb7b2821`) | GPL-2.0-or-later (GPL build) | Downloaded by `npm run fetch-mpv` from [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake) (x86-64-v3 build by default). Runs as a separate process. The combined binary is distributed under GPL-3.0. |
+| [mpv](https://github.com/mpv-player/mpv) | git master as built by shinchiro, release `20261018` (`git-01e2533f31`) | GPL-2.0-or-later (GPL build) | Downloaded by `npm run fetch-mpv` from [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake) (x86-64-v3 build by default). Runs as a separate process. The combined binary is distributed under GPL-3.0. |
 | [FFmpeg](https://ffmpeg.org/) | statically linked into `mpv.exe`, as pinned by the shinchiro release | GPL (built with GPL components such as x264 and x265) | |
 | Libraries statically linked into `mpv.exe` | as pinned by the shinchiro release | various | Found in the checked build: [libplacebo](https://code.videolan.org/videolan/libplacebo) (LGPL-2.1-or-later), [libass](https://github.com/libass/libass) (ISC), FreeType (FTL / GPL-2.0), HarfBuzz (MIT), FriBidi (LGPL-2.1-or-later), [x264](https://code.videolan.org/videolan/x264) and [x265](https://bitbucket.org/multicoreware/x265_git) (GPL-2.0-or-later), dav1d (BSD-2-Clause), libvpx (BSD-3-Clause), libaom (BSD-2-Clause), SVT-AV1 (BSD-3-Clause-Clear), Rubber Band (GPL-2.0-or-later), libbluray (LGPL-2.1-or-later), libdvdnav / libdvdread (GPL-2.0-or-later), libcurl (curl licence), OpenSSL (Apache-2.0), [libssh](https://www.libssh.org/) (LGPL-2.1), [SRT](https://github.com/Haivision/srt) (MPL-2.0), [VapourSynth](https://github.com/vapoursynth/vapoursynth) (LGPL-2.1), LuaJIT (MIT), Little CMS (MIT), libarchive (BSD-2-Clause), zimg (WTFPL), uchardet (MPL-1.1 / GPL-2.0 / LGPL-2.1), shaderc and SPIRV-Cross (Apache-2.0), the Vulkan loader (Apache-2.0), OpenAL Soft (LGPL-2.0-or-later), SDL2 (zlib), libjpeg-turbo (IJG / BSD-3-Clause / zlib), zlib (zlib) and libopenmpt (BSD-3-Clause). This list comes from the strings in the binary and may be incomplete; the authoritative list is the package list of the shinchiro release used, which is part of the mpv source bundle. |
 
@@ -147,7 +159,7 @@ important ones:
 - [Tailscale](https://github.com/tailscale/tailscale) (`tailscale.com` v1.104.1), BSD-3-Clause,
   © Tailscale Inc & AUTHORS;
 - [NetBird](https://github.com/netbirdio/netbird) client (`github.com/netbirdio/netbird`
-  v0.80.0), BSD-3-Clause for the client code Wicaby links. NetBird's `management/`,
+  v0.81.2), BSD-3-Clause for the client code Wicaby links. NetBird's `management/`,
   `signal/`, `relay/` and `combined/` directories are AGPL-3.0 and are **not linked**: both
   build scripts fail if `go list -deps` shows any package from them;
 - the `golang.org/x/*` modules (`crypto`, `exp`, `net`, `oauth2`, `sync`, `sys`, `term`,
@@ -170,6 +182,8 @@ important ones:
 | ↳ native libraries in `ass-kt` | as built by ass-kt 0.5.1 | various | [libass](https://github.com/libass/libass) (ISC), FreeType (FTL / GPL-2.0), HarfBuzz (MIT), FriBidi (LGPL-2.1-or-later), Fontconfig (MIT-style), [Expat](https://github.com/libexpat/libexpat) (MIT), libunibreak (zlib), and the LLVM `libc++_shared.so` (Apache-2.0 WITH LLVM-exception). |
 | [OkHttp](https://github.com/square/okhttp) and [Okio](https://github.com/square/okio) | OkHttp 5.5.0 | Apache-2.0 | TV, mobile |
 | [Coil](https://github.com/coil-kt/coil) (`coil-compose`, `coil-network-okhttp`) | 3.6.3 | Apache-2.0 | TV, mobile. `coil-svg` is debug-only and does not ship. |
+| [libarchive-android](https://github.com/zhanghai/libarchive-android) (`me.zhanghai.android.libarchive:library`) | 1.1.6 | Apache-2.0 | TV, mobile. Reads RAR (4 and 5), 7z and tar comics (`libarchive-jni.so`). |
+| ↳ native libraries in `libarchive-jni.so` | as built by libarchive-android 1.1.6 | various | [libarchive](https://github.com/libarchive/libarchive) 3.8.1 (BSD-2-Clause; its RAR 4 and RAR 5 readers are libarchive's own code, no UnRAR code), [bzip2](https://sourceware.org/bzip2/) (bzip2-1.0.6), [XZ Utils](https://tukaani.org/xz/) liblzma (0BSD), [LZ4](https://github.com/lz4/lz4) (BSD-2-Clause), [Zstandard](https://github.com/facebook/zstd) (BSD-3-Clause, taken from its BSD/GPL-2.0 dual licence) and [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) (Apache-2.0, taken from its Apache-2.0/GPL-2.0-or-later dual licence). PDF comics use the platform's `PdfRenderer`, no library. |
 | [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) (`kotlinx-serialization-json`) | 1.11.0 | Apache-2.0 | TV, mobile |
 | [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | transitive | Apache-2.0 | TV, mobile |
 | [Kotlin standard library](https://github.com/JetBrains/kotlin) | 2.4.21 | Apache-2.0 | TV, mobile |
@@ -187,7 +201,7 @@ The gomobile binding of `packages/mesh/mobile` (arm64-v8a and armeabi-v7a), link
 apps. It contains:
 
 - the Go modules listed in [Go modules](#go-modules-mesh-helper-and-android-mesh-library),
-  column "Android" (Tailscale `tailscale.com` v1.104.1 and the NetBird client v0.80.0, both
+  column "Android" (Tailscale `tailscale.com` v1.104.1 and the NetBird client v0.81.2, both
   BSD-3-Clause, with the same AGPL guard as on Windows; the NetBird copy carries a one-line
   nil-check patch applied by `build-mesh-aar.ps1`);
 - the Java glue generated by [gomobile](https://github.com/golang/mobile)
@@ -247,9 +261,10 @@ from the exact build graph (`go list -deps`). Forks applied through `replace` in
 | `github.com/golang/groupcache` | v0.0.0-20241129210726-2c02b8208cf8 | Apache-2.0 | x | x |
 | `github.com/golang/protobuf` | v1.5.4 | BSD-3-Clause | x | x |
 | `github.com/google/btree` | v1.1.3 | Apache-2.0 | x | x |
+| `github.com/google/go-tpm` | v0.9.8 | Apache-2.0 | x | x |
 | `github.com/google/gopacket` | v1.1.19 | BSD-3-Clause | x | x |
 | `github.com/google/uuid` | v1.6.0 | BSD-3-Clause | x | x |
-| `github.com/gopacket/gopacket` | v1.4.0 | BSD-3-Clause |  | x |
+| `github.com/gopacket/gopacket` | v1.6.1 | BSD-3-Clause |  | x |
 | `github.com/grpc-ecosystem/grpc-gateway/v2` | v2.26.3 | BSD-3-Clause | x | x |
 | `github.com/hashicorp/errwrap` | v1.1.0 | MPL-2.0 | x | x |
 | `github.com/hashicorp/go-multierror` | v1.1.1 | MPL-2.0 | x | x |
@@ -276,10 +291,10 @@ from the exact build graph (`go list -deps`). Forks applied through `replace` in
 | `github.com/munnerz/goautoneg` | v0.0.0-20191010083416-a7dc8b61c822 | BSD-3-Clause | x | x |
 | `github.com/netbirdio/go-nat` | v0.0.0-20260821095157-6b2c8c5c74e8 | Apache-2.0 | x | x |
 | `github.com/netbirdio/ice/v4` | v4.0.0-20250908184934-6202be846b51 | MIT | x | x |
-| `github.com/netbirdio/netbird` | v0.80.0 | BSD-3-Clause | x | x |
-| `github.com/netbirdio/wireguard-go` | v0.0.0-20260914123147-8bf8fa968f1a | MIT | x | x |
+| `github.com/netbirdio/netbird` | v0.81.2 | BSD-3-Clause | x | x |
+| `github.com/netbirdio/wireguard-go` | v0.0.0-20261008122457-d2b1ce9bfee9 | MIT | x | x |
 | `github.com/pion/dtls/v2` | v2.2.10 | MIT | x | x |
-| `github.com/pion/dtls/v3` | v3.0.9 | MIT | x | x |
+| `github.com/pion/dtls/v3` | v3.1.14 | MIT | x | x |
 | `github.com/pion/logging` | v0.2.4 | MIT | x | x |
 | `github.com/pion/mdns/v2` | v2.0.7 | MIT | x | x |
 | `github.com/pion/randutil` | v0.1.0 | MIT | x | x |
@@ -287,6 +302,7 @@ from the exact build graph (`go list -deps`). Forks applied through `replace` in
 | `github.com/pion/stun/v3` | v3.1.0 | MIT | x | x |
 | `github.com/pion/transport/v2` | v2.2.4 | MIT | x | x |
 | `github.com/pion/transport/v3` | v3.1.1 | MIT | x | x |
+| `github.com/pion/transport/v5` | v5.0.0 | MIT | x | x |
 | `github.com/pion/turn/v3` | v3.0.1 | MIT | x | x |
 | `github.com/pion/turn/v4` | v4.1.1 | MIT | x | x |
 | `github.com/pires/go-proxyproto` | v0.15.0 | Apache-2.0 | x | x |
@@ -295,7 +311,7 @@ from the exact build graph (`go list -deps`). Forks applied through `replace` in
 | `github.com/prometheus/client_model` | v0.6.3 | Apache-2.0 | x | x |
 | `github.com/prometheus/common` | v0.71.0 | Apache-2.0 | x | x |
 | `github.com/prometheus/procfs` | v0.21.1 | Apache-2.0 |  | x |
-| `github.com/quic-go/quic-go` | v0.62.0 | MIT | x | x |
+| `github.com/quic-go/quic-go` | v0.64.0 | MIT | x | x |
 | `github.com/shirou/gopsutil/v4` | v4.25.8 | BSD-3-Clause | x |  |
 | `github.com/sirupsen/logrus` | v1.10.1 | MIT | x | x |
 | `github.com/skratchdot/open-golang` | v0.0.0-20200116055534-eef842397966 | MIT | x | x |
@@ -315,21 +331,21 @@ from the exact build graph (`go list -deps`). Forks applied through `replace` in
 | `go.uber.org/zap` | v1.28.0 | MIT | x |  |
 | `go4.org/mem` | v0.0.0-20240501181205-ae6ca9944745 | Apache-2.0 | x | x |
 | `go4.org/netipx` | v0.0.0-20260823151212-3075585bcbeb | BSD-3-Clause | x | x |
-| `golang.org/x/crypto` | v0.57.0 | BSD-3-Clause | x | x |
+| `golang.org/x/crypto` | v0.58.0 | BSD-3-Clause | x | x |
 | `golang.org/x/exp` | v0.0.0-20260908205506-85c1c2202aba | BSD-3-Clause | x | x |
-| `golang.org/x/net` | v0.59.0 | BSD-3-Clause | x | x |
+| `golang.org/x/net` | v0.61.0 | BSD-3-Clause | x | x |
 | `golang.org/x/oauth2` | v0.37.0 | BSD-3-Clause | x | x |
-| `golang.org/x/sync` | v0.23.0 | BSD-3-Clause | x | x |
-| `golang.org/x/sys` | v0.48.0 | BSD-3-Clause | x | x |
-| `golang.org/x/term` | v0.46.0 | BSD-3-Clause | x | x |
-| `golang.org/x/text` | v0.42.0 | BSD-3-Clause | x | x |
+| `golang.org/x/sync` | v0.24.0 | BSD-3-Clause | x | x |
+| `golang.org/x/sys` | v0.49.0 | BSD-3-Clause | x | x |
+| `golang.org/x/term` | v0.47.0 | BSD-3-Clause | x | x |
+| `golang.org/x/text` | v0.43.0 | BSD-3-Clause | x | x |
 | `golang.org/x/time` | v0.16.0 | BSD-3-Clause | x | x |
 | `golang.zx2c4.com/wintun` | v0.0.0-20230126152724-0fa3db229ce2 | MIT | x |  |
 | `golang.zx2c4.com/wireguard/wgctrl` | v0.0.0-20241231184526-a9ab2273dd10 | MIT | x | x |
 | `golang.zx2c4.com/wireguard/windows` | v1.0.1 | MIT | x |  |
-| `google.golang.org/genproto/googleapis/api` | v0.0.0-20260401024825-9d38bb4040a9 | Apache-2.0 | x | x |
-| `google.golang.org/genproto/googleapis/rpc` | v0.0.0-20260401024825-9d38bb4040a9 | Apache-2.0 | x | x |
-| `google.golang.org/grpc` | v1.80.0 | Apache-2.0 | x | x |
+| `google.golang.org/genproto/googleapis/api` | v0.0.0-20260706201446-f0a921348800 | Apache-2.0 | x | x |
+| `google.golang.org/genproto/googleapis/rpc` | v0.0.0-20260706201446-f0a921348800 | Apache-2.0 | x | x |
+| `google.golang.org/grpc` | v1.84.0 | Apache-2.0 | x | x |
 | `google.golang.org/protobuf` | v1.36.12 | BSD-3-Clause | x | x |
 | `gopkg.in/yaml.v3` | v3.0.1 | MIT, Apache-2.0 | x | x |
 | `gvisor.dev/gvisor` | v0.0.0-20260915211658-a6f909f08a72 | Apache-2.0 | x | x |

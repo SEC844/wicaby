@@ -107,6 +107,7 @@ export const CONTENT_TYPES: Record<ServerKind, string[]> = {
   iptv: [],
   files: [],
   plex: [],
+  navidrome: [],
 };
 
 // Collection type of a folder as the UI names it ('mixed' when the server has none).

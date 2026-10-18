@@ -14,9 +14,17 @@ function dpr(): number {
 
 // Item, user and server ids are path segments of wicaby-media://api URLs: anything
 // but a plain id (a '/', '..', an encoded character) could reach another API path.
-const ID = /^[A-Za-z0-9-]{1,64}$/;
+const ID = /^[A-Za-z0-9_-]{1,64}$/;
 // File source ids too (shared/files/ids.ts): 'p.' + base64url, never a dot segment.
 export const validId = (id: unknown): id is string => typeof id === 'string' && (ID.test(id) || isFilesId(id));
+
+// Where server image paths are served from: wicaby-media://api[/serverId] on the desktop (main adds the auth);
+// apps/webtv sets the server's own address. serverId absent: the primary server.
+let base = (serverId?: string): string => `${MEDIA_SCHEME}://api${serverId ? `/${serverId}` : ''}`;
+export const mediaBase = (serverId?: string): string => base(serverId);
+export function setMediaBase(fn: (serverId?: string) => string): void {
+  base = fn;
+}
 
 // opts.server: the item's server (BaseItem.ServerId); the primary one when absent.
 // '' (no image) when an id is not a plain id. opts.px: a square box in device pixels (music art, already bucketed).
@@ -32,7 +40,7 @@ export function imageUrl(itemId: string, type: ImageType, opts: { tag?: string; 
     q.set('maxHeight', String(opts.px));
   }
   const idx = opts.index !== undefined ? `/${opts.index}` : '';
-  return `${MEDIA_SCHEME}://api${opts.server ? `/${opts.server}` : ''}/Items/${itemId}/Images/${type}${idx}?${q}`;
+  return `${mediaBase(opts.server)}/Items/${itemId}/Images/${type}${idx}?${q}`;
 }
 
 // A photo or clip's Primary image (photos spec §3.1): grid thumbnails by height bucket, the viewer by viewport.
@@ -65,7 +73,7 @@ export function userImageUrl(userId: string, tag?: string, size = 96, serverId?:
   if (!validId(userId) || (serverId && !validId(serverId))) return '';
   const q = new URLSearchParams({ quality: '90', maxHeight: String(size * 2) });
   if (tag) q.set('tag', tag);
-  const base = `${MEDIA_SCHEME}://api${serverId ? `/${serverId}` : ''}`;
+  const base = mediaBase(serverId);
   if (sessionFor(serverId)?.server.kind === 'jellyfin') {
     q.set('userId', userId);
     return `${base}/UserImage?${q}`;

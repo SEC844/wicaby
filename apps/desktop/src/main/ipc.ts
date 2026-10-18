@@ -282,8 +282,12 @@ export function registerIpc(deps: IpcDeps): void {
     if (!isString(id, 128)) throw new Error(t('errors.ipc.invalidId'));
     return connection.select(id);
   });
-  handle(Channels.serversRemove, (_e, id: unknown) => {
-    if (isString(id, 128)) connection.remove(id);
+  handle(Channels.serversRemove, async (_e, id: unknown) => {
+    if (!isString(id, 128)) return;
+    // The stopped report to an unreachable server (a common reason to remove it) must not hold up the removal.
+    if (playback.serverId === id)
+      await Promise.race([playback.stop().catch((err) => log.warn('stop before remove failed', err)), new Promise((r) => setTimeout(r, 2000))]);
+    connection.remove(id);
   });
   handle(Channels.serversWake, (_e, id: unknown) => (isString(id, 128) ? connection.wake(id) : false));
   // Plex (plex-spec §5): tokens only ever stay in main.

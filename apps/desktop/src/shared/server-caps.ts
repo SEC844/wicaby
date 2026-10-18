@@ -61,6 +61,8 @@ const TABLE: Record<ServerKind, ServerCaps> = {
   // Favorites: the plex.tv watchlist (D-6).
   plex: { ...SERVER, admin: false, sessionsRemote: false, castReceiver: false, serverHubs: true, comics: false },
   files: FILES,
+  // Navidrome (OpenSubsonic): music only, favourites are stars; cast through the relay only (main signs the URL).
+  navidrome: { ...SERVER, admin: false, liveTv: false, sessionsRemote: false, castReceiver: false, serverHubs: false, subtitleSearch: false, comics: false },
   // IPTV (main/iptv): Live TV only, from this machine. Not a server: no admin, no Home, no cast receiver.
   iptv: { ...FILES, liveTv: true, localUserData: false, homeOptIn: false },
 };
@@ -76,5 +78,5 @@ export function caps(kind: string | undefined): ServerCaps {
 
 // The label next to a source's name. Brand names: not translated.
 export function kindLabel(kind: string | undefined, files = 'Files'): string {
-  return kind === 'jellyfin' ? 'Jellyfin' : kind === 'plex' ? 'Plex' : kind === 'files' ? files : kind === 'iptv' ? 'IPTV' : 'Emby';
+  return kind === 'jellyfin' ? 'Jellyfin' : kind === 'plex' ? 'Plex' : kind === 'navidrome' ? 'Navidrome' : kind === 'files' ? files : kind === 'iptv' ? 'IPTV' : 'Emby';
 }

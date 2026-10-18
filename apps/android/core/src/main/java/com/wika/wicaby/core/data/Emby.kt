@@ -24,7 +24,9 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.JsonNamingStrategy
 import com.wika.wicaby.core.net.ServerTransport
+import com.wika.wicaby.core.net.await
 import com.wika.wicaby.core.net.origin
+import com.wika.wicaby.core.net.probeDispatcher
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -33,6 +35,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okio.ByteString.Companion.encodeUtf8
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
@@ -691,7 +694,12 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
 
         fun of(server: Server, deviceId: String, token: String? = null, userId: String? = null): Api =
             forKind(server, deviceId, token, userId)
-                ?: if (server.kind == "plex") com.wika.wicaby.core.plex.Plex.api(server, deviceId, token, userId) else Api(server, deviceId, token, userId)
+                ?: when (server.kind) {
+                    "plex" -> com.wika.wicaby.core.plex.Plex.api(server, deviceId, token, userId)
+                    // token: the password (Subsonic token+salt needs it), userId: the user name.
+                    "navidrome" -> com.wika.wicaby.core.subsonic.SubsonicApi(server, deviceId, token, userId)
+                    else -> Api(server, deviceId, token, userId)
+                }
 
         fun candidates(input: String): List<String> {
             var raw = input.trim().trimEnd('/')
@@ -707,12 +715,14 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
 
         // [timeoutMs]: per request; MeshServers probes peers with a shorter one.
         internal suspend fun probeOne(address: String, timeoutMs: Long = 6000): Server = withContext(Dispatchers.IO) {
-            val client = Core.http.newBuilder().callTimeout(timeoutMs, TimeUnit.MILLISECONDS).build()
+            val client = Core.http.newBuilder().dispatcher(probeDispatcher).callTimeout(timeoutMs, TimeUnit.MILLISECONDS).build()
+            var answered = false
             for (prefix in listOf("/emby", "")) {
                 val req = Request.Builder().url("$address$prefix/System/Info/Public").header("Accept", "application/json").build()
                 // No HTTP answer at all (refused, dropped, TLS failure): the root path won't do better,
                 // so a host that silently drops the port costs one timeout, not two.
-                val res = try { client.newCall(req).execute() } catch (e: IOException) { break }
+                val res = try { client.newCall(req).await() } catch (e: IOException) { break }
+                answered = true
                 val info = res.use { r -> if (r.isSuccessful) runCatching { json.decodeFromString<SystemInfo>(r.body.string()) }.getOrNull() else null } ?: continue
                 if (info.id.isBlank()) continue
                 val product = info.productName.orEmpty()
@@ -723,7 +733,22 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
                 }
                 return@withContext Server(info.id, info.serverName ?: address, address, kind)
             }
+            // A Navidrome (or any OpenSubsonic) server: /rest/ping answers a subsonic-response even without auth.
+            if (answered) subsonicPing(client, address)?.let { return@withContext it }
             throw IOException(Core.str(R.string.not_a_server))
+        }
+
+        // Subsonic has no server id: one derived from the origin (the same address, the same server).
+        private suspend fun subsonicPing(client: okhttp3.OkHttpClient, address: String): Server? {
+            val req = Request.Builder().url("$address/rest/ping.view?v=1.16.1&c=Wicaby&f=json").header("Accept", "application/json").build()
+            val r = runCatching {
+                client.newBuilder().followRedirects(false).build().newCall(req).await().use { res ->
+                    if (res.isSuccessful) (json.parseToJsonElement(res.body.string()) as? JsonObject)?.get("subsonic-response") as? JsonObject else null
+                }
+            }.getOrNull() ?: return null
+            val type = (r["type"] as? JsonPrimitive)?.contentOrNull?.replaceFirstChar { it.uppercase() } ?: "Subsonic"
+            val origin = address.toHttpUrlOrNull()?.let { com.wika.wicaby.core.net.origin(it) } ?: address
+            return Server("nd" + origin.encodeUtf8().sha256().hex().take(16), type, address, "navidrome")
         }
 
         // Races the given addresses and keeps the first that answers; null when none does.

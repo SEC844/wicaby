@@ -66,6 +66,8 @@ object Core {
             .addInterceptor(TransportInterceptor { transport })
             // Per hop (redirects too): credentials for the active server only, stripped elsewhere.
             .addNetworkInterceptor(ServerAuthInterceptor({ transport }, { com.wika.wicaby.core.data.Servers.extra }) { api })
+            // Navidrome (music spec §4.B): Subsonic media hops to a signed-in server get u/t/s, nothing else does.
+            .addNetworkInterceptor(com.wika.wicaby.core.subsonic.SubsonicInterceptor({ transport }, { com.wika.wicaby.core.data.Servers.extra }) { api })
             // Immich photo source (photos spec PH-13): x-api-key for its own origin only, dropped on any other hop.
             .addNetworkInterceptor(com.wika.wicaby.core.photos.ImmichKeyInterceptor({ transport }) { com.wika.wicaby.core.photos.Immich.source })
             // IPTV: the playing channel's EXTVLCOPT User-Agent and Referer, on its stream host only.
@@ -121,6 +123,8 @@ object Core {
         if (a.token == null || !::app.isInitialized) return
         // Plex has no Emby socket (its token never rides in a URL); a server-ended play comes back on the timeline.
         if (a.server.kind == "plex") return
+        // Navidrome (Subsonic) has no realtime channel.
+        if (a.server.kind == "navidrome") return
         val key = sessionKey(a)
         val control = remoteControl
         socket = ServerSocket(http, a.socketUrl(), capabilities = { a.capabilities(control) }, deliver = { m ->

@@ -14,12 +14,13 @@ await build({ entryPoints: [path.join(repo, 'apps/desktop/src/shared/server-caps
 const { caps, kindLabel } = await import(pathToFileURL(out).href);
 const fixture = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'fixtures', 'server-caps.json'), 'utf8'));
 const kinds = Object.keys(fixture).filter((k) => !k.startsWith('$'));
-assert.deepEqual(kinds.sort(), ['emby', 'files', 'jellyfin', 'plex']);
+assert.deepEqual(kinds.sort(), ['emby', 'files', 'jellyfin', 'navidrome', 'plex']);
 for (const k of kinds) assert.deepEqual(caps(k), fixture[k], `caps(${k})`);
 // An unknown kind (a newer settings file, a missing session) gets the row the fixture names, on both platforms.
 for (const k of ['unknown', '', undefined]) assert.deepEqual(caps(k), fixture[fixture.$unknownKind], `caps(${k})`);
 assert.equal(kindLabel('emby'), 'Emby');
 assert.equal(kindLabel('jellyfin'), 'Jellyfin');
 assert.equal(kindLabel('plex'), 'Plex');
+assert.equal(kindLabel('navidrome'), 'Navidrome');
 assert.equal(kindLabel('files', 'Fichiers'), 'Fichiers');
 console.log(`caps-check: ok (${kinds.length} kinds × ${Object.keys(fixture.emby).length} flags)`);

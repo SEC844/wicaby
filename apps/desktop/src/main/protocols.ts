@@ -5,9 +5,10 @@ import { pathToFileURL } from 'node:url';
 import { app, net, protocol, session } from 'electron';
 import { APP_HOST, APP_SCHEME, MEDIA_SCHEME } from '../shared/contract';
 import { remoteImage } from './admin/item-images';
-import { fetchServer, isServerOrigin, resolveServerUrl, stripTokenParams, type ApiClient } from './connection/api-client';
+import { fetchFollowing, isServerOrigin, resolveServerUrl, stripTokenParams, type ApiClient } from './connection/api-client';
 import type { ConnectionManager } from './connection/connection-manager';
 import { PlexClient } from './connection/plex-client';
+import { SubsonicClient } from './connection/subsonic-client';
 import type { ComicService } from './comics/comic-service';
 import { logger } from './core/log';
 import { FilesClient } from './files/files-client';
@@ -149,7 +150,16 @@ export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqM
     if (!mapped) return new Response('Not found', { status: 404, headers: CORS });
     relWithQuery = mapped;
   }
-  const target = resolveServerUrl(api, relWithQuery);
+  // Navidrome: the Subsonic media path, signed after resolveServerUrl (its token-parameter stripping would not
+  // remove u/t/s, but the signature belongs on the final URL to this server only).
+  const subsonic = api instanceof SubsonicClient;
+  if (subsonic) {
+    const mapped = api.mediaPath(relWithQuery);
+    if (!mapped) return new Response('Not found', { status: 404, headers: CORS });
+    relWithQuery = mapped;
+  }
+  const resolved = resolveServerUrl(api, relWithQuery);
+  const target = resolved && subsonic ? api.sign(resolved) : resolved;
   if (!target) return new Response('Bad request', { status: 400, headers: CORS });
   const method = reqMethod === 'HEAD' ? 'HEAD' : 'GET';
   const plain: Record<string, string> = {};
@@ -157,10 +167,8 @@ export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqM
     const v = header(h);
     if (v) plain[h] = v;
   }
-  let hop = await fetchServer(api, target, { method, headers: { ...plain, ...api.authHeaders() } });
-  for (let n = 0; 'foreign' in hop && n < 5; n++) hop = await fetchServer({ address: hop.foreign }, hop.foreign, { method, headers: plain });
-  if (!('response' in hop)) return new Response('Bad gateway', { status: 502, headers: CORS });
-  const res = hop.response;
+  const res = await fetchFollowing(api, target, { method, headers: plain, auth: api.authHeaders() });
+  if (!res) return new Response('Bad gateway', { status: 502, headers: CORS });
   const out = new Headers(res.headers);
   for (const [k, v] of Object.entries(CORS)) out.set(k, v);
   out.delete('set-cookie');
@@ -241,8 +249,9 @@ export function handleProtocols(opts: {
   //                             without the server id, the primary server
   // wicaby-media://local/<id>  downloaded media file
   // wicaby-media://poster/<id> downloaded poster
-  // wicaby-media://comic/<serverId>/<itemId>/<page> page image of an opened CBZ
-  // wicaby-media://comic-cover/<serverId>/<itemId>?v=<version>[&full] first page of a CBZ without a server cover
+  // wicaby-media://comic/<serverId>/<itemId>/<page> page image of an opened book
+  // wicaby-media://comic-cover/<serverId>/<itemId>?v=<version>[&full] first page of a book without a server cover
+  // wicaby-media://comic-file/<serverId>/<itemId>  a book's bytes, one Range at a time (the PDF page renderer)
   // wicaby-media://tile/<z>/<x>/<y> photo map tile, from the configured tile host only (photos/tiles.ts)
   // wicaby-media://immich/<source>/assets/<uuid>/thumbnail|original|video/playback, people/<uuid>/thumbnail: an
   //                             Immich source's pictures, the x-api-key added in main (photos/immich.ts)
@@ -285,6 +294,13 @@ export function handleProtocols(opts: {
         return new Response(new Uint8Array(page.data), {
           headers: { 'Content-Type': page.type, 'Content-Length': String(page.data.length), 'Cache-Control': 'private, max-age=86400', ...CORS },
         });
+      }
+      if (url.host === 'comic-file') {
+        const [sid, id = ''] = url.pathname.slice(1).split('/').map(decodeURIComponent);
+        const res = await opts.comics.file(id, req.headers.get('range'), sid, req.signal);
+        const headers = new Headers(res.headers);
+        for (const [k, v] of Object.entries(CORS)) headers.set(k, v);
+        return new Response(res.body, { status: res.status, headers });
       }
       if (url.host === 'comic-cover') {
         const parts = url.pathname.slice(1).split('/').map(decodeURIComponent);

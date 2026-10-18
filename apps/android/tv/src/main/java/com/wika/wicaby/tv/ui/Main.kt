@@ -156,7 +156,7 @@ fun MainScreen() {
     val snap = LocalSnapshot.current
     val activity = checkNotNull(LocalActivity.current)
     // TP-07: Home's rows need every library (music, Live TV…); the tabs only the browsable ones.
-    val loadedLibs = rememberLoad("views") { allViews(api) }.value.value
+    val loadedLibs = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}") { allViews(api) }.value.value
     val libs = loadedLibs.orEmpty()
     val views = tabViews(libs)
     val user = rememberLoad("me-${api.userId}") { api.get<User>("/Users/${api.userId}") }.value.value

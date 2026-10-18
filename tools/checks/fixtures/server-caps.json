@@ -60,5 +60,20 @@
     "transcode": false,
     "castSend": false,
     "homeOptIn": true
+  },
+  "navidrome": {
+    "admin": false,
+    "liveTv": false,
+    "sessionsRemote": false,
+    "castReceiver": false,
+    "favorites": true,
+    "serverHubs": false,
+    "hideFromResume": true,
+    "subtitleSearch": false,
+    "comics": false,
+    "localUserData": false,
+    "transcode": true,
+    "castSend": true,
+    "homeOptIn": false
   }
 }

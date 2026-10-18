@@ -14,7 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
-import { pickAudio, pickSubtitle, selectTracks, rememberChoice } from '../../apps/desktop/src/main/playback/track-selection.ts';
+import { pickAudio, pickSubtitle, selectTracks, rememberChoice } from '../../apps/desktop/src/shared/track-selection.ts';
 import { pickRate } from '../../apps/desktop/src/main/features/display-mode-linux.ts';
 
 const desktop = path.join(import.meta.dirname, '..', '..', 'apps', 'desktop');

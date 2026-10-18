@@ -399,6 +399,25 @@ await check('unreachable at startup: selected once it answers', async () => {
   m.disconnect();
 });
 
+await check('a servers file reduced to {} or corrupt starts empty; a corrupt one is kept aside, a failed write does not throw', async () => {
+  for (const text of ['{}', '{"servers": [', 'null']) {
+    const file = path.join(tmp, `servers-${crypto.randomUUID()}.json`);
+    fs.writeFileSync(file, text);
+    const m = new ConnectionManager(file, new FakeVault(), identity);
+    assert.deepEqual(m.session.sessions, [], text);
+    const aside = fs.readdirSync(tmp).filter((f) => f.startsWith(`${path.basename(file)}.corrupt-`));
+    assert.equal(aside.length, text === '{}' ? 0 : 1, `${text}: kept aside`);
+    if (aside.length) assert.equal(fs.readFileSync(path.join(tmp, aside[0]), 'utf8'), text);
+    m.flush();
+    // A directory where the file goes: the write fails, logged and retried later, never thrown at the caller.
+    fs.rmSync(file, { force: true });
+    fs.mkdirSync(file);
+    fs.mkdirSync(path.join(file, 'x'));
+    m.flush();
+    fs.rmSync(file, { recursive: true });
+  }
+});
+
 // ---------------------------------------------------------------- 3. Against mock-emby and its failure toggles
 StreamRecovery.giveUpMs = 10_000;
 const LOOPBACK = '127.0.0.1';

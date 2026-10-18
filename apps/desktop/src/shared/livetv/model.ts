@@ -8,7 +8,7 @@ import { genreFlags } from './lens';
 // 'files' never has Live TV (server-caps.ts) but flows through the same API types; 'plex' sends the non-Emby forms,
 // which the Plex adapter answers (shared/plex/livetv-map.ts, PX-11; on only with Plex Pass and a tuner). 'iptv' (main/iptv)
 // answers both forms; the renderer's store speaks Emby to it.
-export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex' | 'iptv';
+export type ServerKind = 'emby' | 'jellyfin' | 'files' | 'plex' | 'iptv' | 'navidrome';
 
 export const PF = { Live: 1, New: 2, Premiere: 4, Repeat: 8, HD: 16, Movie: 32, Sports: 64, News: 128, Kids: 256, Series: 512 } as const;
 export type PfName = keyof typeof PF;

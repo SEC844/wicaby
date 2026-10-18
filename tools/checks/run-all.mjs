@@ -11,6 +11,8 @@ const checks = [
   ['livetv-a11y-check.mjs'],
   ['hdr-check.mjs'],
   ['track-check.mjs'],
+  // Web TV app (docs/webtv.md): the 'tv' device profile, mediaBase, TV Back keys, the web bridge and its demo server.
+  ['webtv-check.mjs'],
   ['parity-check.mjs'],
   ['skip-check.mjs'],
   ['home-rows-check.mjs'],
@@ -21,6 +23,7 @@ const checks = [
   ['iptv-check.mjs'],
   ['tv-home-check.mjs'],
   ['play-on-check.mjs'],
+  ['mock-ws-check.mjs'],
   ['sessions-mock-check.mjs'],
   ['cast-mock-check.mjs'],
   ['cast-sender-check.mjs'],
@@ -39,6 +42,7 @@ const checks = [
   ['continue-check.mjs'],
   ['zip-check.mjs'],
   ['comic-cover-check.mjs'],
+  ['comic-formats-check.mjs'],
   ['download-path-check.mjs'],
   ['bif-check.mjs'],
   ['mesh-selfcheck.mjs'],
@@ -103,6 +107,8 @@ const checks = [
   ['plex-cast-check.mjs'],
   // Plex Live TV and DVR on the desktop (PX-11).
   ['plex-livetv-check.mjs'],
+  // Navidrome (OpenSubsonic) music source: vectors and the desktop client against mock-navidrome (music spec §4.B).
+  ['subsonic-check.mjs'],
   // README images carry no metadata (tEXt, iTXt, eXIf, caBX, WebP EXIF/XMP).
   ['../screenshots/strip-metadata.mjs', '--self-test'],
   ['../screenshots/strip-metadata.mjs', '--check'],
@@ -111,7 +117,11 @@ const checks = [
 const failed = [];
 for (const [script, ...args] of checks) {
   console.log(`\n== ${script} ${args.join(' ')}`.trimEnd());
-  const r = spawnSync(process.execPath, [path.join(here, script), ...args], { stdio: 'inherit' });
+  // A check that waits forever on a mock's log line fails here, under its name, not at the CI job timeout.
+  const r = spawnSync(process.execPath, [path.join(here, script), ...args], { stdio: 'inherit', timeout: 300_000, killSignal: 'SIGKILL' });
+  // shortcut: SIGKILL reaches only the check, not a mock it spawned, so later checks may fail on its port; the
+  // run still fails. Kill the process tree if that noise ever hides a real failure.
+  if (r.error?.code === 'ETIMEDOUT') console.log(`${script}: timed out after 300 s`);
   if (r.status !== 0) failed.push(script);
 }
 

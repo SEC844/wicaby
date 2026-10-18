@@ -42,7 +42,19 @@ const (
 	maxRelBytes   = 4096
 )
 
-var errBusy = errors.New("too many reads")
+var filesWriteIdle = time.Minute // var: tests shorten it
+
+// idleWriter gives each write filesWriteIdle to go out: a client that stops reading without closing
+// (a paused player) loses its connection and frees its read slot. Not a WriteTimeout: films stream for hours.
+type idleWriter struct {
+	http.ResponseWriter
+	rc *http.ResponseController
+}
+
+func (w idleWriter) Write(p []byte) (int, error) {
+	_ = w.rc.SetWriteDeadline(time.Now().Add(filesWriteIdle))
+	return w.ResponseWriter.Write(p)
+}
 
 // FilesServer is the loopback listener every open share is served on.
 type FilesServer struct {
@@ -196,13 +208,14 @@ func (s *FilesServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
+	// A full share waits for a slot (posters while a film plays) rather than failing the request.
 	select {
 	case sh.reads <- struct{}{}:
 		defer func() { <-sh.reads }()
-	default:
-		backendError(w, errBusy)
+	case <-r.Context().Done():
 		return
 	}
+	w = idleWriter{w, http.NewResponseController(w)}
 	if route == "ls" {
 		infos, err := sh.b.ReadDir(rel)
 		if err != nil {
@@ -251,8 +264,6 @@ var (
 
 func backendError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, errBusy):
-		http.Error(w, "busy: "+err.Error(), http.StatusServiceUnavailable)
 	case errors.Is(err, fs.ErrNotExist), errors.Is(err, errNotFound):
 		http.Error(w, "notfound: "+err.Error(), http.StatusNotFound)
 	case errors.Is(err, errAuth):

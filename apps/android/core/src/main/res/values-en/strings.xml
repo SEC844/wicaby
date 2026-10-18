@@ -6,7 +6,7 @@
     <string name="no_playable_source">The server offers no playback method this device supports.</string>
 
     <!-- Server -->
-    <string name="not_a_server">Not an Emby or Jellyfin server</string>
+    <string name="not_a_server">Not an Emby, Jellyfin, Plex or Navidrome server</string>
     <string name="server_unreachable_probe">Server can’t be reached</string>
     <string name="server_insecure">Unencrypted connection (HTTP): the access token and password travel in clear text on the network.</string>
 
@@ -61,7 +61,10 @@
     <string name="qbit_bad_response">Unreadable response</string>
     <string name="qbit_torrent_refused">qBittorrent rejected this torrent</string>
     <!-- Comic reader -->
-    <string name="reader_unsupported">Format not supported: only CBZ comics can be read for now (no CBR, PDF or EPUB yet).</string>
+    <string name="reader_unsupported">Unsupported format or unreadable file. The reader opens CBZ, CBR, CB7, CBT, PDF, and image EPUB books.</string>
+    <string name="reader_encrypted">This book is protected (password or DRM) and can’t be opened</string>
+    <string name="reader_text_book">Text EPUBs aren’t supported: only image EPUBs (comics, manga) open in the reader</string>
+    <string name="reader_too_large">This book is too large to open</string>
     <string name="reader_no_pages">No pages found in this archive</string>
     <string name="reader_forbidden">This user is not allowed to read this book</string>
     <string name="reader_load_error">Couldn’t open this book</string>
@@ -179,7 +182,7 @@
     <string name="errors_livetv_no_stream">This server offers no playable stream for this channel.</string>
     <!-- Live TV reminders (Reminders.kt): notification and permission notice. -->
     <string name="livetv_reminder_channel">Live TV Reminders</string>
-    <string name="livetv_reminder_title">%1$s Is Starting</string>
+    <string name="livetv_reminder_title">%1$s is starting</string>
     <string name="livetv_reminder_body">On %1$s at %2$s</string>
     <string name="livetv_reminder_watch">Watch</string>
     <string name="player_live_reminder_permission">Allow notifications to get reminders.</string>
@@ -187,7 +190,7 @@
     <string name="chapters">Chapters</string>
     <string name="chapter_position">Chapter %1$d of %2$d, %3$s</string>
     <string name="speed">Playback Speed</string>
-    <string name="remote_message">Message Received</string>
+    <string name="remote_message">Message received</string>
     <string name="settings_remote_control">Allow Remote Control</string>
     <string name="settings_remote_control_summary">Wicaby shows up in the Emby and Jellyfin apps’ “Play on” list, which can start, pause, seek or stop playback.</string>
     <!-- X-01: merged Continue Watching -->
@@ -195,7 +198,7 @@
     <string name="remove_from_continue">Remove from Continue Watching</string>
     <string name="removed_from_continue">Removed from Continue Watching</string>
     <string name="undo">Undo</string>
-    <string name="next_episode_short">Next: S%1$d·E%2$d</string>
+    <string name="next_episode_short">Next: S%1$d E%2$d</string>
     <string name="continue_time_left">%1$s left</string>
     <!-- X-04: player input and timers -->
     <string name="ends_at">Ends at %1$s</string>
@@ -234,7 +237,7 @@
     <string name="subsearch_forbidden">Your account cannot download subtitles</string>
     <string name="subsearch_added">Subtitle added</string>
     <string name="subsearch_failed">Couldn’t add the subtitle</string>
-    <string name="play_method_direct">Direct</string>
+    <string name="play_method_direct">Direct Play</string>
     <string name="play_method_transcode">Transcoding</string>
     <!-- X-05: remembered tracks and player settings. -->
     <string name="tracks_applied">Tracks from the previous episode applied</string>
@@ -284,14 +287,14 @@
     <!-- Q-A: audio delay and subtitle offset (AvSync), playback stats, speed in passthrough. -->
     <string name="sync_row">Sync…</string>
     <string name="sync_title">Sync</string>
-    <string name="sync_audio">Audio delay</string>
-    <string name="sync_subtitles">Subtitle offset</string>
+    <string name="sync_audio">Audio Offset</string>
+    <string name="sync_subtitles">Subtitle Offset</string>
     <string name="sync_ms">%1$s ms</string>
     <string name="sync_reset">Reset</string>
-    <string name="sync_series">Whole series</string>
-    <string name="sync_hint">Positive: later. Remembered for this video; “Whole series” applies it to the other episodes too.</string>
+    <string name="sync_series">Entire Series</string>
+    <string name="sync_hint">Positive: later. Remembered for this video; “Entire Series” applies it to the other episodes too.</string>
     <string name="speed_bitstream">This track goes to the TV or receiver as HDMI passthrough, which decodes it, so the speed stays at 1×.</string>
-    <string name="stats_title">Playback info</string>
+    <string name="stats_title">Playback Info</string>
     <string name="stats_container">Container</string>
     <string name="stats_video">Video</string>
     <string name="stats_video_decoder">Video decoder</string>
@@ -307,7 +310,7 @@
     <string name="stats_passthrough">HDMI passthrough (decoded by the TV or receiver)</string>
     <string name="stats_direct_play">Direct play</string>
     <string name="stats_direct_stream">Direct stream (remux)</string>
-    <string name="stats_mbps">%1$s Mb/s</string>
+    <string name="stats_mbps">%1$s Mbps</string>
     <string name="stats_seconds">%1$s s</string>
     <string name="stats_subtitles">Subtitles</string>
     <string name="stats_server">Server</string>
@@ -478,7 +481,7 @@
     <string name="photos_sources_scope_missing">The API key lacks the %1$s permission; add it in Immich to see this part.</string>
     <string name="photos_sources_key_refused">The Immich server refuses the API key. Connect it again in Settings.</string>
     <string name="photos_sources_error_url">Invalid address.</string>
-    <string name="photos_sources_error_network">Server unreachable.</string>
+    <string name="photos_sources_error_network">Server can’t be reached.</string>
     <string name="photos_sources_error_server">This server does not answer like an Immich server.</string>
     <string name="photos_sources_error_auth">API key refused.</string>
     <string name="photos_sources_error_scope">The key lacks the asset.read permission the timeline needs.</string>
@@ -495,4 +498,10 @@
     <string name="plex_error_no_access">This profile has no access to this Plex server.</string>
     <string name="plex_error_confirm_http">This Plex server address is unencrypted (HTTP): confirm it before the access token is sent there.</string>
     <string name="plex_link_no_servers">This Plex account has access to no server.</string>
+    <string name="music_source">Music source</string>
+    <string name="music_source_auto">Automatic</string>
+    <string name="music_source_hint">The server whose libraries and playlists the Music section shows. Navidrome keeps your favourites (stars) and playlists.</string>
+    <string name="navidrome_token_unsupported">This server refuses token sign-in (LDAP accounts on Navidrome): Wicaby never sends the password in clear.</string>
+    <string name="navidrome_not_owner">This playlist belongs to another user: only its owner can change it.</string>
+    <string name="navidrome_cast_unsupported">Casting Navidrome music works from Wicaby for PC (cast relay).</string>
 </resources>

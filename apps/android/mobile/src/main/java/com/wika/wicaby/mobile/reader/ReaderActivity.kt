@@ -3,7 +3,6 @@ package com.wika.wicaby.mobile.reader
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
@@ -73,6 +72,7 @@ import androidx.lifecycle.lifecycleScope
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.comics.ComicPages
 import com.wika.wicaby.core.comics.ComicReader
+import com.wika.wicaby.core.comics.ReaderAwake
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.mobile.R
 import com.wika.wicaby.mobile.ui.Accents
@@ -106,6 +106,12 @@ class ReaderActivity : AppCompatActivity() {
     }
 
     private var reader: ComicReader? = null
+    private val awake by lazy { ReaderAwake(window) }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        awake.poke()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -117,7 +123,7 @@ class ReaderActivity : AppCompatActivity() {
         val r = ComicReader(api, id, keep = 3, scope = lifecycleScope, pixelBudget = 2.5f)
         reader = r
         r.start(intent.getBooleanExtra(EXTRA_FROM_START, false))
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        awake.poke()
         immersive()
         setContent {
             val snap by Core.prefs.data.collectAsState(null)
@@ -141,6 +147,7 @@ class ReaderActivity : AppCompatActivity() {
 
     // Back saves the last page (also when the system finishes us).
     override fun onDestroy() {
+        awake.stop()
         if (isFinishing) reader?.close()
         super.onDestroy()
     }

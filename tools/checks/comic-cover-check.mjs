@@ -32,8 +32,8 @@ assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Container: 'c
 assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Path: '/b/x.CBZ', Etag: 'e1', DateCreated: 'd1' }), 'e1', 'Etag first');
 assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book' }), '', 'format unknown: tried');
 assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Container: 'cbz', ImageTags: { Primary: 't' } }), null, 'the server cover wins');
-assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Path: '/b/x.epub' }), null, 'not a CBZ');
-assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Container: 'cbr' }), null, 'RAR is not read');
+assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Path: '/b/x.mobi' }), null, 'a format the reader does not open');
+for (const ext of ['cbr', 'cb7', 'cbt', 'pdf', 'epub']) assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Book', Container: ext, DateCreated: 'd' }), 'd', `${ext} gets a cover`);
 assert.equal(comicCoverVersion({ Id: 'a', Name: 'a', Type: 'Movie' }), null);
 
 // 3. A server that ignores Range (200, whole file) is refused, not read.
@@ -50,6 +50,29 @@ await assert.rejects(httpSource(async () => new Response(Buffer.alloc(1 << 20), 
   const got = await src.read(1000, 50);
   assert.equal(got.length, 50, 'an open-ended 206 is cut to the asked length');
   assert.deepEqual([...got], [...file.subarray(1000, 1050)], 'and holds the asked bytes');
+}
+
+// 3c. Book downloads stop past the cache cap and when the server goes quiet, and leave no file behind.
+{
+  const { download } = await imp('apps/desktop/src/main/comics/download.ts');
+  const MSG = { tooLarge: 'larger', stalled: 'stopped sending' };
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wicaby-dl-'));
+  const part = path.join(tmp, 'b.cbz.part');
+  const body = (chunks, hang = false) =>
+    new ReadableStream({
+      async pull(c) {
+        if (chunks.length) c.enqueue(chunks.shift());
+        else if (!hang) c.close();
+        else await new Promise(() => {});
+      },
+    });
+  await download(async () => body([new Uint8Array(10), new Uint8Array(10)]), part, 20, 1000, MSG);
+  assert.equal(fs.statSync(part).size, 20, 'a book at the cap is kept');
+  await assert.rejects(download(async () => body([new Uint8Array(15), new Uint8Array(15)]), part, 20, 1000, MSG), /larger/, 'past the cap fails');
+  assert.ok(!fs.existsSync(part), 'and removes the part file');
+  await assert.rejects(download(async () => body([new Uint8Array(5)], true), part, 20, 50, MSG), /stopped sending/, 'a stalled body fails');
+  await assert.rejects(download((signal) => new Promise((_, no) => signal.addEventListener('abort', () => no(new Error('aborted')))), part, 20, 50, MSG), /stopped sending/, 'a request with no answer fails');
+  fs.rmSync(tmp, { recursive: true, force: true });
 }
 
 // 4. Against the mock: the comics without a server cover, read with Range requests.
@@ -76,7 +99,8 @@ try {
   }).then((r) => r.json());
   const H = { 'X-Emby-Token': login.AccessToken };
   const books = await fetch(`${base}/Users/${login.User.Id}/Items?ParentId=lib-books&Fields=DateCreated,Etag`, { headers: H }).then((r) => r.json());
-  const bare = books.Items.filter((b) => comicCoverVersion(b) !== null);
+  // The ZIP books here; comic-formats-check covers the others.
+  const bare = books.Items.filter((b) => comicCoverVersion(b) !== null && b.Container === 'cbz');
   assert.ok(bare.length >= 1, 'the mock has a comic without a Primary image');
   assert.ok(books.Items.some((b) => b.ImageTags?.Primary), 'and comics with one');
   for (const book of bare) {
@@ -103,7 +127,7 @@ try {
     assert.ok(requests <= 3, `${book.Id}: ${requests} range requests`);
     console.log(`comic-cover-check: ${book.Id} cover from ${served} of ${archive.length} bytes in ${requests} requests`);
   }
-  console.log('comic-cover-check: page choice, eligible books and Range reads OK');
+  console.log('comic-cover-check: page choice, eligible books, Range reads and download limits OK');
 } finally {
   server.close();
   fs.rmSync(dir, { recursive: true, force: true });

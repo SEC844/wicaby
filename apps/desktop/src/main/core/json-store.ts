@@ -1,5 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { logger } from './log';
+
+const log = logger.scope('store');
+const isPlain = (v: unknown): boolean => !!v && typeof v === 'object' && !Array.isArray(v);
 
 // Small JSON document persisted with write-to-temp + rename so a crash never
 // leaves a half-written file. Writes are coalesced.
@@ -13,11 +17,25 @@ export class JsonStore<T> {
     private readonly delayMs = 250,
   ) {
     this.data = defaults;
+    let raw: string;
     try {
-      const raw = fs.readFileSync(filePath, 'utf8');
-      this.data = JSON.parse(raw) as T;
+      raw = fs.readFileSync(filePath, 'utf8');
     } catch {
-      // Missing or corrupt file: start from defaults.
+      return; // Missing file: start from defaults.
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (isPlain(defaults) && !isPlain(parsed)) throw new Error('not an object');
+      this.data = parsed as T;
+    } catch (err) {
+      // Corrupt: kept aside for a look, since the next write replaces the file with defaults.
+      const aside = `${filePath}.corrupt-${Date.now()}`;
+      log.warn(`${path.basename(filePath)} unreadable, kept as ${path.basename(aside)}`, err);
+      try {
+        fs.renameSync(filePath, aside);
+      } catch {
+        // Left in place: the next write replaces it.
+      }
     }
   }
 
@@ -46,9 +64,15 @@ export class JsonStore<T> {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    const tmp = `${this.filePath}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2));
-    fs.renameSync(tmp, this.filePath);
+    try {
+      fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+      const tmp = `${this.filePath}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2));
+      fs.renameSync(tmp, this.filePath);
+    } catch (err) {
+      // Disk full, file locked by an antivirus...: thrown from a timer it would kill the main process. Tried again later.
+      log.warn(`cannot write ${path.basename(this.filePath)}`, err);
+      this.timer = setTimeout(() => this.flush(), 5000).unref();
+    }
   }
 }

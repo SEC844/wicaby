@@ -4,9 +4,11 @@
 // and renderer image ids. No server, no network.
 // Run: node tools/checks/media-url-check.mjs
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
@@ -21,7 +23,7 @@ const stubs = {
     b.onLoad({ filter: /^electron$/, namespace: 'stub' }, () => ({
       contents:
         `export const app = { isReady: () => false, isPackaged: true, getLocale: () => 'fr', getPath: () => '.', on() {} };\n` +
-        `export const net = { fetch: () => Promise.reject(new Error('no network in checks')), request() { throw new Error('no network in checks'); } };\n` +
+        `export const net = { fetch: () => Promise.reject(new Error('no network in checks')), request: (o) => { if (globalThis.__netRequest) return globalThis.__netRequest(o); throw new Error('no network in checks'); } };\n` +
         electronNames.filter((n) => n !== 'app' && n !== 'net').map((n) => `export const ${n} = {};`).join('\n'),
     }));
     b.onLoad({ filter: /^stores$/, namespace: 'stub' }, () => ({ contents: `export const sessionFor = () => undefined;` }));
@@ -33,10 +35,10 @@ async function load(rel) {
   return import(pathToFileURL(out).href);
 }
 
-const { stripTokenParams, isServerOrigin, serverPath, resolveServerUrl, plainHttpUrl, sameServer } = await load('src/main/connection/api-client.ts');
+const { stripTokenParams, isServerOrigin, serverPath, resolveServerUrl, plainHttpUrl, sameServer, fetchFollowing } = await load('src/main/connection/api-client.ts');
 const { mediaOriginAllowed, apiPathRefused, stripPlaylistTokens, readPlaylist, MAX_PLAYLIST_BYTES } = await load('src/main/protocols.ts');
 const { allowedImageHost, providerUrl, publicAddress, checkImageUrl, previewType } = await load('src/main/admin/item-images.ts');
-const { mediaApiUrl, validId } = await load('src/main/playback/playback-model.ts');
+const { mediaApiUrl, validId, redirectTarget } = await load('src/main/playback/playback-model.ts');
 globalThis.devicePixelRatio = 1;
 const { imageUrl, userImageUrl, posterUrl } = await load('src/renderer/lib/images.ts');
 
@@ -199,6 +201,62 @@ assert.equal(imageUrl('abc', 'Primary', { index: -1 }), '');
 assert.equal(userImageUrl('../../Items'), '');
 assert.ok(userImageUrl('u-wika').startsWith('wicaby-media://api/Users/u-wika/Images/Primary?'));
 assert.equal(posterUrl({ Id: '../x', ImageTags: { Primary: 't' } }), null);
+
+// --- Redirects: the token stays with the server (fetchFollowing, redirectTarget). A fake
+// net.request: `hops` maps a URL to its 302 Location, anything else answers 200 "ok".
+const sent = [];
+let hops = {};
+globalThis.__netRequest = ({ url }) => {
+  const req = new EventEmitter();
+  const headers = {};
+  let at = url;
+  const step = () => {
+    sent.push({ url: at, headers: { ...headers } });
+    if (hops[at]) return req.emit('redirect', 302, 'GET', hops[at]);
+    const res = Object.assign(Readable.from([Buffer.from('ok')]), { statusCode: 200, headers: {} });
+    req.emit('response', res);
+  };
+  Object.assign(req, {
+    setHeader: (k, v) => (headers[k] = v),
+    followRedirect: () => ((at = hops[at]), queueMicrotask(step)),
+    abort: () => req.emit('abort'),
+    end: () => queueMicrotask(step),
+  });
+  return req;
+};
+const SRV = 'http://srv.example:8096/emby';
+const auth = { 'X-Emby-Token': 'SECRET' };
+hops = { [`${SRV}/Items/1/Download`]: `${SRV}/strm`, [`${SRV}/strm`]: 'https://cdn.example/f.mkv?api_key=SECRET' };
+const got = await fetchFollowing(emby, `${SRV}/Items/1/Download`, { method: 'GET', headers: { Range: 'bytes=5-' }, auth });
+assert.equal(await got.text(), 'ok');
+assert.deepEqual(sent.map((r) => [r.url, r.headers['X-Emby-Token'], r.headers.Range]), [
+  [`${SRV}/Items/1/Download`, 'SECRET', 'bytes=5-'],
+  [`${SRV}/strm`, 'SECRET', 'bytes=5-'],
+  ['https://cdn.example/f.mkv', undefined, 'bytes=5-'],
+], 'a hop to another origin goes without the token');
+hops = { 'https://a.example/x': 'https://b.example/x', 'https://b.example/x': 'https://a.example/x', [`${SRV}/loop`]: 'https://a.example/x' };
+assert.equal(await fetchFollowing(emby, `${SRV}/loop`, { method: 'GET', headers: {}, auth }), null, 'endless redirects end');
+await assert.rejects(fetchFollowing(emby, `${SRV}/x`, { method: 'GET', headers: {}, auth, signal: AbortSignal.abort() }), /aborted/);
+const embyApi = { ...emby, authHeaders: () => auth };
+hops = { [`${SRV}/Videos/1/stream`]: 'https://cdn.example/v.mkv' };
+assert.equal(await redirectTarget(embyApi, `${SRV}/Videos/1/stream`), 'https://cdn.example/v.mkv');
+hops = {};
+assert.equal(await redirectTarget(embyApi, `${SRV}/Videos/1/stream`), null, 'no redirect: played with the header');
+const fake = globalThis.__netRequest;
+globalThis.__netRequest = (o) => {
+  if (o.method === 'HEAD') throw new Error('no HEAD');
+  return fake(o);
+};
+hops = { [`${SRV}/Videos/1/stream`]: 'https://cdn.example/v.mkv' };
+assert.equal(await redirectTarget(embyApi, `${SRV}/Videos/1/stream`), 'https://cdn.example/v.mkv', 'HEAD failed: a GET asks again');
+assert.equal(sent.at(-1).headers.Range, 'bytes=0-0');
+hops = {};
+assert.equal(await redirectTarget(embyApi, `${SRV}/Videos/1/stream`), null, 'HEAD failed, GET did not redirect: played with the header');
+globalThis.__netRequest = () => {
+  throw new Error('offline');
+};
+await assert.rejects(redirectTarget(embyApi, `${SRV}/Videos/1/stream`), 'both failed: no playback at all');
+delete globalThis.__netRequest;
 
 fs.rmSync(dir, { recursive: true, force: true });
 console.log('media-url-check: all assertions passed');

@@ -25,6 +25,7 @@
   import { navigate } from '../lib/router.svelte';
   import { dataVersion, downloads, errorMessage, multiServer, serverName, sessionFor, toast } from '../lib/stores.svelte';
   import { caps } from '../../shared/server-caps';
+  import { web } from '../lib/platform';
   import { releaseType } from '../../shared/music-ui';
 
   // server: the item's server (absent in older links: the primary one).
@@ -33,7 +34,8 @@
   const key = itemKey({ Id: untrack(() => id), ServerId: sid });
   const api = apiFor(sid);
   // What this item's source offers (file sources: no cast, favorites or downloads).
-  const can = $derived(caps(sessionFor(sid)?.server.kind));
+  // The web TV app cannot cast or download (no main process): castSend gates both buttons.
+  const can = $derived(web ? { ...caps(sessionFor(sid)?.server.kind), castSend: false } : caps(sessionFor(sid)?.server.kind));
 
   // Paint at once with what the clicked card knew; /Items/{id} fills in the rest.
   let item = $state<BaseItem | null>(untrack(() => peek(key)));
@@ -249,19 +251,25 @@
     if (!seriesId) return;
     void dataVersion.userData;
     episodesLoading = untrack(() => episodes.length === 0);
-    api
-      .episodes(seriesId, sid === ALL_EPISODES ? undefined : sid)
-      .then((r) => {
-        if (seasonId === sid) episodes = r.Items;
-      })
-      .catch(() => undefined)
-      .finally(() => (episodesLoading = false));
+    // untrack: the api call reads the session, which must not re-run this on every session push.
+    untrack(() =>
+      api
+        .episodes(seriesId, sid === ALL_EPISODES ? undefined : sid)
+        .then((r) => {
+          if (seasonId === sid) episodes = r.Items;
+        })
+        .catch(() => undefined)
+        .finally(() => (episodesLoading = false)),
+    );
   });
 
+  // Signing in again re-runs the load (an error shown while reconnecting), not every session push.
+  const signedIn = $derived(Boolean(sessionFor(sid)?.user));
   $effect(() => {
     void id;
     void dataVersion.userData;
-    void load();
+    void signedIn;
+    untrack(() => void load());
   });
 
   onMount(() => {

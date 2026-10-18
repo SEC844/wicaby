@@ -384,6 +384,8 @@ class Playback(
             }
             segments = if (api.server.isEmby) embySegments(it.chapters) else runCatching { jellyfinSegments(api.mediaSegments(it.id)) }.getOrDefault(Segments())
             next = nextFor(it)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) Log.w("Wicaby", "open $id", e)
             error = refusal(e) ?: context.getString(R.string.playback_error)
@@ -808,8 +810,8 @@ class Playback(
     private fun link(): PlaybackStats.Link? {
         val t = Core.transport
         val u = ((t as? AddressSwitch)?.inUse(api.server) ?: api.server.address).toHttpUrlOrNull() ?: return null
-        // The mesh caches each origin's answer (a forwarder or "not a peer"): no new dial for a server in use.
-        val mesh = t !== ServerTransport.Direct && runCatching { Core.mesh.forward(origin(u)) }.getOrNull() != null
+        // Called on the main thread every second: only reads what the mesh already forwards, never dials.
+        val mesh = t !== ServerTransport.Direct && Core.mesh.forwarding(origin(u))
         return PlaybackStats.link(mesh, u.host)
     }
 
@@ -869,6 +871,8 @@ class Playback(
                 Toast.makeText(context, context.getString(R.string.quality_switched, label), Toast.LENGTH_SHORT).show()
                 switching = false
                 onDone(true)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) Log.w("Wicaby", "quality switch", e)
                 if (stopped) {
@@ -945,6 +949,8 @@ class Playback(
                     }
                     if (selectNew) rememberTrack("subtitle", sub.index)
                     ok = true
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     if (BuildConfig.DEBUG) Log.w("Wicaby", "subtitle refresh", e)
                     if (ended) error = refusal(e) ?: context.getString(R.string.playback_error)
@@ -1086,6 +1092,10 @@ fun qualityLabel(context: Context, maxBitrate: Int?): String {
     val mbps = java.text.NumberFormat.getInstance(Core.locale).apply { maximumFractionDigits = 2 }.format(p.bitrate / 1_000_000.0)
     return context.getString(R.string.quality_preset, p.height, mbps)
 }
+
+/** The control-bar value: "720p" for a preset, "Originale" otherwise; the bitrate stays in the sheet. */
+fun qualityShortLabel(context: Context, maxBitrate: Int?): String =
+    Quality.PRESETS.firstOrNull { it.bitrate == maxBitrate }?.let { "${it.height}p" } ?: context.getString(R.string.quality_original)
 
 // FF/REW with chapters (X-04 rule): the next chapter start, or back to the current chapter's start,
 // or to the one before when within 3 s of it; nothing within 500 ms of 0 or past the last chapter.

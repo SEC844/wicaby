@@ -147,7 +147,8 @@
   role="presentation"
   onpointerenter={warm}
   onpointerleave={() => clearTimeout(intent)}
-  onfocusin={() => prefetch(item)}
+  onfocusin={warm}
+  onfocusout={() => clearTimeout(intent)}
   oncontextmenu={menu}
 >
   <div class="lift" role="presentation" bind:this={lift} onpointermove={sheen}>

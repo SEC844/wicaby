@@ -65,6 +65,7 @@ for (const [file, want] of Object.entries(m3uExpected)) eq(m3u.parseM3u(read(fil
   eq(m3u.parseM3u('#EXTM3U\n#EXTINF:-1,Bad\njavascript:alert(1)\n#EXTINF:-1,File\nfile:///etc/passwd').channels.length, 0, 'javascript: and file: streams dropped');
   eq(m3u.parseM3u('#EXTM3U\n#EXTINF:-1 tvg-logo="javascript:alert(1)",X\nhttp://a/1.ts').channels[0].logo, null, 'non-image logo dropped');
   eq(m3u.parseM3u('').channels.length, 0, 'empty text');
+  eq(m3u.parseM3u('#EXTINF:-1,A\n#EXTVLCOPT:http-user-agent=Lecteur é\nhttp://a/1.ts').channels[0].userAgent ?? null, null, 'non-ASCII header value dropped (Android twin)');
   eq(m3u.parseM3u(`#EXTINF:-1,${'x'.repeat(70_000)}\nhttp://a/1.ts`).skipped, 1, 'over-long line skipped');
 }
 

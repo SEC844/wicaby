@@ -177,7 +177,8 @@ missing=()
     done
   done <<< "$mods"
 } > "$lic"
-[ "${#missing[@]}" = 0 ] || echo "warning: no licence file found for: ${missing[*]}" >&2
+# A module without a licence file would ship without its notice: stop the build.
+[ "${#missing[@]}" = 0 ] || die "no licence file found for: ${missing[*]}"
 
 # Per-ABI size of the native library inside the AAR.
 unzip -l "$aar" 'jni/*' | awk 'NR>3 && $4 ~ /^jni\// { printf "  %-32s %6.1f MB\n", $4, $1/1048576 }'

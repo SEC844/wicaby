@@ -18,6 +18,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { acceptSocket, wsSend } from './ws.mjs';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -1599,12 +1600,6 @@ export function createLiveTv(opts = {}) {
   }
 
   // ---- Realtime: Emby /embywebsocket (Jellyfin uses its own /socket broadcaster through opts.emit) ----
-  function frame(obj) {
-    const data = Buffer.from(JSON.stringify(obj));
-    const len = data.length;
-    const head = len < 126 ? Buffer.from([0x81, len]) : len < 65536 ? Buffer.from([0x81, 126, len >> 8, len & 255]) : Buffer.concat([Buffer.from([0x81, 127]), (() => { const b = Buffer.alloc(8); b.writeBigUInt64BE(BigInt(len)); return b; })()]);
-    return Buffer.concat([head, data]);
-  }
   function upgrade(req, sock) {
     const url = new URL(req.url, 'http://x');
     if (!/^(\/emby)?\/embywebsocket\/?$/i.test(url.pathname)) return false;
@@ -1612,45 +1607,13 @@ export function createLiveTv(opts = {}) {
       sock.end('HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n');
       return true;
     }
-    const accept = crypto.createHash('sha1').update(`${req.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
-    sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
-    const entry = { sock, deviceId: url.searchParams.get('deviceId') ?? '', at: realNow() };
+    const entry = acceptSocket(req, sock, { onClose: (e) => sockets.delete(e) });
     sockets.add(entry);
-    sock.write(frame({ MessageType: 'ForceKeepAlive', Data: 60, MessageId: uid() }));
-    let buf = Buffer.alloc(0);
-    sock.on('data', (chunk) => {
-      buf = Buffer.concat([buf, chunk]);
-      while (buf.length >= 2) {
-        const op = buf[0] & 15;
-        let len = buf[1] & 127;
-        let off = 2;
-        if (len === 126) [len, off] = [buf.readUInt16BE(2), 4];
-        else if (len === 127) [len, off] = [Number(buf.readBigUInt64BE(2)), 10];
-        const masked = buf[1] & 128;
-        const total = off + (masked ? 4 : 0) + len;
-        if (buf.length < total) return;
-        const mask = masked ? buf.subarray(off, off + 4) : null;
-        const payload = Buffer.from(buf.subarray(total - len, total));
-        if (mask) for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4];
-        buf = buf.subarray(total);
-        if (op === 8) return sock.end(Buffer.from([0x88, 0]));
-        if (op === 9) sock.write(Buffer.concat([Buffer.from([0x8a, payload.length]), payload]));
-        if (op !== 1) continue;
-        try {
-          if (JSON.parse(payload.toString('utf8')).MessageType === 'KeepAlive') sock.write(frame({ MessageType: 'KeepAlive', MessageId: uid() }));
-        } catch {
-          // Ignore malformed frames.
-        }
-      }
-    });
-    const drop = () => sockets.delete(entry);
-    sock.on('close', drop);
-    sock.on('error', drop);
     return true;
   }
   // Sends to the Emby sockets and, on Jellyfin, through the mock's /socket broadcaster.
   function emit(MessageType, Data, record = true) {
-    for (const s of sockets) s.sock.write(frame({ MessageType, Data, MessageId: uid() }));
+    for (const s of sockets) wsSend(s.sock, { MessageType, Data });
     let sent = sockets.size;
     if (opts.emit) sent += opts.emit(MessageType, Data) ?? 0;
     if (record) {

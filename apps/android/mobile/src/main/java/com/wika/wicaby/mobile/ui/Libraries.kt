@@ -67,7 +67,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LibrariesScreen(api: Api, nav: NavController) {
     var nonce by remember { mutableIntStateOf(0) }
-    val views = rememberLoad("views", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
+    val views = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
     val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
     PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
         val list = views.value

@@ -118,7 +118,9 @@ export function parseM3u(text: string): Playlist {
         info = comma < 0 ? { attrs: parseAttrs(body), title: '' } : { attrs: parseAttrs(body.slice(0, comma)), title: body.slice(comma + 1).trim() };
       } else if (upper.startsWith('#EXTVLCOPT:')) {
         const [k, ...rest] = line.slice(11).split('=');
-        const v = rest.join('=').trim().slice(0, 1024);
+        const raw = rest.join('=').trim().slice(0, 1024);
+        // Sent as an HTTP header: a value with non-ASCII or control characters is dropped (as the Android twin does).
+        const v = /^[\t\x20-\x7e]*$/.test(raw) ? raw : '';
         const key = k.trim().toLowerCase();
         if (v && key === 'http-user-agent') opts.userAgent = v;
         else if (v && (key === 'http-referrer' || key === 'http-referer')) opts.referrer = v;

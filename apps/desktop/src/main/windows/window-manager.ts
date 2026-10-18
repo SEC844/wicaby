@@ -91,6 +91,11 @@ export class WindowManager {
     return `${base}?${params}#${route}`;
   }
 
+  // Another page of the renderer build (pdf.html), from the dev server or app://.
+  pageUrl(file: string): string {
+    return this.opts.devUrl ? `${this.opts.devUrl}/${file}` : `${APP_SCHEME}://${APP_HOST}/${file}`;
+  }
+
   // Exact origin match: a prefix test let "http://localhost:5173.evil.test" or
   // "app://wicaby.evil/" through.
   isAppUrl(url: string): boolean {

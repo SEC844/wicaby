@@ -499,7 +499,11 @@
       "resumeQueue": "Restore the queue at startup",
       "fallbackNote": "The built-in player supports neither gapless playback nor ReplayGain tags.",
       "lyricsOnline": "Look up lyrics online (LRCLIB)",
-      "lyricsOnlineHint": "Sends the artist, title and album to lrclib.net when the server has no lyrics."
+      "lyricsOnlineHint": "Sends the artist, title and album to lrclib.net when the server has no lyrics.",
+      "source": "Music source",
+      "sourceHint": "The server whose libraries and playlists the Music section shows. Automatic: every server. Navidrome keeps your favourites (stars) and playlists.",
+      "sourceAuto": "Automatic",
+      "sourceMissing": "Server offline"
     }
   },
   "subtitles": {

@@ -14,6 +14,27 @@ a bug list. `node tools/checks/cast-mock-check.mjs` exercises both (it is part o
 | `node tools/mock-server/mock-dlna.mjs [port]` | 8970 | A UPnP MediaRenderer: `GET /desc.xml`, SOAP on `/ctl/avt`, `/ctl/rc`, `/ctl/cm`. |
 | `node tools/mock-server/mock-cast.mjs` | 18009 (TLS), 18010 (state) | A Chromecast speaking CASTV2 (Default Media Receiver and the Jellyfin receiver). |
 
+## mock-navidrome (Navidrome / OpenSubsonic, music spec §4.B)
+
+`node tools/mock-server/mock-navidrome.mjs` starts a fake OpenSubsonic server on `127.0.0.1:4533` (`PORT` to change it;
+`import { startMockNavidrome } from './mock-navidrome.mjs'` starts it on a free port for the checks). Nothing in it talks
+to a real server.
+
+- **Dataset:** the mocks' invented music library (`music-fixture.mjs`: the same artists, albums, silent WAV and FLAC
+  tracks, lyrics, favourites and play counts) as Subsonic records, with cover art ids, disc titles on the 2-disc album
+  and ReplayGain on the FLAC album; the playlist "Mix du dimanche" (owned by `wika`) and "Playlist de Léa" (public,
+  owned by `lea`: editing it answers error 50). Cover art is a generated PNG of the size asked.
+- **Users:** `wika` / `mock-pass`, `lea` / `mock-pass-lea`, and `ldap` (token auth refused: error 41).
+- **Auth:** token + salt only (`t = md5(password + s)`). An API call that reuses a salt answers error 40 (media URLs
+  may: a player re-sends them); `p=` answers error 40.
+- **Switches:** `MOCK_ND_NO_EXT=1` plain Subsonic 1.16.1 (no OpenSubsonic extensions: lyrics through `getLyrics`).
+- **Tags:** `UNMAPPED`, `SALT-REUSE`, `CLEARTEXT-PASSWORD`, `DUP-SCROBBLE` (a second submission within the track's
+  length), `SIZE-ZERO` (`getCoverArt` without `size`), `NO-JSON`. `GET /Mock/State` lists them with the calls,
+  scrobbles, streams, covers, stars and playlist edits; `POST /Mock/Reset` starts over.
+- `tools/checks/subsonic-check.mjs` drives the desktop `SubsonicClient` against it (part of `npm run checks`);
+  `tools/checks/navidrome-cdp.mjs` drives the built desktop app against it and mock-emby (add, sign in, music source
+  switch, browse, star, add to playlist, muted play and scrobble; not part of `npm run checks`).
+
 ## mock-plex (Plex backend, plex-spec §10)
 
 `node tools/mock-server/mock-plex.mjs` starts a fake Plex Media Server ("Maison", `127.0.0.1:32400`), a fake plex.tv

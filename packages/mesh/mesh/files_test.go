@@ -1,7 +1,9 @@
 package mesh
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,6 +17,8 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"github.com/hirochachacha/go-smb2"
 )
 
 // mapBackend serves an fstest.MapFS as a fileBackend; block, when set, holds every Open until it is closed.
@@ -231,7 +235,7 @@ func TestFilesCapsConcurrentReads(t *testing.T) {
 			codes <- res.StatusCode
 		}()
 	}
-	// Wait until the 8 reads hold their slots, then a 9th is turned away.
+	// Wait until the 8 reads hold their slots, then a 9th waits for one instead of failing.
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		if len(sh.reads) == filesMaxReads || time.Now().After(deadline) {
@@ -239,15 +243,89 @@ func TestFilesCapsConcurrentReads(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if res, body := get(t, "GET", f, nil); res.StatusCode != 503 || !strings.HasPrefix(body, "busy") {
-		t.Fatalf("9th read: %d %q", res.StatusCode, body)
+	ninth := make(chan int, 1)
+	go func() {
+		res, _ := get(t, "GET", f, nil)
+		ninth <- res.StatusCode
+	}()
+	select {
+	case c := <-ninth:
+		t.Fatalf("9th read answered %d while every slot was held", c)
+	case <-time.After(200 * time.Millisecond):
 	}
 	close(b.block)
+	if c := <-ninth; c != 200 {
+		t.Fatalf("9th read: %d once a slot freed", c)
+	}
 	wg.Wait()
 	close(codes)
 	for c := range codes {
 		if c != 200 {
 			t.Fatalf("a held read ended with %d", c)
+		}
+	}
+}
+
+func TestFilesStalledReaderFreesItsSlot(t *testing.T) {
+	old := filesWriteIdle
+	filesWriteIdle = 200 * time.Millisecond
+	t.Cleanup(func() { filesWriteIdle = old })
+	b := fixture()
+	b.fsys["big.mkv"] = &fstest.MapFile{Data: make([]byte, 64<<20), ModTime: mtime}
+	srv, base := serve(t, b)
+	sh := srv.share(base[strings.LastIndexByte(base, '/')+1:])
+	u, _ := url.Parse(base + "/f/big.mkv")
+	// A client that asks for a film and then never reads (nor closes).
+	c, err := net.Dial("tcp", u.Host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	fmt.Fprintf(c, "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", u.RequestURI(), u.Host)
+	deadline := time.Now().Add(10 * time.Second)
+	for len(sh.reads) == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(sh.reads) == 0 {
+		t.Fatal("the read never started")
+	}
+	for len(sh.reads) != 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("a stalled reader kept its slot")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestFilesKeepAliveAfterIdleDeadline(t *testing.T) {
+	old := filesWriteIdle
+	filesWriteIdle = 50 * time.Millisecond
+	t.Cleanup(func() { filesWriteIdle = old })
+	b := fixture()
+	b.fsys["a.mkv"] = &fstest.MapFile{Data: []byte("abc"), ModTime: mtime}
+	_, base := serve(t, b)
+	u, _ := url.Parse(base + "/f/a.mkv")
+	// net/http clears the write deadline after each request; one raw connection, as http.Client would
+	// silently retry a dropped keep-alive request on a new one.
+	c, err := net.Dial("tcp", u.Host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	br := bufio.NewReader(c)
+	for i, m := range []string{"GET", "HEAD"} {
+		if i > 0 {
+			time.Sleep(150 * time.Millisecond) // past the GET body write's deadline
+		}
+		fmt.Fprintf(c, "%s %s HTTP/1.1\r\nHost: %s\r\n\r\n", m, u.RequestURI(), u.Host)
+		res, err := http.ReadResponse(br, &http.Request{Method: m})
+		if err != nil {
+			t.Fatalf("%s: %v", m, err)
+		}
+		_, _ = io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+		if res.StatusCode != 200 {
+			t.Fatalf("%s: %d", m, res.StatusCode)
 		}
 	}
 }
@@ -284,6 +362,13 @@ func TestFilesBackendErrorsAreNamed(t *testing.T) {
 	}
 }
 
+func TestSMBGuestFallbackIsAuthError(t *testing.T) {
+	err := smbError(&smb2.InvalidResponseError{Message: "guest account doesn't support signing"})
+	if !errors.Is(err, errAuth) {
+		t.Fatalf("guest fallback not an auth error: %v", err)
+	}
+}
+
 type recorder struct {
 	h    http.Header
 	code int
@@ -297,6 +382,14 @@ func (r *recorder) WriteHeader(c int)           { r.code = c }
 // An SMB server for the integration test must be a loopback one (a scratch impacket smbserver.py -smb2support on
 // 127.0.0.1:1445, say): WICABY_SMB_TEST_ADDR=127.0.0.1:1445, WICABY_SMB_TEST_SHARE, _USER, _PASS. Anything else
 // skips: no real share is ever contacted.
+func TestSMBSigningSkipsOnlyAnExplicitGuest(t *testing.T) {
+	for user, want := range map[string]bool{"wika": true, "guest": false, "Guest": false, "guests": true} {
+		if smbSigns(user) != want {
+			t.Errorf("smbSigns(%q) = %v", user, !want)
+		}
+	}
+}
+
 func TestFilesSMBIntegration(t *testing.T) {
 	addr := os.Getenv("WICABY_SMB_TEST_ADDR")
 	if addr == "" {
@@ -353,5 +446,26 @@ func TestFilesSMBIdleKeepsOpenReads(t *testing.T) {
 	b.idle()
 	if b.conn != nil || c1.SetDeadline(time.Time{}) == nil {
 		t.Fatal("idle kept the session with nothing open")
+	}
+}
+
+// A transport error on a share another request already replaced keeps that fresh session instead of dropping it.
+func TestFilesSMBRetryKeepsReconnectedShare(t *testing.T) {
+	old, fresh := &smb2.Share{}, &smb2.Share{}
+	b := &smbBackend{share: old}
+	defer func() { b.timer.Stop() }()
+	var got []*smb2.Share
+	err := b.with(func(sh *smb2.Share) error {
+		got = append(got, sh)
+		if len(got) == 1 {
+			b.mu.Lock()
+			b.share = fresh // the concurrent reconnect
+			b.mu.Unlock()
+			return net.ErrClosed
+		}
+		return nil
+	})
+	if err != nil || len(got) != 2 || got[1] != fresh || b.share != fresh {
+		t.Fatalf("retry: err %v, shares %v, kept %v", err, got, b.share == fresh)
 	}
 }

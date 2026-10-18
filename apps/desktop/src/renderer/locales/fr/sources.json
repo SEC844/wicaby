@@ -13,6 +13,10 @@
         "title": "Plex",
         "body": "Liez votre compte avec un code"
       },
+      "navidrome": {
+        "title": "Navidrome",
+        "body": "Musique, avec vos favoris et vos playlists"
+      },
       "files": {
         "title": "Dossier ou partage",
         "body": "Cet ordinateur, SMB ou WebDAV"
@@ -51,7 +55,7 @@
   },
   "empty": {
     "title": "Ajoutez votre première source",
-    "body": "Emby, Jellyfin, Plex, ou un dossier sur cet ordinateur ou votre réseau."
+    "body": "Emby, Jellyfin, Plex, Navidrome, ou un dossier sur cet ordinateur ou votre réseau."
   },
   "nearby": {
     "none": "Aucun serveur trouvé",

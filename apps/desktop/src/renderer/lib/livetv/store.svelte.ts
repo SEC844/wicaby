@@ -897,9 +897,9 @@ const stores = new Map<string, LiveTvStore>();
 export function storeFor(serverId: string | undefined): LiveTvStore | null {
   const s = sessionFor(serverId);
   const uid = s?.user?.id;
-  // A file source has no Live TV (server-caps.ts liveTv: false). An IPTV source speaks the Emby dialect (main/iptv).
+  // A file source and a Navidrome server have no Live TV (server-caps.ts liveTv: false). An IPTV source speaks the Emby dialect (main/iptv).
   const sk = s?.server.kind;
-  if (!s || !uid || !sk || sk === 'files') return null;
+  if (!s || !uid || !sk || sk === 'files' || sk === 'navidrome') return null;
   const kind = sk === 'iptv' ? 'emby' : sk;
   const scope = `${s.server.id}:${uid}`;
   let store = stores.get(scope);

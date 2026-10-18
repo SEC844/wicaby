@@ -88,7 +88,7 @@ fs.writeFileSync(
 export { SessionReporter } from '${srcOf('main/playback/session-reporter.ts')}';
 export { ServerSocket } from '${srcOf('main/connection/server-socket.ts')}';
 export { MpvController } from '${srcOf('main/playback/mpv-controller.ts')}';
-export { buildDeviceProfile } from '${srcOf('main/playback/device-profile.ts')}';
+export { buildDeviceProfile } from '${srcOf('shared/device-profile.ts')}';
 export { Relay, relayPathAllowed } from '${srcOf('main/cast/relay.ts')}';
 export { deviceUrls, serverPath, CastFailure } from '${srcOf('main/cast/dlna-cast.ts')}';
 export { fetchFromServer } from '${srcOf('main/protocols.ts')}';

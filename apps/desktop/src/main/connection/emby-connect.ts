@@ -54,6 +54,8 @@ export async function connectExchange(
 ): Promise<{ LocalUserId: string; AccessToken: string }> {
   const res = await net.fetch(`${address}/emby/Connect/Exchange?format=json&ConnectUserId=${encodeURIComponent(connectUserId)}`, {
     headers: { Accept: 'application/json', 'X-Emby-Token': accessKey, 'X-Emby-Authorization': authorization },
+    // The access key would go along to wherever a redirect points.
+    redirect: 'error',
   });
   if (!res.ok) throw new Error(t('errors.connection.embyConnect.exchangeRefused', { status: res.status }));
   return (await res.json()) as { LocalUserId: string; AccessToken: string };

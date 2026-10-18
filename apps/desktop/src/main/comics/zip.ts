@@ -172,10 +172,14 @@ export async function readEntryFrom(src: ZipSource, entry: ZipEntry): Promise<Bu
   if (entry.size > MAX_ENTRY_SIZE || entry.compressedSize > MAX_COMPRESSED || (entry.method === 0 && entry.compressedSize > MAX_ENTRY_SIZE)) {
     throw new Error('Entrée ZIP trop volumineuse'); // i18n-ignore: replaced by errors.comics.* before display
   }
-  const cost = entry.compressedSize + (entry.method === 8 ? entry.size : 0);
+  return inFlightLimited(entry.compressedSize + (entry.method === 8 ? entry.size : 0), () => readEntryData(src, entry));
+}
+
+// Runs [read] once [cost] bytes fit under MAX_IN_FLIGHT (pages of extracted archives share the budget).
+export async function inFlightLimited<T>(cost: number, read: () => Promise<T>): Promise<T> {
   await reserve(cost);
   try {
-    return await readEntryData(src, entry);
+    return await read();
   } finally {
     release(cost);
   }
@@ -254,10 +258,11 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
 
 // Page images in reading order: natural sort ("2.jpg" before "10.jpg"), no
 // macOS resource forks or hidden files.
-export function pageEntries(entries: ZipEntry[]): ZipEntry[] {
+export function pageEntries<T extends { name: string }>(entries: T[]): T[] {
   return entries
     .filter((e) => IMAGE.test(e.name) && !e.name.endsWith('/'))
-    .filter((e) => !e.name.split(/[\\/]/).some((part) => part === '__MACOSX' || part.startsWith('.')))
+    // "./01.jpg" (an archive made with `tar -cf x.cbt .`) is not hidden.
+    .filter((e) => !e.name.split(/[\\/]/).some((part) => part === '__MACOSX' || (part.startsWith('.') && part !== '.')))
     .sort((a, b) => collator.compare(a.name, b.name));
 }
 
@@ -269,9 +274,9 @@ export function imageType(name: string): string {
 // A comic's cover when the server has none: a page named "cover" ("Cover_01"…) or all zeros
 // ("000") wins, else the first page in reading order.
 const COVER = /^(cover([^a-z].*)?|0+)$/i;
-export function coverEntry(entries: ZipEntry[]): ZipEntry | undefined {
+export function coverEntry<T extends { name: string }>(entries: T[]): T | undefined {
   const pages = pageEntries(entries);
-  const stem = (e: ZipEntry) => (e.name.split(/[\/]/).pop() ?? '').replace(/\.[^.]+$/, '');
+  const stem = (e: T) => (e.name.split(/[\/]/).pop() ?? '').replace(/\.[^.]+$/, '');
   return pages.find((e) => COVER.test(stem(e))) ?? pages[0];
 }
 
@@ -282,7 +287,7 @@ const TAIL = 22 + 0xffff;
 // GET with a Range header; the caller adds auth, timeout and cancellation.
 export type RangeFetch = (range: string) => Promise<Response>;
 
-async function rangeBody(res: Response, max: number): Promise<Buffer> {
+export async function rangeBody(res: Response, max: number): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
   let n = 0;
   // Some servers (Emby) ignore the end of "bytes=a-b" and stream to the end of the file:

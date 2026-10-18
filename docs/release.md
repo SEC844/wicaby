@@ -57,12 +57,12 @@ Any tag matching `v*` triggers `.github/workflows/release.yml`, but its first jo
 | Changes + repo checks | `ubuntu-latest`, 5 min | always | `privacy-check.mjs` (generic patterns: the local `.dev/` file never exists on CI), `links-check.mjs`, `actionlint` (checksum-verified release binary, with `shellcheck`), and the path filters below |
 | Desktop / Linux | `ubuntu-latest`, 30 min | any code change (`apps/`, `packages/`, `tools/`, `brand/`, npm files, workflows, and the root READMEs, `CHANGELOG.md`, `CONTRIBUTING.md`, notices and licences that the self-checks read) | `npm ci`, `npm run check`, `npm run checks`, `npm run build`, the Linux mesh helper, AppImage + deb (3-day artifact) |
 | Desktop / Windows | `windows-latest`, 30 min | pushes to `main` that touch the desktop; pull requests only when a Windows-specific file changed (`*.ps1`, `*.bat`, `*.cmd`, `apps/desktop/electron-builder.yml`, `apps/desktop/build/`, `ci.yml`) | `npm ci`, `npm run checks`, `npm run build` (the type-check is the same as on Linux) |
-| Mesh helper (Go) | `ubuntu-latest`, 20 min | `packages/mesh/` changed | `go test ./...`, the AGPL guard on both build graphs |
+| Mesh helper (Go) | `ubuntu-latest`, 20 min | `packages/mesh/` changed | `go test -race ./...`, the AGPL guard on both build graphs |
 | Android | `ubuntu-latest`, 60 min | `apps/android/`, `packages/mesh/` or `flavour-check.mjs` changed | the mesh AAR (cached by its sources), unit tests of both flavours, debug builds, lint, `flavour-check.mjs --gradle` |
 
 A change to `ci.yml` runs every job. A change limited to `docs/`, `SECURITY.md` or the GitHub templates runs only the first job. A manual run runs every job. A new push to the same branch or pull request cancels the run in progress, on `main` too: before tagging an older commit whose run was cancelled, re-run it.
 
-Caches: npm (`actions/setup-node`), Go modules and build cache (`actions/setup-go`), Gradle (`gradle/actions/setup-gradle`, written on `main` only, read by pull requests) and the mesh AAR (`actions/cache`). The workflow token is `contents: read`; only the first job adds `pull-requests: read`, which the path filter needs to list a pull request's files.
+Caches: npm (`actions/setup-node`), Go modules and build cache (`actions/setup-go`), Gradle (`gradle/actions/setup-gradle`, written on `main` only, read by pull requests) and the mesh AAR (`actions/cache`). `release.yml` restores no Go or Gradle cache (npm only): a release is built from clean caches. The workflow token is `contents: read`; only the first job adds `pull-requests: read`, which the path filter needs to list a pull request's files.
 
 No CodeQL: code scanning on a private repository needs the paid GitHub Code Security add-on, and its Kotlin and JavaScript analysis would add a long job to every run. The self-checks, the AGPL guard and the pinned actions cover the risks that matter here.
 
@@ -106,6 +106,7 @@ A check of a few seconds, so that a misconfigured release fails before about two
 - the tag does not match `^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$`;
 - the tagged commit is not an ancestor of `origin/main` (`git merge-base --is-ancestor`, with a full-history checkout);
 - the newest `ci.yml` run of the tagged commit is not `completed` with `success` (read with `gh api …/actions/workflows/ci.yml/runs?head_sha=…`; the job has `actions: read`). A run still in progress counts as not green: wait for it, then re-run the release workflow;
+- that run's `Desktop / Linux` and `Android` jobs did not conclude `success` (a job the path filters skipped reads as green but tested nothing): run CI by hand (Actions > CI > Run workflow) on `main`, or on a branch at the tagged commit if `main` has moved on, then re-run the release workflow;
 - any of the four signing [secrets](#secrets) is empty (see [Unsigned builds](#unsigned-builds)), or the `APK_CERT_SHA256` [variable](#variables) is not a 64-hex SHA-256;
 - `RELEASES_TOKEN` and `RELEASES_REPO` are both set but `RELEASES_REPO` is not `owner/repo`.
 

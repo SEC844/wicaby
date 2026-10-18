@@ -6,6 +6,7 @@
   import { EQ_PRESETS, presetOf, type EqPreset } from '../../../shared/equalizer';
   import { t } from '../../lib/i18n.svelte';
   import { linux } from '../../lib/platform';
+  import { musicSourceOptions } from '../../lib/music-ui.svelte';
   import { settings } from '../../lib/stores.svelte';
   import { deviceOptions as outputOptions, languageOptions, set, type SettingsData } from './shared.svelte';
 
@@ -42,6 +43,7 @@
   const EQ_OPTIONS = $derived([...(Object.keys(EQ_PRESETS) as EqPreset[]), ...(eqPreset === 'custom' ? (['custom'] as const) : [])].map((p) => ({ value: p, label: EQ_NAMES[p] })));
   const EQ_PREAMPS = $derived([-12, -9, -6, -3, 0, 3, 6].map((db) => ({ value: db, label: t('music.eq.value', { db: db > 0 ? `+${db}` : String(db) }) })));
   const setEq = (patch: { bands?: number[]; preampDb?: number }) => eq && set({ music: { eq: { ...eq, ...patch } } });
+  const SOURCES = $derived(musicSourceOptions());
   const builtInMusic = $derived(s?.playback.playerByType.music === 'html' || (s?.playback.playerByType.music === 'default' && s?.playback.player === 'html'));
 
   function toggleSpdif(codec: string, on: boolean): void {
@@ -132,6 +134,13 @@
 
   <h3 class="gh">{t('settings.audio.music.title')}</h3>
   <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.audio.music.source')}</div>
+        <div class="desc">{t('settings.audio.music.sourceHint')}</div>
+      </div>
+      <Picker label={t('settings.audio.music.source')} value={s.music.source} options={SOURCES} onchange={(v) => set({ music: { source: v } })} />
+    </div>
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.audio.music.replayGain')}</div>

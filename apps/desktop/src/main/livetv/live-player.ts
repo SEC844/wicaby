@@ -13,11 +13,11 @@ import { buildQuery, fetchServer, isServerOrigin, resolveServerUrl, serverPath, 
 import { logger } from '../core/log';
 import { t } from '../i18n';
 import { IptvClient } from '../iptv/iptv-client';
-import { buildDeviceProfile } from '../playback/device-profile';
+import { buildDeviceProfile } from '../../shared/device-profile';
 import { QUALITY_PRESETS } from '../../shared/quality-presets';
 import type { ActivePlayer, LoadParams, PlaybackStats, TimeUpdate } from '../playback/player';
 import { idle, mediaApiUrl, nowPlaying, redirectTarget, toTrack, type Current, type PlaybackDeps, type StartOptions } from '../playback/playback-service';
-import { rememberChoice, selectTracks, type TrackMemoryDoc } from '../playback/track-selection';
+import { rememberChoice, selectTracks, type TrackMemoryDoc } from '../../shared/track-selection';
 import {
   asLiveError,
   CADENCE_SETTLE_MS,

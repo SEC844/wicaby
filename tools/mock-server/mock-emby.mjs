@@ -12,6 +12,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { bif, comicPage, zip } from './cbz-fixture.mjs';
+import { epub, pdf, rar4, rar5, sevenZip, tar } from './comic-formats-fixture.mjs';
 import { createSessions } from './sessions.mjs';
 import { addMusic, isMusic, LOG as MUSIC_LOG, logReport, lrclibRoute, musicFilters, musicRoute, musicSource } from './music-fixture.mjs';
 import { addPhotos, countAlbums, photoRoute } from './photos-fixture.mjs';
@@ -311,28 +312,45 @@ for (const [id, name] of [['person-1', 'Alex Martin'], ['person-2', 'Sam Leroy']
   add({ Id: id, Name: name, Type: 'Person', ImageTags: id === 'person-3' ? {} : { Primary: 'x' }, Overview: `${name}, personnalité fictive du serveur de test.` });
 }
 
-// Comic books: CBZ archives generated on first download (numbered PNG pages; page 10 of the first is a
-// double spread). ComicInfo.xml carries series/number and the manga flag; the webtoon has tall pages only.
+// Comic books, generated on first download (numbered PNG pages; page 10 of the first is a double spread).
+// ComicInfo.xml carries series/number and the manga flag; the webtoon has tall pages only. One book per
+// format the reader opens (comic-formats-check reads each one), plus a text EPUB and a .mobi it refuses.
 const COMICS = {
   'comic-1': { name: 'Les Cartographes, tome 1', pages: 24, hue: [86, 132, 214], spread: 10, info: '<Series>Les Cartographes</Series><Number>1</Number>' },
   'comic-2': { name: 'Nuit Blanche', pages: 14, hue: [214, 96, 86], deflate: true, info: '<Series>Nuit Blanche</Series><Manga>YesAndRightToLeft</Manga>' },
-  'comic-3': { name: 'Archive RAR', pages: 0, hue: [120, 120, 120], ext: 'cbr' },
+  // RAR 5 with a "Deleted" last image (an ad page) in ComicInfo.xml.
+  'comic-3': { name: 'Archive RAR', pages: 6, hue: [150, 110, 200], ext: 'cbr', ad: true, info: '<Series>Archive RAR</Series><Pages><Page Image="6" Type="Deleted"/></Pages>' },
   'comic-4': { name: 'Ligne de fuite', pages: 8, hue: [96, 180, 140], tall: true, deflate: true },
+  'comic-5': { name: 'Carnet RAR 4', pages: 5, hue: [200, 160, 80], ext: 'cbr', rar4: true },
+  'comic-6': { name: 'Les Îles 7z', pages: 5, hue: [80, 170, 190], ext: 'cb7' },
+  'comic-7': { name: 'Bobine', pages: 5, hue: [190, 90, 150], ext: 'cbt' },
+  'comic-8': { name: 'Atlas PDF', pages: 4, hue: [120, 150, 90], ext: 'pdf', spread: 3 },
+  'comic-9': { name: 'Planches EPUB', pages: 5, hue: [230, 130, 60], ext: 'epub' },
+  'comic-10': { name: 'Roman EPUB', pages: 0, hue: [0, 0, 0], ext: 'epub', text: true },
+  'comic-11': { name: 'Livre MOBI', pages: 0, hue: [0, 0, 0], ext: 'mobi' },
 };
 // No server cover (ImageTags without Primary, as Emby leaves a CBZ without a plugin): the clients show the first page.
-const NO_COVER = new Set(['comic-2', 'comic-4']);
-const cbzCache = new Map();
+const NO_COVER = new Set(['comic-2', 'comic-3', 'comic-4', 'comic-5', 'comic-6', 'comic-7', 'comic-8', 'comic-9']);
+const ARCHIVE_WRITERS = { cbz: zip, cbr: (e, c) => (c.rar4 ? rar4(e) : rar5(e)), cb7: sevenZip, cbt: tar };
+const bookCache = new Map();
+// The book's file, whatever its format (the name stays from when every book was a CBZ).
 function cbz(id) {
-  if (!cbzCache.has(id)) {
+  if (!bookCache.has(id)) {
     const c = COMICS[id];
-    const pages = Array.from({ length: c.pages }, (_, i) => ({
-      name: `${c.name}/${String(i + 1).padStart(2, '0')}.png`,
-      data: i + 1 === c.spread ? comicPage(i + 1, c.hue, 1200, 900) : c.tall ? comicPage(i + 1, c.hue, 500, 1800) : comicPage(i + 1, c.hue),
-      store: !c.deflate,
-    }));
-    cbzCache.set(id, zip([...pages, { name: '__MACOSX/._01.png', data: Buffer.from('x') }, { name: 'ComicInfo.xml', data: Buffer.from(`<ComicInfo>${c.info ?? ''}</ComicInfo>`) }]));
+    const ext = c.ext ?? 'cbz';
+    const images = Array.from({ length: c.pages }, (_, i) => (i + 1 === c.spread ? comicPage(i + 1, c.hue, 1200, 900) : c.tall ? comicPage(i + 1, c.hue, 500, 1800) : comicPage(i + 1, c.hue)));
+    let data;
+    if (ext === 'pdf') data = pdf(images, c.name);
+    else if (ext === 'epub') data = epub(images, { title: c.name, text: c.text });
+    else if (ext === 'mobi') data = Buffer.from('\0'.repeat(60) + 'BOOKMOBI', 'latin1');
+    else {
+      const pages = images.map((png, i) => ({ name: `${c.name}/${String(i + 1).padStart(2, '0')}.png`, data: png, store: !c.deflate }));
+      if (c.ad) pages.push({ name: `${c.name}/99-pub.png`, data: comicPage(99, [40, 40, 40], 300, 450) });
+      data = ARCHIVE_WRITERS[ext]([...pages, { name: '__MACOSX/._01.png', data: Buffer.from('x') }, { name: 'ComicInfo.xml', data: Buffer.from(`<ComicInfo>${c.info ?? ''}</ComicInfo>`) }], c);
+    }
+    bookCache.set(id, data);
   }
-  return cbzCache.get(id);
+  return bookCache.get(id);
 }
 Object.entries(COMICS).forEach(([id, c], i) => {
   const ext = c.ext ?? 'cbz';
@@ -832,9 +850,9 @@ export async function handler(req, res) {
   }
   if (!authed(req, q)) return send(res, 401, 'Unauthorized', 'text/plain');
 
-  if (parts[0] === 'Items' && (parts[2] === 'File' || parts[2] === 'Download') && COMICS[parts[1]]?.pages) {
+  if (parts[0] === 'Items' && (parts[2] === 'File' || parts[2] === 'Download') && COMICS[parts[1]]) {
     const data = cbz(parts[1]);
-    // Range requests as both servers serve files (comic covers read the end, then one entry).
+    // Range requests as both servers serve files (comic covers read the end, then one entry; PDF pages read pieces).
     const r = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (r && (r[1] || r[2])) {
       const start = r[1] ? Number(r[1]) : Math.max(0, data.length - Number(r[2]));

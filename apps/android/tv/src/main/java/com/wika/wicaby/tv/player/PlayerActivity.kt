@@ -69,6 +69,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -125,6 +126,7 @@ import com.wika.wicaby.core.player.SleepTimer
 import com.wika.wicaby.core.player.SteppedSeek
 import com.wika.wicaby.core.player.Quality
 import com.wika.wicaby.core.player.qualityLabel
+import com.wika.wicaby.core.player.qualityShortLabel
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
@@ -520,7 +522,8 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
 
     // "Passer l'intro" (or the recap, preview, commercial): shown on entering the range, fades
     // after 8 s, back whenever the OSD is woken. Each kind follows its own setting.
-    val segment = pb.segments.skippableAt(position)
+    // Only these flip when the position ticks; the screen itself does not recompose every second (mobile does the same).
+    val segment by remember(pb) { derivedStateOf { pb.segments.skippableAt(position) } }
     val skipMode = segment?.let { TvSettings.skipMode(it.kind) } ?: TvSettings.SKIP_OFF
     val skippable = segment.takeIf { skipMode != TvSettings.SKIP_OFF }
     // Auto-skipped once per range: seeking back into it plays it.
@@ -553,8 +556,12 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
         }
     }
 
-    val upNextAt = upNextAt(duration, pb.segments.credits)
-    val upNext = pb.next.takeIf { !audio && !dismissedUpNext && !stillWatching && !pb.preview && upNextAt != null && position >= upNextAt && position > 0 }
+    val upNext by remember(pb, item?.id) {
+        derivedStateOf {
+            val at = upNextAt(duration, pb.segments.credits)
+            pb.next.takeIf { !audio && !dismissedUpNext && !stillWatching && !pb.preview && at != null && position >= at && position > 0 }
+        }
+    }
     LaunchedEffect(upNext?.id, sleep?.minutes == null && sleep != null) {
         if (upNext == null || !autoplay || SleepTimer.endOfVideo) return@LaunchedEffect
         var left = upNextSeconds
@@ -1126,7 +1133,7 @@ private fun ActionChip(text: String, modifier: Modifier = Modifier) {
 
 // A control-bar button: quiet text at rest, the tvOS white pill when focused (no ring).
 @Composable
-private fun OsdButton(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier, description: String? = null) {
+private fun OsdButton(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier, description: String? = null, value: String? = null) {
     var focused by remember { mutableStateOf(false) }
     val bg by animateColorAsState(if (focused) Color.White else Color.Transparent, tween(160), label = "osd-btn")
     val fg = if (focused) Color.Black else C.label2
@@ -1141,6 +1148,8 @@ private fun OsdButton(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
     ) {
         Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
         Text(text, style = Type.caption, color = fg, maxLines = 1)
+        // The setting's current value, dimmer: "Qualité · Originale".
+        if (value != null) Text("· $value", style = Type.caption, color = if (focused) Color.Black.copy(alpha = 0.55f) else C.label3, maxLines = 1)
     }
 }
 
@@ -1290,7 +1299,7 @@ private fun Osd(
                 )
                 val sleepName = stringResource(com.wika.wicaby.core.R.string.sleep_timer)
                 OsdButton(
-                    MoonIcon, sleepLeft?.let { clock(it) } ?: sleepName, onSleep,
+                    MoonIcon, sleepLeft?.let { clock(it) } ?: stringResource(R.string.chip_sleep), onSleep,
                     Modifier.padding(start = 8.dp).focusRequester(sleepButton).onPreviewKeyEvent { onControlsKey(it, sleepButton) },
                     description = listOfNotNull(sleepName, sleepLeft?.let { clock(it) }).joinToString(", "),
                 )
@@ -1304,13 +1313,15 @@ private fun Osd(
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                // X-02: the Quality sheet, beside the picture format: the gear plus the current label.
+                // X-02: the Quality sheet, beside the picture format: "Qualité · Originale" / "Qualité · 720p".
                 if (qualityButton != null) {
-                    val value = qualityLabel(LocalContext.current, qualityCap)
+                    val qualityName = stringResource(com.wika.wicaby.core.R.string.quality)
+                    val value = qualityShortLabel(LocalContext.current, qualityCap)
                     OsdButton(
-                        Ic.Gear, value, onQuality,
+                        Ic.Gear, qualityName, onQuality,
                         Modifier.padding(end = 8.dp).focusRequester(qualityButton).onPreviewKeyEvent { onControlsKey(it, qualityButton) },
-                        description = stringResource(com.wika.wicaby.core.R.string.quality) + ", " + value,
+                        description = qualityName + ", " + qualityLabel(LocalContext.current, qualityCap),
+                        value = value,
                     )
                 }
                 // Bottom-right: Ajuster / Remplir l'écran / Étirer / Zoom; OK cycles.

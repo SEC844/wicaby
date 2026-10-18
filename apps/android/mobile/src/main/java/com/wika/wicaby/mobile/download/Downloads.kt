@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
+import android.util.AtomicFile
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.work.Constraints
@@ -68,13 +69,14 @@ data class DownloadEntry(
 object Downloads {
     const val CHANNEL = "downloads"
     private lateinit var dir: File
-    private val index get() = File(dir, "index.json")
+    // AtomicFile: a crash mid-write keeps the previous index rather than a torn one that decodes to no downloads.
+    private val index get() = AtomicFile(File(dir, "index.json"))
     private val _entries = MutableStateFlow<List<DownloadEntry>>(emptyList())
     val entries: StateFlow<List<DownloadEntry>> = _entries
 
     fun init(context: Context) {
         dir = File(context.filesDir, "downloads").apply { mkdirs() }
-        _entries.value = runCatching { json.decodeFromString<List<DownloadEntry>>(index.readText()) }.getOrDefault(emptyList())
+        _entries.value = runCatching { json.decodeFromString<List<DownloadEntry>>(index.readFully().decodeToString()) }.getOrDefault(emptyList())
             // Only entries whose id and file are plain names inside the downloads folder.
             .filter { SafeNames.isValidId(it.id) && owned(it.file) && (it.poster == null || owned(it.poster)) }
             // A copy that was mid-transfer when the process died is queued again...
@@ -106,7 +108,17 @@ object Downloads {
         save()
     }
 
-    private fun save() = runCatching { index.writeText(json.encodeToString(_entries.value)) }
+    private fun save() = runCatching {
+        val f = index
+        val out = f.startWrite()
+        try {
+            out.write(json.encodeToString(_entries.value).toByteArray())
+            f.finishWrite(out)
+        } catch (e: Exception) {
+            f.failWrite(out)
+            throw e
+        }
+    }
 
     fun local(id: String): LocalMedia? {
         val e = entry(id)?.takeIf { it.state == DlState.Done } ?: return null

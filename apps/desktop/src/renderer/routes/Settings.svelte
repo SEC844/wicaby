@@ -11,7 +11,7 @@
   import Icon, { type IconName } from '../components/Icon.svelte';
   import LogoLoader from '../components/LogoLoader.svelte';
   import { locale, t } from '../lib/i18n.svelte';
-  import { linux } from '../lib/platform';
+  import { linux, web } from '../lib/platform';
   import { navigate, router } from '../lib/router.svelte';
   import { settings } from '../lib/stores.svelte';
   import AboutPane from './settings/AboutPane.svelte';
@@ -74,7 +74,9 @@
     { id: 'advanced', icon: 'gauge', group: 3 },
     { id: 'about', icon: 'info', group: 4 },
   ];
-  const PANES = ALL_PANES.filter((p) => (p.id !== 'torrents' || TorrentSettings) && (p.id !== 'windows' || WindowsSettings) && (p.id !== 'accounts' || TraktSettings));
+  // The web TV app (lib/platform.ts) keeps the panes that do not need the desktop's main process.
+  const WEB_PANES: Pane[] = ['general', 'appearance', 'playback', 'subtitles', 'library', 'server', 'about'];
+  const PANES = ALL_PANES.filter((p) => (p.id !== 'torrents' || TorrentSettings) && (p.id !== 'windows' || WindowsSettings) && (p.id !== 'accounts' || TraktSettings) && (!web || WEB_PANES.includes(p.id)));
   // The "Windows" pane (tray, startup, notifications) is "Desktop" on Linux.
   const paneLabel = (id: Pane) => (linux && id === 'windows' ? t('settings.panes.windows.labelLinux') : t(`settings.panes.${id}.label`));
   const paneBlurb = (id: Pane) => (linux && id === 'windows' ? t('settings.panes.windows.blurbLinux') : t(`settings.panes.${id}.blurb`));
