@@ -13,6 +13,8 @@ export interface Alert {
   message?: string;
   actions: AlertAction[];
   focusIndex?: number;
+  // A picker (Android TvPicker): the chosen action gets a check and the focus.
+  selected?: number;
 }
 
 export const overlay = $state<{ alert: Alert | null }>({ alert: null });

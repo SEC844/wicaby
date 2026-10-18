@@ -209,6 +209,18 @@ export class Api {
     return this.request('POST', `/Users/${this.userId}/Items/${id}/HideFromResume`, { Hide: hide }, {});
   }
 
+  // The user's server-side configuration (audio/subtitle languages, subtitle mode): the servers pick default streams
+  // from it, so every client follows the same preference (Settings.kt ServerConfig).
+  async userConfiguration(): Promise<Record<string, unknown>> {
+    return (await this.get<{ Configuration?: Record<string, unknown> }>(`/Users/${this.userId}`)).Configuration ?? {};
+  }
+
+  setUserConfiguration(config: Record<string, unknown>): Promise<void> {
+    return this.isEmby
+      ? this.request('POST', `/Users/${this.userId}/Configuration`, undefined, config)
+      : this.request('POST', '/Users/Configuration', { userId: this.userId }, config);
+  }
+
   // --- Images (core data/Images.kt: the fallbacks Emby web uses) ---
 
   image(id: string, type: string, tag: string | undefined, size: { maxWidth?: number; maxHeight?: number }): string | undefined {

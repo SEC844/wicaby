@@ -56,3 +56,6 @@ export function plural(key: string, n: number, ...args: (string | number)[]): st
   const template = forms[category(lang, n)] ?? forms.other ?? Object.values(forms)[0];
   return format(template, args.length ? args : [n]);
 }
+
+// A translation key stored for later (option tables): t(key) reads it. Marked so scripts/check-strings.mjs checks it.
+export const k = (key: string): string => key;

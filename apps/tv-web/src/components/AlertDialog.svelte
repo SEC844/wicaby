@@ -3,13 +3,14 @@
   import { onMount } from 'svelte';
   import { focusable, setFocus } from '../lib/focus';
   import { closeAlert, type Alert } from '../lib/overlay.svelte';
+  import Icon from './Icon.svelte';
 
   let { alert }: { alert: Alert } = $props();
   let buttons: HTMLButtonElement[] = $state([]);
 
   onMount(() => {
     requestAnimationFrame(() => {
-      const b = buttons[alert.focusIndex ?? 0] ?? buttons[0];
+      const b = buttons[alert.focusIndex ?? alert.selected ?? 0] ?? buttons[0];
       if (b) setFocus(b);
     });
   });
@@ -28,7 +29,8 @@
         onclick={() => {
           closeAlert();
           a.run();
-        }}>{a.label}</button
+        }}
+        >{#if alert.selected !== undefined}<span class="mark">{#if i === alert.selected}<Icon name="Check" size={18} />{/if}</span>{/if}<span class="text">{a.label}</span></button
       >
     {/each}
   </div>
@@ -61,13 +63,23 @@
     margin: 0 0 8rem;
   }
   .action {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     margin-top: 10rem;
     padding: 13rem;
     border-radius: var(--r-md);
     background: var(--fill-2);
     transition: transform var(--t-fast) var(--ease-out), background-color var(--t-fast);
+  }
+  .mark {
+    width: 18rem;
+    margin-right: 10rem;
+  }
+  .mark + .text {
+    flex: 1;
+    text-align: left;
   }
   .destructive {
     color: var(--red);

@@ -3,7 +3,7 @@
 import { arrange, decode, encode, type HomePref, RESUME, NEXT_UP, latestViewId } from './home-rows';
 import { load, save } from './storage';
 
-class Setting<T> {
+export class Setting<T> {
   #value = $state<T>() as T;
   constructor(private readonly key: string, fallback: T) {
     this.#value = load<T>(`tv.${key}`, fallback);
@@ -17,8 +17,44 @@ class Setting<T> {
   }
 }
 
+export const SKIP_ASK = 0;
+export const SKIP_AUTO = 1;
+export const SKIP_OFF = 2;
+export const RESUME_AUTO = 0;
+export const RESUME_ASK = 1;
+export const RESUME_START = 2;
+export const PASS_AUTO = 0;
+export const PASS_ON = 1;
+export const PASS_OFF = 2;
+export const PASS_CODECS = ['ac3', 'eac3', 'dts', 'truehd'] as const;
+// ScopedPrefs.Scope ordinals: off, global, library, title.
+export const SCOPE_GLOBAL = 1;
+export const SCOPE_TITLE = 3;
+
 export const settings = {
+  // Playback
+  mbpsEthernet: new Setting('mbps_ethernet', 0), // 0 = auto
+  mbpsWifi: new Setting('mbps_wifi', 0),
+  autoplayNext: new Setting('autoplay_next', true),
+  countdown: new Setting('countdown_s', 15),
+  skipIntro: new Setting('skip_intro', SKIP_ASK),
+  skipRecap: new Setting('skip_recap', SKIP_ASK),
+  skipPreview: new Setting('skip_preview', SKIP_ASK),
+  skipCommercial: new Setting('skip_commercial', SKIP_ASK),
+  resume: new Setting('resume', RESUME_AUTO),
+  passthrough: Object.fromEntries(PASS_CODECS.map((c) => [c, new Setting(`pass_${c}`, PASS_AUTO)])) as Record<(typeof PASS_CODECS)[number], Setting<number>>,
+  subtitleSize: new Setting('sub_size', 1),
+  subtitleStyle: new Setting('sub_style', 0), // 0 outline, 1 shadow, 2 box
+  subtitleFont: new Setting('sub_font', 0),
+  subtitleColor: new Setting('sub_color', 0),
+  subtitlePosition: new Setting('sub_pos', 0),
+  subtitleOverrideAss: new Setting('sub_ass_override', false),
+  rememberSpeed: new Setting('remember_speed', SCOPE_GLOBAL),
+  rememberAspect: new Setting('remember_aspect', SCOPE_TITLE),
+  // "Play on" target for the official Emby/Jellyfin apps (X-06).
+  remoteControl: new Setting('remote_control', true),
   // Interface
+  language: new Setting<'auto' | 'fr' | 'en'>('language', 'auto'),
   clock: new Setting('clock', true),
   oled: new Setting('oled', false),
   accent: new Setting('accent', 0), // index into ACCENTS
