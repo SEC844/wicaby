@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Fixed
+
+- Android TV: the details page's watched button now shows its state, like the favorite heart: a filled check
+  circle once watched, a plain check otherwise. The state only changed the button's background before, which the
+  white focus colour hid ([#7](https://github.com/WicaebethTheo/wicaby/issues/7)).
+
 ## [0.10.10] - 2026-10-16
 
 The NetBird sign-in fix from 0.10.9, now actually in the apps (the embedded mesh helper was not rebuilt in 0.10.9).

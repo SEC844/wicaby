@@ -350,6 +350,8 @@ fun Pill(
     primary: Boolean = false,
     selected: Boolean = false,
     onFocus: ((Boolean) -> Unit)? = null,
+    // Spoken label of an icon-only pill (text == null).
+    description: String? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val accent = LocalAccent.current
@@ -376,7 +378,7 @@ fun Pill(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (icon != null) Icon(icon, contentDescription = text, tint = fg, modifier = Modifier.size(20.dp))
+        if (icon != null) Icon(icon, contentDescription = text ?: description, tint = fg, modifier = Modifier.size(20.dp))
         if (text != null) Text(text, style = Type.headline, color = fg, maxLines = 1)
     }
 }
