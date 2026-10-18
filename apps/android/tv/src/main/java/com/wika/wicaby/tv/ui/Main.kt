@@ -203,10 +203,14 @@ fun MainScreen() {
             })
         }
         addAll(extraTabs())
+        // Réglages > Barre d'onglets lists these, in their default order.
+        val movable = map { it.tab }.filter { it.key != TabOrder.HOME }
         add(Dest(TopTab("search", stringResource(R.string.tab_search), Ic.Search)) { SearchTab(api, live = views.any { it.collectionType == "livetv" }) })
-        add(Dest(TopTab("settings", stringResource(R.string.tab_settings), Ic.Gear)) { SettingsTab(api, user, it) })
+        add(Dest(TopTab("settings", stringResource(R.string.tab_settings), Ic.Gear)) { SettingsTab(api, user, movable, it) })
     }
-    val tabs = dests.map { it.tab }
+    // #6: the user's order, hidden tabs left out (the content below still resolves them, for programmatic jumps).
+    val byKey = dests.associateBy { it.tab.key }
+    val tabs = TabOrder.bar(dests.map { it.tab.key }, TvSettings.tabBar(homeUser(api)), current = tab).map { byKey.getValue(it).tab }
     // TV-3: the live player's GUIDE / Back lands on the Live TV tab, whose screen opens the Guide on the channel.
     val liveView = views.firstOrNull { it.collectionType == "livetv" }?.id
     LaunchedEffect(liveView) {

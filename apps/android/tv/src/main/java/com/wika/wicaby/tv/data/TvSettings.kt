@@ -137,6 +137,19 @@ object TvSettings {
         homeVersion.intValue++
     }
 
+    // #6: tab bar order and hidden tabs per `serverId/userId` (ui/TabOrder; `thumb` is unused).
+    private val tabVersion = mutableIntStateOf(0)
+
+    fun tabBar(user: String): HomeRows.Pref {
+        tabVersion.intValue // read, so the tab bar and Réglages recompose on a save
+        return HomeRows.decode(sp.getString("tab_bar:$user", null)) ?: HomeRows.Pref()
+    }
+
+    fun setTabBar(user: String, pref: HomeRows.Pref) {
+        sp.edit { putString("tab_bar:$user", HomeRows.encode(pref)) }
+        tabVersion.intValue++
+    }
+
     // TV en direct (livetv spec §15, TV defaults). Device-only; lens, favourites, recents… are synced (LivePrefs).
     val liveStartTab = IntSetting("live_start_tab", LIVE_START_NOW)
     val liveUpDown = IntSetting("live_up_down", LIVE_UPDOWN_ZAP)
