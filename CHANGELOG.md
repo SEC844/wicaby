@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Added
+
+- Android TV: Settings > Home > Hide Watched in Featured keeps watched movies and series out of the home
+  screen's hero carousel. It falls back to every title when nothing unwatched is left
+  ([#8](https://github.com/WicaebethTheo/wicaby/issues/8)).
+
 ## [0.10.10] - 2026-10-16
 
 The NetBird sign-in fix from 0.10.9, now actually in the apps (the embedded mesh helper was not rebuilt in 0.10.9).

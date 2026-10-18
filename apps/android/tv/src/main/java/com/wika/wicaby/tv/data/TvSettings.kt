@@ -97,6 +97,8 @@ object TvSettings {
     val clock = BoolSetting("clock", true)
     val oled = BoolSetting("oled", false) // desktop ui.theme 'oled' (pure black)
     val rowHero = BoolSetting("row_hero", true)
+    // The hero carousel picks unwatched movies and series only (series: not every episode watched).
+    val heroHideWatched = BoolSetting("hero_hide_watched", false)
     val rowResume = BoolSetting("row_resume", true)
     val rowNextUp = BoolSetting("row_nextup", true)
     // X-01: "Continuer" and "À suivre" as one "Continuer à regarder" row (ContinueWatching.kt).

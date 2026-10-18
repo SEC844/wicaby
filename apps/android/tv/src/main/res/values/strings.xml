@@ -198,6 +198,7 @@
     <string name="show_clock">Horloge</string>
     <string name="group_home">Accueil</string>
     <string name="row_hero">À la une</string>
+    <string name="hero_hide_watched">Masquer les titres vus à la une</string>
     <string name="row_latest">Ajouts récents</string>
     <string name="row_upcoming">À venir</string>
     <string name="row_because">Parce que vous avez regardé %1$s</string>
