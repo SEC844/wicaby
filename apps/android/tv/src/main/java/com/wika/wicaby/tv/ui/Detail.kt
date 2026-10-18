@@ -193,11 +193,13 @@ fun DetailScreen(id: String) {
                         if (external && !book && target != null) ExternalPill(api, target, Modifier.remembered(memory, "external"))
                         // No heart for a source without favorites (a file source, caps §2.2).
                         if (api.server.caps.favorites) Pill(
-                            null, icon = if (favorite) Ic.Heart else Ic.HeartOutline, modifier = Modifier.remembered(memory, "fav"),
+                            null, icon = if (favorite) Ic.Heart else Ic.HeartOutline, description = stringResource(R.string.favorite), modifier = Modifier.remembered(memory, "fav"),
                             onClick = { scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite; Cache.changed() } } },
                         )
                         Pill(
-                            null, icon = Ic.Check, selected = watched, modifier = Modifier.remembered(memory, "played"),
+                            // The icon carries the state, like the heart: a focused pill is white whatever `selected` says.
+                            null, icon = if (watched) Ic.CheckCircle else Ic.Check, selected = watched, description = stringResource(R.string.watched),
+                            modifier = Modifier.remembered(memory, "played"),
                             onClick = {
                                 scope.launch {
                                     runCatching { api.setPlayed(item.id, !watched) }.onSuccess {
