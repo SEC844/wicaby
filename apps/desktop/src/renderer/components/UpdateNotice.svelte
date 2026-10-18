@@ -5,15 +5,15 @@
   import { appUpdate, dismissUpdate } from '../lib/app-update.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from './Icon.svelte';
+  import { dur } from '../lib/motion';
 
   // A newer Wicaby on GitHub Releases (main/features/app-updates.ts): a quiet card under the title bar, like the
   // toasts, until "Later" (remembered for that version) or a download.
   const update = $derived(appUpdate.value?.dismissed ? null : appUpdate.value?.update);
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
 </script>
 
 {#if update}
-  <section class="notice" role="status" aria-label={t('shell.update.label')} in:fly={{ y: -16, duration: 320 * tempo(), easing: cubicOut }}>
+  <section class="notice" role="status" aria-label={t('shell.update.label')} in:fly={{ y: -16, duration: dur('med'), easing: cubicOut }}>
     <span class="glyph"><Icon name="download" size={15} stroke={2.1} /></span>
     <div class="body">
       <p class="msg">{t('shell.update.available', { version: update.version })}</p>

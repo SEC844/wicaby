@@ -64,7 +64,9 @@ class Wicaby : Application(), SingletonImageLoader.Factory {
                 add(com.wika.wicaby.core.files.PhotoThumbFetcher.Factory(parallel = 2))
                 add(OkHttpNetworkFetcherFactory(callFactory = { com.wika.wicaby.core.files.FileSources.calls }))
             }
-            .crossfade(260)
+            // design.md --t-fast, scaled by the system "Animator duration scale"; none on low-RAM devices, where a fade that
+            // starts while a row scrolls can stall part-way. shortcut: the scale is read once per process.
+            .crossfade(if (DeviceClassDetector.detect(this, FormFactor.TV).isLow) 0 else (160 * android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)).toInt())
             // §21.9: decoded images ≤ 15 % of memoryClass on a tv-low device (Coil's default is 25 %).
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, if (DeviceClassDetector.detect(this, FormFactor.TV).isLow) 0.15 else 0.25).build() }
             .build()

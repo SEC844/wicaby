@@ -527,6 +527,8 @@ fun Ruler(st: GuideState, style: GuideStyle, channelCol: Dp, dayLabel: (Long) ->
     val context = LocalContext.current
     val tm = rememberTextMeasurer(cacheSize = 64)
     val fmt = remember(context) { DateFormat.getTimeFormat(context) }
+    // One string per tick for the guide's life (a few hundred at most): no Date/String garbage per scroll frame.
+    val labels = remember(fmt) { HashMap<Long, String>() }
     val tick = with(LocalDensity.current) { 6.dp.toPx() }
     val day by remember(st, dayLabel) { derivedStateOf { dayLabel(st.bucket.value * BUCKET_MS) } }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -539,7 +541,7 @@ fun Ruler(st: GuideState, style: GuideStyle, channelCol: Dp, dayLabel: (Long) ->
             while (st.x(t) - off < size.width) {
                 val x = st.x(t) - off
                 drawLine(style.separator, Offset(x, size.height * 0.45f), Offset(x, size.height), strokeWidth = 1f)
-                val tl = tm.measure(fmt.format(Date(t)), style.caption, TextOverflow.Clip, softWrap = false, maxLines = 1)
+                val tl = tm.measure(labels.getOrPut(t) { fmt.format(Date(t)) }, style.caption, TextOverflow.Clip, softWrap = false, maxLines = 1)
                 drawText(tl, color = style.label2, topLeft = Offset(x + tick, (size.height - tl.size.height) / 2f))
                 t += BUCKET_MS
             }

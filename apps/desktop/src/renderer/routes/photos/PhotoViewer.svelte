@@ -332,7 +332,7 @@
 
 <svelte:window onkeydowncapture={onKey} onresize={() => ((vw = window.innerWidth), (vh = window.innerHeight), z.clampPan())} />
 
-<div class="viewer" class:idle={!chrome} role="dialog" aria-modal="true" aria-label={title} tabindex="-1" bind:this={root} use:toBody>
+<div class="viewer on-media" class:idle={!chrome} role="dialog" aria-modal="true" aria-label={title} tabindex="-1" bind:this={root} use:toBody>
   <div
     class="stage"
     class:grab={z.overflows}

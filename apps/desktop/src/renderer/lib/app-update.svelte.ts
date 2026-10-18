@@ -5,7 +5,10 @@ import { w } from './bridge';
 export const appUpdate = $state<{ value: AppUpdateState | null }>({ value: null });
 
 export function initAppUpdate(): () => void {
-  void w.updates.state().then((s) => (appUpdate.value ??= s));
+  // A block body: an assignment used as a value reads the stale pre-proxy object (assignment_value_stale).
+  void w.updates.state().then((s) => {
+    appUpdate.value ??= s;
+  });
   return w.updates.onState((s) => {
     appUpdate.value = s;
   });

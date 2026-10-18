@@ -74,8 +74,6 @@
     <!-- Réglages -->
     <string name="settings_accent">Couleur d’accentuation</string>
     <string name="settings_theme">Thème</string>
-    <string name="settings_theme_dark">Sombre</string>
-    <string name="settings_theme_oled">OLED (noir pur)</string>
     <string name="settings_bitrate">Débit maximal</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="switch_user">Changer d’utilisateur</string>

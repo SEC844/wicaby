@@ -82,7 +82,6 @@
     padding: 0 10px;
     border-radius: var(--r-sm);
     text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .rows button:hover,
   .rows button:focus-visible {

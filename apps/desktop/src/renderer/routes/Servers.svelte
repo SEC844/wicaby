@@ -32,6 +32,7 @@
   import { fmt, t, tParts } from '../lib/i18n.svelte';
   import { navigate } from '../lib/router.svelte';
   import { errorMessage, onlineSessions, session, toast } from '../lib/stores.svelte';
+  import { dur } from '../lib/motion';
 
   // The first-run setup (routes/welcome/Where.svelte) shows one part of this page at a time and takes the
   // server once it answers, instead of this page navigating: `section` picks the part, `onready` gets the server.
@@ -93,7 +94,6 @@
   const signedIn = $derived(onlineSessions().length > 0);
   const stateOf = (id: string) => session.value.sessions.find((s) => s.server.id === id);
 
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
 
   async function connect(e: SubmitEvent) {
     e.preventDefault();
@@ -736,7 +736,7 @@
     {/if}
 
     {#if mode === 'address'}
-      <form class="form" novalidate in:fly={{ x: -12, duration: 260 * tempo(), easing: cubicOut }} onsubmit={submitAddress}>
+      <form class="form" novalidate in:fly={{ x: -12, duration: dur('med'), easing: cubicOut }} onsubmit={submitAddress}>
         <label class="field-label" for="source-address">{t('onboarding.servers.method.address')}</label>
         <input
           id="source-address"
@@ -760,7 +760,7 @@
           <span class="chev" class:up={howOpen}><Icon name="chevronDown" size={13} /></span>
         </button>
         {#if howOpen}
-          <p class="hint" id="source-how" transition:slide={{ duration: 200 * tempo(), easing: cubicOut }}>
+          <p class="hint" id="source-how" transition:slide={{ duration: dur('fast'), easing: cubicOut }}>
             {#each tParts('onboarding.servers.address.hint') as part, i (i)}{#if part.slot === 'https'}<span class="mono">https://</span>{:else if part.slot === 'http'}<span class="mono">http://…:8096</span>{:else if part.slot === 'path'}<span class="mono">/emby</span>{:else}{part.text}{/if}{/each}
           </p>
         {/if}
@@ -772,7 +772,7 @@
         </div>
       </form>
     {:else}
-      <form class="form" novalidate in:fly={{ x: 12, duration: 260 * tempo(), easing: cubicOut }} onsubmit={connect}>
+      <form class="form" novalidate in:fly={{ x: 12, duration: dur('med'), easing: cubicOut }} onsubmit={connect}>
         <label class="field-label" for="connect-user">{t('onboarding.fields.username')}</label>
         <input
           id="connect-user"
@@ -836,7 +836,7 @@
   <div class="setup">
     <div class="column">
       {#if empty}
-        <div class="first" in:fade={{ duration: 240 * tempo() }}>
+        <div class="first" in:fade={{ duration: dur('med') }}>
           <h1 class="title-1">{t('sources.empty.title')}</h1>
           <p class="blurb">{t('sources.empty.body')}</p>
           <div class="first-body">{@render picker()}</div>
@@ -853,7 +853,7 @@
 
         {#if fresh.length > 0}
           <!-- The page still scans: what it finds surfaces here, one press from the add sheet. -->
-          <button class="row found" onclick={() => openAdd()} transition:slide={{ duration: 200 * tempo(), easing: cubicOut }}>
+          <button class="row found" onclick={() => openAdd()} transition:slide={{ duration: dur('fast'), easing: cubicOut }}>
             <span class="found-text">{t('sources.nearby.found', { count: fresh.length })}</span>
             <span class="text-action">{t('common.actions.add')}</span>
             <span class="go"><Icon name="chevronRight" size={16} /></span>
@@ -913,7 +913,7 @@
                 {/if}
                 {#if r.offline}
                   {@const server = r.offline}
-                  <div class="fixes" transition:slide={{ duration: 200 * tempo(), easing: cubicOut }}>
+                  <div class="fixes" transition:slide={{ duration: dur('fast'), easing: cubicOut }}>
                     {#if server.kind !== 'plex'}<button class="text-btn" onclick={() => wake(server)}>{t('onboarding.servers.unreachable.wake')}</button>{/if}
                     <button class="text-btn" onclick={() => select(server)}>{t('common.actions.retry')}</button>
                     <button class="text-btn" onclick={() => navigate('/downloads')}>{t('sources.offline.downloads')}</button>
@@ -964,7 +964,7 @@
         <h2 class="title-3">{stepTitle}</h2>
       </header>
       {#key step}
-        <div class="step" bind:this={stepEl} in:fly={{ x: step === 'pick' ? -12 : 12, duration: 260 * tempo(), easing: cubicOut }}>
+        <div class="step" bind:this={stepEl} in:fly={{ x: step === 'pick' ? -12 : 12, duration: dur('med'), easing: cubicOut }}>
           {#if step === 'pick'}
             {@render picker()}
           {:else if step === 'server' || step === 'navidrome'}
@@ -1210,7 +1210,7 @@
   }
   .reveal {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .row {
     display: flex;
@@ -1222,7 +1222,6 @@
     border-radius: var(--r-sm);
     text-align: left;
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .row:not(.static):hover {
@@ -1336,8 +1335,7 @@
     color: var(--label-2);
     opacity: 0;
     transition:
-      opacity var(--t-fast) var(--ease),
-      background-color var(--t-fast) var(--ease);
+      opacity var(--t-fast) var(--ease);
   }
   li:hover > .more,
   li:focus-within > .more,
@@ -1419,9 +1417,6 @@
     font-size: var(--fs-callout);
     font-weight: 560;
     color: var(--label-2);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .text-btn:hover,
   .text-btn:focus-visible {
@@ -1517,9 +1512,6 @@
     flex: none;
     border-radius: 50%;
     color: var(--label-2);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .icon-btn:hover,
   .icon-btn:focus-visible {
@@ -1694,7 +1686,6 @@
     padding: 4px 0;
     font-size: var(--fs-footnote);
     color: var(--label-2);
-    transition: color var(--t-fast) var(--ease);
   }
   .disclosure:hover,
   .disclosure:focus-visible {
@@ -1767,7 +1758,7 @@
     background: conic-gradient(from 90deg, transparent 10%, var(--label-2));
     mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
     /* Progress, not decoration: it keeps turning under reduced motion (times --tempo it would strobe). */
-    animation: spin 0.8s linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   .spinner.small {
     width: 12px;

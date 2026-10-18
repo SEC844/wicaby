@@ -437,7 +437,7 @@ fun PlexSettings(snap: Snapshot) {
                         },
                         enabled = s.id != snap.session?.server?.id,
                         modifier = Modifier.semantics { contentDescription = show },
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                     )
                 }
             }

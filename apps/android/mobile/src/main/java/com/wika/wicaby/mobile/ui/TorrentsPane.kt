@@ -136,7 +136,7 @@ private fun TorrentRow(t: Torrent, pending: Boolean, vm: TorrentsViewModel) {
     Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(t.name, style = Type.callout, color = G.label, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            ProgressLine(t.progress, Modifier.padding(vertical = 2.dp))
+            ProgressLine(t.progress, Modifier.padding(vertical = 2.dp), track = G.fill4)
             val eta = if (t.hasEta && !t.isComplete) formatEta(t.eta) else null
             val speed = if (t.dlSpeed > 0) stringResource(R.string.speed_down, formatSpeed(t.dlSpeed)) else if (t.upSpeed > 0) stringResource(R.string.speed_up, formatSpeed(t.upSpeed)) else null
             Text(

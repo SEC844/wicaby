@@ -33,6 +33,11 @@
     background: var(--fill-2);
     isolation: isolate;
   }
+  /* High Contrast: a 3:1 outline on the control's edge (docs/design.md). */
+  :global(html[data-theme='contrast']) .seg {
+    outline: 1px solid var(--separator);
+    outline-offset: -1px;
+  }
   .thumb {
     position: absolute;
     top: 2px;
@@ -53,7 +58,6 @@
     font-weight: 500;
     color: var(--label-2);
     white-space: nowrap;
-    transition: color var(--t-fast) var(--ease);
   }
   button:hover,
   button:focus-visible {

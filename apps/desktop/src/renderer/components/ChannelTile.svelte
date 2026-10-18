@@ -118,10 +118,7 @@
     opacity: 0;
     transform: scale(0.85);
     transition:
-      opacity var(--t-fast) var(--ease),
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
+      opacity var(--t-fast) var(--ease), transform var(--t-med) var(--spring);
   }
   .play :global(svg) {
     margin-left: 2px;

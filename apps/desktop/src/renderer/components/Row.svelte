@@ -89,7 +89,7 @@
           {@render children()}
         {:else}
           {#each items as item, i (itemKey(item))}
-            <div class="cell enter" style:--i={Math.min(i, 12)}>
+            <div class="cell">
               <Card {item} {variant} {showServer} />
             </div>
           {/each}
@@ -142,7 +142,6 @@
   }
   .link :global(svg) {
     color: var(--label-3);
-    transition: color var(--t-fast) var(--ease);
   }
   .link:hover :global(svg),
   .link:focus-visible :global(svg) {
@@ -168,19 +167,12 @@
     overscroll-behavior-x: contain;
     scrollbar-width: none;
   }
-  .track::-webkit-scrollbar {
-    display: none;
-  }
   .track > :global(*) {
     flex: none;
     scroll-snap-align: start;
   }
   .cell {
     width: var(--card-w);
-  }
-  .enter {
-    animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
   }
 
   .nav {
@@ -199,9 +191,7 @@
     transform: scale(0.85);
     pointer-events: none;
     transition:
-      opacity var(--t-med) var(--ease),
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease);
+      opacity var(--t-med) var(--ease), transform var(--t-med) var(--spring);
   }
   .thumb .nav {
     top: calc(18px + var(--card-w) * 0.28125 - 22px);

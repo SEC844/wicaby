@@ -164,7 +164,6 @@
     padding: 10px;
     border-radius: var(--r-md);
     text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .results button:hover,
   .results button:focus-visible {

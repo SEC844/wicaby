@@ -15,7 +15,9 @@ export function initTorrents(): void {
   w.torrents.onState((s) => {
     torrents.value = s;
   });
-  void w.torrents.state().then((s) => (torrents.value ??= s));
+  void w.torrents.state().then((s) => {
+    torrents.value ??= s;
+  });
 }
 
 // qBittorrent state -> torrents.state.<key>.

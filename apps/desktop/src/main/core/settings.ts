@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { app } from 'electron';
-import { ACCENTS, ASPECT_MODES, LIBRARY_SORTS, SUBTITLE_FONTS, type DeepPartial, type HwDec, type Settings } from '../../shared/contract';
+import { ACCENTS, THEMES, ASPECT_MODES, LIBRARY_SORTS, SUBTITLE_FONTS, type DeepPartial, type HwDec, type Settings } from '../../shared/contract';
 import { sanitizeEq } from '../../shared/equalizer';
 import { isMpvPathShape } from '../../shared/mpv-args';
 import { validateImport } from '../../shared/shortcuts';
@@ -67,6 +67,8 @@ export class SettingsService extends EventEmitter {
 
   constructor(file: string) {
     super();
+    // Each main-process feature (and the main window) subscribes once; the ceiling still catches a real leak.
+    this.setMaxListeners(32);
     this.store = new JsonStore<StoredSettings>(file, defaultSettings());
     // Fill keys added in newer versions and migrate renamed values.
     const stored = this.store.value as DeepPartial<StoredSettings>;
@@ -234,7 +236,8 @@ function sanitizeLive(s: StoredSettings): void {
 // keep: the values a refused edit falls back to (the current ones on an update, else the defaults).
 function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
   const d = defaultSettings();
-  s.ui.theme = s.ui.theme === 'oled' ? 'oled' : 'dark';
+  // Builds before the theme list stored Graphite as 'dark'.
+  s.ui.theme = THEMES.includes(s.ui.theme) ? s.ui.theme : 'graphite';
   s.ui.accent = ACCENTS.includes(s.ui.accent) ? s.ui.accent : 'blue';
   const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length <= 80).slice(0, 64) : []);
   s.ui.homeRows = (Array.isArray(s.ui.homeRows) ? s.ui.homeRows : [])

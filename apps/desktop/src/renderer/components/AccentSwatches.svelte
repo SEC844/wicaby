@@ -20,7 +20,7 @@
       aria-checked={current === a}
       aria-label={accentLabel(a)}
       title={accentLabel(a)}
-      style:--c={a === 'graphite' ? '#d1d1d6' : `var(--${a})`}
+      style:--c={`var(--${a === 'graphite' ? 'silver' : a})`}
       onpointerenter={() => previewAccent(a)}
       onfocus={() => previewAccent(a)}
       onblur={() => previewAccent(null)}

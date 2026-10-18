@@ -1,7 +1,5 @@
 package com.wika.wicaby.tv.ui
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -92,8 +89,8 @@ private fun PinPad(title: String, error: String?, reset: Int, onComplete: (Strin
 @Composable
 private fun PinKey(digit: String?, onClick: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill2, tween(160), label = "pin-key")
-    val fg = if (focused) Color.Black else C.label
+    val bg = if (focused) TvFocus.bg else C.fill2
+    val fg = if (focused) TvFocus.fg else C.label
     Box(
         modifier
             .size(64.dp)

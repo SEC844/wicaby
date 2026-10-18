@@ -395,6 +395,17 @@
     <string name="onboarding_look_title">Personnalisez</string>
     <string name="onboarding_look_body">Choisissez un thème et une couleur. Vous pourrez les changer dans les Réglages.</string>
     <string name="onboarding_look_preview">Aperçu</string>
+    <!-- Themes (packages/tokens/tokens.json ids, same as the desktop) -->
+    <string name="theme_graphite">Graphite</string>
+    <string name="theme_oled">OLED</string>
+    <string name="theme_slate">Ardoise</string>
+    <string name="theme_cinema">Cinéma</string>
+    <string name="theme_contrast">Contraste élevé</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_system">Automatique</string>
+    <string name="theme_hint_title">Un thème pour le salon ?</string>
+    <string name="theme_hint_body">OLED éteint les pixels noirs. Cinéma réchauffe les tons pour regarder le soir.</string>
+    <string name="theme_hint_keep">Garder Graphite</string>
     <string name="onboarding_where_title">Où se trouve votre serveur ?</string>
     <string name="onboarding_where_lan">Sur ce réseau</string>
     <string name="onboarding_where_lan_sub">Wicaby le trouve tout seul.</string>

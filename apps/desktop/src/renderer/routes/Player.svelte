@@ -276,7 +276,7 @@
   const aspect = $derived(playback.value?.aspect ?? { mode: 'fit' as const, zoom: 1 });
 </script>
 
-<div class="player" class:in={entered} class:leaving>
+<div class="player on-media" class:in={entered} class:leaving>
   <video
     bind:this={video}
     style:object-fit={FIT[aspect.mode]}
@@ -323,6 +323,7 @@
   }
   .player.in {
     opacity: 1;
+    /* motion-ok: the opening cross-fade is timed with main (html-player.ts) */
     transition: opacity calc(220ms * var(--tempo)) var(--ease-in-out);
   }
   /* 300 ms: EXIT_FADE_MS + EXIT_REVEAL_MS / 2 (main/playback/html-player.ts) less a frame. */
@@ -330,12 +331,14 @@
     opacity: 0;
     transform: scale(0.97);
     pointer-events: none;
+    /* motion-ok: timed with main, see above */
     transition:
       opacity calc(300ms * var(--tempo)) var(--ease-out),
       transform calc(300ms * var(--tempo)) var(--ease-out);
   }
   .leaving :global(.osd) {
     opacity: 0;
+    /* motion-ok: timed with main */
     transition: opacity 120ms var(--ease-out);
   }
   video {

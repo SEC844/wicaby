@@ -17,7 +17,12 @@ let watching = false;
 export function watchImmichSources(): void {
   if (watching) return;
   watching = true;
-  void w.photos.immich.sources().then((l) => (immich.sources = l)).catch(() => undefined);
+  void w.photos.immich
+    .sources()
+    .then((l) => {
+      immich.sources = l;
+    })
+    .catch(() => undefined);
   w.photos.immich.onSources((l) => {
     immich.sources = l;
   });

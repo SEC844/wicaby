@@ -380,7 +380,6 @@
     gap: 14px;
     padding: 10px 10px 10px 14px;
     border-radius: var(--r-xs);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .row:hover,
   .row:focus-within {
@@ -490,7 +489,7 @@
     box-shadow:
       inset 0 0 0 1px var(--hairline),
       var(--shadow-2);
-    animation: menu-in calc(120ms * var(--tempo)) var(--ease-out) both;
+    animation: menu-in var(--t-fast) var(--ease-out) both;
   }
   @keyframes menu-in {
     from {

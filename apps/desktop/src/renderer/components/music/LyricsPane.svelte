@@ -163,7 +163,6 @@
     padding: 6px 0;
     text-align: left;
     color: var(--label-2);
-    transition: color var(--t-fast) var(--ease);
   }
   .line.past {
     color: var(--label-3);

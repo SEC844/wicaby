@@ -33,7 +33,6 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -75,6 +74,7 @@ import com.wika.wicaby.tv.ui.Pill
 import com.wika.wicaby.tv.ui.Radius
 import com.wika.wicaby.tv.ui.SheetButton
 import com.wika.wicaby.tv.ui.Spinner
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.TvSheet
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.tvFocus
@@ -495,7 +495,7 @@ internal fun FocusAnchor(h: FocusHolder) = Box(
 @Composable
 internal fun ChoiceRow(label: String, value: String, onStep: (Int) -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
-    val fg = if (focused) Color.Black else C.label
+    val fg = if (focused) TvFocus.fg else C.label
     Row(
         modifier
             .fillMaxWidth()
@@ -505,13 +505,13 @@ internal fun ChoiceRow(label: String, value: String, onStep: (Int) -> Unit, modi
                 true
             }
             .tvFocus(RoundedCornerShape(Radius.md), focusedScale = 1.03f, sheen = false, elevation = 10.dp, onFocusChange = { focused = it }, onClick = { onStep(1) })
-            .background(if (focused) Color.White else C.fill2)
+            .background(if (focused) TvFocus.bg else C.fill2)
             .padding(horizontal = 20.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(label, style = Type.headline, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        Text(value, style = Type.callout, color = if (focused) Color.Black else C.label2, maxLines = 1)
-        Icon(Ic.Chevron, contentDescription = null, tint = if (focused) Color.Black else C.label3, modifier = Modifier.size(18.dp))
+        Text(value, style = Type.callout, color = if (focused) TvFocus.fg else C.label2, maxLines = 1)
+        Icon(Ic.Chevron, contentDescription = null, tint = if (focused) TvFocus.fg else C.label3, modifier = Modifier.size(18.dp))
     }
 }

@@ -167,7 +167,6 @@
     padding: 8px 10px 8px 4px;
     border-radius: var(--r-sm);
     text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .main:hover,
   .main:focus-visible {
@@ -227,9 +226,6 @@
     margin-right: 4px;
     border-radius: 50%;
     color: var(--label-3);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .remove:hover,
   .remove:focus-visible {

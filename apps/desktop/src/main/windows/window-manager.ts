@@ -1,14 +1,28 @@
 import os from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { app, BaseWindow, BrowserWindow, screen, shell, systemPreferences, type Rectangle } from 'electron';
+import { app, BaseWindow, BrowserWindow, nativeTheme, screen, shell, systemPreferences, type Rectangle } from 'electron';
 import { APP_HOST, APP_SCHEME, Channels, type WindowState } from '../../shared/contract';
 import { logger } from '../core/log';
 import type { SettingsService } from '../core/settings';
 import { EXIT_FADE_MS } from '../playback/player';
+import tokens from '../../../../../packages/tokens/tokens.json';
 
 const log = logger.scope('windows');
 
-export const INK = '#101114';
+// Mica, native menus and the caption buttons follow the theme's scheme; 'system' lets Windows decide.
+export function applyNativeTheme(theme: string): void {
+  nativeTheme.themeSource = theme === 'light' ? 'light' : theme === 'system' ? 'system' : 'dark';
+}
+
+// The window behind the page (first paint, resizing) and the caption glyphs, from the theme's colour tokens
+// (packages/tokens/tokens.json). Call applyNativeTheme first: 'system' reads the scheme it set.
+export function chromeColours(theme: string): { bg: string; symbol: string } {
+  const themes = tokens.themes as Record<string, Record<string, unknown>>;
+  const id = theme === 'system' ? (nativeTheme.shouldUseDarkColors ? 'graphite' : 'light') : theme;
+  const own = themes[id] ?? {};
+  const base = themes.graphite as Record<string, string>;
+  return { bg: (own.bg as string) ?? base.bg, symbol: (own.label as string) ?? base.label };
+}
 
 export function isWindows11(): boolean {
   const build = Number(os.release().split('.')[2] ?? 0);
@@ -146,6 +160,9 @@ export class WindowManager {
   createMain(hidden = false): BrowserWindow {
     const saved = this.opts.settings.value.window;
     const bounds = saved.bounds ? this.placeOnScreen(saved.bounds) : { width: 1440, height: 900 };
+    let theme = this.opts.settings.value.ui.theme;
+    applyNativeTheme(theme);
+    const colours = chromeColours(theme);
     const win = new BrowserWindow({
       ...bounds,
       minWidth: 960,
@@ -153,11 +170,11 @@ export class WindowManager {
       show: false,
       title: 'Wicaby',
       icon: this.opts.icon,
-      backgroundColor: this.mica ? '#00000000' : INK,
+      backgroundColor: this.mica ? '#00000000' : colours.bg,
       backgroundMaterial: this.mica ? 'mica' : undefined,
       titleBarStyle: 'hidden',
       // Native caption buttons keep Snap Layouts on hover over maximize.
-      titleBarOverlay: { color: '#00000000', symbolColor: '#ece8e1', height: 44 },
+      titleBarOverlay: { color: '#00000000', symbolColor: colours.symbol, height: 44 },
       webPreferences: this.webPreferences(),
     });
     this.harden(win);
@@ -172,6 +189,29 @@ export class WindowManager {
     }
     win.once('ready-to-show', () => {
       if (!hidden) win.show();
+    });
+    const paintChrome = () => {
+      if (win.isDestroyed()) return;
+      const c = chromeColours(theme);
+      if (!this.mica) win.setBackgroundColor(c.bg);
+      if (process.platform !== 'darwin') win.setTitleBarOverlay({ color: '#00000000', symbolColor: c.symbol, height: 44 });
+    };
+    const onSettings = () => {
+      const next = this.opts.settings.value.ui.theme;
+      if (next === theme) return;
+      theme = next;
+      applyNativeTheme(theme);
+      paintChrome();
+    };
+    // Windows switching between light and dark while the theme follows it.
+    const onNative = () => {
+      if (theme === 'system') paintChrome();
+    };
+    this.opts.settings.on('change', onSettings);
+    nativeTheme.on('updated', onNative);
+    win.once('closed', () => {
+      this.opts.settings.off('change', onSettings);
+      nativeTheme.off('updated', onNative);
     });
 
     const sendState = () => this.send(win, Channels.windowState, this.windowState(win));
@@ -490,7 +530,7 @@ export class WindowManager {
       alwaysOnTop: true,
       title: 'Wicaby',
       icon: this.opts.icon,
-      backgroundColor: this.mica ? '#00000000' : INK,
+      backgroundColor: this.mica ? '#00000000' : chromeColours(this.opts.settings.value.ui.theme).bg,
       backgroundMaterial: this.mica ? 'acrylic' : undefined,
       webPreferences: this.webPreferences(),
     });

@@ -5,6 +5,46 @@ import { apiFor, itemKey } from './api';
 import { backdropUrl } from './images';
 import './motion.css';
 
+// Svelte action: paint a picture once, blurred, into a tiny canvas that CSS stretches over the page. The GPU
+// then only scales a 48 px texture instead of re-blurring a full-window layer on every scrolled frame.
+export function ambient(canvas: HTMLCanvasElement, src: string | null) {
+  let url = src;
+  const draw = (next: string | null) => {
+    url = next;
+    if (!next) return;
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      const ctx = url === next ? canvas.getContext('2d') : null;
+      if (!ctx) return;
+      const { width: cw, height: ch } = canvas;
+      // object-fit: cover at 22 % from the top, like the backdrop above it.
+      const k = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      const sw = cw / k;
+      const sh = ch / k;
+      ctx.clearRect(0, 0, cw, ch);
+      // blur(1.5px) at 48 px is about 40 px once stretched to the window; the margin hides the blurred edge.
+      ctx.filter = 'blur(1.5px) saturate(1.4)';
+      ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) * 0.22, sw, sh, -3, -3, cw + 6, ch + 6);
+    };
+    img.src = next;
+  };
+  draw(src);
+  return { update: draw };
+}
+
+// Motion tokens for script-driven animation (Svelte transitions, WAAPI): app.css --t-* in ms, times --tempo.
+const T = { fast: 160, med: 320, slow: 560 } as const;
+export function dur(token: keyof typeof T): number {
+  return T[token] * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1);
+}
+
+// List entrances (.enter) run on forward visits only: a page reached with Back reappears as it was.
+// Read once at mount, so the class never flips on live cells (that would replay the animation).
+export function entering(): boolean {
+  return document.documentElement.dataset.nav !== 'back';
+}
+
 export function reducedMotion(): boolean {
   return document.documentElement.hasAttribute('data-reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

@@ -197,7 +197,6 @@
     font-weight: 500;
     color: var(--label);
     white-space: nowrap;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .push:hover,
   .push:focus-visible {
@@ -236,7 +235,6 @@
     font-size: var(--fs-footnote);
     color: var(--label);
     outline: none;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .field:focus {
     background: var(--fill-2);

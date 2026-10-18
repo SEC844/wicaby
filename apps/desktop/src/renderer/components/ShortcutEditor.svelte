@@ -242,7 +242,6 @@
     font-weight: 500;
     color: var(--label);
     white-space: nowrap;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .push:hover:not(:disabled),
   .push:focus-visible {

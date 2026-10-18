@@ -8,7 +8,6 @@ import com.wika.wicaby.tv.data.TvSettings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -155,7 +154,7 @@ fun TvSheet(
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { onDismiss() } }.padding(padding), contentAlignment = alignment) {
-        AnimatedVisibility(shown, enter = fadeIn(tween(220)) + scaleIn(spring(dampingRatio = 0.8f, stiffness = 500f), initialScale = 0.94f), exit = fadeOut() + scaleOut()) {
+        AnimatedVisibility(shown, enter = fadeIn(tween(220)) + scaleIn(spring(dampingRatio = 0.9f, stiffness = 500f), initialScale = 0.94f), exit = fadeOut() + scaleOut()) {
             Column(
                 Modifier
                     .width(width)
@@ -201,8 +200,8 @@ fun TvAlert(title: String, message: String?, actions: List<AlertAction>, focusIn
 @Composable
 fun SheetButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, checked: Boolean = false, centered: Boolean = icon == null) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill2, tween(160), label = "sheet-btn")
-    val fg = if (focused) Color.Black else C.label
+    val bg = if (focused) TvFocus.bg else C.fill2
+    val fg = if (focused) TvFocus.fg else C.label
     Row(
         modifier
             .fillMaxWidth()
@@ -212,9 +211,9 @@ fun SheetButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (icon != null) Icon(icon, null, tint = if (focused) Color.Black else C.label2, modifier = Modifier.size(20.dp))
+        if (icon != null) Icon(icon, null, tint = if (focused) TvFocus.fg else C.label2, modifier = Modifier.size(20.dp))
         Text(text, style = Type.headline, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), textAlign = if (centered) TextAlign.Center else TextAlign.Start)
-        if (!centered) Box(Modifier.size(18.dp)) { if (checked) Icon(Ic.Check, null, tint = if (focused) Color.Black else C.label, modifier = Modifier.size(18.dp)) }
+        if (!centered) Box(Modifier.size(18.dp)) { if (checked) Icon(Ic.Check, null, tint = if (focused) TvFocus.fg else C.label, modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -355,7 +354,7 @@ private fun TabPill(
         if (w.value == 0f || g != group) {
             group = g; x.snapTo(tx); w.snapTo(tw)
         } else {
-            val spec = spring<Float>(dampingRatio = 0.82f, stiffness = 380f)
+            val spec = spring<Float>(dampingRatio = 0.9f, stiffness = 380f)
             coroutineScope {
                 launch { x.animateTo(tx, spec) }
                 launch { w.animateTo(tw, spec) }
@@ -364,8 +363,9 @@ private fun TabPill(
     }
     // White only while a tab holds focus (not the avatar next to it).
     var pillFocused by remember { mutableStateOf(false) }
-    val lift by animateFloatAsState(if (pillFocused) 1f else 0f, spring(dampingRatio = 0.62f, stiffness = 420f), label = "pill-lift")
-    val indicator = Color.White.copy(alpha = 0.16f + 0.8f * lift)
+    // lift is read only in drawBehind (no recomposition per frame); the colour switches at once, the size eases.
+    val lift by animateFloatAsState(if (pillFocused) 1f else 0f, spring(dampingRatio = 0.9f, stiffness = 420f), label = "pill-lift")
+    val indicator = if (pillFocused) TvFocus.bg else Color.White.copy(alpha = 0.16f)
     val scroll = rememberScrollState()
     val edge = with(LocalDensity.current) { 28.dp.toPx() }
     // With many libraries the text tabs scroll: the selected one stays in view, also when picked by touch or
@@ -402,18 +402,15 @@ private fun TabPill(
     fun Tab(t: TopTab, g: Int) {
         val i = order.indexOf(t)
         val isSel = t.key == selected
-        val fg by animateColorAsState(
-            when {
-                isSel && pillFocused -> Color.Black
-                isSel -> C.label
-                else -> C.label2
-            },
-            tween(160),
-            label = "tab-fg",
-        )
+        val fg = when {
+            isSel && pillFocused -> TvFocus.fg
+            isSel -> C.label
+            else -> C.label2
+        }
         Row(
             Modifier
-                .onGloballyPositioned { bounds[t.key] = Triple(g, it.positionInParent().x, it.size.width.toFloat()) }
+                // Written only on change: a fresh Triple each callback (bar slide-in) would recompose TabPill every frame.
+                .onGloballyPositioned { val v = Triple(g, it.positionInParent().x, it.size.width.toFloat()); if (bounds[t.key] != v) bounds[t.key] = v }
                 .focusRequester(requesters.getValue(t.key))
                 .focusProperties {
                     down = content

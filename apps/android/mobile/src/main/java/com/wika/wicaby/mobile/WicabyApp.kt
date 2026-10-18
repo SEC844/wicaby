@@ -72,7 +72,9 @@ class WicabyApp : Application(), SingletonImageLoader.Factory {
                 add(com.wika.wicaby.core.files.PhotoThumbFetcher.Factory())
                 add(OkHttpNetworkFetcherFactory(callFactory = { com.wika.wicaby.core.files.FileSources.calls }))
             }
-            .crossfade(220)
+            // design.md --t-fast, scaled by the system "Animator duration scale"; none on low-RAM devices, where a fade that
+            // starts while a row scrolls can stall part-way. shortcut: the scale is read once per process.
+            .crossfade(if (DeviceClassDetector.detect(this, FormFactor.MOBILE).isLow) 0 else (160 * android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)).toInt())
             .build()
 
     companion object {

@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -47,6 +46,7 @@ import com.wika.wicaby.tv.ui.C
 import com.wika.wicaby.tv.ui.Ic
 import com.wika.wicaby.tv.ui.LocalAccent
 import com.wika.wicaby.tv.ui.SheetButton
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.TvSheet
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.onAccent
@@ -209,9 +209,9 @@ private fun RoundButton(icon: ImageVector, label: String, modifier: Modifier = M
     Box(
         modifier.size(if (primary) 64.dp else 52.dp)
             .tvFocus(CircleShape, focusedScale = 1.12f, onFocusChange = { focused = it }, onClick = onClick)
-            .background(if (focused) Color.White else if (primary) accent else C.fill2),
+            .background(if (focused) TvFocus.bg else if (primary) accent else C.fill2),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = if (focused) Color.Black else if (primary) onAccent(accent) else C.label2, modifier = Modifier.size(if (primary) 30.dp else 24.dp))
+        Icon(icon, contentDescription = label, tint = if (focused) TvFocus.fg else if (primary) onAccent(accent) else C.label2, modifier = Modifier.size(if (primary) 30.dp else 24.dp))
     }
 }

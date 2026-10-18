@@ -191,12 +191,24 @@
   "appearance": {
     "theme": {
       "title": "Theme",
-      "dark": "Dark",
-      "darkDesc": "Graphite and Mica",
-      "darkDescLinux": "Graphite",
+      "graphite": "Graphite",
+      "graphiteDesc": "Neutral gray and Mica",
+      "graphiteDescLinux": "Neutral gray",
       "oled": "OLED",
       "oledDesc": "Pure black, no Mica",
-      "oledDescLinux": "Pure black"
+      "oledDescLinux": "Pure black",
+      "slate": "Slate",
+      "slateDesc": "Graphite with a cool tint",
+      "cinema": "Cinema",
+      "cinemaDesc": "Warm tones for evening viewing",
+      "contrast": "High Contrast",
+      "contrastDesc": "Sharper text, no transparency",
+      "light": "Light",
+      "lightDesc": "Light canvas and Mica",
+      "lightDescLinux": "Light canvas",
+      "system": "Automatic",
+      "systemDesc": "Follows Windows light or dark mode",
+      "systemDescLinux": "Follows the system light or dark mode"
     },
     "accent": {
       "label": "Accent Color"

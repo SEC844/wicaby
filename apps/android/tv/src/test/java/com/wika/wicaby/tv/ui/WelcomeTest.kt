@@ -23,7 +23,6 @@ import com.wika.wicaby.tv.Route
 import com.wika.wicaby.tv.startRoute
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,7 +45,7 @@ class WelcomeTest {
 
     @After
     fun tearDown() {
-        C.oled = false
+        C.theme = "graphite"
     }
 
     private fun press(key: Key) = rule.onRoot().performKeyInput { pressKey(key) }
@@ -54,7 +53,7 @@ class WelcomeTest {
     private fun wizard() {
         rule.setContent {
             WicabyTheme(Accents[0]) {
-                Wizard("", onLanguage = { language = it }, accent = 0, onAccent = {}, onOled = {}, onSkip = { skipped++ }) { step, _ -> Text("step $step") }
+                Wizard("", onLanguage = { language = it }, accent = 0, onAccent = {}, onTheme = {}, onSkip = { skipped++ }) { step, _ -> Text("step $step") }
             }
         }
         // The default focus waits a moment (Modifier.remembered); let it land before moving it.
@@ -80,17 +79,22 @@ class WelcomeTest {
     }
 
     @Test
-    fun focusingTheOledCardAppliesIt() {
+    fun focusingAThemeCardAppliesIt() {
         wizard()
         rule.onNodeWithTag("start").requestFocus()
         press(Key.DirectionCenter)
         rule.waitForIdle()
         rule.onNodeWithTag("theme-oled").requestFocus()
         rule.waitForIdle()
-        assertTrue(C.oled)
-        rule.onNodeWithTag("theme-dark").requestFocus()
+        assertEquals("oled", C.theme)
+        rule.onNodeWithTag("theme-cinema").requestFocus()
         rule.waitForIdle()
-        assertEquals(false, C.oled)
+        assertEquals("cinema", C.theme)
+        rule.onNodeWithTag("theme-graphite").requestFocus()
+        rule.waitForIdle()
+        assertEquals("graphite", C.theme)
+        // The TV never offers the light theme.
+        rule.onNodeWithTag("theme-light").assertDoesNotExist()
     }
 
     @Test
@@ -99,11 +103,11 @@ class WelcomeTest {
         rule.onNodeWithTag("start").requestFocus()
         press(Key.DirectionCenter)
         rule.waitForIdle()
-        rule.onNodeWithTag("theme-dark").assertExists()
+        rule.onNodeWithTag("theme-graphite").assertExists()
         rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
         rule.waitForIdle()
         rule.onNodeWithTag("start").assertExists()
-        rule.onNodeWithTag("theme-dark").assertDoesNotExist()
+        rule.onNodeWithTag("theme-graphite").assertDoesNotExist()
     }
 
     @Test
@@ -128,7 +132,7 @@ class WelcomeTest {
             WicabyTheme(Accents[0]) {
                 holder.SaveableStateProvider(stack.last().toString()) {
                     if (stack.last() is Route.Welcome) {
-                        Wizard("", onLanguage = {}, accent = 0, onAccent = {}, onOled = {}, onSkip = { nav.pop() }) { step, go ->
+                        Wizard("", onLanguage = {}, accent = 0, onAccent = {}, onTheme = {}, onSkip = { nav.pop() }) { step, go ->
                             if (step == 3) LaunchedEffect(Unit) { go(5) }
                             Text("step $step")
                         }

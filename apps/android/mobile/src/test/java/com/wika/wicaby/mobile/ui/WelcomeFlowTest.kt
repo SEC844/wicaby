@@ -39,7 +39,7 @@ abstract class WelcomeFlowTest {
     private class FakeStore(initial: Snapshot) : WizardStore {
         val snap = MutableStateFlow(initial)
         override suspend fun setAccent(i: Int) = snap.update { it.copy(accent = i) }
-        override suspend fun setOled(v: Boolean) = snap.update { it.copy(oled = v) }
+        override suspend fun setTheme(id: String) = snap.update { it.copy(theme = id) }
         override suspend fun setWifiOnlyDownloads(v: Boolean) = snap.update { it.copy(wifiOnlyDownloads = v) }
         override suspend fun setServer(server: Server) = snap.update { it.copy(server = server) }
         override suspend fun setOnboarded(v: Boolean) = snap.update { it.copy(onboarded = v) }

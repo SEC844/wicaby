@@ -153,6 +153,9 @@ export type LibrarySort = (typeof LIBRARY_SORTS)[number];
 
 export const ACCENTS = ['blue', 'indigo', 'purple', 'pink', 'red', 'orange', 'green', 'graphite'] as const;
 export type Accent = (typeof ACCENTS)[number];
+// Theme ids shared with the Android apps (packages/tokens/tokens.json); 'system' follows Windows between light and graphite.
+export const THEMES = ['graphite', 'oled', 'slate', 'cinema', 'contrast', 'light', 'system'] as const;
+export type Theme = (typeof THEMES)[number];
 
 // Home layout for one user (`serverId/userId`): row ids in display order, and
 // the hidden ones. Rows the list does not know yet keep their default place.
@@ -164,7 +167,7 @@ export interface HomeRowsPref {
 
 export interface Settings {
   ui: {
-    theme: 'dark' | 'oled';
+    theme: Theme;
     accent: Accent;
     reduceMotion: boolean;
     reduceTransparency: boolean;

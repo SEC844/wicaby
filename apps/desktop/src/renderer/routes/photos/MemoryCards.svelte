@@ -19,8 +19,8 @@
 
 {#if groups.length > 0}
   <Row title={t('photos.memories.title')} variant="thumb">
-    {#each groups as g, i (g.yearsAgo)}
-      <button class="memory enter" style:--i={Math.min(i, 12)} aria-label={t('photos.memories.play', { title: title(g), count: g.assets.length })} onclick={() => (playing = g)}>
+    {#each groups as g (g.yearsAgo)}
+      <button class="memory" aria-label={t('photos.memories.play', { title: title(g), count: g.assets.length })} onclick={() => (playing = g)}>
         <span class="media">
           <img class="reveal" use:reveal src={photoUrl(cover(g), { maxWidth: 480 })} alt="" loading="lazy" decoding="async" />
           <span class="scrim"></span>
@@ -91,9 +91,5 @@
     z-index: 1;
     transform: scale(1.05);
     box-shadow: var(--shadow-3);
-  }
-  .enter {
-    animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
   }
 </style>

@@ -1,15 +1,23 @@
 package com.wika.wicaby.mobile.ui
 
+import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -18,39 +26,74 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.wika.wicaby.core.R as CoreR
+import com.wika.wicaby.core.ui.THEME_SYSTEM
+import com.wika.wicaby.core.ui.Tokens
 import com.wika.wicaby.mobile.R
 
-// "Graphite" (docs/design.md), mirrored from apps/desktop/src/renderer/app.css like the TV app.
+// "Graphite" (docs/design.md): a facade over the generated tokens (packages/tokens/tokens.json), like the TV's C.
 object G {
-    // OB-X, html[data-theme='oled'] as on the TV: pure black canvas, surfaces nudged down to keep their contrast.
-    // Snapshot state, so every screen reading G.bg recomposes when the setting flips.
-    var oled by mutableStateOf(false)
-    val bg get() = if (oled) Color.Black else Color(0xFF0B0B0D)
-    val elevated get() = if (oled) Color(0xFF0E0E10) else Color(0xFF151517)
-    val elevated2 get() = if (oled) Color(0xFF161618) else Color(0xFF1C1C1F)
-    val raised = Color(0xFF2A2A2D)
-    val label = Color(0xFFF5F5F7)
-    val label2 = Color(0x9EEBEBF5)
-    val label3 = Color(0x57EBEBF5)
-    val fill1 = Color(0x0AFFFFFF)
-    val fill2 = Color(0x12FFFFFF)
-    val fill3 = Color(0x1CFFFFFF)
-    val fill4 = Color(0x29FFFFFF)
-    val separator = Color(0x14FFFFFF)
-    val red = Color(0xFFFF453A)
+    // The theme id (Prefs.theme, same ids as the desktop's ui.theme). Snapshot state, so every screen reading
+    // G.bg recomposes when it changes. 'system' follows the phone between light and graphite ([systemDark]).
+    var theme by mutableStateOf(Tokens.Graphite.id)
+    var systemDark by mutableStateOf(true)
+    // The player and the reader stay dark in the light theme, like the desktop's media surfaces: counted up in
+    // their onStart and down in onStop, so a reader opened over a PiP player stays dark when the player stops.
+    // shortcut: process-wide, so the screen behind a picture-in-picture player is dark too; a per-window palette
+    // (CompositionLocal) would fix it.
+    var mediaStarted by mutableIntStateOf(0)
+    val media get() = mediaStarted > 0
+    val palette: Tokens.Palette get() {
+        val p = if (theme == THEME_SYSTEM) (if (systemDark) Tokens.Graphite else Tokens.Light) else Tokens.byId(theme)
+        return if (media && p.light) Tokens.Graphite else p
+    }
+    private val p get() = palette
+    val bg get() = Color(p.bg)
+    val elevated get() = Color(p.elevated)
+    val elevated2 get() = Color(p.elevated2)
+    val raised get() = Color(p.raised)
+    val label get() = Color(p.label)
+    val label2 get() = Color(p.label2)
+    val label3 get() = Color(p.label3)
+    val fill1 get() = Color(p.fill1)
+    val fill2 get() = Color(p.fill2)
+    val fill3 get() = Color(p.fill3)
+    val fill4 get() = Color(p.fill4)
+    val separator get() = Color(p.separator)
+    // A switch's off track (3:1 on the light canvas, tokens.json control) and its knob: white on light, as on iOS.
+    val control get() = Color(p.control)
+    val controlKnob get() = if (p.light) Color.White else label2
+    val red get() = Color(p.system.red)
 }
 
-// Same order and values as html[data-accent] and the TV app; the index is what Prefs stores.
-val Accents = listOf(
-    Color(0xFF0A84FF), // blue
-    Color(0xFF5E5CE6), // indigo
-    Color(0xFFBF5AF2), // purple
-    Color(0xFFFF375F), // pink
-    Color(0xFFFF453A), // red
-    Color(0xFFFF9F0A), // orange
-    Color(0xFF30D158), // green
-    Color(0xFFD1D1D6), // graphite
-)
+// Same order and values as html[data-accent] and the TV app, in the current theme's tones; the index is what
+// Prefs stores. [ACCENT_SYSTEM] comes after them.
+val Accents get() = G.palette.accents.map { Color(it.argb) }
+
+// The wallpaper's colour (Material You, Android 12+): the accent only, the canvas stays the theme's.
+const val ACCENT_SYSTEM = 8
+val systemAccentSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+// The dynamic accent in use and the text on it, for onAccent (set by accentOf).
+private var dynamicAccent: Pair<Color, Color>? = null
+
+/** The accent for a stored index: a palette tone, or the wallpaper's on Android 12+ when it stands out from the canvas. */
+@Composable
+fun accentOf(index: Int): Color {
+    if (index == ACCENT_SYSTEM && systemAccentSupported) {
+        val context = LocalContext.current
+        val light = G.palette.light
+        val s = remember(context, light) { if (light) dynamicLightColorScheme(context) else dynamicDarkColorScheme(context) }
+        // A wallpaper tone too close to the canvas would hide buttons and progress: blue instead.
+        if (contrast(s.primary, G.bg) >= 3f) return s.primary.also { dynamicAccent = it to s.onPrimary }
+    }
+    return Accents.getOrElse(index) { Accents[0] }
+}
+
+/** WCAG contrast ratio of two opaque colours. */
+fun contrast(a: Color, b: Color): Float {
+    val (hi, lo) = listOf(a.luminance(), b.luminance()).sortedDescending()
+    return (hi + 0.05f) / (lo + 0.05f)
+}
 
 // Spoken names for the swatches, same order as [Accents].
 val AccentNames = listOf(
@@ -58,7 +101,8 @@ val AccentNames = listOf(
     R.string.accent_red, R.string.accent_orange, R.string.accent_green, R.string.accent_graphite,
 )
 
-fun onAccent(c: Color) = if (c == Accents[5] || c == Accents[6] || c == Accents[7]) Color.Black else Color.White
+fun onAccent(c: Color) = dynamicAccent?.takeIf { it.first == c }?.second
+    ?: (G.palette.accents + Tokens.Accents).firstOrNull { Color(it.argb) == c }?.let { Color(it.onArgb) } ?: Color.White
 
 val LocalAccent = staticCompositionLocalOf { Accents[0] }
 
@@ -94,9 +138,10 @@ object Type {
     val mono = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 17.sp)
 }
 
-// Material 3 underneath (sheets, switches, the navigation suite), retinted to Graphite:
-// no dynamic colour, no tonal surfaces, selection as a neutral fill rather than an accent pill.
-fun graphiteScheme(accent: Color) = darkColorScheme(
+// Material 3 underneath (sheets, switches, the navigation suite), retinted to the theme's tokens: no tonal
+// surfaces (the wallpaper only ever gives the accent), selection as a neutral fill rather than an accent pill.
+// Built from the light or dark baseline, so the roles not set here (the fixed roles) match the theme's scheme.
+fun graphiteScheme(accent: Color) = (if (G.palette.light) lightColorScheme() else darkColorScheme()).copy(
     primary = accent,
     onPrimary = onAccent(accent),
     primaryContainer = accent,
@@ -121,7 +166,10 @@ fun graphiteScheme(accent: Color) = darkColorScheme(
     inverseOnSurface = G.bg,
     error = G.red,
     onError = Color.White,
-    outline = G.label3,
+    errorContainer = G.elevated2,
+    onErrorContainer = G.red,
+    // Outlined fields and unchecked controls: 3:1 on the light canvas.
+    outline = if (G.palette.light) G.control else G.label3,
     outlineVariant = G.separator,
     scrim = Color.Black,
     surfaceBright = G.raised,

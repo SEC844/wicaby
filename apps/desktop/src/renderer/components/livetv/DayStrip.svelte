@@ -91,7 +91,6 @@
     color: var(--label-2);
     white-space: nowrap;
     text-transform: capitalize;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .pill:is(:hover, :focus-visible) {
     background: var(--fill-3);

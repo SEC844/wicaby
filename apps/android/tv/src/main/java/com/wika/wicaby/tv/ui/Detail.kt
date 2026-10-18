@@ -48,8 +48,6 @@ import com.wika.wicaby.core.comics.Comics
 import com.wika.wicaby.tv.reader.ReaderActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -57,7 +55,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.wika.wicaby.core.data.Api
@@ -351,7 +348,7 @@ private fun TrackSelectors(item: Item, source: MediaSource, onVersion: (String) 
 @Composable
 private fun SelectorPill(title: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill2, tween(160), label = "selector")
+    val bg = if (focused) TvFocus.bg else C.fill2
     Row(
         modifier
             .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 10.dp, onFocusChange = { focused = it }, onClick = onClick)
@@ -360,8 +357,8 @@ private fun SelectorPill(title: String, value: String, modifier: Modifier = Modi
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(title, style = Type.callout, color = if (focused) Color.Black.copy(alpha = 0.6f) else C.label3, maxLines = 1)
-        Text(value, style = Type.callout, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 260.dp))
+        Text(title, style = Type.callout, color = if (focused) TvFocus.fg.copy(alpha = 0.6f) else C.label3, maxLines = 1)
+        Text(value, style = Type.callout, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 260.dp))
     }
 }
 

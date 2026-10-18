@@ -52,6 +52,7 @@ import com.wika.wicaby.core.mesh.MeshProvider
 import com.wika.wicaby.core.mesh.MeshState
 import com.wika.wicaby.core.mesh.MeshStatus
 import com.wika.wicaby.core.mesh.MeshTransport
+import com.wika.wicaby.core.ui.Tokens
 
 // Text styles and colours for the panel. Each app passes its own tokens; the
 // default is Graphite (near-black surface, white labels, accent for the primary action only).
@@ -76,14 +77,14 @@ data class MeshPanelStyle(
             body = TextStyle(fontSize = 15.sp, lineHeight = 22.sp),
             caption = TextStyle(fontSize = 13.sp, lineHeight = 17.sp),
             mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, lineHeight = 17.sp),
-            label = Color(0xFFF5F5F7),
-            label2 = Color(0x9EEBEBF5),
-            label3 = Color(0x57EBEBF5),
-            fill = Color(0x1CFFFFFF),
-            accent = Color(0xFF0A84FF),
+            label = Color(Tokens.Graphite.label),
+            label2 = Color(Tokens.Graphite.label2),
+            label3 = Color(Tokens.Graphite.label3),
+            fill = Color(Tokens.Graphite.fill3),
+            accent = Color(Tokens.SystemColors.blue),
             onAccent = Color.White,
-            positive = Color(0xFF30D158),
-            error = Color(0xFFFF453A),
+            positive = Color(Tokens.SystemColors.green),
+            error = Color(Tokens.SystemColors.red),
         )
     }
 }
@@ -290,7 +291,7 @@ fun MeshDefaultField(placeholder: String, value: String, onValueChange: (String)
             Box(
                 Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (focused) Color(0xFF323235) else style.fill)
+                    .background(if (focused) Color(Tokens.raisedFocus) else style.fill)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 if (value.isEmpty()) BasicText(placeholder, style = style.body.copy(color = style.label3), maxLines = 1)

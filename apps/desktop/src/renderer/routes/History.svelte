@@ -12,7 +12,8 @@
   import Icon from '../components/Icon.svelte';
   import { apiFor, fanOut, itemKey, LIST_FIELDS, merge } from '../lib/api';
   import { fmt, t } from '../lib/i18n.svelte';
-  import { scrollMemory } from '../lib/motion';
+  import { entering, scrollMemory } from '../lib/motion';
+  const enter = entering();
   import { dataVersion, multiServer, onlineSessions } from '../lib/stores.svelte';
 
   // Recently played, grouped by day, with simple personal stats. Same layout as Favorites.
@@ -119,7 +120,7 @@
         <h2 class="title-3">{dayLabel(g.day)}</h2>
         <div class="grid">
           {#each g.items as item, i (itemKey(item))}
-            <div class="enter" style:--i={Math.min(i, 12)}><Card {item} variant="thumb" showServer={multi} /></div>
+            <div class:enter style:--i={Math.min(i, 12)}><Card {item} variant="thumb" showServer={multi} /></div>
           {/each}
         </div>
       </section>
@@ -201,7 +202,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .sk-frame {
     aspect-ratio: 16 / 9;

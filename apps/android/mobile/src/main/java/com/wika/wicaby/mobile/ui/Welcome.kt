@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,7 +79,7 @@ const val WIZARD_STEPS = 6
 // What the wizard writes. Tests pass a fake: the DataStore file cannot be replaced twice on a Windows host.
 interface WizardStore {
     suspend fun setAccent(i: Int)
-    suspend fun setOled(v: Boolean)
+    suspend fun setTheme(id: String)
     suspend fun setWifiOnlyDownloads(v: Boolean)
     suspend fun setServer(server: Server)
     suspend fun setOnboarded(v: Boolean)
@@ -88,7 +87,7 @@ interface WizardStore {
 
 private class PrefsStore(private val p: Prefs) : WizardStore {
     override suspend fun setAccent(i: Int) { p.setAccent(i) }
-    override suspend fun setOled(v: Boolean) { p.setOled(v) }
+    override suspend fun setTheme(id: String) { p.setTheme(id) }
     override suspend fun setWifiOnlyDownloads(v: Boolean) { p.setWifiOnlyDownloads(v) }
     override suspend fun setServer(server: Server) { p.setServer(server) }
     override suspend fun setOnboarded(v: Boolean) { p.setOnboarded(v) }
@@ -246,23 +245,7 @@ private fun Look(snap: Snapshot, store: WizardStore) {
     val scope = rememberCoroutineScope()
     Title(stringResource(CoreR.string.onboarding_look_title), stringResource(CoreR.string.onboarding_look_body))
     Eyebrow(stringResource(R.string.settings_theme))
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        listOf(false to R.string.settings_theme_dark, true to R.string.settings_theme_oled).forEach { (oled, label) ->
-            val selected = snap.oled == oled
-            Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(Radius.lg)).background(G.elevated)
-                    .border(2.dp, if (selected) LocalAccent.current else Color.Transparent, RoundedCornerShape(Radius.lg))
-                    .selectable(selected, role = Role.RadioButton) { scope.launch { store.setOled(oled) } }
-                    .padding(12.dp),
-            ) {
-                Box(Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(Radius.sm)).background(if (oled) Color.Black else Color(0xFF0B0B0D)).padding(10.dp)) {
-                    Box(Modifier.width(36.dp).height(44.dp).clip(RoundedCornerShape(Radius.xs)).background(if (oled) Color(0xFF161618) else Color(0xFF1C1C1F)))
-                    Box(Modifier.align(Alignment.BottomEnd).width(40.dp).height(10.dp).clip(CircleShape).background(LocalAccent.current))
-                }
-                Text(stringResource(label), style = Type.callout, color = G.label, modifier = Modifier.padding(top = 10.dp))
-            }
-        }
-    }
+    Group { ThemePicker(snap.theme, snap.accent) { id -> scope.launch { store.setTheme(id) } } }
     Eyebrow(stringResource(R.string.settings_accent))
     Group { AccentPicker(snap.accent) { i -> scope.launch { store.setAccent(i) } } }
     Eyebrow(stringResource(CoreR.string.onboarding_look_preview))
@@ -271,7 +254,7 @@ private fun Look(snap: Snapshot, store: WizardStore) {
             Box(Modifier.width(56.dp).height(84.dp).clip(RoundedCornerShape(Radius.sm)).background(G.elevated2))
             Column(Modifier.padding(start = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Wicaby", style = Type.headline, color = G.label)
-                ProgressLine(0.4f)
+                ProgressLine(0.4f, track = G.fill4)
                 PillButton(stringResource(R.string.play), {}, icon = Ic.Play, primary = true, compact = true)
             }
         }

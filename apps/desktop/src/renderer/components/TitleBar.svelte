@@ -9,6 +9,7 @@
   import { errorMessage, multiServer, onlineSessions, session, toast } from '../lib/stores.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from './Icon.svelte';
+  import { dur } from '../lib/motion';
 
   let { minimal = false }: { minimal?: boolean } = $props();
 
@@ -94,10 +95,9 @@
   }
 
   // Popover grows out of its trigger, macOS menu style.
-  function pop(_node: Element, { duration = 220 }: { duration?: number } = {}) {
-    const tempo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
+  function pop(_node: Element) {
     return {
-      duration: duration * tempo,
+      duration: dur('fast'),
       easing: cubicOut,
       css: (p: number) => `opacity: ${p}; transform: translate3d(0, ${(1 - p) * -6}px, 0) scale(${0.94 + 0.06 * p});`,
     };
@@ -256,9 +256,6 @@
     height: 32px;
     border-radius: 50%;
     color: var(--label-2);
-    transition:
-      background-color calc(100ms * var(--tempo)) linear,
-      color calc(100ms * var(--tempo)) linear;
   }
   .round:is(:hover, :focus-visible) {
     background: var(--fill-1);
@@ -280,9 +277,11 @@
     background: var(--fill-2);
     color: var(--label-3);
     cursor: text;
-    transition:
-      background-color calc(100ms * var(--tempo)) linear,
-      color calc(100ms * var(--tempo)) linear;
+  }
+  /* High Contrast: a 3:1 outline on the control's edge (docs/design.md). */
+  :global(html[data-theme='contrast']) .search {
+    outline: 1px solid var(--separator);
+    outline-offset: -1px;
   }
   .search:hover {
     background: var(--fill-3);
@@ -383,7 +382,7 @@
   }
   .avatar-btn:active {
     transform: scale(0.92);
-    transition-duration: 80ms;
+    transition-duration: calc(var(--t-fast) / 2);
   }
   .avatar-btn:focus-visible {
     border-radius: 50%;
@@ -397,7 +396,6 @@
     place-items: center;
     flex: none;
     background: linear-gradient(160deg, var(--graphite), #4a4a4f);
-    transition: box-shadow var(--t-fast) var(--ease);
   }
   .avatar.big {
     width: 40px;

@@ -89,6 +89,7 @@ import com.wika.wicaby.tv.ui.C
 import com.wika.wicaby.tv.ui.Ic
 import com.wika.wicaby.tv.ui.LocalAccent
 import com.wika.wicaby.tv.ui.Radius
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.WicabyTheme
 import com.wika.wicaby.tv.ui.onAccent
@@ -293,13 +294,13 @@ private fun CtrlButton(icon: ImageVector, label: String, modifier: Modifier = Mo
     var focused by remember { mutableStateOf(false) }
     val accent = LocalAccent.current
     val bg = when {
-        focused -> Color.White
+        focused -> TvFocus.bg
         primary -> accent
         on -> C.fill4
         else -> C.fill2
     }
     val fg = when {
-        focused -> Color.Black
+        focused -> TvFocus.fg
         primary -> onAccent(accent)
         on -> C.label
         else -> C.label2
@@ -469,7 +470,7 @@ private fun QueueEntry(
                 true
             }
             .tvFocus(RoundedCornerShape(Radius.md), focusedScale = 1.05f, onFocusChange = { f -> focused = f }) { session.jump(i) }
-            .background(if (focused) Color.White else if (playing) C.fill3 else C.fill1)
+            .background(if (focused) TvFocus.bg else if (playing) C.fill3 else C.fill1)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -480,10 +481,10 @@ private fun QueueEntry(
             }
         }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(it?.name ?: "…", style = Type.callout, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(it?.name ?: "…", style = Type.callout, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val sub = if (editing) editLabel else it?.artistLine?.takeIf { a -> a.isNotEmpty() }
             sub?.let { a ->
-                Text(a, style = Type.caption, color = if (focused) Color.Black.copy(alpha = 0.6f) else C.label3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(a, style = Type.caption, color = if (focused) TvFocus.fg.copy(alpha = 0.6f) else C.label3, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         if (playing) Box(Modifier.size(8.dp).clip(CircleShape).background(LocalAccent.current))

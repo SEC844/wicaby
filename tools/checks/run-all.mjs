@@ -6,6 +6,12 @@ import path from 'node:path';
 const here = import.meta.dirname;
 const checks = [
   ['privacy-check.mjs'],
+  // Graphite colour tokens: generated CSS and Kotlin match packages/tokens/tokens.json.
+  ['tokens-check.mjs'],
+  // Every theme's text meets WCAG AA (4.5:1 body, 3:1 accent controls).
+  ['contrast-check.mjs'],
+  // Desktop motion: no colour/size transitions, durations only through the --t-* tokens.
+  ['motion-check.mjs'],
   ['i18n-check.mjs', '--strict'],
   ['i18n-check.mjs', '--self-test'],
   ['livetv-a11y-check.mjs'],

@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Always dark: light status-bar icons over the graphite background and artwork.
+        // Light icons until WicabyRoot reads the theme (SystemBars: dark icons on the light theme).
         enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         // Debug builds: plex.tv at the loopback mock (tools/mock-server/mock-plex.mjs through adb reverse; PlexTv

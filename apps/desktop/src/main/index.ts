@@ -88,7 +88,7 @@ function hardwareAccelerationSetting(): boolean {
 // Dev runs (electron.exe) get their own id: sharing it makes Windows cache Electron's icon and jump list for the packaged app.
 app.setAppUserModelId(app.isPackaged ? APP_ID : `${APP_ID}.dev`);
 Menu.setApplicationMenu(null);
-// Dark Mica and dark native caption buttons regardless of the Windows theme.
+// Dark Mica and caption buttons until the main window applies the theme's scheme (applyNativeTheme).
 nativeTheme.themeSource = 'dark';
 
 // Accepts --wicaby-nav=/route (jump list) and wicaby://item/<id> (deep link).

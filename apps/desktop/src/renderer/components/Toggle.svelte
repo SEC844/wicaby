@@ -32,7 +32,8 @@
     width: var(--w);
     height: var(--h);
     border-radius: 999px;
-    background: var(--fill-3);
+    /* 3:1 against the canvas on Light (tokens.json control); the white knob carries it on dark themes. */
+    background: var(--control);
     isolation: isolate;
     transition: opacity var(--t-fast) var(--ease);
   }
@@ -47,7 +48,7 @@
     z-index: -1;
   }
   .toggle:not(:disabled):hover {
-    background: var(--fill-4);
+    background: color-mix(in srgb, var(--control), var(--label) 8%);
   }
   .toggle.on::before {
     opacity: 1;

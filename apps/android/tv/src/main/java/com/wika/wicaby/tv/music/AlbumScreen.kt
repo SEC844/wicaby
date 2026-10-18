@@ -61,6 +61,7 @@ import com.wika.wicaby.tv.ui.MediaRow
 import com.wika.wicaby.tv.ui.Pill
 import com.wika.wicaby.tv.ui.Radius
 import com.wika.wicaby.tv.ui.Spinner
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.rememberFocusMemory
 import com.wika.wicaby.tv.ui.rememberLoad
@@ -181,12 +182,12 @@ private val RELEASE = mapOf(
 private fun TrackRow(t: Item, i: Int, playlist: Boolean, albumArtist: String?, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val playing = Music.session?.takeIf { Music.active }?.queue?.id == t.id
-    val fg = if (focused) Color.Black else C.label
-    val fg2 = if (focused) Color.Black.copy(alpha = 0.6f) else C.label3
+    val fg = if (focused) TvFocus.fg else C.label
+    val fg2 = if (focused) TvFocus.fg.copy(alpha = 0.6f) else C.label3
     Row(
         Modifier.fillMaxWidth().testTag("music-track-$i")
             .tvFocus(RoundedCornerShape(Radius.sm), focusedScale = 1.02f, onFocusChange = { focused = it }, onClick = onClick)
-            .background(if (focused) Color.White else Color.Transparent)
+            .background(if (focused) TvFocus.bg else Color.Transparent)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

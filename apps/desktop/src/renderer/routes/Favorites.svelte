@@ -11,7 +11,8 @@
   import Icon from '../components/Icon.svelte';
   import { fanOut, itemKey, merge } from '../lib/api';
   import { fmt, t } from '../lib/i18n.svelte';
-  import { scrollMemory } from '../lib/motion';
+  import { entering, scrollMemory } from '../lib/motion';
+  const enter = entering();
   import { dataVersion, multiServer, onlineSessions } from '../lib/stores.svelte';
 
   const multi = $derived(multiServer());
@@ -97,7 +98,7 @@
           {#if visible.length > 1}<h2 class="title-3">{t(g.labelKey)}</h2>{/if}
           <div class="grid {g.variant}">
             {#each rows[g.types] as item, i (itemKey(item))}
-              <div class="enter" style:--i={Math.min(i, 12)}><Card {item} variant={g.variant} showServer={multi} /></div>
+              <div class:enter style:--i={Math.min(i, 12)}><Card {item} variant={g.variant} showServer={multi} /></div>
             {/each}
           </div>
         </section>
@@ -144,8 +145,6 @@
     font-weight: 560;
     color: var(--label-2);
     transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .segmented button:not(.on):focus-visible,
@@ -191,7 +190,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .sk-frame {
     aspect-ratio: 2 / 3;

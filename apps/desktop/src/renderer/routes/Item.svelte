@@ -17,7 +17,8 @@
   import { badges, bytes, clock, endsAt, episodeCode, progress, remaining, runtime, typeLabel, yearRange } from '../lib/format';
   import { fmt, t } from '../lib/i18n.svelte';
   import { backdropUrl, imageUrl, logoUrl, posterUrl, thumbUrl } from '../lib/images';
-  import { morphFrom, morphName, peek, peekSrc, remember, reveal, scrollMemory, takeMorph } from '../lib/motion';
+  import { ambient as ambientArt, entering, morphFrom, morphName, peek, peekSrc, remember, reveal, scrollMemory, takeMorph } from '../lib/motion';
+  const enter = entering();
   import { artColour, initials as musicInitials, isMusicItem, musicArtLater, needsLookup, placeholderBg } from '../lib/music-art';
   import { playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue, queueModes } from '../lib/queue.svelte';
@@ -496,8 +497,8 @@
 {:else}
   <article class="item" data-type={item.Type}>
     <!-- Sticky stage: stays put while the page scrolls over it, dimming and blurring as it goes. -->
-    <div class="stage" class:bare={!backdrop} class:tinted={Boolean(tint)} style:--tint={tint} style:view-transition-name={morphing && !showPoster ? morphName(key) : null} style:view-transition-class={morphing && !showPoster ? 'morph' : null}>
-      {#if ambient}<img class="ambient" src={ambient} alt="" decoding="async" />{/if}
+    <div class="stage on-media" class:bare={!backdrop} class:tinted={Boolean(tint)} style:--tint={tint} style:view-transition-name={morphing && !showPoster ? morphName(key) : null} style:view-transition-class={morphing && !showPoster ? 'morph' : null}>
+      {#if ambient}<canvas class="ambient" width="48" height="27" use:ambientArt={ambient}></canvas>{/if}
       {#if backdrop}
         <div class="sharp"><img class="reveal" use:reveal src={backdrop} alt="" decoding="async" fetchpriority="high" /></div>
       {/if}
@@ -505,7 +506,7 @@
       <div class="scrim"></div>
     </div>
 
-    <header class="hero" class:with-poster={showPoster} style:view-transition-name={morphing ? 'item-info' : null}>
+    <header class="hero on-media" class:with-poster={showPoster} style:view-transition-name={morphing ? 'item-info' : null}>
       {#if showPoster}
         <div
           class="poster"
@@ -726,8 +727,8 @@
             {#each episodes as ep, i (ep.Id)}
               {@const pct = progress(ep)}
               {@const thumb = thumbUrl(ep, 400)}
-              <div class="ep enter" class:next={ep.Id === nextUpId} class:played={ep.UserData?.Played} style:--i={Math.min(i, 12)}>
-                <div class="ep-lift">
+              <div class="ep" class:enter class:next={ep.Id === nextUpId} class:played={ep.UserData?.Played} style:--i={Math.min(i, 12)}>
+                <div class="ep-lift on-media">
                   <button class="ep-thumb" onclick={() => playEpisode(ep)} aria-label={t('item.episodes.play', { name: ep.Name })}>
                     <span class="ep-ph">{episodeCode(ep)}</span>
                     {#if thumb}<img class="reveal" use:reveal src={thumb} alt="" loading="lazy" decoding="async" />{/if}
@@ -767,7 +768,7 @@
           <h2 class="sec-title">{t('item.sections.contents')}</h2>
           <div class="grid">
             {#each children as c, i (c.Id)}
-              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant={c.Type === 'Episode' ? 'thumb' : 'poster'} /></div>
+              <div class:enter style:--i={Math.min(i, 12)}><Card item={c} variant={c.Type === 'Episode' ? 'thumb' : 'poster'} /></div>
             {/each}
           </div>
         </section>
@@ -791,7 +792,7 @@
           <h2 class="sec-title">{item.Type === 'MusicArtist' ? t('music.artist.albums') : t('item.sections.filmography')}</h2>
           <div class="grid">
             {#each ownAlbums as c, i (c.Id)}
-              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant={c.Type === 'MusicAlbum' ? 'square' : 'poster'} /></div>
+              <div class:enter style:--i={Math.min(i, 12)}><Card item={c} variant={c.Type === 'MusicAlbum' ? 'square' : 'poster'} /></div>
             {/each}
           </div>
         </section>
@@ -802,7 +803,7 @@
           <h2 class="sec-title">{t('music.artist.singles')}</h2>
           <div class="grid">
             {#each singles as c, i (c.Id)}
-              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
+              <div class:enter style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
             {/each}
           </div>
         </section>
@@ -813,7 +814,7 @@
           <h2 class="sec-title">{t('music.artist.appearsOn')}</h2>
           <div class="grid">
             {#each appearsOn as c, i (c.Id)}
-              <div class="enter" style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
+              <div class:enter style:--i={Math.min(i, 12)}><Card item={c} variant="square" /></div>
             {/each}
           </div>
         </section>
@@ -823,8 +824,8 @@
         <Row title={t('item.sections.bonus')} variant="thumb">
           {#each bonus as b, i (b.Id)}
             {@const thumb = thumbUrl(b, 400)}
-            <div class="ep enter" style:--i={Math.min(i, 12)}>
-              <div class="ep-lift">
+            <div class="ep" class:enter style:--i={Math.min(i, 12)}>
+              <div class="ep-lift on-media">
                 <button class="ep-thumb" onclick={() => playBonus(i)} aria-label={t('item.episodes.play', { name: b.Name })}>
                   <span class="ep-ph"><Icon name="film" size={22} /></span>
                   {#if thumb}<img class="reveal" use:reveal src={thumb} alt="" loading="lazy" decoding="async" />{/if}
@@ -849,7 +850,8 @@
           {#each people as p, i (p.Id + (p.Role ?? '') + (p.Type ?? ''))}
             {@const face = p.PrimaryImageTag ? imageUrl(p.Id, 'Primary', { tag: p.PrimaryImageTag, maxHeight: 330, server: sid }) : null}
             <a
-              class="person enter"
+              class="person"
+              class:enter
               style:--i={Math.min(i, 12)}
               href={`#/item/${sid}/${p.Id}`}
               onclick={(e) =>
@@ -1020,7 +1022,11 @@
     object-position: center 22%;
   }
   .ambient {
-    filter: blur(40px) saturate(1.4);
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     transform: scale(1.2);
     opacity: 0.85;
   }
@@ -1035,7 +1041,7 @@
     animation-range: 0 70vh;
   }
   .sharp img {
-    animation: settle calc(1.2s * var(--tempo)) var(--ease-out) both;
+    animation: settle var(--t-slow) var(--ease-out) both;
   }
   @keyframes settle {
     from {
@@ -1343,6 +1349,15 @@
   .content {
     position: relative;
   }
+  /* Light: only the backdrop and the hero stay dark (.on-media); the sections below fade into the pale
+     canvas and cover the sticky stage, as in Apple TV and Google TV light mode. */
+  :global([data-theme='light']) .item {
+    padding-bottom: 0;
+  }
+  :global([data-theme='light']) .content {
+    padding: 72px 0 64px;
+    background: linear-gradient(to bottom, transparent, var(--bg) 72px);
+  }
   .sec-title {
     margin: 0;
     font-size: var(--fs-title-3);
@@ -1351,7 +1366,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
 
   .episodes {
@@ -1372,7 +1387,7 @@
     gap: 2px;
     padding: 3px;
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.1);
+    background: var(--fill-3);
     scrollbar-width: none;
   }
   .season {
@@ -1387,8 +1402,6 @@
     font-weight: 560;
     color: var(--label-2);
     transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .season:hover {
@@ -1399,7 +1412,7 @@
   }
   .season.on {
     background: var(--label);
-    color: #000;
+    color: var(--bg);
   }
   .season:not(.on):focus-visible {
     background: var(--fill-3);
@@ -1519,9 +1532,7 @@
     color: var(--label-2);
     opacity: 0;
     transition:
-      opacity var(--t-fast) var(--ease),
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease);
+      opacity var(--t-fast) var(--ease), transform var(--t-med) var(--spring);
   }
   .ep-seen:hover {
     color: var(--label);

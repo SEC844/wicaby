@@ -139,9 +139,6 @@
   .cats button:focus-visible {
     background: var(--fill-1);
     color: var(--label);
-    transition:
-      background-color calc(100ms * var(--tempo)) linear,
-      color calc(100ms * var(--tempo)) linear;
   }
   .cats button.active {
     background: var(--fill-2);
@@ -187,7 +184,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    animation: pane-in calc(140ms * var(--tempo)) var(--ease-out) both;
+    animation: pane-in var(--t-fast) var(--ease-out) both;
   }
   @keyframes pane-in {
     from {

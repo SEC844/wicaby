@@ -115,6 +115,7 @@ import com.wika.wicaby.tv.ui.LocalOverlay
 import com.wika.wicaby.tv.ui.OverlayHost
 import com.wika.wicaby.tv.ui.OverlayLayer
 import com.wika.wicaby.tv.ui.Radius
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.livetv.ChannelLogo
 import com.wika.wicaby.tv.ui.livetv.GuideSearch
@@ -1117,8 +1118,8 @@ private fun DetailPanel(ctl: LiveControl, p: ProgramLite, after: List<ProgramLit
 @Composable
 private fun Choice(text: String, selected: Boolean, modifier: Modifier = Modifier) {
     Text(
-        text, style = Type.headline, color = if (selected) Color.Black else C.label2, maxLines = 1,
-        modifier = modifier.clip(RoundedCornerShape(50)).background(if (selected) Color.White else C.fill3).padding(horizontal = 20.dp, vertical = 9.dp),
+        text, style = Type.headline, color = if (selected) TvFocus.fg else C.label2, maxLines = 1,
+        modifier = modifier.clip(RoundedCornerShape(50)).background(if (selected) TvFocus.bg else C.fill3).padding(horizontal = 20.dp, vertical = 9.dp),
     )
 }
 
@@ -1200,14 +1201,14 @@ private fun MiniGuide(api: Api, ctl: LiveControl, currentId: String, now: Long, 
 @Composable
 private fun GuideRow(api: Api, ctl: LiveControl, r: ChannelRow, focused: Boolean, current: Boolean, now: Long, version: Long, marked: Set<String>) {
     val p = remember(r.id, now, version) { ctl.programsOf(r.id, now).firstOrNull() }
-    val fg = if (focused) Color.Black else C.label
-    val sub = if (focused) Color.Black.copy(alpha = 0.7f) else C.label2
+    val fg = if (focused) TvFocus.fg else C.label
+    val sub = if (focused) TvFocus.fg.copy(alpha = 0.7f) else C.label2
     Row(
         Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp).clip(RoundedCornerShape(Radius.sm))
             .background(if (focused) C.label else Color.Transparent),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(3.dp).height(36.dp).background(if (current) (if (focused) Color.Black else C.label) else Color.Transparent))
+        Box(Modifier.width(3.dp).height(36.dp).background(if (current) (if (focused) TvFocus.fg else C.label) else Color.Transparent))
         Text(r.number, style = Type.mono, color = sub, maxLines = 1, modifier = Modifier.width(52.dp).padding(start = 8.dp))
         // Logos are drawn for a dark surface: the inverted row keeps a dark plate under it.
         ChannelLogo(api, r, 28.dp, if (focused) Modifier.clip(RoundedCornerShape(Radius.xs)).background(C.bg) else Modifier, fallback = false)
@@ -1233,8 +1234,8 @@ private fun LiveMenu(labels: List<String>, index: Int, modifier: Modifier) {
         labels.forEachIndexed { i, label ->
             val sel = i == index
             Text(
-                label, style = Type.headline, color = if (sel) Color.Black else C.label, maxLines = 1,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(Radius.sm)).background(if (sel) Color.White else Color.Transparent)
+                label, style = Type.headline, color = if (sel) TvFocus.fg else C.label, maxLines = 1,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(Radius.sm)).background(if (sel) TvFocus.bg else Color.Transparent)
                     .padding(horizontal = 16.dp, vertical = 11.dp),
             )
         }

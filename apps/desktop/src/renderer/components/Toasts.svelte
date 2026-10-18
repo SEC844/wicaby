@@ -4,6 +4,7 @@
   import { t } from '../lib/i18n.svelte';
   import { toasts } from '../lib/stores.svelte';
   import Icon from './Icon.svelte';
+  import { dur } from '../lib/motion';
 
   const ICON = { info: 'info', success: 'check', error: 'exclamation' } as const;
 
@@ -14,13 +15,12 @@
     toasts.list = toasts.list.filter((x) => x.id !== id);
   }
 
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
   // Damped spring, ~7 % overshoot, lands exactly on 1.
   const spring = (p: number) => 1 - Math.cos(p * Math.PI * 2.5) * Math.exp(-p * 6.5);
 
   function drop(_node: Element) {
     return {
-      duration: 620 * tempo(),
+      duration: dur('slow'),
       css: (p: number) => {
         const s = spring(p);
         return `opacity: ${Math.min(1, p * 3)}; transform: translate3d(0, ${(1 - s) * -64}px, 0) scale(${0.86 + 0.14 * s});`;
@@ -30,7 +30,7 @@
 
   function lift(_node: Element) {
     return {
-      duration: 260 * tempo(),
+      duration: dur('med'),
       easing: cubicOut,
       css: (p: number) => `opacity: ${p}; transform: translate3d(0, ${(1 - p) * -18}px, 0) scale(${0.9 + 0.1 * p}); filter: blur(${(1 - p) * 4}px);`,
     };
@@ -39,7 +39,7 @@
 
 <div class="toasts" aria-live="polite" use:toBody>
   {#each [...toasts.list].reverse() as toast (toast.id)}
-    <div class="toast {toast.kind}" role="status" animate:flip={{ duration: 360 * tempo(), easing: cubicOut }} in:drop out:lift>
+    <div class="toast {toast.kind}" role="status" animate:flip={{ duration: dur('med'), easing: cubicOut }} in:drop out:lift>
       <span class="glyph"><Icon name={ICON[toast.kind]} size={15} stroke={2.1} /></span>
       <span class="msg">{toast.message}</span>
       {#if toast.action}

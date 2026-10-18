@@ -93,10 +93,11 @@ import com.wika.wicaby.tv.ui.ScreensaverHost
 import com.wika.wicaby.tv.ui.TvAlert
 import com.wika.wicaby.tv.data.TvSettings
 import com.wika.wicaby.core.data.clock
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
+import com.wika.wicaby.core.livetv.FormFactor
+import com.wika.wicaby.core.livetv.DeviceClassDetector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
@@ -528,7 +529,10 @@ private fun App() {
     // Android 17: the local network rationale comes during setup and before the first call to a LAN server.
     val server = api?.server ?: snap.server
     val lanServer by produceState(false, server?.address) { value = server != null && com.wika.wicaby.core.net.LocalNetwork.blocks(activity, server.address) }
-    val blur by animateDpAsState(if (overlay.open && Build.VERSION.SDK_INT >= 31) 18.dp else 0.dp, tween(260), label = "blur")
+    // Snapped, not animated (the overlay's own fade covers the change): a full-screen blur rebuilt every frame is
+    // among the costliest things a TV GPU can do, so tv-low devices go without.
+    val blurOk = remember { Build.VERSION.SDK_INT >= 31 && !DeviceClassDetector.detect(activity, FormFactor.TV).isLow }
+    val blur = if (overlay.open && blurOk) 18.dp else 0.dp
 
     WicabyTheme(Accents[snap.accent.coerceIn(Accents.indices)]) {
         CompositionLocalProvider(LocalNav provides nav, LocalApi provides api, LocalSnapshot provides snap, LocalOverlay provides overlay) {

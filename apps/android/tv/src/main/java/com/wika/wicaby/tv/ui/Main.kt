@@ -65,6 +65,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.collectLatest
+import com.wika.wicaby.core.livetv.FormFactor
+import com.wika.wicaby.core.livetv.DeviceClassDetector
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -412,10 +417,17 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
     var heroFocused by remember { mutableStateOf(false) }
     var focusedItem by remember { mutableStateOf<Item?>(null) }
     var bgUrl by remember { mutableStateOf<String?>(null) }
-    val target = if (heroFocused || focusedItem == null) heroItem else focusedItem
-    LaunchedEffect(target?.id) {
-        if (!heroFocused) delay(280)
-        bgUrl = target?.let { Servers.forItem(it, api).backdrop(it) } ?: bgUrl
+    // focusedItem is read in a snapshotFlow, never in composition: a D-pad move must not recompose the whole Home.
+    val heroNow by rememberUpdatedState(heroItem)
+    val lowTv = remember { DeviceClassDetector.detect(context, FormFactor.TV).isLow }
+    LaunchedEffect(api) {
+        snapshotFlow { if (heroFocused || focusedItem == null) heroNow else focusedItem }
+            .distinctUntilChangedBy { it?.id }
+            .collectLatest { target ->
+                if (!heroFocused) delay(280)
+                // It sits under 62-94 % gradients: 1280 px is plenty on tv-low.
+                bgUrl = target?.let { Servers.forItem(it, api).backdrop(it, if (lowTv) 1280 else 1920) } ?: bgUrl
+            }
     }
 
     val listState = rememberLazyListState()
@@ -464,7 +476,7 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
         CompositionLocalProvider(LocalBringIntoViewSpec provides pivotSpec) {
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 80.dp)) {
                 if (heroItem != null) {
-                    item("hero") {
+                    item("hero", contentType = "hero") {
                         Hero(
                             api, heroItems, heroIndex, heroItem, memory, heroFocused,
                             onIndex = { heroIndex = it },
@@ -474,13 +486,15 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
                         )
                     }
                 } else {
-                    item("top") { Spacer(Modifier.height(104.dp)) }
+                    item("top", contentType = "top") { Spacer(Modifier.height(104.dp)) }
                 }
+                // The one-time living-room theme suggestion (ThemeCards.kt).
+                if (TvSettings.theme.value == "graphite" && !TvSettings.themeHintShown.value) item("theme-hint", contentType = "hint") { ThemeHint() }
                 shown.forEach { id ->
                     when (id) {
                         HomeRows.RESUME -> {
                         contItems?.takeIf { it.isNotEmpty() }?.let { list ->
-                            item("continue") {
+                            item("continue", contentType = "row") {
                                 // Holding SELECT on a card opens a minimal menu (X-11 builds the full one).
                                 var held by remember { mutableStateOf(false) }
                                 fun undoPrompt(item: Item) = overlay.show(contRow) {
@@ -550,25 +564,25 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
                             }
                         }
                         resume?.value?.takeIf { it.isNotEmpty() }?.let { list ->
-                            item("resume") {
+                            item("resume", contentType = "row") {
                                 MediaRow(stringResource(R.string.continue_watching), list, api, memory, "resume", wide = true, onFocusItem = { focusedItem = it }, onClick = { openRow(it, true) }, showServer = multi)
                             }
                         }
                         }
                         HomeRows.NEXT_UP -> {
                         nextUp?.value?.takeIf { it.isNotEmpty() }?.let { list ->
-                            item("nextup") {
+                            item("nextup", contentType = "row") {
                                 MediaRow(stringResource(R.string.next_up), list, api, memory, "nextup", wide = true, onFocusItem = { focusedItem = it }, onClick = { openRow(it, true) }, showServer = multi)
                             }
                         }
                         }
                         HomeRows.UPCOMING -> upcoming?.value?.takeIf { it.isNotEmpty() }?.let { list ->
-                            item("upcoming") {
+                            item("upcoming", contentType = "row") {
                                 MediaRow(stringResource(R.string.row_upcoming), list, api, memory, "upcoming", wide = true, onFocusItem = { focusedItem = it }, onClick = { openRow(it, false) }, showServer = multi)
                             }
                         }
                         HomeRows.LIVE_NOW -> liveNow?.value?.takeIf { it.isNotEmpty() }?.let { list ->
-                            item("live-now") {
+                            item("live-now", contentType = "row") {
                                 MediaRow(
                                     stringResource(R.string.row_live_now), list, api, memory, "live-now", wide = true,
                                     onFocusItem = { focusedItem = it }, onClick = { play(context, it) },
@@ -577,7 +591,7 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
                             }
                         }
                         HomeRows.MEMORIES -> memories?.value?.takeIf { it.isNotEmpty() }?.let { groups ->
-                            item("memories") {
+                            item("memories", contentType = "row") {
                                 val covers = groups.map { (_, p) -> com.wika.wicaby.tv.ui.photos.memoryCover(p).item }
                                 MediaRow(
                                     stringResource(com.wika.wicaby.core.R.string.photos_memories_title), covers, api, memory, "memories", wide = true,
@@ -590,13 +604,13 @@ private fun HomeTab(api: Api, views: List<Item>, onScrolled: (Boolean) -> Unit) 
                             }
                         }
                         HomeRows.BECAUSE -> because.forEach { (seed, list) ->
-                            if (list.isNotEmpty()) item("because-${Servers.key(seed)}") {
+                            if (list.isNotEmpty()) item("because-${Servers.key(seed)}", contentType = "row") {
                                 MediaRow(stringResource(R.string.row_because, seed.name), list, api, memory, "because-${Servers.key(seed)}", wide = false, onFocusItem = { focusedItem = it }, onClick = { openRow(it, false) }, showServer = multi)
                             }
                         }
                         else -> latest.firstOrNull { HomeRows.latest(Servers.libraryRef(it.first)) == id }?.let { (view, load) ->
                             load.value?.takeIf { it.isNotEmpty() }?.let { list ->
-                                item("latest-${Servers.libraryRef(view)}") {
+                                item("latest-${Servers.libraryRef(view)}", contentType = "row") {
                                     MediaRow(
                                         stringResource(R.string.latest_in, viewLabel(view, latestViews)), list, api, memory, "latest-${Servers.libraryRef(view)}", wide = id in homePref.thumb,
                                         square = view.collectionType == "music",
@@ -884,7 +898,7 @@ fun LibraryGrid(
                         }
                     }
                 }
-                itemsIndexed(paged.items, key = { i, it -> it?.id ?: "slot-$i" }) { i, item ->
+                itemsIndexed(paged.items, key = { i, it -> it?.id ?: "slot-$i" }, contentType = { _, it -> if (it == null) 0 else 1 }) { i, item ->
                     if (item == null) {
                         // Not loaded yet: the card's shape, not focusable (its page is on its way).
                         Box(Modifier.fillMaxWidth().aspectRatio(if (music) 1f else 2f / 3f).clip(RoundedCornerShape(Radius.md)).background(C.fill2))

@@ -335,7 +335,7 @@ fun AddFileSourceSheet(onDismiss: () -> Unit, photos: Boolean = false, protocol:
                     GroupRow(stringResource(CoreR.string.files_add_insecure), { draft.insecureAck = !draft.insecureAck }, chevron = false) {
                         Switch(
                             draft.insecureAck, { draft.insecureAck = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                         )
                     }
                 }
@@ -381,7 +381,7 @@ fun FilesSettings() {
         GroupRow(stringResource(CoreR.string.files_home_setting), { FileSources.setShowOnHome(!showOnHome); Cache.map.clear() }, chevron = false) {
             Switch(
                 showOnHome, { FileSources.setShowOnHome(it); Cache.map.clear() },
-                colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
             )
         }
     }

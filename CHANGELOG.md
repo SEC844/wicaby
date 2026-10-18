@@ -57,8 +57,32 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   someone on the same network cannot change what you read. A share that only allows guest access must be added
   with the user name guest.
 
+### Added
+
+- New themes on every app: Slate (graphite with a cool tint), Cinema (warm tones for evening viewing) and High
+  Contrast (sharper text, no transparency). Graphite stays the default, and body text meets the WCAG AA contrast
+  level in every theme.
+- Desktop and Android mobile: a Light theme, and Automatic, which follows the system's light or dark mode. Video,
+  photos, comics and item pages stay dark.
+- Android mobile (Android 12 and later): a Wallpaper accent colour taken from your wallpaper; the rest of the app keeps
+  its theme. It comes first among the colours, and the chosen colour's name shows under them.
+- Desktop and Android mobile, Light theme: switches and sliders have a darker track so they stand out on the pale
+  background. On the desktop, an item page keeps its artwork dark while the cast, episodes and similar titles below sit
+  on the light background, the Home artwork fades into the page instead of stopping on a hard line, and white channel
+  logos in the TV guide show as dark logos instead of sitting on black blocks.
+- High Contrast: text fields, segmented controls, search, guide cells and settings groups get visible outlines, and
+  the keyboard focus shows as a ring on the desktop.
+- Android TV: in Settings and the setup, moving down to the themes lands on the selected one, the focused theme card is
+  no longer cut at the edges, and the longer French theme names fit. The one-time theme suggestion on Home is easier to read,
+  moves you to the row below once you choose, and still shows if you only looked at the themes during setup.
+- Android mobile: Theme, Accent and Language are now at the top of Settings, the theme list opens on your current
+  theme with a clearer check mark, and the back arrow in the setup is visible in the Light theme.
+- Desktop: the theme cards in Settings show keyboard focus with a clear ring.
+- Android TV: Home suggests the OLED or Cinema theme once. Settings and the setup show every theme as a small preview.
+
 ### Fixed
 
+- Android: the Live TV guide follows a theme change at once instead of after a restart.
 - Android: an IPTV channel whose playlist sets a user agent or referrer with accented or control characters no
   longer stops playback; that value is ignored.
 - Android TV: the recordings list of a Plex server with 500 recordings or more no longer loads forever.
@@ -126,11 +150,29 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   and Up Next" setting, and Title Case for "Now Playing" and "Similar Artists".
 - Android TV: clearer French hints for the home rows, tab bar, subtitle and bitrate settings, "Fréquence seule" in the
   display mode options, and a plainer message when recording needs Emby Premiere.
+- Desktop: Home no longer keeps the processor busy while you are not using it. The hero holds a still image, changes
+  slides with a short crossfade and shows the current slide as a still pill; Home shelves no longer slide in card by
+  card.
+- Desktop: hover, selection and focus colours now change at once instead of fading.
+- Desktop: scrollbars are the thin system ones, shown while the pointer is over the page; scrolling stays smoother.
+- Desktop: going back to a page no longer replays its cards' entrance, and Library and Music animate at most their
+  first 12 cards.
+- Desktop: with "Reduce motion", loading spinners keep turning, more slowly, and background animations stop.
+- Desktop: the window background and the window buttons follow the theme (black with OLED).
 - Desktop: moving the keyboard or gamepad focus across cards no longer loads every title's details and backdrop
   on the way; only the card you stop on is preloaded, like with the mouse.
 - Desktop: item, Favorites and History pages no longer reload on every background connection update.
 - Desktop: generated comic book covers no longer slow down the app while you scroll a large comics library.
 - Android TV: the player redraws less often during playback, which helps on low-end TVs.
+- Android TV: moving across Home rows is smoother: a focus move no longer redraws the whole Home, and the backdrop
+  fades once from one picture to the next instead of fading to an empty screen first (smaller backdrops on low-end
+  TVs).
+- Android TV: focus and selection colours change at once instead of fading, and the focus lift is a little smaller
+  and no longer bounces. Opening a panel blurs the screen behind it at once, with no blur on low-end TVs.
+- Android TV: posters fade in faster, and appear without a fade on low-end TVs. The Live TV guide scrolls more
+  smoothly, also right after installing the app.
+- Android: image fades follow the system "Animator duration scale". On mobile, a press no longer bounces and the
+  Home banner's page dots no longer stretch.
 - Mesh file shares: very large SMB folders are listed without reading every entry first.
 - Desktop: Electron updated to 44.9.0.
 - Mesh helper (Windows, Linux, Android): NetBird client updated to 0.81.2, with pion/dtls v3 3.1.14 and quic-go

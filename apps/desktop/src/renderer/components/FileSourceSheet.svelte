@@ -275,9 +275,6 @@
     flex: none;
     border-radius: 50%;
     color: var(--label-2);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .icon-btn:hover,
   .icon-btn:focus-visible {

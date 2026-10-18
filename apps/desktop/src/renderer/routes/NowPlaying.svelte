@@ -16,7 +16,7 @@
   import { imageUrl } from '../lib/images';
   import { artColour, fullArtPx, initials, placeholderBg } from '../lib/music-art';
   import { ensureItems, known, musicActive, toggleFavorite } from '../lib/music-ui.svelte';
-  import { reducedMotion } from '../lib/motion';
+  import { dur } from '../lib/motion';
   import { back, navigate, router } from '../lib/router.svelte';
   import { playback } from '../lib/stores.svelte';
 
@@ -51,7 +51,7 @@
     if (v !== tab) navigate(`/now-playing?tab=${v}`, { replace: true });
   }
   // Track changes crossfade the art and the background (music spec C6); none under reduced motion.
-  const xfade = $derived({ duration: reducedMotion() ? 0 : 450 });
+  const xfade = $derived({ duration: dur('med') });
 
   // The quality badge (C6): codec, bit depth / sample rate, bitrate, from the track's audio stream.
   let badge = $state('');
@@ -95,7 +95,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="np" role="dialog" aria-modal="true" aria-label={t('music.bar.label')} data-now-playing>
+<div class="np on-media" role="dialog" aria-modal="true" aria-label={t('music.bar.label')} data-now-playing>
   <div class="bg" aria-hidden="true" style:background={tint}>
     {#if art(64)}{#key art(64)}<img src={art(64)} alt="" transition:fade={xfade} />{/key}{/if}
   </div>

@@ -67,22 +67,33 @@
     display: grid;
     place-items: center;
     aspect-ratio: 3 / 2;
-    overflow: hidden;
     margin-bottom: 6px;
     border-radius: var(--r-md);
     background: var(--fill-1);
     color: var(--label-3);
-    transition:
-      scale var(--t-med) var(--spring),
-      box-shadow var(--t-med) var(--ease);
+    transition: scale var(--t-med) var(--spring);
   }
   .album:is(:hover, :focus-visible) .cover {
     scale: 1.03;
+  }
+  /* The hover shadow is pre-rendered and fades in by opacity (docs/design.md). */
+  .cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     box-shadow: var(--shadow-3);
+    opacity: 0;
+    transition: opacity var(--t-med) var(--ease);
+    pointer-events: none;
+  }
+  .album:is(:hover, :focus-visible) .cover::after {
+    opacity: 1;
   }
   .cover img {
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     width: 100%;
     height: 100%;
     object-fit: cover;

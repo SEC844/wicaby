@@ -1,5 +1,6 @@
 package com.wika.wicaby.tv.player
 
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.dpadEdges
 import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
@@ -35,7 +36,6 @@ import androidx.activity.compose.setContent
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.player.ExternalPlayer
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1135,8 +1135,8 @@ private fun ActionChip(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun OsdButton(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier, description: String? = null, value: String? = null) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else Color.Transparent, tween(160), label = "osd-btn")
-    val fg = if (focused) Color.Black else C.label2
+    val bg = if (focused) TvFocus.bg else Color.Transparent
+    val fg = if (focused) TvFocus.fg else C.label2
     Row(
         modifier
             .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 8.dp, onFocusChange = { focused = it }, onClick = onClick)
@@ -1525,7 +1525,7 @@ private fun SubtitleSearchPanel(pb: Playback, onClose: () -> Unit) {
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             itemsIndexed(shown.orEmpty(), key = { _, r -> r.id }) { i, r ->
                 var focused by remember { mutableStateOf(false) }
-                val bg by animateColorAsState(if (focused) Color.White else Color.Transparent, label = "subsearch")
+                val bg = if (focused) TvFocus.bg else Color.Transparent
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -1536,10 +1536,10 @@ private fun SubtitleSearchPanel(pb: Playback, onClose: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(r.name ?: r.id, style = Type.body, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(subtitleMeta(r), style = Type.caption, color = if (focused) Color.Black.copy(alpha = 0.7f) else C.label2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(r.name ?: r.id, style = Type.body, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(subtitleMeta(r), style = Type.caption, color = if (focused) TvFocus.fg.copy(alpha = 0.7f) else C.label2, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Box(Modifier.width(26.dp)) { if (search.busy == r.id) Spinner(Modifier.size(16.dp), color = if (focused) Color.Black else C.label2) }
+                    Box(Modifier.width(26.dp)) { if (search.busy == r.id) Spinner(Modifier.size(16.dp), color = if (focused) TvFocus.fg else C.label2) }
                 }
             }
         }
@@ -1587,7 +1587,7 @@ private fun TrackColumn(
         LazyColumn(state = list, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             itemsIndexed(options, key = { _, o -> o.first }) { row, (index, text) ->
                 var focused by remember { mutableStateOf(false) }
-                val bg by animateColorAsState(if (focused) Color.White else Color.Transparent, label = "track")
+                val bg = if (focused) TvFocus.bg else Color.Transparent
                 val isSel = index == selected
                 Row(
                     Modifier
@@ -1599,10 +1599,10 @@ private fun TrackColumn(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.width(26.dp)) {
-                        if (index == busy) Spinner(Modifier.size(16.dp), color = if (focused) Color.Black else C.label2)
-                        else if (isSel) Icon(Ic.Check, null, tint = if (focused) Color.Black else accent, modifier = Modifier.size(18.dp))
+                        if (index == busy) Spinner(Modifier.size(16.dp), color = if (focused) TvFocus.fg else C.label2)
+                        else if (isSel) Icon(Ic.Check, null, tint = if (focused) TvFocus.fg else accent, modifier = Modifier.size(18.dp))
                     }
-                    Text(text, style = Type.body, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text, style = Type.body, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -1785,15 +1785,15 @@ private fun ChapterPanel(pb: Playback, chapters: List<IndexedValue<Chapter>>, po
                         .width(240.dp)
                         .then(if (i == current) Modifier.focusRequester(first) else Modifier)
                         .tvFocus(RoundedCornerShape(Radius.md), focusedScale = 1.05f, sheen = false, elevation = 10.dp, onFocusChange = { focused = it }, onClick = { onSeek(start) })
-                        .background(if (focused) Color.White else Color.Transparent)
+                        .background(if (focused) TvFocus.bg else Color.Transparent)
                         .semantics { contentDescription = listOfNotNull(a11y, name).joinToString(", ") }
                         .padding(8.dp),
                 ) {
                     Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(Radius.sm)).background(C.elevated2)) {
                         if (ch.imageTag != null) AsyncImage(api.chapterImage(item.id, index, ch.imageTag), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     }
-                    Text(name ?: a11y, style = Type.callout, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
-                    Text(clock(start), style = Type.mono, color = if (focused) Color.Black.copy(alpha = 0.62f) else C.label2)
+                    Text(name ?: a11y, style = Type.callout, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
+                    Text(clock(start), style = Type.mono, color = if (focused) TvFocus.fg.copy(alpha = 0.62f) else C.label2)
                 }
             }
         }
@@ -1948,16 +1948,16 @@ private fun QueuePanel(pb: Playback, onJump: (Int) -> Unit, onClose: () -> Unit)
                             .focusRequester(row)
                             .then(if (current) Modifier.focusRequester(first) else Modifier)
                             .tvFocus(RoundedCornerShape(Radius.md), focusedScale = 1.02f, sheen = false, elevation = 10.dp, onFocusChange = { focused = it }, onClick = { onJump(i) })
-                            .background(if (focused) Color.White else Color.Transparent)
+                            .background(if (focused) TvFocus.bg else Color.Transparent)
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(Modifier.width(36.dp)) {
-                            if (current) Icon(Ic.Play, null, tint = if (focused) Color.Black else LocalAccent.current, modifier = Modifier.size(18.dp))
-                            else Text("${i + 1}", style = Type.mono, color = if (focused) Color.Black.copy(alpha = 0.62f) else C.label3)
+                            if (current) Icon(Ic.Play, null, tint = if (focused) TvFocus.fg else LocalAccent.current, modifier = Modifier.size(18.dp))
+                            else Text("${i + 1}", style = Type.mono, color = if (focused) TvFocus.fg.copy(alpha = 0.62f) else C.label3)
                         }
                         val title = entry?.let { e -> listOfNotNull(e.seriesName?.takeIf { e.isEpisode }, episodeLine(e) ?: e.name).joinToString(" · ") } ?: "…"
-                        Text(title, style = Type.callout, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, style = Type.callout, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (current) {
                         Spacer(Modifier.width(46.dp))

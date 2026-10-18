@@ -52,20 +52,31 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1;
-    overflow: hidden;
     border-radius: 50%;
     background: var(--fill-1);
-    transition:
-      scale var(--t-med) var(--spring),
-      box-shadow var(--t-med) var(--ease);
+    transition: scale var(--t-med) var(--spring);
   }
   .person:is(:hover, :focus-visible) .face {
     scale: 1.04;
+  }
+  /* The hover shadow is pre-rendered and fades in by opacity (docs/design.md). */
+  .face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     box-shadow: var(--shadow-3);
+    opacity: 0;
+    transition: opacity var(--t-med) var(--ease);
+    pointer-events: none;
+  }
+  .person:is(:hover, :focus-visible) .face::after {
+    opacity: 1;
   }
   .face img {
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     width: 100%;
     height: 100%;
     object-fit: cover;

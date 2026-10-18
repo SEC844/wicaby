@@ -1,0 +1,4 @@
+# The guide's drawing core (GuideLane, Ruler, NowLine): AGP ships a library's profile in its AAR and merges it
+# into both apps' release builds, so the first guide scroll after install is not interpreted.
+HSPLcom/wika/wicaby/livetvui/**->**(**)**
+Lcom/wika/wicaby/livetvui/**;

@@ -171,7 +171,7 @@
 <svelte:window onkeydowncapture={onKey} />
 
 <div
-  class="show"
+  class="show on-media"
   class:idle={!chrome}
   class:kb={kenBurns}
   style:--interval="{interval}s"
@@ -277,6 +277,7 @@
   }
   /* Ken Burns: a slow push-in, its direction varying per photo. Off under reduced motion. */
   .kb .move {
+    /* motion-ok: lasts as long as the slide (the slideshow interval the user picked) */
     animation: kb calc(var(--interval) + 1s) linear both;
   }
   .kb .drift-1 {

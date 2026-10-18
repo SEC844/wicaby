@@ -1,5 +1,6 @@
 package com.wika.wicaby.tv.reader
 
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.dpadEdges
 import android.content.Context
 import android.content.Intent
@@ -526,9 +527,9 @@ private fun Scrubber(step: Int, steps: Int, rtl: Boolean, focus: FocusRequester,
         Box(Modifier.fillMaxWidth().height(track).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)))
         Box(
             Modifier.fillMaxWidth(shown.coerceIn(0f, 1f)).height(track).align(if (rtl) Alignment.CenterEnd else Alignment.CenterStart)
-                .clip(CircleShape).background(if (focused) Color.White else C.label2),
+                .clip(CircleShape).background(if (focused) TvFocus.bg else C.label2),
         )
-        Box(Modifier.offset(x = along).size(knob).clip(CircleShape).background(if (focused) Color.White else C.label2))
+        Box(Modifier.offset(x = along).size(knob).clip(CircleShape).background(if (focused) TvFocus.bg else C.label2))
     }
     Spacer(Modifier.height(2.dp))
 }

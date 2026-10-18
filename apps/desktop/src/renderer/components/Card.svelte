@@ -403,10 +403,7 @@
     opacity: 0;
     transform: scale(0.85);
     transition:
-      opacity var(--t-fast) var(--ease),
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
+      opacity var(--t-fast) var(--ease), transform var(--t-med) var(--spring);
   }
   .play :global(svg) {
     margin-left: 2px;
@@ -448,7 +445,7 @@
     border: 2px solid currentColor;
     border-right-color: transparent;
     border-radius: 50%;
-    animation: spin calc(0.8s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     to {
@@ -532,7 +529,7 @@
   }
   .card:active .lift {
     transform: scale(1.02);
-    transition-duration: calc(120ms * var(--tempo));
+    transition-duration: calc(var(--t-fast) / 2);
   }
   .card:has(.play:active) .lift {
     transform: scale(1.05);

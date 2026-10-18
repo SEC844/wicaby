@@ -391,7 +391,6 @@
     font-size: var(--fs-subheadline, var(--fs-footnote));
     font-weight: 560;
     color: var(--label-2);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .tabs button:is(:hover, :focus-visible) {
     background: var(--fill-3);

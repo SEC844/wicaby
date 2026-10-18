@@ -22,42 +22,42 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Typography
 import androidx.tv.material3.darkColorScheme
 import com.wika.wicaby.core.R
+import com.wika.wicaby.core.ui.Tokens
 
-// "Graphite", mirrored from apps/desktop/src/renderer/app.css (see docs/design.md).
+// "Graphite" (docs/design.md): a facade over the generated tokens (packages/tokens/tokens.json), so call sites keep reading C.bg.
 object C {
-    // html[data-theme='oled']: pure black canvas, surfaces nudged down to keep their contrast.
-    // Snapshot state, so every screen reading C.bg recomposes when TvSettings.oled flips.
-    var oled by mutableStateOf(false)
-    val bg get() = if (oled) Color.Black else Color(0xFF0B0B0D)
-    val elevated get() = if (oled) Color(0xFF0E0E10) else Color(0xFF151517)
-    val elevated2 get() = if (oled) Color(0xFF161618) else Color(0xFF1C1C1F)
-    val label = Color(0xFFF5F5F7)
-    val label2 = Color(0x9EEBEBF5)
-    val label3 = Color(0x57EBEBF5)
-    val fill1 = Color(0x0AFFFFFF)
-    val fill2 = Color(0x12FFFFFF)
-    val fill3 = Color(0x1CFFFFFF)
-    val fill4 = Color(0x29FFFFFF)
-    val separator = Color(0x14FFFFFF)
+    // The theme id (TvSettings.theme, same ids as the desktop's ui.theme). Snapshot state, so every screen
+    // reading C.bg recomposes when it changes. A theme the TV never offers (light) reads as graphite.
+    var theme by mutableStateOf(Tokens.Graphite.id)
+    val palette get() = Tokens.byId(theme).takeIf { it.tv } ?: Tokens.Graphite
+    private val p get() = palette
+    val bg get() = Color(p.bg)
+    val elevated get() = Color(p.elevated)
+    val elevated2 get() = Color(p.elevated2)
+    val label get() = Color(p.label)
+    val label2 get() = Color(p.label2)
+    val label3 get() = Color(p.label3)
+    val fill1 get() = Color(p.fill1)
+    val fill2 get() = Color(p.fill2)
+    val fill3 get() = Color(p.fill3)
+    val fill4 get() = Color(p.fill4)
+    val separator get() = Color(p.separator)
 
     // Opaque fill for focused surfaces: a lift shadow must not show through.
-    val raised = Color(0xFF323235)
-    val red = Color(0xFFFF453A)
+    val raised get() = Color(p.raisedFocus)
+    val red get() = Color(p.system.red)
 }
 
-// Same order and values as html[data-accent] in app.css.
-val Accents = listOf(
-    Color(0xFF0A84FF), // blue
-    Color(0xFF5E5CE6), // indigo
-    Color(0xFFBF5AF2), // purple
-    Color(0xFFFF375F), // pink
-    Color(0xFFFF453A), // red
-    Color(0xFFFF9F0A), // orange
-    Color(0xFF30D158), // green
-    Color(0xFFD1D1D6), // graphite
-)
+// The inverted focus (white surface, black content) every focusable on the TV uses.
+object TvFocus {
+    val bg = Color(Tokens.TvFocus.bg)
+    val fg = Color(Tokens.TvFocus.fg)
+}
 
-fun onAccent(c: Color) = if (c == Accents[5] || c == Accents[6] || c == Accents[7]) Color.Black else Color.White
+// Same order and values as html[data-accent] in the desktop app, in the current theme's tones.
+val Accents get() = C.palette.accents.map { Color(it.argb) }
+
+fun onAccent(c: Color) = (C.palette.accents + Tokens.Accents).firstOrNull { Color(it.argb) == c }?.let { Color(it.onArgb) } ?: Color.White
 
 val LocalAccent = staticCompositionLocalOf { Accents[0] }
 

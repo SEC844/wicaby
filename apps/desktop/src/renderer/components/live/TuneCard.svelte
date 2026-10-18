@@ -10,7 +10,7 @@
   const logo = $derived(entry.logoTag ? imageUrl(entry.id, 'Primary', { tag: entry.logoTag, maxHeight: radio ? 200 : 120, server: serverId }) : '');
 </script>
 
-<div class="card" class:radio aria-hidden="true">
+<div class="card on-media" class:radio aria-hidden="true">
   <div class="mid">
     {#if logo}
       <img src={logo} alt="" decoding="async" />

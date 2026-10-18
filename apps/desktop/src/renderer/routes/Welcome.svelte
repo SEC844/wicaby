@@ -14,6 +14,7 @@
   import Look from './welcome/Look.svelte';
   import SignIn from './welcome/SignIn.svelte';
   import Where from './welcome/Where.svelte';
+  import { dur } from '../lib/motion';
 
   let { rerun = false }: { rerun?: boolean } = $props();
 
@@ -23,7 +24,6 @@
   let serverId = $state<string | null>(null);
   let card = $state<HTMLElement>();
 
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
   const signedIn = $derived(onlineSessions().length > 0);
 
   async function go(next: number): Promise<void> {
@@ -67,7 +67,7 @@
 <div class="welcome">
   <div class="stage">
     {#key step}
-      <section class="card" class:wide={step === 3 || step === 4} data-step={step} bind:this={card} in:fly={{ y: 16, duration: 420 * tempo(), easing: cubicOut }}>
+      <section class="card" class:wide={step === 3 || step === 4} data-step={step} bind:this={card} in:fly={{ y: 16, duration: dur('med'), easing: cubicOut }}>
         {#if step === 1}
           <Intro />
         {:else if step === 2}
@@ -192,9 +192,6 @@
     height: 6px;
     border-radius: 3px;
     background: var(--fill-3);
-    transition:
-      width var(--t-med) var(--ease),
-      background-color var(--t-fast) var(--ease);
   }
   .dots span.on {
     width: 18px;

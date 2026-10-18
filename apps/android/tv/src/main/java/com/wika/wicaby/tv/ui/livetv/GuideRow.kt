@@ -41,11 +41,14 @@ import com.wika.wicaby.tv.ui.uiLocale
 // draws the cells in one drawBehind. A D-pad move, a scroll or a 30 min bucket crossing recomposes
 // nothing: it redraws the lanes (TV-2 §16.2 budget).
 
-/** The TV theme's tokens for the shared grid (§11). */
-internal val TvGuideStyle = GuideStyle(
-    bg = C.bg, label = C.label, label2 = C.label2, label3 = C.label3, fill1 = C.fill1, fill2 = C.fill2, fill3 = C.fill3,
-    separator = C.separator, red = C.red, title = Type.callout, caption = Type.caption, radius = Radius.xs,
-)
+/** The TV theme's tokens for the shared grid (§11), rebuilt when the theme changes (it was frozen at first use). */
+@Composable
+internal fun tvGuideStyle(): GuideStyle = remember(C.palette) {
+    GuideStyle(
+        bg = C.bg, label = C.label, label2 = C.label2, label3 = C.label3, fill1 = C.fill1, fill2 = C.fill2, fill3 = C.fill3,
+        separator = C.separator, red = C.red, title = Type.callout, caption = Type.caption, radius = Radius.xs,
+    )
+}
 
 @Composable
 internal fun GuideRowView(
@@ -91,5 +94,5 @@ internal fun GuideRuler(st: GuideState, modifier: Modifier) {
     val context = LocalContext.current
     val locale = uiLocale()
     val day = remember(st, locale, context) { { t: Long -> dayLabel(st.clock, t, st.now, locale, context) } }
-    Ruler(st, TvGuideStyle, GuideDims.channelCol, day, modifier)
+    Ruler(st, tvGuideStyle(), GuideDims.channelCol, day, modifier)
 }

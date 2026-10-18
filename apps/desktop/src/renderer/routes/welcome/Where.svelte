@@ -10,6 +10,7 @@
   import { fmt, t } from '../../lib/i18n.svelte';
   import { onlineSessions } from '../../lib/stores.svelte';
   import Servers from '../Servers.svelte';
+  import { dur } from '../../lib/motion';
 
   let { onready }: { onready: (server: ServerInfo, status: ServerSession['status']) => void } = $props();
 
@@ -21,7 +22,6 @@
   ];
   let section = $state<Section | null>(null);
   const signed = $derived(onlineSessions());
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
 
   onMount(() => {
     // A server found on the first scan preselects "On This Network".
@@ -51,7 +51,7 @@
 
 {#if section}
   {#key section}
-    <div class="panel" in:fly={{ y: 8, duration: 260 * tempo(), easing: cubicOut }}>
+    <div class="panel" in:fly={{ y: 8, duration: dur('med'), easing: cubicOut }}>
       <Servers {section} {onready} onbyaddress={() => (section = 'public')} />
     </div>
   {/key}
@@ -76,7 +76,6 @@
     box-shadow: inset 0 0 0 0.5px var(--separator);
     text-align: left;
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .where:is(:hover, :focus-visible) {

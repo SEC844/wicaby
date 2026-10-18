@@ -459,7 +459,7 @@
   }
   .lib {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .head {
     padding-bottom: 4px;

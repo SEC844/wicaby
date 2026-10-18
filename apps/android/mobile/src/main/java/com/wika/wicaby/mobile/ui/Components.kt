@@ -128,7 +128,7 @@ fun Modifier.sharedPoster(id: String): Modifier {
 @Composable
 fun Modifier.pressScale(source: MutableInteractionSource): Modifier {
     val pressed by source.collectIsPressedAsState()
-    val s by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.6f, stiffness = 600f), label = "press")
+    val s by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.9f, stiffness = 600f), label = "press")
     return graphicsLayer {
         scaleX = s
         scaleY = s
@@ -155,12 +155,15 @@ fun PillButton(
     val bg = when {
         primary -> accent
         selected -> G.label
-        onArt -> Color.Black.copy(alpha = 0.4f)
+        // Light theme: the hero fades into the pale canvas, so the button is a plain fill there.
+        onArt && !G.palette.light -> Color.Black.copy(alpha = 0.4f)
         else -> G.fill3
     }
     val fg = when {
         primary -> onAccent(accent)
-        selected -> Color.Black
+        // The inverse of the label fill, so it reads in the light theme too; on artwork, always white.
+        selected -> G.bg
+        onArt && !G.palette.light -> Color.White
         else -> G.label
     }
     Row(
@@ -197,8 +200,9 @@ fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, modifier: 
 }
 
 @Composable
-fun ProgressLine(progress: Float, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.28f))) {
+// track: white on artwork (the default); pass G.fill4 on the canvas, where white vanishes in the light theme.
+fun ProgressLine(progress: Float, modifier: Modifier = Modifier, track: Color = Color.White.copy(alpha = 0.28f)) {
+    Box(modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(track)) {
         Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(CircleShape).background(LocalAccent.current))
     }
 }
@@ -359,7 +363,8 @@ fun GlassIconButton(icon: ImageVector, contentDescription: String?, onClick: () 
             .clickable(source, null, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription, tint = G.label, modifier = Modifier.size(22.dp))
+        // Dark glass over artwork: white in every theme. Without glass it sits on the canvas: the theme's label.
+        Icon(icon, contentDescription, tint = if (glass > 0f) Color.White else G.label, modifier = Modifier.size(22.dp))
     }
 }
 

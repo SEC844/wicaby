@@ -242,7 +242,7 @@
     font-size: var(--fs-callout);
     color: var(--label-2);
   }
-  /* Neutral range: graphite track and a white knob, no accent fill. */
+  /* Neutral range: a control-tone track and a white knob with a hairline (Apple style), no accent fill. */
   .slider {
     width: 168px;
     height: 22px;
@@ -254,7 +254,7 @@
   .slider::-webkit-slider-runnable-track {
     height: 4px;
     border-radius: 2px;
-    background: var(--fill-3);
+    background: var(--control);
   }
   .slider::-webkit-slider-thumb {
     appearance: none;
@@ -262,8 +262,10 @@
     height: 18px;
     margin-top: -7px;
     border-radius: 50%;
-    background: var(--label);
-    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+    background: #fff;
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.12),
+      0 1px 4px rgb(0 0 0 / 0.3);
     transition: transform var(--t-fast) var(--spring);
   }
   .slider:active::-webkit-slider-thumb {
@@ -271,8 +273,9 @@
   }
   .slider:focus-visible::-webkit-slider-thumb {
     box-shadow:
-      0 0 0 4px var(--fill-3),
-      0 1px 4px rgb(0 0 0 / 0.4);
+      0 0 0 4px var(--fill-4),
+      0 0 0 0.5px rgb(0 0 0 / 0.12),
+      0 1px 4px rgb(0 0 0 / 0.3);
   }
   .slider:focus {
     outline: none;

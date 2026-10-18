@@ -2,7 +2,11 @@ package com.wika.wicaby.mobile.ui
 
 import com.wika.wicaby.meshui.LogoLoader
 import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -13,6 +17,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.unit.dp
@@ -114,7 +119,9 @@ fun WicabyRoot() {
     }
     val snap by Core.prefs.data.collectAsState(start)
     // OB-X: read before anything paints G.bg.
-    if (G.oled != snap.oled) G.oled = snap.oled
+    if (G.theme != snap.theme) G.theme = snap.theme
+    G.systemDark = isSystemInDarkTheme()
+    SystemBars(G.palette.light)
     remember { showsWizard(start).also { if (it) SetupRequest.wizard = true } }
     // Before Core.api: the first socket already posts the right SupportsMediaControl (no-op when unchanged).
     Core.remoteControl = snap.remoteControl
@@ -139,7 +146,7 @@ fun WicabyRoot() {
     val lanServer by produceState(false, server?.address) { value = server != null && LocalNetwork.blocks(context, server.address) }
     val picking = api == null && (server == null || SetupRequest.pickServer)
 
-    WicabyTheme(Accents[snap.accent.coerceIn(Accents.indices)]) {
+    WicabyTheme(accentOf(snap.accent)) {
         CompositionLocalProvider(LocalSnapshot provides snap) {
             Box(Modifier.fillMaxSize().background(G.bg)) {
                 LocalNetworkGate(picking || lanServer) {
@@ -335,4 +342,15 @@ internal fun NavGraphBuilder.contentDestinations(api: Api, nav: NavController) {
 @Composable
 private fun androidx.compose.animation.AnimatedContentScope.Scoped(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalNavScope provides this, content = content)
+}
+
+// Status and navigation bar icons follow the canvas: dark icons on the light theme, light ones otherwise.
+@Composable
+private fun SystemBars(light: Boolean) {
+    val activity = LocalActivity.current as? ComponentActivity ?: return
+    LaunchedEffect(light) {
+        val clear = android.graphics.Color.TRANSPARENT
+        val style = if (light) SystemBarStyle.light(clear, clear) else SystemBarStyle.dark(clear)
+        activity.enableEdgeToEdge(style, style)
+    }
 }

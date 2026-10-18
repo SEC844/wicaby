@@ -96,6 +96,7 @@ import com.wika.wicaby.tv.ui.LocalOverlay
 import com.wika.wicaby.tv.ui.Pill
 import com.wika.wicaby.tv.ui.Radius
 import com.wika.wicaby.tv.ui.Spinner
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.rememberFocusMemory
 import com.wika.wicaby.tv.ui.tvFocus
@@ -396,13 +397,13 @@ private fun TabPill(text: String, selected: Boolean, onClick: () -> Unit, modifi
     Text(
         text, style = Type.headline, maxLines = 1,
         color = when {
-            focused -> Color.Black
+            focused -> TvFocus.fg
             selected -> C.label
             else -> C.label3
         },
         modifier = modifier
             .tvFocus(RoundedCornerShape(50), focusedScale = 1.08f, onFocusChange = { focused = it }, onClick = onClick)
-            .background(if (focused) Color.White else if (selected) C.fill4 else Color.Transparent)
+            .background(if (focused) TvFocus.bg else if (selected) C.fill4 else Color.Transparent)
             .padding(horizontal = 22.dp, vertical = 11.dp),
     )
 }

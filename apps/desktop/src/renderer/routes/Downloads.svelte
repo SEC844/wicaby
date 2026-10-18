@@ -458,7 +458,6 @@
     gap: 14px;
     padding: 8px 10px;
     border-radius: var(--r-xs);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .row:hover,
   .row:focus-within {
@@ -541,8 +540,7 @@
   .row.done .acts .btn.icon {
     opacity: 0;
     transition:
-      opacity var(--t-fast) var(--ease),
-      background-color var(--t-fast) var(--ease);
+      opacity var(--t-fast) var(--ease);
   }
   .row.done:hover .acts .btn.icon,
   .row.done:focus-within .acts .btn.icon {
@@ -606,7 +604,6 @@
     place-items: center;
     border-radius: 50%;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .ring:hover,
   .ring:focus-visible {
@@ -621,7 +618,7 @@
     transform: rotate(-90deg);
   }
   .ring.spin .ring-svg {
-    animation: spin calc(1s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     from {

@@ -329,9 +329,8 @@
     border-radius: var(--r-xs);
     background: var(--fill-1);
     scroll-margin: calc(var(--sticky) + 60px) 0 24px;
-    transition:
-      scale var(--t-med) var(--spring),
-      box-shadow var(--t-med) var(--ease);
+    /* The tile clips rotated images, so the shadow cannot live on ::after: it switches instantly. */
+    transition: scale var(--t-med) var(--spring);
   }
   .tile:hover,
   .tile:focus-visible {

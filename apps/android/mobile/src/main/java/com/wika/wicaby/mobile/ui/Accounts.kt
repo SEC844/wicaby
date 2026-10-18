@@ -35,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Api
@@ -153,22 +155,32 @@ fun AddServerFlow(snap: Snapshot) {
     }
 }
 
-// The eight accent swatches (Réglages and the wizard's second step).
+// The eight accent swatches (Réglages and the wizard's second step), the chosen one named underneath.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AccentPicker(selected: Int, onPick: (Int) -> Unit) {
-    FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Accents.forEachIndexed { i, c ->
-            val name = stringResource(AccentNames[i])
-            Box(
-                Modifier.size(32.dp).clip(CircleShape).background(c)
-                    .semantics { contentDescription = name }
-                    .selectable(i == selected, role = Role.RadioButton) { onPick(i) },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (i == selected) Icon(Ic.Check, null, tint = onAccent(c), modifier = Modifier.size(18.dp))
+    val nameOf = @Composable { i: Int -> stringResource(if (i == ACCENT_SYSTEM) R.string.accent_system else AccentNames.getOrElse(i) { AccentNames[0] }) }
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // 30dp and 7dp: all nine swatches fit on one line of a 360dp-wide phone.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Android 12+: the wallpaper's colour first, as on Pixel (accentOf falls back to blue when it does not stand out).
+            val indices = if (systemAccentSupported) listOf(ACCENT_SYSTEM) + Accents.indices else Accents.indices.toList()
+            indices.forEach { i ->
+                val c = if (i == ACCENT_SYSTEM) accentOf(i) else Accents[i]
+                val name = nameOf(i)
+                Box(
+                    Modifier.size(30.dp).clip(CircleShape).background(c)
+                        .semantics { contentDescription = name }
+                        .selectable(i == selected, role = Role.RadioButton) { onPick(i) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (i == selected) Icon(Ic.Check, null, tint = onAccent(c), modifier = Modifier.size(18.dp))
+                    // Marks the wallpaper swatch apart from the eight fixed colours (Material You's auto colour).
+                    else if (i == ACCENT_SYSTEM) Text("A", style = Type.caption.copy(fontWeight = FontWeight.Bold), color = onAccent(c), modifier = Modifier.clearAndSetSemantics {})
+                }
             }
         }
+        Text(nameOf(selected), style = Type.footnote, color = G.label2)
     }
 }
 
@@ -192,8 +204,8 @@ fun meshLine(s: MeshStatus): String = listOfNotNull(s.provider?.label, meshState
 @Composable
 fun StateDot(state: MeshState, modifier: Modifier = Modifier) {
     val color = when (state) {
-        MeshState.Connected -> androidx.compose.ui.graphics.Color(0xFF30D158)
-        MeshState.NeedsLogin, MeshState.Connecting -> androidx.compose.ui.graphics.Color(0xFFFF9F0A)
+        MeshState.Connected -> androidx.compose.ui.graphics.Color(G.palette.system.green)
+        MeshState.NeedsLogin, MeshState.Connecting -> androidx.compose.ui.graphics.Color(G.palette.system.orange)
         MeshState.Error -> G.red
         else -> G.label3
     }

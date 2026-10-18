@@ -110,7 +110,6 @@
     height: 32px;
     border-radius: 50%;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .ctl:hover,
   .ctl:focus-visible {

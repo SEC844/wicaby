@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -22,7 +23,25 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-private val Context.store by preferencesDataStore("wicaby")
+private val Context.store by preferencesDataStore("wicaby", produceMigrations = { listOf(ThemeMigration) })
+
+// Theme ids shared with the desktop's ui.theme (packages/tokens/tokens.json): graphite, oled, slate, cinema, contrast,
+// light, and system (follows the OS between light and graphite). Builds before the theme list stored a boolean
+// "oled"; the migration below turns it into the id once, before the first read.
+internal val themeKey = stringPreferencesKey("theme")
+private val oledKey = booleanPreferencesKey("oled")
+
+internal fun migrateTheme(p: MutablePreferences) {
+    val oled = p[oledKey] ?: return
+    if (p[themeKey] == null) p[themeKey] = if (oled) "oled" else "graphite"
+    p.remove(oledKey)
+}
+
+private object ThemeMigration : DataMigration<Preferences> {
+    override suspend fun shouldMigrate(currentData: Preferences) = currentData.contains(oledKey)
+    override suspend fun migrate(currentData: Preferences): Preferences = currentData.toMutablePreferences().also(::migrateTheme)
+    override suspend fun cleanUp() = Unit
+}
 
 // Onboarding (OB-C1). No device id = a fresh install: the wizard runs. An id without the flag = an install
 // from before onboarding existed, which never sees it. current() applies this in one edit; the snapshot reads
@@ -72,8 +91,8 @@ data class Snapshot(
     val skipPicker: Boolean = true,
     // Onboarding: false only on a fresh install until the first-run wizard is done or skipped.
     val onboarded: Boolean = true,
-    // Mobile Réglages > Thème: pure black (the TV keeps its own in TvSettings).
-    val oled: Boolean = false,
+    // Mobile Réglages > Thème: a theme id (see themeKey; the TV keeps its own in TvSettings).
+    val theme: String = "graphite",
 )
 
 // One extra account as stored: the token sealed by Vault, like the primary one.
@@ -119,7 +138,6 @@ class Prefs(private val context: Context) {
     private val updateUrlKey = stringPreferencesKey("update_url")
     private val updateCheckedKey = longPreferencesKey("update_checked_at")
     private val remoteControlKey = booleanPreferencesKey("remote_control")
-    private val oledKey = booleanPreferencesKey("oled")
 
     val data: Flow<Snapshot> = context.store.data.map { p -> snapshot(p) }
 
@@ -132,7 +150,7 @@ class Prefs(private val context: Context) {
             profiles = storedProfiles(p).mapNotNull { a -> Vault.decrypt(a.token)?.let { Profile(Session(a.server, a.userId, a.userName, it, a.shared), a.pin != null) } },
             skipPicker = p[skipPickerKey] ?: true,
             onboarded = onboarded(p),
-            oled = p[oledKey] ?: false,
+            theme = p[themeKey] ?: "graphite",
         )
     }
 
@@ -264,7 +282,7 @@ class Prefs(private val context: Context) {
 
     suspend fun setRemoteControl(v: Boolean) = context.store.edit { it[remoteControlKey] = v }
 
-    suspend fun setOled(v: Boolean) = context.store.edit { it[oledKey] = v }
+    suspend fun setTheme(id: String) = context.store.edit { it[themeKey] = id }
 
     // A new URL is checked at the next start, whatever the 6 h rule says.
     suspend fun setUpdateUrl(v: String) = context.store.edit {

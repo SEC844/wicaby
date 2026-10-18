@@ -129,7 +129,6 @@
     height: 6px;
     border-radius: 50%;
     background: var(--success);
-    transition: background-color var(--t-med) var(--ease);
   }
   .dot.warn {
     background: var(--warning);

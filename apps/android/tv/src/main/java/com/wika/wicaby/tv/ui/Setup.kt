@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -119,9 +118,9 @@ fun ListRow(
     trailing: String? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill2, label = "row-bg")
-    val fg = if (focused) Color.Black else C.label
-    val fg2 = if (focused) Color.Black.copy(alpha = 0.6f) else C.label2
+    val bg = if (focused) TvFocus.bg else C.fill2
+    val fg = if (focused) TvFocus.fg else C.label
+    val fg2 = if (focused) TvFocus.fg.copy(alpha = 0.6f) else C.label2
     Row(
         modifier
             .fillMaxWidth()
@@ -571,8 +570,8 @@ internal fun insecure(address: String): Boolean {
 @Composable
 fun TextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else Color.Transparent, label = "text-btn")
-    val fg = if (focused) Color.Black else C.label2
+    val bg = if (focused) TvFocus.bg else Color.Transparent
+    val fg = if (focused) TvFocus.fg else C.label2
     Row(
         modifier
             .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 8.dp, onFocusChange = { focused = it }, onClick = onClick)

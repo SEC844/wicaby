@@ -13,7 +13,7 @@
 
   let { items, eyebrow }: { items: BaseItem[]; eyebrow?: (item: BaseItem) => string } = $props();
 
-  // One slide lasts as long as its progress-dot fill: the fill's animationend advances.
+  // Slides advance on a timer; nothing moves between two changes, so an idle Home draws no frames.
   const SLIDE_MS = 8000;
 
   const slides = $derived(items.slice(0, 6));
@@ -26,6 +26,14 @@
 
   const idx = $derived(Math.min(current, Math.max(0, slides.length - 1)));
   const item = $derived(slides[idx]);
+
+  // Hover, focus or scrolling the hero away holds the slide; the full delay restarts afterwards.
+  $effect(() => {
+    if (!auto || paused || offscreen) return;
+    const next = current + 1;
+    const id = setTimeout(() => go(next), SLIDE_MS);
+    return () => clearTimeout(id);
+  });
 
   $effect(() => {
     if (!root) return;
@@ -96,8 +104,7 @@
 {#if item}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <section
-    class="hero"
-    class:paused={paused || offscreen}
+    class="hero on-media"
     bind:this={root}
     aria-roledescription={t('browse.hero.roleDescription')}
     aria-label={t('browse.hero.label')}
@@ -163,13 +170,7 @@
             aria-label={titleOf(s)}
             tabindex="-1"
             onclick={() => go(i)}
-          >
-            {#if i === idx && auto}
-              {#key current}
-                <span class="fill" style:animation-duration="{SLIDE_MS}ms" onanimationend={() => go(current + 1)}></span>
-              {/key}
-            {/if}
-          </button>
+          ></button>
         {/each}
       </div>
     {/if}
@@ -179,10 +180,18 @@
 <style>
   .hero {
     position: relative;
-    height: clamp(460px, 74vh, 860px);
+    /* Light: the dark media band runs 96px past the text, then fades into the pale canvas (as on the phone). */
+    --hero-fade: 0px;
+    height: calc(clamp(460px, 74vh, 860px) + var(--hero-fade));
     margin-bottom: 4px;
     overflow: hidden;
     isolation: isolate;
+  }
+  /* Light theme: the art melts into a dark band (the hero is a media surface, .on-media), and the band's
+     last 96px fade into the pale canvas instead of ending on a hard edge. */
+  :global([data-theme='light']) .hero {
+    --hero-fade: 96px;
+    background: linear-gradient(to bottom, var(--bg) calc(100% - var(--hero-fade)), transparent);
   }
   .backdrops,
   .bg {
@@ -192,15 +201,15 @@
   /* Fade the art out with a mask, not a colour, so it melts into any canvas (Mica, OLED). */
   .backdrops,
   .scrim {
-    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent calc(100% - var(--hero-fade)));
+    mask-image: linear-gradient(to bottom, #000 55%, transparent calc(100% - var(--hero-fade)));
   }
   .backdrops {
     z-index: -2;
   }
   .bg {
     opacity: 0;
-    transition: opacity calc(1200ms * var(--tempo)) var(--ease-in-out);
+    transition: opacity var(--t-slow) var(--ease-in-out);
   }
   .bg.active {
     opacity: 1;
@@ -211,25 +220,6 @@
     object-fit: cover;
     object-position: center 22%;
     transform: scale(1.08);
-  }
-  /* Ken Burns: a slow drift on the visible slide only. */
-  .bg.active img {
-    will-change: transform;
-    animation: kenburns calc(24s * var(--tempo)) linear both;
-  }
-  .bg:nth-child(even).active img {
-    animation-name: kenburns-alt;
-  }
-  .paused .bg.active img {
-    animation-play-state: paused;
-  }
-  @keyframes kenburns {
-    from { transform: scale(1.02) translate3d(0, 0, 0); }
-    to { transform: scale(1.12) translate3d(-1.5%, -1%, 0); }
-  }
-  @keyframes kenburns-alt {
-    from { transform: scale(1.12) translate3d(1.5%, -1%, 0); }
-    to { transform: scale(1.02) translate3d(0, 0, 0); }
   }
   .scrim {
     position: absolute;
@@ -245,7 +235,7 @@
   .slide {
     position: absolute;
     left: var(--gutter);
-    bottom: clamp(40px, 7vh, 72px);
+    bottom: calc(clamp(40px, 7vh, 72px) + var(--hero-fade));
     width: min(620px, 52%);
     opacity: 0;
     transform: translate3d(0, 14px, 0);
@@ -259,8 +249,8 @@
     transform: none;
     pointer-events: auto;
     transition:
-      opacity var(--t-slow) var(--ease-out) calc(220ms * var(--tempo)),
-      transform var(--t-slow) var(--ease-out) calc(220ms * var(--tempo));
+      opacity var(--t-slow) var(--ease-out) var(--t-fast),
+      transform var(--t-slow) var(--ease-out) var(--t-fast);
   }
   .eyebrow {
     margin-bottom: 12px;
@@ -375,11 +365,11 @@
     transform-origin: left;
   }
 
-  /* Apple TV style pager: dots, the current one stretches into a filling pill. */
+  /* Apple TV style pager: dots, the current one is a still pill. */
   .dots {
     position: absolute;
     right: var(--gutter);
-    bottom: clamp(46px, 7vh, 78px);
+    bottom: calc(clamp(46px, 7vh, 78px) + var(--hero-fade));
     display: flex;
     align-items: center;
     gap: 8px;
@@ -389,11 +379,9 @@
     width: 7px;
     height: 7px;
     border-radius: 999px;
-    overflow: hidden;
     background: rgb(255 255 255 / 0.32);
     transition:
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease);
+      transform var(--t-med) var(--spring);
   }
   /* Bigger hit area without changing the dot's size. */
   .dot::before {
@@ -406,21 +394,7 @@
   }
   .dot.active {
     width: 28px;
-    background: rgb(255 255 255 / 0.32);
-  }
-  .fill {
-    position: absolute;
-    inset: 0;
     background: var(--label);
-    transform-origin: left;
-    animation: fill linear both;
-  }
-  .paused .fill {
-    animation-play-state: paused;
-  }
-  @keyframes fill {
-    from { transform: scaleX(0); }
-    to { transform: scaleX(1); }
   }
   @media (max-width: 1100px) {
     .slide {

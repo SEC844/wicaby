@@ -121,7 +121,6 @@
     width: 100%;
     text-align: left;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .link-row:hover,
   .link-row:focus-visible {
@@ -144,7 +143,6 @@
     font-weight: 500;
     color: var(--label);
     white-space: nowrap;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .push:hover,
   .push:focus-visible {
@@ -194,9 +192,6 @@
     place-items: center;
     color: var(--label-2);
     border-radius: var(--r-xs);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .stepper button:hover:not(:disabled),
   .stepper button:focus-visible {

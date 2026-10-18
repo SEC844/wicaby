@@ -68,6 +68,7 @@ jobs:
               - 'LICENSE*'
             desktop:
               - 'apps/desktop/**'
+              - 'packages/tokens/**'
               - 'tools/**'
               - 'package.json'
               - 'package-lock.json'
@@ -82,6 +83,7 @@ jobs:
               - '.github/workflows/ci.yml'
             android:
               - 'apps/android/**'
+              - 'packages/tokens/**'
               - 'packages/mesh/**'
               - 'tools/checks/flavour-check.mjs'
               - '.github/workflows/ci.yml'

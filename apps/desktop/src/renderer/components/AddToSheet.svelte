@@ -121,7 +121,6 @@
     padding: 0 10px 0 8px;
     border-radius: var(--r-sm);
     text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .targets button:hover,
   .targets button:focus-visible {

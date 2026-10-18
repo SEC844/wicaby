@@ -4,7 +4,6 @@ import com.wika.wicaby.tv.player.SUB_POSITION_LABELS
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -158,15 +157,12 @@ fun SettingsTab(api: Api, user: User?, tabs: List<TopTab>, onScrolled: (Boolean)
 @Composable
 private fun SectionItem(text: String, selected: Boolean, onFocus: () -> Unit, modifier: Modifier) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(
+    val bg =
         when {
-            focused -> Color.White
+            focused -> TvFocus.bg
             selected -> C.fill2
             else -> Color.Transparent
-        },
-        tween(160),
-        label = "section",
-    )
+        }
     Row(
         modifier
             .fillMaxWidth()
@@ -175,7 +171,7 @@ private fun SectionItem(text: String, selected: Boolean, onFocus: () -> Unit, mo
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, style = Type.headline, color = if (focused) Color.Black else if (selected) C.label else C.label2, modifier = Modifier.weight(1f))
+        Text(text, style = Type.headline, color = if (focused) TvFocus.fg else if (selected) C.label else C.label2, modifier = Modifier.weight(1f))
         if (focused) Icon(Ic.Chevron, null, tint = Color.Black.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
     }
 }
@@ -202,7 +198,7 @@ internal fun SettingRow(
     onClick: () -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill1, tween(160), label = "row")
+    val bg = if (focused) TvFocus.bg else C.fill1
     val section = LocalSectionFocus.current
     Row(
         modifier
@@ -214,14 +210,14 @@ internal fun SettingRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(label, style = Type.headline, color = if (focused) Color.Black else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(label, style = Type.headline, color = if (focused) TvFocus.fg else C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (value != null) {
             Text(
-                value, style = if (mono) Type.mono else Type.callout, color = if (focused) Color.Black.copy(alpha = 0.62f) else C.label2,
+                value, style = if (mono) Type.mono else Type.callout, color = if (focused) TvFocus.fg.copy(alpha = 0.62f) else C.label2,
                 maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.widthIn(max = 340.dp),
             )
         }
-        if (chevron) Icon(Ic.Chevron, null, tint = if (focused) Color.Black.copy(alpha = 0.5f) else C.label3, modifier = Modifier.size(18.dp))
+        if (chevron) Icon(Ic.Chevron, null, tint = if (focused) TvFocus.fg.copy(alpha = 0.5f) else C.label3, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -434,12 +430,12 @@ private fun InterfaceSection(api: Api, tabs: List<TopTab>) {
         )
     }
     Group(stringResource(R.string.group_appearance)) {
-        ChoiceRow(
-            stringResource(R.string.settings_theme),
-            listOf(stringResource(R.string.settings_theme_dark), stringResource(R.string.settings_theme_oled)),
-            if (TvSettings.oled.value) 1 else 0,
-            { TvSettings.oled.value = it == 1 },
-        )
+        // Each card is drawn in its own theme; a click applies it to the whole screen at once.
+        Text(stringResource(R.string.settings_theme), style = Type.headline, color = C.label, modifier = Modifier.padding(start = 18.dp, top = 4.dp))
+        ThemeCardRow(C.palette.id, onPick = {
+            TvSettings.theme.value = it
+            TvSettings.themeHintShown.value = true
+        })
         Row(
             Modifier.fillMaxWidth().background(C.fill1, RoundedCornerShape(Radius.md)).padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,

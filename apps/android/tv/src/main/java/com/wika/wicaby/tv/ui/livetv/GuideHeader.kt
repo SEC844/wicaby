@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -40,6 +39,7 @@ import com.wika.wicaby.tv.R
 import com.wika.wicaby.tv.ui.C
 import com.wika.wicaby.tv.ui.Ic
 import com.wika.wicaby.tv.ui.LocalOverlay
+import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.TvPicker
 import com.wika.wicaby.tv.ui.Type
 import com.wika.wicaby.tv.ui.tvFocus
@@ -99,11 +99,11 @@ internal fun GuideHeader(
 @Composable
 private fun Chip(text: String?, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false, icon: ImageVector? = null, description: String? = null) {
     var focused by remember { mutableStateOf(false) }
-    val fg = if (focused) Color.Black else if (selected) C.label else C.label2
+    val fg = if (focused) TvFocus.fg else if (selected) C.label else C.label2
     Row(
         modifier
             .tvFocus(RoundedCornerShape(50), focusedScale = 1.06f, sheen = false, elevation = 8.dp, onFocusChange = { focused = it }, onClick = onClick)
-            .background(if (focused) Color.White else if (selected) C.fill4 else C.fill2)
+            .background(if (focused) TvFocus.bg else if (selected) C.fill4 else C.fill2)
             .padding(horizontal = if (text == null) 10.dp else 14.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

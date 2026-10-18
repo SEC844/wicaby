@@ -116,7 +116,7 @@
 </script>
 
 <!-- The veil sits under the controls: the loader stays visible while the picture is still black. -->
-<div class="osd-root" class:leaving={pbState?.exiting}>
+<div class="osd-root on-media" class:leaving={pbState?.exiting}>
   <div class="veil" class:on={veil} aria-hidden="true" ontransitionend={() => veil && veilUp?.()}></div>
   <Osd state={pbState} mode="mpv" />
 </div>
@@ -131,6 +131,7 @@
   .leaving > :global(:not(.veil)) {
     opacity: 0;
     pointer-events: none;
+    /* motion-ok: the exit is timed with main (EXIT_FADE_MS, EXIT_REVEAL_MS) */
     transition: opacity 120ms var(--ease-out);
   }
   /* Durations match EXIT_FADE_MS and EXIT_REVEAL_MS (main/playback/player.ts). */
@@ -140,11 +141,13 @@
     background: #000;
     opacity: 0;
     pointer-events: none;
+    /* motion-ok: timed with main */
     transition: opacity 200ms var(--ease-out);
   }
   /* Even all the way to black, so it holds black for a frame or two, not half the time. */
   .veil.on {
     opacity: 1;
+    /* motion-ok: timed with main */
     transition: opacity 220ms var(--ease-in-out);
   }
 </style>

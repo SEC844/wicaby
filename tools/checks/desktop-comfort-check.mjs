@@ -85,6 +85,12 @@ r = load({ defaultsVersion: 1, playback: { smoothMotion: true } });
 assert.equal(r.v.playback.smoothMotion, false);
 r = load({ defaultsVersion: 2, playback: { smoothMotion: true } });
 assert.equal(r.v.playback.smoothMotion, true);
+// Themes: builds before the theme list stored Graphite as 'dark'; a known id stays, an unknown one is Graphite.
+assert.equal(load(null).v.ui.theme, 'graphite');
+assert.equal(load({ ui: { theme: 'dark' } }).v.ui.theme, 'graphite');
+assert.equal(load({ ui: { theme: 'oled' } }).v.ui.theme, 'oled');
+assert.equal(load({ ui: { theme: 'light' } }).v.ui.theme, 'light');
+assert.equal(load({ ui: { theme: 'bogus' } }).v.ui.theme, 'graphite');
 
 // ---- B04 track selection with the server preference ----
 const a = (Index, Language, extra = {}) => ({ Index, Type: 'Audio', Language, ...extra });

@@ -176,7 +176,6 @@
     place-items: center;
     border-radius: 50%;
     color: var(--label-2);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .arrow:hover,
   .arrow:focus-visible {

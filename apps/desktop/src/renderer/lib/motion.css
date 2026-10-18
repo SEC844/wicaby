@@ -1,6 +1,6 @@
 /* Shared-element morph (card artwork into the item backdrop), see lib/motion.ts. */
 ::view-transition-group(*.morph) {
-  animation-duration: calc(560ms * var(--tempo));
+  animation-duration: var(--t-slow);
   animation-timing-function: var(--ease);
   overflow: clip;
   border-radius: var(--r-md);
@@ -10,11 +10,11 @@
   /* Poster and backdrop differ in aspect: crop instead of stretching. */
   height: 100%;
   object-fit: cover;
-  animation-duration: calc(560ms * var(--tempo));
+  animation-duration: var(--t-slow);
   animation-timing-function: var(--ease);
 }
 ::view-transition-new(item-info) {
-  animation: morph-info calc(620ms * var(--tempo)) var(--ease-out) calc(120ms * var(--tempo)) both;
+  animation: morph-info var(--t-slow) var(--ease-out) var(--t-fast) both;
 }
 @keyframes morph-info {
   from { opacity: 0; transform: translate3d(0, 24px, 0); }

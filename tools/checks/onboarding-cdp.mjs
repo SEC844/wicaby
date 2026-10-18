@@ -381,6 +381,9 @@ async function run() {
   const where = await p.evaluate(`location.hash`);
   const onb = await p.evaluate(`wicaby.settings.get().then((x) => x.ui.onboarded)`);
   ok('settings.json without onboarded never shows /welcome', where === '#/servers' && onb === true, `${where}, onboarded ${onb}`);
+  // Builds before the theme list stored Graphite as 'dark'.
+  const oldTheme = await p.evaluate(`wicaby.settings.get().then((x) => x.ui.theme + ' ' + document.documentElement.dataset.theme)`);
+  ok('a stored dark theme reads as graphite', oldTheme === 'graphite graphite', oldTheme);
   await close(s);
 }
 

@@ -599,7 +599,7 @@
     background: var(--bg-elevated);
     box-shadow: inset 0 0 0 1px var(--separator);
     animation: rise var(--t-med) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .top {
     display: flex;

@@ -1,6 +1,5 @@
 package com.wika.wicaby.mobile.ui
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -296,7 +295,7 @@ private fun HeroCarousel(api: Api, items: List<Item>, onPlay: (Item) -> Unit, on
                     val url = remember(item.id, px) { Servers.forItem(item, api).backdrop(item, px) }
                     AsyncImage(url, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     // Artwork scrims: legible status bar on top, a fade into the page below.
-                    Box(Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent))))
+                    Box(Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(listOf(G.bg.copy(alpha = 0.45f), G.bg.copy(alpha = 0f)))))
                     Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.6f).background(Brush.verticalGradient(listOf(G.bg.copy(alpha = 0f), G.bg.copy(alpha = 0.7f), G.bg))))
                     Column(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, end = 20.dp, bottom = 14.dp).widthIn(max = 560.dp)) {
                         HeroTitle(api, item)
@@ -311,8 +310,8 @@ private fun HeroCarousel(api: Api, items: List<Item>, onPlay: (Item) -> Unit, on
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                 repeat(items.size) { i ->
                     val sel = i == pager.currentPage
-                    val w by animateDpAsState(if (sel) 16.dp else 6.dp, label = "dot")
-                    Box(Modifier.width(w).height(6.dp).clip(CircleShape).background(if (sel) G.label else G.label3))
+                    // Instant, like every selection: an animated width relays the row out every frame of a swipe.
+                    Box(Modifier.width(if (sel) 16.dp else 6.dp).height(6.dp).clip(CircleShape).background(if (sel) G.label else G.label3))
                 }
             }
         }

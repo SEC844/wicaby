@@ -101,13 +101,23 @@ export function errorMessage(err: unknown): string {
 // Bumped on server UserDataChanged / LibraryChanged so pages can refetch.
 export const dataVersion = $state({ userData: 0, library: 0 });
 
+// 'system' follows Windows (main sets nativeTheme.themeSource, so this query tracks it). The OSD stays dark:
+// it floats over video.
+const lightQuery = matchMedia('(prefers-color-scheme: light)');
+function applyTheme(): void {
+  const theme = settings.value?.ui.theme ?? 'graphite';
+  const root = document.documentElement;
+  root.dataset.theme = root.classList.contains('osd') ? 'graphite' : theme === 'system' ? (lightQuery.matches ? 'light' : 'graphite') : theme;
+}
+lightQuery.addEventListener('change', applyTheme);
+
 function applySettings(s: Settings): void {
   const source = settings.value?.music.source;
   settings.value = s;
   if (source !== undefined && source !== s.music.source) applyMusicSource();
   setLanguage(s.ui.language);
   const root = document.documentElement;
-  root.dataset.theme = s.ui.theme;
+  applyTheme();
   root.dataset.accent = s.ui.accent;
   root.toggleAttribute('data-reduce-transparency', s.ui.reduceTransparency);
   if (s.ui.reduceMotion) root.dataset.reduceMotion = '1';

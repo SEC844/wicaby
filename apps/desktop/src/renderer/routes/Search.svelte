@@ -319,9 +319,6 @@
     border-radius: var(--r-md);
     background: var(--fill-2);
     box-shadow: inset 0 0 0 1px transparent;
-    transition:
-      background-color var(--t-fast) var(--ease),
-      box-shadow var(--t-fast) var(--ease);
     cursor: text;
   }
   .bar:hover {
@@ -365,7 +362,6 @@
     color: var(--bg);
     background: var(--label-3);
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .clear:hover {
@@ -380,7 +376,7 @@
     border: 2px solid var(--label-3);
     border-right-color: transparent;
     border-radius: 50%;
-    animation: spin calc(0.8s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     to {
@@ -408,8 +404,6 @@
     font-size: var(--fs-callout);
     font-weight: 560;
     transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .cat:not(.on):focus-visible,
@@ -453,7 +447,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .error {
     display: flex;
@@ -503,7 +497,6 @@
   .link {
     font-size: var(--fs-callout);
     color: var(--label-2);
-    transition: color var(--t-fast) var(--ease);
   }
   .link:hover,
   .link:focus-visible {
@@ -526,8 +519,6 @@
     font-size: var(--fs-callout);
     font-weight: 500;
     transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .pill:focus-visible,

@@ -46,6 +46,7 @@
   import Admin from './routes/Admin.svelte';
   import PhotoViewer from './routes/photos/PhotoViewer.svelte';
   import { lonePhoto } from './lib/photos/source.svelte';
+  import { dur } from './lib/motion';
 
   const isOsd = document.documentElement.classList.contains('osd');
   // The music mini player's own window (MU-10): stores and the mini layout only.
@@ -97,10 +98,9 @@
     if (!el) return;
     if (lastCollapsed !== null && lastCollapsed !== c) {
       const css = getComputedStyle(document.documentElement);
-      const tempo = parseFloat(css.getPropertyValue('--tempo')) || 1;
       const from = c ? RAIL.open - RAIL.closed : RAIL.closed - RAIL.open;
       el.animate([{ transform: `translate3d(${from}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }], {
-        duration: 520 * tempo,
+        duration: dur('slow'),
         easing: css.getPropertyValue('--ease').trim() || 'ease-out',
       });
     }
@@ -228,7 +228,8 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    animation: drift calc(9s * var(--tempo)) var(--ease-in-out) infinite alternate;
+    animation: drift 9s var(--ease-in-out) infinite alternate;
+    animation-play-state: var(--loop);
   }
   .glow span:nth-child(1) {
     background: radial-gradient(closest-side, var(--graphite), transparent);
@@ -237,15 +238,19 @@
   .glow span:nth-child(2) {
     background: radial-gradient(closest-side, var(--graphite), transparent);
     transform: translate3d(22%, 6%, 0) scale(0.6);
-    animation-delay: calc(-3s * var(--tempo));
-    animation-duration: calc(11s * var(--tempo));
+    /* motion-ok: ambient loop, phases differ on purpose */
+    animation-delay: -3s;
+    /* motion-ok: ambient loop */
+    animation-duration: 11s;
   }
   .glow span:nth-child(3) {
     background: radial-gradient(closest-side, var(--graphite), transparent);
     transform: translate3d(0, -14%, 0) scale(0.45);
     opacity: 0.6;
-    animation-delay: calc(-6s * var(--tempo));
-    animation-duration: calc(13s * var(--tempo));
+    /* motion-ok: ambient loop */
+    animation-delay: -6s;
+    /* motion-ok: ambient loop */
+    animation-duration: 13s;
   }
   @keyframes drift {
     to {
@@ -276,7 +281,7 @@
     margin: 18px 0 22px;
     font-size: var(--fs-callout);
     color: var(--label-2);
-    animation: fade var(--t-slow) var(--ease-out) calc(200ms * var(--tempo)) both;
+    animation: fade var(--t-slow) var(--ease-out) var(--t-fast) both;
   }
 
   /* ---------- Shell ---------- */
@@ -304,7 +309,8 @@
     height: 70vmax;
     border-radius: 50%;
     opacity: 0.14;
-    animation: wander calc(24s * var(--tempo)) var(--ease-in-out) infinite alternate;
+    animation: wander 24s var(--ease-in-out) infinite alternate;
+    animation-play-state: var(--loop);
   }
   .ambient span:nth-child(1) {
     top: -30vmax;
@@ -315,7 +321,8 @@
     right: -26vmax;
     bottom: -36vmax;
     background: radial-gradient(closest-side, var(--graphite), transparent);
-    animation-duration: calc(30s * var(--tempo));
+    /* motion-ok: ambient loop */
+    animation-duration: 30s;
     animation-direction: alternate-reverse;
   }
   .ambient span:nth-child(3) {
@@ -325,7 +332,8 @@
     height: 44vmax;
     opacity: 0.07;
     background: radial-gradient(closest-side, var(--graphite), transparent);
-    animation-duration: calc(36s * var(--tempo));
+    /* motion-ok: ambient loop */
+    animation-duration: 36s;
   }
   @keyframes wander {
     to {
@@ -339,12 +347,12 @@
     /* Without Mica the sidebar sits on a lifted graphite, like the macOS source list. */
     background: var(--bg-elevated);
   }
-  :global(html.mica:not([data-theme='oled']):not([data-reduce-transparency])) .shell {
+  :global(html.mica:is([data-theme='graphite'], [data-theme='light']):not([data-reduce-transparency])) .shell {
     background: transparent;
   }
   /* OLED: the sidebar goes true black too; the pane's separator keeps the edge. */
   :global(html[data-theme='oled']) .shell {
-    background: #000;
+    background: var(--bg);
   }
   .pane {
     position: absolute;
@@ -367,7 +375,7 @@
     width: 200px;
     background: inherit;
   }
-  :global(html.mica:not([data-theme='oled']):not([data-reduce-transparency])) .pane {
+  :global(html.mica:is([data-theme='graphite'], [data-theme='light']):not([data-reduce-transparency])) .pane {
     background: color-mix(in srgb, var(--bg) 92%, transparent);
   }
   .scroller {

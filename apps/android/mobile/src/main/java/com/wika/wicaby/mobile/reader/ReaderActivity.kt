@@ -75,7 +75,7 @@ import com.wika.wicaby.core.comics.ComicReader
 import com.wika.wicaby.core.comics.ReaderAwake
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.mobile.R
-import com.wika.wicaby.mobile.ui.Accents
+import com.wika.wicaby.mobile.ui.accentOf
 import com.wika.wicaby.mobile.ui.Chip
 import com.wika.wicaby.mobile.ui.G
 import com.wika.wicaby.mobile.ui.GlassIconButton
@@ -113,6 +113,17 @@ class ReaderActivity : AppCompatActivity() {
         awake.poke()
     }
 
+    // A comic page is media: the reader stays dark in the light theme (G.media).
+    override fun onStart() {
+        super.onStart()
+        G.mediaStarted++
+    }
+
+    override fun onStop() {
+        super.onStop()
+        G.mediaStarted = (G.mediaStarted - 1).coerceAtLeast(0)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -127,7 +138,7 @@ class ReaderActivity : AppCompatActivity() {
         immersive()
         setContent {
             val snap by Core.prefs.data.collectAsState(null)
-            WicabyTheme(Accents[(snap?.accent ?: 0).coerceIn(Accents.indices)]) {
+            WicabyTheme(accentOf(snap?.accent ?: 0)) {
                 ReaderScreen(r, onExit = ::finish)
             }
         }

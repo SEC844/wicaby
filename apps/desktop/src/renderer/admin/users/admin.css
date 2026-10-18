@@ -37,7 +37,6 @@
   width: 100%;
   text-align: left;
   color: var(--label);
-  transition: background-color var(--t-fast) var(--ease);
 }
 .au .link-row:hover,
 .au .link-row:focus-visible {

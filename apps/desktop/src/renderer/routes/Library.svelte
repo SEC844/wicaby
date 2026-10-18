@@ -21,7 +21,8 @@
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
   import { queue, queueModes } from '../lib/queue.svelte';
-  import { scrollMemory } from '../lib/motion';
+  import { entering, scrollMemory } from '../lib/motion';
+  const enter = entering();
   import { dataVersion, errorMessage, libraries, sessionFor, settings } from '../lib/stores.svelte';
 
   // server: the library's server (absent: the primary one).
@@ -274,7 +275,7 @@
 
   <div class="grid {variant}">
     {#each items as item, i (itemKey(item))}
-      <div class="cell" class:enter={i < firstPage && i < 24} style:--i={Math.min(i, 12)}>
+      <div class="cell" class:enter={enter && i < firstPage && i < 12} style:--i={i}>
         <Card {item} {variant} />
       </div>
     {/each}
@@ -372,8 +373,6 @@
     font-weight: 560;
     color: var(--label-2);
     transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .segmented button:not(.on):focus-visible,
@@ -424,7 +423,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .sk-frame {
     border-radius: var(--r-md);

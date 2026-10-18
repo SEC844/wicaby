@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,9 +37,11 @@ fun RemoteAccessSection() {
         MeshLoginPanel(
             mesh = Core.mesh,
             modifier = Modifier.padding(16.dp),
+            // The theme's labels, so the panel reads on the light canvas too.
             style = MeshPanelStyle.Graphite.copy(
                 title = Type.title3, body = Type.body, caption = Type.footnote, mono = Type.mono,
-                accent = accent, onAccent = onAccent(accent),
+                label = G.label, label2 = G.label2, label3 = G.label3, fill = G.fill3,
+                accent = accent, onAccent = onAccent(accent), positive = Color(G.palette.system.green), error = G.red,
             ),
             button = { label, primary, onClick, m -> PillButton(label, onClick, m, primary = primary, compact = true) },
             field = { placeholder, value, onValueChange, secret, m -> WicabyField(value, onValueChange, placeholder, m, password = secret) },

@@ -47,7 +47,6 @@
     border-radius: 50%;
     color: var(--label);
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .ctl:hover,

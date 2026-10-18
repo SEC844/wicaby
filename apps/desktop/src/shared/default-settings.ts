@@ -24,7 +24,7 @@ export type StoredSettings = Settings & { live: LiveSettings; defaultsVersion: n
 export function defaultSettings(downloadsFolder: string): StoredSettings {
   return {
     ui: {
-      theme: 'dark',
+      theme: 'graphite',
       accent: 'blue',
       reduceMotion: false,
       reduceTransparency: false,

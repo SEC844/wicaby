@@ -476,7 +476,6 @@
     font-weight: 500;
     color: var(--label);
     white-space: nowrap;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .push:hover,
   .push:focus-visible {
@@ -505,7 +504,7 @@
     border-radius: 50%;
     background: conic-gradient(from 90deg, transparent 10%, var(--label-2));
     mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
-    animation: spin calc(0.8s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     to {

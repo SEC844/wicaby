@@ -128,7 +128,6 @@
     width: 24px;
     touch-action: none;
     cursor: ns-resize;
-    transition: width var(--t-fast) var(--ease);
   }
   .rail:hover,
   .rail:focus-visible,

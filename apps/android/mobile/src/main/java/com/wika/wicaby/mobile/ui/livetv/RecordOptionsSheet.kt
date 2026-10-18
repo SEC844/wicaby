@@ -403,7 +403,7 @@ private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit)
         Text(label, style = Type.body, color = G.label, modifier = Modifier.weight(1f).padding(end = 12.dp))
         Switch(
             checked, null,
-            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = Color.Transparent),
+            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = Color.Transparent),
         )
     }
 }

@@ -112,7 +112,6 @@
     grid-template-columns: 1fr auto auto;
     align-items: center;
     border-radius: var(--r-sm);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .row + .row::before {
     content: '';

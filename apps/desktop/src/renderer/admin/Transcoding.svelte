@@ -543,7 +543,6 @@
     box-shadow: inset 0 0 0 1px var(--separator);
     font-size: var(--fs-callout);
     color: var(--label-3);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .chip:hover,
   .chip:focus-visible {

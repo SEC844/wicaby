@@ -12,6 +12,7 @@
   import { back, router } from '../lib/router.svelte';
   import { dataVersion, errorMessage } from '../lib/stores.svelte';
   import { ZoomPan } from '../lib/zoom.svelte';
+  import { dur } from '../lib/motion';
 
   // Comic reader (CBZ). Pages come from wicaby-media://comic/<id>/<n>, which
   // main serves out of the cached archive. Spreads, zoom and pan move with
@@ -410,10 +411,9 @@
 
   // Page turn: the new spread slides in from the reading side while the old one fades out.
   function turn(_node: Element, { out }: { out: boolean }) {
-    const tempo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
     const d = dir * (prefs.rtl ? -1 : 1) * Math.min(72, vw * 0.06);
     return {
-      duration: 320 * tempo,
+      duration: dur('med'),
       easing: cubicOut,
       css: (t: number, u: number) => `opacity: ${t}; transform: translate3d(${(out ? -d : d) * u}px, 0, 0)`,
     };
@@ -483,7 +483,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="reader" class:hidden={!chrome} bind:clientWidth={vw} bind:clientHeight={vh}>
+<div class="reader on-media" class:hidden={!chrome} bind:clientWidth={vw} bind:clientHeight={vh}>
   {#if error}
     <div class="state">
       <Icon name="book" size={40} stroke={1.5} />
@@ -814,8 +814,7 @@
     place-items: center;
     border-radius: 999px;
     transition:
-      transform var(--t-med) var(--spring),
-      background-color var(--t-fast) var(--ease);
+      transform var(--t-med) var(--spring);
   }
   .round:is(:hover, :focus-visible) {
     transform: scale(1.06);

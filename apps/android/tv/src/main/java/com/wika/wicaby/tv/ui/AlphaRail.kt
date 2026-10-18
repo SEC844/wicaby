@@ -90,7 +90,7 @@ fun AlphaRail(offsets: IntArray, rail: RailFocus, onBrowse: (Int) -> Unit, onPic
             LetterIndex.LETTERS.forEachIndexed { i, ch ->
                 val has = offsets[i] >= 0
                 val on = focused == i
-                val grow by animateFloatAsState(if (on) 1.45f else 1f, if (still) snap() else spring(dampingRatio = 0.6f, stiffness = 500f), label = "rail-letter")
+                val grow by animateFloatAsState(if (on) 1.25f else 1f, if (still) snap() else spring(dampingRatio = 0.9f, stiffness = 500f), label = "rail-letter")
                 Box(
                     Modifier
                         .size(28.dp, letterH)

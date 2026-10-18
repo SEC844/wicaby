@@ -9,6 +9,7 @@
   import { fmt, t } from '../lib/i18n.svelte';
   import { errorMessage, toast } from '../lib/stores.svelte';
   import { pendingMatches } from '../lib/vpn';
+  import { dur } from '../lib/motion';
 
   let {
     compact = false,
@@ -49,7 +50,6 @@
   let nbKey = $state('');
   let poll: ReturnType<typeof setInterval> | undefined;
 
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
 
   function lane(provider: MeshProvider): Lane {
     const app = statuses.find((s) => s.kind === provider);
@@ -209,7 +209,7 @@
 {/snippet}
 
 {#snippet peerList(l: Lane)}
-  <div class="peers" transition:slide={{ duration: 240 * tempo(), easing: cubicOut }}>
+  <div class="peers" transition:slide={{ duration: dur('med'), easing: cubicOut }}>
     {#if peers === null}
       <p class="note"><span class="spinner"></span> {t('vpn.peers.searching')}</p>
     {:else if peers.length === 0}
@@ -291,7 +291,7 @@
         <span class="chev" class:up={advanced}><Icon name="chevronDown" size={13} /></span>
       </button>
       {#if advanced}
-        <div class="advanced" transition:slide={{ duration: 240 * tempo(), easing: cubicOut }}>
+        <div class="advanced" transition:slide={{ duration: dur('med'), easing: cubicOut }}>
           {#if nbFields}
             <input class="field" placeholder={t('vpn.advanced.urlPlaceholder')} bind:value={nbUrl} spellcheck="false" autocomplete="off" aria-label={t('vpn.advanced.urlAria')} />
             <input class="field" type="password" placeholder={t('vpn.advanced.keyPlaceholder')} bind:value={nbKey} spellcheck="false" autocomplete="off" aria-label={t('vpn.advanced.keyAria')} />
@@ -345,7 +345,6 @@
   }
   .choice {
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .choice:hover,
@@ -439,7 +438,6 @@
     font-weight: 600;
     color: var(--label);
     transition:
-      background-color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .pill:hover,
@@ -499,7 +497,6 @@
     padding: 6px 10px 6px 12px;
     border-radius: var(--r-sm);
     text-align: left;
-    transition: background-color var(--t-fast) var(--ease);
   }
   .rows .peer {
     padding-left: 38px;
@@ -536,7 +533,6 @@
     padding: 4px 0;
     font-size: var(--fs-footnote);
     color: var(--label-2);
-    transition: color var(--t-fast) var(--ease);
   }
   .link:hover,
   .link:focus-visible {
@@ -571,7 +567,7 @@
     border-radius: 50%;
     background: conic-gradient(from 90deg, transparent 10%, var(--label-2));
     mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
-    animation: spin calc(0.8s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     to {

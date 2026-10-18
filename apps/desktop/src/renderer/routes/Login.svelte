@@ -10,6 +10,7 @@
   import { userImageUrl } from '../lib/images';
   import { navigate } from '../lib/router.svelte';
   import { errorMessage, onlineSessions, session, sessionFor, toast } from '../lib/stores.svelte';
+  import { dur } from '../lib/motion';
 
   // Sign-in is per server: the one in the route (/login/<id>), else the one waiting for it.
   // onsignedin: the first-run setup hosts this page (routes/welcome/SignIn.svelte) without its header and
@@ -57,7 +58,6 @@
   let profilesEl = $state<HTMLDivElement>();
   let returnFocus: HTMLElement | null = null;
 
-  const tempo = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tempo')) || 1;
 
   onMount(async () => {
     try {
@@ -94,7 +94,7 @@
       await tick();
       sheetEl?.animate(
         [{ transform: 'none' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(2px)' }, { transform: 'none' }],
-        { duration: 420 * tempo(), easing: 'ease-out' },
+        { duration: dur('med'), easing: 'ease-out' },
       );
       passwordEl?.select();
     } finally {
@@ -145,7 +145,7 @@
   function sheetIn(_node: Element) {
     const spring = (p: number) => 1 - Math.cos(p * Math.PI * 2.5) * Math.exp(-p * 7);
     return {
-      duration: 560 * tempo(),
+      duration: dur('slow'),
       css: (p: number) => {
         const s = spring(p);
         return `opacity: ${Math.min(1, p * 2.5)}; transform: translate3d(0, ${(1 - s) * 40}px, 0) scale(${0.94 + 0.06 * s});`;
@@ -187,7 +187,7 @@
       autocomplete={plex ? 'off' : 'current-password'}
     />
     {#if error}
-      <p class="error" role="alert" transition:fly={{ y: -4, duration: 180 * tempo() }}><Icon name="exclamation" size={15} /> {error}</p>
+      <p class="error" role="alert" transition:fly={{ y: -4, duration: dur('fast') }}><Icon name="exclamation" size={15} /> {error}</p>
     {/if}
     <div class="actions">
       {#if sheet}<button class="btn ghost" type="button" onclick={closeSheet}>{t('common.actions.cancel')}</button>{/if}
@@ -200,7 +200,7 @@
 {/snippet}
 
 <div class="login" class:embedded={!!onsignedin} inert={sheet !== null}>
-  <div class="stage" in:fly={{ y: 20, duration: 560 * tempo(), easing: cubicOut }}>
+  <div class="stage" in:fly={{ y: 20, duration: dur('slow'), easing: cubicOut }}>
     {#if !onsignedin}<header>
       <span class="server">
         <span class="dot"></span>
@@ -261,9 +261,9 @@
 </div>
 
 {#if sheet}
-  <div class="scrim" transition:fade={{ duration: 240 * tempo() }} onclick={closeSheet} role="presentation"></div>
+  <div class="scrim" transition:fade={{ duration: dur('med') }} onclick={closeSheet} role="presentation"></div>
   <div class="sheet-wrap">
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" bind:this={sheetEl} in:sheetIn out:fly={{ y: 24, duration: 200 * tempo(), opacity: 0 }}>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" bind:this={sheetEl} in:sheetIn out:fly={{ y: 24, duration: dur('fast'), opacity: 0 }}>
       {#if sheet.user}
         {@render avatar(sheet.user, 76)}
         <h2 id="sheet-title">{sheet.user.name}</h2>
@@ -361,7 +361,7 @@
     padding: 10px 0 4px;
     border-radius: var(--r-lg);
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i, 0) * 50ms * var(--tempo));
+    animation-delay: calc(var(--i, 0) * var(--t-stagger));
   }
   .profile:focus-visible {
     box-shadow: none;
@@ -412,7 +412,7 @@
   }
   .profile:active .lift {
     transform: translate3d(0, -2px, 0) scale(1.02);
-    transition-duration: 120ms;
+    transition-duration: calc(var(--t-fast) / 2);
   }
   .avatar {
     position: relative;
@@ -480,7 +480,6 @@
     font-weight: 560;
     color: var(--label-2);
     transition:
-      color var(--t-fast) var(--ease),
       transform var(--t-med) var(--spring);
   }
   .profile:hover .uname,
@@ -602,7 +601,7 @@
     border-radius: 50%;
     background: conic-gradient(from 90deg, transparent 10%, currentColor);
     mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
-    animation: spin calc(0.8s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   .busy .spinner {
     width: 28px;

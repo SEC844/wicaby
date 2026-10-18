@@ -32,7 +32,8 @@ import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.player.ExternalPlayer
 import com.wika.wicaby.mobile.ui.Cache
-import com.wika.wicaby.mobile.ui.Accents
+import com.wika.wicaby.mobile.ui.G
+import com.wika.wicaby.mobile.ui.accentOf
 import com.wika.wicaby.mobile.ui.WicabyTheme
 import kotlinx.coroutines.launch
 
@@ -130,7 +131,7 @@ class PlayerActivity : AppCompatActivity() {
         val canExternal = Core.api?.let { ExternalPlayer.available(this, it) } == true
         setContent {
             val snap by Core.prefs.data.collectAsState(null)
-            WicabyTheme(Accents[(snap?.accent ?: 0).coerceIn(Accents.indices)]) {
+            WicabyTheme(accentOf(snap?.accent ?: 0)) {
                 val pb = PlayerHolder.playback
                 val engine = PlayerHolder.engine
                 // Not for a trailer (nothing to report) nor a downloaded copy (no server link to hand over).
@@ -208,11 +209,13 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         PlayerHolder.visible = true
+        G.mediaStarted++
     }
 
     override fun onStop() {
         super.onStop()
         PlayerHolder.visible = false
+        G.mediaStarted = (G.mediaStarted - 1).coerceAtLeast(0)
         // Stopped in PiP with the screen on = the PiP window was dismissed: end playback. Locking
         // the phone in PiP stops the activity too, with the screen off: playback goes on.
         if (inPip && getSystemService(PowerManager::class.java).isInteractive) exit()

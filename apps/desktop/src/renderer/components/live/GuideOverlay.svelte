@@ -5,7 +5,7 @@
   import type { ChannelRow, ProgramLite } from '../../../shared/livetv/model';
   import { w } from '../../lib/bridge';
   import type { LiveTvStore } from '../../lib/livetv.svelte';
-  import { reducedMotion } from '../../lib/motion';
+  import { dur } from '../../lib/motion';
   import Guide from '../Guide.svelte';
   import DetailBand from '../livetv/DetailBand.svelte';
 
@@ -36,7 +36,7 @@
   }
 </script>
 
-<div class="pig" transition:fade={{ duration: reducedMotion() ? 0 : 160 }}>
+<div class="pig" transition:fade={{ duration: dur('fast') }}>
   <div class="detail"><DetailBand {store} program={focused.p} channel={focused.c} /></div>
   <div class="grid">
     <Guide bind:this={guide} {store} mode="overlay" {initial} onfocus={(p, c) => (focused = { p, c })} />

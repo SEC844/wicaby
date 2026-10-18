@@ -7,7 +7,6 @@ import com.wika.wicaby.meshui.LogoLoader
 import com.wika.wicaby.core.data.posterArt
 import com.wika.wicaby.core.data.thumb
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -72,7 +71,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -114,6 +112,12 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowRgb565
+import coil3.request.crossfade
+import com.wika.wicaby.core.livetv.DeviceClassDetector
+import com.wika.wicaby.core.livetv.FormFactor
 import com.wika.wicaby.tv.R
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
@@ -136,7 +140,7 @@ object Motion {
 
 fun Modifier.tvFocus(
     shape: Shape,
-    focusedScale: Float = 1.08f,
+    focusedScale: Float = 1.06f,
     sheen: Boolean = true,
     ring: Color? = null,
     ringWidth: Dp = 3.dp,
@@ -154,7 +158,8 @@ fun Modifier.tvFocus(
             focused -> focusedScale
             else -> 1f
         },
-        spring(dampingRatio = 0.62f, stiffness = 420f),
+        // design.md: lift without bounce (0.9 overshoots < 1 %).
+        spring(dampingRatio = 0.9f, stiffness = 420f),
         label = "focus-scale",
     )
     val lift by animateFloatAsState(if (focused) 1f else 0f, spring(stiffness = 320f), label = "focus-lift")
@@ -355,24 +360,21 @@ fun Pill(
 ) {
     var focused by remember { mutableStateOf(false) }
     val accent = LocalAccent.current
-    val bg by animateColorAsState(
-        when {
-            primary -> accent
-            focused -> Color.White
-            selected -> C.fill4
-            else -> C.fill3
-        },
-        tween(160),
-        label = "pill-bg",
-    )
+    // Instant: focus and selection colours never fade (design.md).
+    val bg = when {
+        primary -> accent
+        focused -> TvFocus.bg
+        selected -> C.fill4
+        else -> C.fill3
+    }
     val fg = when {
         primary -> onAccent(accent)
-        focused -> Color.Black
+        focused -> TvFocus.fg
         else -> C.label
     }
     Row(
         modifier
-            .tvFocus(RoundedCornerShape(50), focusedScale = 1.08f, onFocusChange = { focused = it; onFocus?.invoke(it) }, onClick = onClick)
+            .tvFocus(RoundedCornerShape(50), onFocusChange = { focused = it; onFocus?.invoke(it) }, onClick = onClick)
             .background(bg)
             .padding(horizontal = if (text == null) 13.dp else 22.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -489,7 +491,7 @@ fun ThumbCard(
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .then(focusModifier)
-                .tvFocus(RoundedCornerShape(Radius.md), focusedScale = 1.07f, onFocusChange = { focused = it; if (it) onFocus?.invoke() }, onClick = onClick)
+                .tvFocus(RoundedCornerShape(Radius.md), onFocusChange = { focused = it; if (it) onFocus?.invoke() }, onClick = onClick)
                 .background(C.elevated2),
         ) {
             val url = remember(item.id) { Servers.forItem(item, api).thumb(item, w) }
@@ -572,16 +574,26 @@ fun Spinner(modifier: Modifier? = null, color: Color = C.label2) {
     if (modifier == null) return LogoLoader(C.label, stringResource(R.string.loading))
     val t = rememberInfiniteTransition(label = "spinner")
     val angle by t.animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "spin")
-    Canvas(modifier.rotate(angle)) {
+    // Draw-phase read: the ring turns without recomposing every frame.
+    Canvas(modifier.graphicsLayer { rotationZ = angle }) {
         drawArc(color, startAngle = 0f, sweepAngle = 280f, useCenter = false, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round))
     }
 }
 
 @Composable
 fun Backdrop(url: Any?, modifier: Modifier = Modifier, dim: Float = 0f) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val low = remember { DeviceClassDetector.detect(context, FormFactor.TV).isLow }
+    fun request(u: Any) = ImageRequest.Builder(context).data(u).crossfade(false).allowRgb565(low).build()
+    // Decoded before the fade: one crossfade between two ready images, not a fade to an empty slot and Coil's own on top.
+    var shown by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(url) {
+        if (url != null) SingletonImageLoader.get(context).execute(request(url))
+        shown = url
+    }
     Box(modifier.fillMaxSize()) {
-        Crossfade(url, animationSpec = tween(520), label = "backdrop") { u ->
-            if (u != null) AsyncImage(u, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Crossfade(shown, animationSpec = tween(560), label = "backdrop") { u ->
+            if (u != null) AsyncImage(remember(u) { request(u) }, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Box(
             Modifier.fillMaxSize().background(
@@ -590,7 +602,8 @@ fun Backdrop(url: Any?, modifier: Modifier = Modifier, dim: Float = 0f) {
         )
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to C.bg)))
         val d by animateFloatAsState(dim, tween(320), label = "dim")
-        if (d > 0f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = d }.background(C.bg))
+        // Read in the draw phase only: the dim fades without recomposing the backdrop every frame.
+        Box(Modifier.fillMaxSize().graphicsLayer { alpha = d }.background(C.bg))
     }
 }
 

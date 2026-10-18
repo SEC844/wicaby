@@ -12,7 +12,8 @@
   import { t } from '../lib/i18n.svelte';
   import { posterUrl } from '../lib/images';
   import { isMusicItem, placeholderBg } from '../lib/music-art';
-  import { scrollMemory } from '../lib/motion';
+  import { entering, scrollMemory } from '../lib/motion';
+  const enter = entering();
   import { albums, artists, genres, years } from '../lib/music';
   import { musicSourceOptions, playMix, playTracks } from '../lib/music-ui.svelte';
   import { queue } from '../lib/queue.svelte';
@@ -350,7 +351,7 @@
     {:else}
       <div class="grid" class:round={prefs.tab === 'artists'}>
         {#each items as it, i (itemKey(it))}
-          <div class="cell" class:enter={i < 24} style:--i={Math.min(i, 12)}><Card item={it} variant="square" /></div>
+          <div class="cell" class:enter={enter && i < 12} style:--i={i}><Card item={it} variant="square" /></div>
         {/each}
       </div>
     {/if}
@@ -431,9 +432,6 @@
     font-size: var(--fs-callout);
     font-weight: 560;
     color: var(--label-2);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .segmented button:hover,
   .segmented button:focus-visible {
@@ -492,7 +490,7 @@
   }
   .enter {
     animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
+    animation-delay: calc(var(--i) * var(--t-stagger));
   }
   .sk {
     aspect-ratio: 1;

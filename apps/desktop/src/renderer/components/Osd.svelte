@@ -21,6 +21,7 @@
   import SubtitleSearchSheet, { subtitleSearchable, subtitleSearchAllowed } from './SubtitleSearchSheet.svelte';
   import LiveOverlay from './live/LiveOverlay.svelte';
   import LiveTimeline from './live/LiveTimeline.svelte';
+  import { dur } from '../lib/motion';
 
   // Shared by the mpv overlay window (transparent, over a separate video
   // window, so backdrop blur sees nothing) and the in-page <video> player.
@@ -630,7 +631,7 @@
 <svelte:window onkeydown={onKey} onkeyup={onKeyUp} onmousemove={poke} onblur={() => ((panel = null), endHold())} />
 
 <div
-  class="osd"
+  class="osd on-media"
   class:mpv={mode === 'mpv'}
   class:hidden={!uiShown}
   onmouseleave={() => {
@@ -742,7 +743,7 @@
   {/if}
 
   {#if notice}
-    <div class="notice glass" role="status" out:fade={{ duration: 200 }}>{notice.key === 'player.quality.switched' ? t(notice.key, { label: qualityLabel(Number(notice.params?.bitrate)) }) : t(notice.key, notice.params)}</div>
+    <div class="notice glass" role="status" out:fade={{ duration: dur('fast') }}>{notice.key === 'player.quality.switched' ? t(notice.key, { label: qualityLabel(Number(notice.params?.bitrate)) }) : t(notice.key, notice.params)}</div>
   {/if}
 
   {#if segment}
@@ -1241,9 +1242,6 @@
     display: grid;
     place-items: center;
     color: var(--label-2);
-    transition:
-      background-color var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
   }
   .winbtns button:hover {
     background: var(--fill-3);
@@ -1327,13 +1325,13 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
-    animation: flash calc(700ms * var(--tempo)) var(--ease-out) both;
+    animation: flash var(--t-slow) var(--ease-out) both;
   }
-  /* The play/pause disc: 72 px for 600 ms (X-04), alone when the controls are hidden. */
+  /* The play/pause disc: 72 px (X-04), alone when the controls are hidden. */
   .flash:not(.f-back):not(.f-fwd) .flash-disc {
     width: 72px;
     height: 72px;
-    animation-duration: calc(600ms * var(--tempo));
+    animation-duration: var(--t-slow);
   }
   .seek-pill {
     display: flex;
@@ -1386,7 +1384,7 @@
     }
   }
   .spinner {
-    animation: spin calc(0.9s * var(--tempo)) linear infinite;
+    animation: spin var(--t-spin) linear infinite;
     filter: drop-shadow(0 2px 10px rgb(0 0 0 / 0.5));
   }
   @keyframes spin {
@@ -1550,8 +1548,7 @@
     color: var(--label);
     isolation: isolate;
     transition:
-      transform var(--t-med) var(--spring),
-      color var(--t-fast) var(--ease);
+      transform var(--t-med) var(--spring);
   }
   /* Focus and hover turn the pill white, tvOS style; the fill fades rather than the background. */
   .skip-pill::before {
@@ -1573,7 +1570,7 @@
   }
   .skip-pill:active {
     transform: scale(0.96);
-    transition-duration: 80ms;
+    transition-duration: calc(var(--t-fast) / 2);
   }
   .countdown {
     position: absolute;
@@ -1583,6 +1580,7 @@
     height: 3px;
     background: var(--label);
     transform-origin: left;
+    /* motion-ok: interpolates between the countdown ticks, not a UI motion */
     transition: transform 300ms linear;
   }
 
@@ -1633,9 +1631,7 @@
     color: var(--label);
     isolation: isolate;
     transition:
-      transform var(--t-med) var(--spring),
-      opacity var(--t-fast) var(--ease),
-      color var(--t-fast) var(--ease);
+      transform var(--t-med) var(--spring), opacity var(--t-fast) var(--ease);
   }
   .ctl::before {
     content: '';
@@ -1657,7 +1653,7 @@
   }
   .ctl:active {
     transform: scale(0.88);
-    transition-duration: 80ms;
+    transition-duration: calc(var(--t-fast) / 2);
   }
   .ctl:disabled {
     opacity: 0.3;
@@ -1954,7 +1950,6 @@
     text-align: left;
     font-size: var(--fs-callout);
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .col button:hover,
   .col button:focus-visible {

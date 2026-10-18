@@ -131,7 +131,6 @@
     width: 100%;
     text-align: left;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .link-row:hover,
   .link-row:focus-visible {

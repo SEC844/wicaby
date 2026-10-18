@@ -126,7 +126,7 @@ private fun DownloadRow(api: Api, e: DownloadEntry, onOpen: () -> Unit, onDelete
                 DlState.Done -> Text(stringResource(R.string.downloaded_size, size(e.total)), style = Type.caption, color = G.label3)
                 DlState.Failed -> Text(stringResource(R.string.download_failed), style = Type.caption, color = G.red)
                 DlState.Queued, DlState.Running -> {
-                    ProgressLine(e.fraction, Modifier.padding(top = 4.dp, end = 8.dp))
+                    ProgressLine(e.fraction, Modifier.padding(top = 4.dp, end = 8.dp), track = G.fill4)
                     Text(
                         if (e.state == DlState.Queued && e.bytes == 0L) stringResource(R.string.download_queued) else stringResource(R.string.download_size, size(e.bytes), size(e.total)),
                         style = Type.caption, color = G.label3,

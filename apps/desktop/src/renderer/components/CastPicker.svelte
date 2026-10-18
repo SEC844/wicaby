@@ -136,7 +136,6 @@
     border-radius: var(--r-sm);
     text-align: left;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .body > .row {
     margin: 0 -8px;
@@ -187,16 +186,11 @@
     border-radius: 50%;
     border: 2px solid var(--label-3);
     border-top-color: var(--label);
-    animation: spin 0.8s linear infinite;
+    animation: spin var(--t-spin) linear infinite;
   }
   @keyframes spin {
     to {
       transform: rotate(360deg);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .spin {
-      animation-duration: 2.4s;
     }
   }
 </style>

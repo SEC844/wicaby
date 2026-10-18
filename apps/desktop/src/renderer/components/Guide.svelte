@@ -1,34 +1,40 @@
 <script lang="ts" module>
   import { imageUrl } from '../lib/images';
 
-  // F1: IPTV logos are often dark on transparent and vanish on Graphite. The mean luminance of the
-  // opaque pixels is measured once per logo URL (16 × 16); below 0.3 the logo gets a light plate.
+  // F1: IPTV logos are often dark on transparent and vanish on Graphite (and white ones on the light theme).
+  // The mean luminance and chroma of the opaque pixels are measured once per logo URL (16 × 16). Below 0.3
+  // on a dark theme the logo gets a plate in the label colour. On the light theme a light monochrome logo
+  // (a white wordmark) is drawn in ink instead, like plain text; only a light coloured one keeps a plate.
   // The media scheme answers with CORS, so <img crossorigin="anonymous"> keeps the canvas readable.
-  const plates = new Map<string, boolean>();
+  const plates = new Map<string, { lum: number; chroma: number }>();
   export function logoPlate(img: HTMLImageElement): { destroy(): void } {
     const check = (): void => {
       const key = img.currentSrc || img.src;
-      let dark = plates.get(key);
-      if (dark === undefined) {
+      let m = plates.get(key);
+      if (m === undefined) {
         try {
           const g = new OffscreenCanvas(16, 16).getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
           g.drawImage(img, 0, 0, 16, 16);
           const d = g.getImageData(0, 0, 16, 16).data;
           // Alpha-weighted: a thin wordmark downscaled to 16 × 16 leaves no fully opaque pixel.
           let sum = 0;
+          let chroma = 0;
           let n = 0;
           for (let i = 0; i < d.length; i += 4) {
             const a = d[i + 3] / 255;
             sum += (a * (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2])) / 255;
+            chroma += (a * (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]))) / 255;
             n += a;
           }
-          dark = n > 0 && sum / n < 0.3;
+          m = n > 0 ? { lum: sum / n, chroma: chroma / n } : { lum: 0.5, chroma: 0 };
         } catch {
-          dark = false; // unreadable (tainted): no plate
+          m = { lum: 0.5, chroma: 0 }; // unreadable (tainted): no plate
         }
-        plates.set(key, dark);
+        plates.set(key, m);
       }
-      img.toggleAttribute('data-plate', dark);
+      const light = document.documentElement.dataset.theme === 'light';
+      img.toggleAttribute('data-ink', light && m.lum > 0.7 && m.chroma < 0.15);
+      img.toggleAttribute('data-plate', light ? m.lum > 0.7 && m.chroma >= 0.15 : m.lum < 0.3);
     };
     if (img.complete && img.naturalWidth) check();
     img.addEventListener('load', check);
@@ -965,7 +971,11 @@
     overflow: clip;
     cursor: pointer;
     outline: none;
-    transition: background-color var(--t-fast) var(--ease);
+  }
+  /* High Contrast: a 3:1 outline on the control's edge (docs/design.md). */
+  :global(html[data-theme='contrast']) .cell:not(.filler) {
+    outline: 1px solid var(--separator);
+    outline-offset: -1px;
   }
   .cell.on {
     background: var(--fill-2);

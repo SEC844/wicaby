@@ -43,7 +43,7 @@
   import { imageUrl } from '../lib/images';
   import { live } from '../lib/livetv.svelte';
   import { list as listOf } from '../lib/playlists';
-  import { reducedMotion, reveal, scrollMemory } from '../lib/motion';
+  import { dur, reveal, scrollMemory } from '../lib/motion';
   import { navigate, router } from '../lib/router.svelte';
   import { localDay } from '../lib/photos/memories';
   import { memoriesOf } from '../lib/photos/source.svelte';
@@ -385,11 +385,10 @@
         <Row title={t('browse.home.rows.continueMerged')} variant="thumb" loading={loading && cont.length === 0}>
           {#each cont as item, i (itemKey(item))}
             <div
-              class="cell cont enter"
-              style:--i={Math.min(i, 12)}
+              class="cell cont"
               role="presentation"
-              animate:flip={{ duration: reducedMotion() ? 0 : 280 }}
-              out:scale={{ duration: reducedMotion() ? 0 : 200, start: 0.9 }}
+              animate:flip={{ duration: dur('med') }}
+              out:scale={{ duration: dur('fast'), start: 0.9 }}
               oncontextmenu={(e) => {
                 e.preventDefault();
                 menuFor = itemKey(item);
@@ -420,7 +419,7 @@
       {#if channels.length > 0}
         <Row title={t('browse.home.rows.liveNow')} variant="thumb" href="/livetv">
           {#each channels as c, i (itemKey(c))}
-            <div class="cell enter" style:--i={Math.min(i, 12)}><ChannelTile channel={c} /></div>
+            <div class="cell"><ChannelTile channel={c} /></div>
           {/each}
         </Row>
       {/if}
@@ -440,8 +439,7 @@
         <Row title={t('browse.home.rows.libraries')} variant="thumb">
           {#each libs as lib, i (itemKey(lib))}
             <a
-              class="lib enter"
-              style:--i={Math.min(i, 12)}
+              class="lib"
               href={`#${itemPath(lib, 'library')}`}
               onclick={(e) => {
                 e.preventDefault();
@@ -547,10 +545,6 @@
     box-shadow: var(--shadow-3);
     opacity: 0;
     transition: opacity var(--t-med) var(--ease);
-  }
-  .enter {
-    animation: rise var(--t-slow) var(--ease-out) both;
-    animation-delay: calc(var(--i) * 30ms * var(--tempo));
   }
   .lib-media {
     position: absolute;

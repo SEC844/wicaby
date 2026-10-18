@@ -4,13 +4,11 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -98,6 +95,7 @@ fun WelcomeScreen(rerun: Boolean) {
 
     // Skip Setup and Start Watching: a rerun goes back to Réglages, a first run lands where the app would have.
     fun finish() {
+        C.theme = TvSettings.theme.value // a theme only previewed (focused, never confirmed) is dropped
         scope.launch {
             prefs.setOnboarded(true)
             if (rerun) return@launch nav.pop()
@@ -118,7 +116,11 @@ fun WelcomeScreen(rerun: Boolean) {
         onLanguage = { AppLanguage.set(activity, it) },
         accent = snap.accent,
         onAccent = { scope.launch { prefs.setAccent(it) } },
-        onOled = { TvSettings.oled.value = it },
+        // A click or Continue, never a focus; keeping Graphite leaves the Home suggestion for later.
+        onTheme = {
+            TvSettings.theme.value = it
+            if (it != "graphite") TvSettings.themeHintShown.value = true
+        },
         onSkip = ::finish,
     ) { step, go ->
         when (step) {
@@ -164,7 +166,7 @@ internal fun Wizard(
     onLanguage: (String) -> Unit,
     accent: Int,
     onAccent: (Int) -> Unit,
-    onOled: (Boolean) -> Unit,
+    onTheme: (String) -> Unit,
     onSkip: () -> Unit,
     later: @Composable (step: Int, go: (Int) -> Unit) -> Unit,
 ) {
@@ -180,7 +182,7 @@ internal fun Wizard(
         AnimatedContent(step, transitionSpec = { fadeIn(tween(240, 60)) togetherWith fadeOut(tween(140)) }, label = "wizard") { s ->
             when (s) {
                 1 -> IntroStep(language, onLanguage, onStart = { go(2) }, onSkip = onSkip)
-                2 -> LookStep(accent, onAccent, onOled, onContinue = { go(3) }, onBack = { go(1) })
+                2 -> LookStep(accent, onAccent, onTheme, onContinue = { go(3) }, onBack = { go(1) })
                 else -> later(s, go)
             }
         }
@@ -247,56 +249,27 @@ internal fun IntroStep(language: String, onLanguage: (String) -> Unit, onStart: 
     }
 }
 
-// Step 2. Focusing a theme card or a colour applies it at once: the whole wizard is the preview.
+// Step 2. Focusing a theme card or a colour applies it at once: the whole wizard is the preview. The theme is
+// saved by a click on its card or by Continue, so passing through and skipping saves nothing.
 @Composable
-internal fun LookStep(accent: Int, onAccent: (Int) -> Unit, onOled: (Boolean) -> Unit, onContinue: () -> Unit, onBack: () -> Unit) {
+internal fun LookStep(accent: Int, onAccent: (Int) -> Unit, onTheme: (String) -> Unit, onContinue: () -> Unit, onBack: () -> Unit) {
     val memory = rememberFocusMemory()
     val next = remember { FocusRequester() }
-    fun theme(oled: Boolean) {
-        C.oled = oled
-        onOled(oled)
+    fun theme(id: String) {
+        C.theme = id
+        onTheme(id)
     }
     StepColumns(stringResource(CoreR.string.onboarding_look_title), stringResource(CoreR.string.onboarding_look_body)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            val current = C.oled
-            listOf(false, true).forEach { oled ->
-                ThemeCard(
-                    oled, selected = current == oled, onFocus = { theme(oled) }, onClick = { theme(oled); runCatching { next.requestFocus() } },
-                    modifier = Modifier.testTag(if (oled) "theme-oled" else "theme-dark").remembered(memory, "theme-$oled", default = current == oled),
-                )
-            }
-        }
+        val current = C.palette.id
+        ThemeCardRow(
+            current, onPick = { theme(it); runCatching { next.requestFocus() } }, onFocus = { C.theme = it },
+            cardModifier = { id -> Modifier.remembered(memory, "theme-$id", default = current == id) },
+        )
         Text(stringResource(R.string.settings_accent).uppercase(), style = Type.eyebrow, color = C.label3, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
         AccentRow(accent, onPick = { onAccent(it); runCatching { next.requestFocus() } }, onFocus = onAccent, modifier = Modifier.padding(start = 6.dp, top = 4.dp, bottom = 8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Pill(stringResource(R.string.welcome_continue), onClick = onContinue, primary = true, modifier = Modifier.focusRequester(next).testTag("continue"))
+            Pill(stringResource(R.string.welcome_continue), onClick = { onTheme(C.palette.id); onContinue() }, primary = true, modifier = Modifier.focusRequester(next).testTag("continue"))
             TextButton(stringResource(R.string.welcome_back), onClick = onBack)
-        }
-    }
-}
-
-// A small picture of the app in that theme: its canvas, a card and the accent.
-@Composable
-private fun ThemeCard(oled: Boolean, selected: Boolean, onFocus: () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val accent = LocalAccent.current
-    val canvas = if (oled) Color.Black else Color(0xFF0B0B0D)
-    Column(
-        modifier
-            .width(220.dp)
-            .tvFocus(RoundedCornerShape(Radius.lg), focusedScale = 1.06f, onFocusChange = { if (it) onFocus() }, onClick = onClick)
-            .background(canvas)
-            // Always outlined: the OLED card is as black as an OLED canvas.
-            .border(2.dp, if (selected) accent else C.fill4, RoundedCornerShape(Radius.lg))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(3) { Box(Modifier.size(40.dp, 56.dp).clip(RoundedCornerShape(Radius.xs)).background(if (oled) Color(0xFF161618) else Color(0xFF1C1C1F))) }
-        }
-        Box(Modifier.size(56.dp, 8.dp).clip(CircleShape).background(accent))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(if (oled) R.string.settings_theme_oled else R.string.settings_theme_dark), style = Type.headline, color = C.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            if (selected) Icon(Ic.Check, null, tint = accent, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -353,9 +326,9 @@ private fun WhereStep(
 @Composable
 private fun WhereCard(icon: ImageVector, title: String, sub: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     var focused by remember { mutableStateOf(false) }
-    val bg by animateColorAsState(if (focused) Color.White else C.fill2, tween(160), label = "where")
-    val fg = if (focused) Color.Black else C.label
-    val fg2 = if (focused) Color.Black.copy(alpha = 0.6f) else C.label2
+    val bg = if (focused) TvFocus.bg else C.fill2
+    val fg = if (focused) TvFocus.fg else C.label
+    val fg2 = if (focused) TvFocus.fg.copy(alpha = 0.6f) else C.label2
     Column(
         modifier
             .height(180.dp)

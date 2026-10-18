@@ -81,7 +81,6 @@
     font-size: var(--fs-callout);
     font-weight: 500;
     color: var(--label);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .pill:hover,
   .pill:focus-visible,
@@ -110,7 +109,7 @@
     box-shadow:
       inset 0 0 0 1px var(--hairline),
       var(--shadow-2);
-    animation: menu-in calc(120ms * var(--tempo)) var(--ease-out) both;
+    animation: menu-in var(--t-fast) var(--ease-out) both;
   }
   @keyframes menu-in {
     from {

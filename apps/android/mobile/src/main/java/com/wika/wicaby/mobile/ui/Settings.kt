@@ -86,6 +86,25 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
     Column(Modifier.fillMaxSize().imeAware().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
             LargeTitle(stringResource(R.string.tab_settings))
+            // Look and language first, as on the desktop's Appearance pane.
+            // The same themes as the TV and the desktop, plus Light and Automatic.
+            Eyebrow(stringResource(R.string.settings_theme))
+            Group { ThemePicker(snap.theme, snap.accent) { id -> scope.launch { prefs.setTheme(id) } } }
+
+            Eyebrow(stringResource(R.string.settings_accent))
+            Group { AccentPicker(snap.accent) { i -> scope.launch { prefs.setAccent(i) } } }
+
+            Eyebrow(stringResource(R.string.settings_language))
+            Group {
+                // Recreated on change, so this is read fresh each time.
+                val language = remember { Lang.current(context) }
+                FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("" to R.string.language_system, "fr" to R.string.language_fr, "en" to R.string.language_en).forEach { (tag, label) ->
+                        Chip(stringResource(label), selected = language == tag) { if (language != tag) Lang.set(context, tag) }
+                    }
+                }
+            }
+
             if (session != null) {
                 Eyebrow(stringResource(R.string.settings_account))
                 Group {
@@ -119,30 +138,6 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
             FilesSettings()
             // Immich photo source (photos spec PH-13).
             com.wika.wicaby.mobile.ui.photos.ImmichSettings()
-
-            // OB-X: Sombre or OLED, as on the TV and the desktop.
-            Eyebrow(stringResource(R.string.settings_theme))
-            Group {
-                FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(false to R.string.settings_theme_dark, true to R.string.settings_theme_oled).forEach { (oled, label) ->
-                        Chip(stringResource(label), selected = snap.oled == oled) { scope.launch { prefs.setOled(oled) } }
-                    }
-                }
-            }
-
-            Eyebrow(stringResource(R.string.settings_accent))
-            Group { AccentPicker(snap.accent) { i -> scope.launch { prefs.setAccent(i) } } }
-
-            Eyebrow(stringResource(R.string.settings_language))
-            Group {
-                // Recreated on change, so this is read fresh each time.
-                val language = remember { Lang.current(context) }
-                FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("" to R.string.language_system, "fr" to R.string.language_fr, "en" to R.string.language_en).forEach { (tag, label) ->
-                        Chip(stringResource(label), selected = language == tag) { if (language != tag) Lang.set(context, tag) }
-                    }
-                }
-            }
 
             Eyebrow(stringResource(R.string.settings_playback))
             Group {
@@ -181,7 +176,7 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                 ) {
                     Switch(
                         snap.remoteControl, { v -> scope.launch { prefs.setRemoteControl(v) } },
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                     )
                 }
             }
@@ -197,7 +192,7 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                 GroupRow(stringResource(R.string.settings_cast_discovery), { setDiscovery(!discovery) }, chevron = false) {
                     Switch(
                         discovery, ::setDiscovery,
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                     )
                 }
                 // CA-10, gplay: what the Chromecast profile may ask the server for (§2.6.6).
@@ -249,7 +244,7 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                 ) {
                     Switch(
                         MusicPrefs.lyricsOnline, { v -> MusicPrefs.setLyricsOnline(context, v) },
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                     )
                 }
             }
@@ -259,7 +254,7 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                 GroupRow(stringResource(R.string.wifi_only), { scope.launch { prefs.setWifiOnlyDownloads(!snap.wifiOnlyDownloads) } }, subtitle = stringResource(R.string.wifi_only_sub), chevron = false) {
                     Switch(
                         snap.wifiOnlyDownloads, { v -> scope.launch { prefs.setWifiOnlyDownloads(v) } },
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
                     )
                 }
             }
@@ -296,7 +291,7 @@ private fun CastToggle(label: Int, initial: Boolean, save: (Boolean) -> Unit) {
     GroupRow(stringResource(label), { set(!on) }, chevron = false) {
         Switch(
             on, ::set,
-            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.fill3, uncheckedThumbColor = G.label2, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
         )
     }
 }

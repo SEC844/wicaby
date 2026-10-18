@@ -134,7 +134,6 @@
     place-items: center;
     color: var(--label-2);
     background: var(--fill-2);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .close:hover,
   .close:focus-visible {

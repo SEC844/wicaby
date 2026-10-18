@@ -229,7 +229,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                         ) {
                             if (url != null) AsyncImage(url, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to G.bg)))
-                            Box(Modifier.fillMaxWidth().height(100.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))))
+                            Box(Modifier.fillMaxWidth().height(100.dp).background(Brush.verticalGradient(listOf(G.bg.copy(alpha = 0.4f), G.bg.copy(alpha = 0f)))))
                         }
                         Row(Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp), verticalAlignment = Alignment.Bottom) {
                             val posterUrl = remember(item.id) { api.posterArt(item, POSTER_PX) }

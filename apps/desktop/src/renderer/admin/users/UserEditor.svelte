@@ -747,7 +747,6 @@
     border-radius: var(--r-xs);
     font-size: var(--fs-callout);
     color: var(--label-2);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .back:hover,
   .back:focus-visible {

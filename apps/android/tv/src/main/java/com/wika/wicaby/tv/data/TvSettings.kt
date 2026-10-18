@@ -25,6 +25,18 @@ object TvSettings {
     // Declared first: the settings below read them while the object initializes.
     val PASS_CODECS = listOf("ac3", "eac3", "dts", "truehd")
 
+    // Builds before the theme list stored a boolean "oled": it becomes the theme id once (a chosen theme wins).
+    private fun migrateOled(): String {
+        if (sp.contains("oled")) {
+            val oled = sp.getBoolean("oled", false)
+            sp.edit {
+                if (!sp.contains("theme")) putString("theme", if (oled) "oled" else "graphite")
+                remove("oled")
+            }
+        }
+        return "graphite"
+    }
+
     private val sp by lazy { Wicaby.app.getSharedPreferences("wicaby_tv", Context.MODE_PRIVATE) }
 
     class IntSetting internal constructor(private val key: String, default: Int) {
@@ -95,7 +107,10 @@ object TvSettings {
 
     // Interface
     val clock = BoolSetting("clock", true)
-    val oled = BoolSetting("oled", false) // desktop ui.theme 'oled' (pure black)
+    // Theme id, as the desktop's ui.theme (packages/tokens/tokens.json); never light on the TV.
+    val theme = StringSetting("theme", migrateOled())
+    // The one-time living-room suggestion (OLED or Cinéma) on Home; also set once the setup's look step chose.
+    val themeHintShown = BoolSetting("theme_hint_shown", false)
     val rowHero = BoolSetting("row_hero", true)
     // The hero carousel picks unwatched movies and series only (series: not every episode watched).
     val heroHideWatched = BoolSetting("hero_hide_watched", false)
@@ -220,7 +235,7 @@ object TvSettings {
         fun scope(s: IntSetting) = ScopedPrefs.Scope.entries[s.value.coerceIn(0, ScopedPrefs.Scope.entries.lastIndex)]
         ScopedPrefs.scopes = mapOf(ScopedPrefs.SPEED to scope(rememberSpeed), ScopedPrefs.ASPECT to scope(rememberAspect))
         LiveSession.shared.release = ReleaseMode.entries[liveRelease.value.coerceIn(0, ReleaseMode.entries.lastIndex)]
-        com.wika.wicaby.tv.ui.C.oled = oled.value
+        com.wika.wicaby.tv.ui.C.theme = theme.value
     }
 
     // The streaming cap for the network we are on: Ethernet, Wi-Fi, or remote (through the mesh).

@@ -132,6 +132,7 @@
     <string name="accent_orange">Orange</string>
     <string name="accent_green">Green</string>
     <string name="accent_graphite">Graphite</string>
+    <string name="accent_system">Wallpaper</string>
     <string name="settings_language">Language</string>
     <string name="language_system">System Default</string>
     <string name="settings_playback">Playback</string>
@@ -367,8 +368,6 @@
     <string name="remove_server">Remove Server</string>
     <string name="server_is_main">This server is already your main server.</string>
     <string name="settings_theme">Theme</string>
-    <string name="settings_theme_dark">Dark</string>
-    <string name="settings_theme_oled">OLED (Pure Black)</string>
     <!-- Plex (PXA-mobile): link with a code, Home profiles, connections, Plex Pass. -->
     <string name="plex_title">Plex</string>
     <string name="plex_link_title">Plex account</string>

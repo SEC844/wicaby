@@ -300,9 +300,6 @@
   .cats button:focus-visible {
     background: var(--fill-1);
     color: var(--label);
-    transition:
-      background-color calc(100ms * var(--tempo)) linear,
-      color calc(100ms * var(--tempo)) linear;
   }
   .cats button.active {
     background: var(--fill-2);
@@ -316,7 +313,6 @@
     place-items: center;
     width: 16px;
     color: var(--label-3);
-    transition: color var(--t-fast) var(--ease);
   }
   .cats button:hover .cat-icon,
   .cats button:focus-visible .cat-icon {
@@ -350,7 +346,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    animation: pane-in calc(140ms * var(--tempo)) var(--ease-out) both;
+    animation: pane-in var(--t-fast) var(--ease-out) both;
   }
   @keyframes pane-in {
     from {
@@ -396,7 +392,6 @@
     border-radius: var(--r-sm);
     background: var(--fill-1);
     color: var(--label-3);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .search:focus-within {
     background: var(--fill-2);

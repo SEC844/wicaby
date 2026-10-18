@@ -460,7 +460,6 @@
     background: var(--fill-2);
     font-size: var(--fs-callout);
     color: var(--label-2);
-    transition: background-color var(--t-fast) var(--ease);
   }
   .days button:hover,
   .days button:focus-visible,

@@ -126,7 +126,7 @@ fun TabletGuide(repo: LiveTvRepository, rows: List<ChannelRow>, part: String?, p
     val marks by repo.overlay.collectAsState()
     // Read in the lanes' draw, never here: a tile landing must not recompose the guide.
     val version = repo.guideVersion.collectAsState()
-    val style = remember {
+    val style = remember(G.palette) {
         GuideStyle(
             bg = G.bg, label = G.label, label2 = G.label2, label3 = G.label3, fill1 = G.fill1, fill2 = G.fill2, fill3 = G.fill3,
             separator = G.separator, red = G.red, title = Type.callout, caption = Type.caption, radius = Radius.xs,

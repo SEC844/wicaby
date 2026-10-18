@@ -174,7 +174,7 @@ fun GuideGrid(
     val dayReq = remember { FocusRequester() }
     var gridFocused by remember { mutableStateOf(false) }
     val jump = remember(repo) { NumberJumpState() }
-    val ctx = rememberCellContext(prefs.badges, caps, TvGuideStyle)
+    val ctx = rememberCellContext(prefs.badges, caps, tvGuideStyle())
 
     // GuideInfo.EndDate bounds the canvas (fallback now + 7 d).
     LaunchedEffect(repo) {
