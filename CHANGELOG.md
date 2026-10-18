@@ -18,6 +18,17 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.12] - 2026-10-18
+
+Security updates in the mesh helper. Windows and Linux desktop **0.10.12**, Android TV app **0.10.12** (`versionCode`
+33), Android mobile app **0.10.12** (`versionCode` 30).
+
+### Security
+
+- Mesh helper (Windows, Linux, Android): pion/dtls v3 updated to 3.1.4 and gopacket to 1.6.1, which fix denial of
+  service and nonce issues reported by Dependabot. pion/stun v3, pion/stun v2 and pion/dtls v2 stay as NetBird
+  0.80/0.81 pins them (the fixed pion/stun 3.1.5 needs a NetBird release that moves to pion/transport v4).
+
 ## [0.10.11] - 2026-10-18
 
 Android TV contributions from SEC844: a reorderable tab bar, watched titles out of the hero, a clearer watched
