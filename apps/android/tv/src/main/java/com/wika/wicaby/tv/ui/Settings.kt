@@ -105,7 +105,7 @@ private enum class Section(val label: Int) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun SettingsTab(api: Api, user: User?, onScrolled: (Boolean) -> Unit) {
+fun SettingsTab(api: Api, user: User?, tabs: List<TopTab>, onScrolled: (Boolean) -> Unit) {
     val initial = remember { if (SettingsLink.remote) Section.Remote else Section.Playback }
     var section by rememberSaveable { mutableStateOf(initial) }
     LaunchedEffect(SettingsLink.remote) {
@@ -142,7 +142,7 @@ fun SettingsTab(api: Api, user: User?, onScrolled: (Boolean) -> Unit) {
             Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(top = 66.dp, bottom = 64.dp)) {
                 when (s) {
                     Section.Playback -> PlaybackSection(api)
-                    Section.Interface -> InterfaceSection(api)
+                    Section.Interface -> InterfaceSection(api, tabs)
                     Section.Accounts -> AccountsSection(api, user)
                     Section.Files -> FilesSection()
                     Section.Trakt -> TraktSection()
@@ -413,7 +413,7 @@ private fun PlaybackSection(api: Api) {
 // Interface.
 
 @Composable
-private fun InterfaceSection(api: Api) {
+private fun InterfaceSection(api: Api, tabs: List<TopTab>) {
     val snap = LocalSnapshot.current
     val scope = rememberCoroutineScope()
     val prefs = Wicaby.app.prefs
@@ -444,6 +444,7 @@ private fun InterfaceSection(api: Api) {
         ToggleRow(stringResource(R.string.show_clock), TvSettings.clock.value) { TvSettings.clock.value = it }
     }
     HomeGroup(api)
+    TabBarGroup(api, tabs)
     Group(stringResource(R.string.group_screensaver), stringResource(R.string.screensaver_hint)) {
         ScreensaverRow()
         ScreensaverSourceRows(api)
@@ -578,6 +579,54 @@ private fun HomeGroup(api: Api) {
             }
         }
         SettingRow(stringResource(R.string.home_rows_reset), onClick = { TvSettings.setHomeRows(user, HomeRows.Pref(order = defaults)) })
+    }
+}
+
+// #6: the tabs between Accueil and Recherche ([tabs], default order), in the user's order, each shown or hidden.
+@Composable
+private fun TabBarGroup(api: Api, tabs: List<TopTab>) {
+    if (tabs.isEmpty()) return
+    val overlay = LocalOverlay.current
+    val user = homeUser(api)
+    val pref = TvSettings.tabBar(user)
+    val keys = HomeRows.arrange(tabs.map { it.key }, pref)
+    val labels = tabs.associate { it.key to it.label }
+    fun save(p: HomeRows.Pref) = TvSettings.setTabBar(user, p)
+    Group(stringResource(R.string.group_tab_bar), stringResource(R.string.tab_bar_hint)) {
+        keys.forEachIndexed { i, id ->
+            key(id) {
+                // Keyed by tab: after a move, focus comes back to the tab that moved.
+                val me = remember { FocusRequester() }
+                val label = labels.getValue(id)
+                val hidden = id in pref.hidden
+                SettingRow(
+                    label, stringResource(if (hidden) R.string.tab_hidden else R.string.tab_shown), Modifier.focusRequester(me), chevron = true,
+                    onClick = {
+                        overlay.show(me) {
+                            TvAlert(
+                                label, null,
+                                buildList {
+                                    add(AlertAction(stringResource(if (hidden) R.string.home_row_show else R.string.home_row_hide)) {
+                                        overlay.close()
+                                        save(pref.copy(order = keys, hidden = if (hidden) pref.hidden - id else pref.hidden + id))
+                                    })
+                                    if (i > 0) add(AlertAction(stringResource(R.string.home_row_up)) {
+                                        overlay.close()
+                                        save(pref.copy(order = HomeRows.move(keys, i, i - 1)))
+                                    })
+                                    if (i < keys.lastIndex) add(AlertAction(stringResource(R.string.home_row_down)) {
+                                        overlay.close()
+                                        save(pref.copy(order = HomeRows.move(keys, i, i + 1)))
+                                    })
+                                },
+                                focusIndex = 0, onDismiss = overlay::close,
+                            )
+                        }
+                    },
+                )
+            }
+        }
+        SettingRow(stringResource(R.string.tab_bar_reset), onClick = { TvSettings.setTabBar(user, HomeRows.Pref()) })
     }
 }
 

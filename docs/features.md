@@ -66,6 +66,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 
 - Compose for TV interface with a floating tab bar, a hero carousel on the home screen, and a backdrop screensaver.
 - **Customizable home:** in Settings > Interface > Home, show, hide and reorder the rows (Continue Watching, Up Next, Upcoming, Live TV on now, Recently Added for every library, Because You Watched), and show each Recently Added row as posters or thumbnails.
+- **Customizable tab bar:** in Settings > Interface > Tab Bar, reorder the tabs between Home and Search (libraries, Live TV, IPTV, Files, Torrents) and hide the ones you don't use.
 - **Look:** Dark or OLED (pure black) theme and eight accent colors, switched live in Settings > Interface > Appearance.
 - Runs on Android TV and Google TV from Android 6.0. It also installs on Fire TV, phones and tablets (landscape, touch-enabled).
 - Media3 ExoPlayer with the FFmpeg audio extension and libass for styled subtitles. Image subtitles (PGS, VobSub, DVB) play in direct play.

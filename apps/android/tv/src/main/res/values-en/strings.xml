@@ -208,6 +208,11 @@
     <string name="home_row_posters">Posters</string>
     <string name="home_row_thumbs">Thumbnails</string>
     <string name="home_rows_reset">Reset Home Rows</string>
+    <string name="group_tab_bar">Tab Bar</string>
+    <string name="tab_bar_hint">Press OK on a tab to show or hide it, or move it. Home, Search and Settings always stay.</string>
+    <string name="tab_shown">Shown</string>
+    <string name="tab_hidden">Hidden</string>
+    <string name="tab_bar_reset">Reset Tab Bar</string>
     <string name="group_screensaver">Screen Saver</string>
     <string name="screensaver_after">Start After</string>
     <string name="never">Never</string>

@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Added
+
+- Android TV: Settings > Interface > Tab Bar reorders the tabs between Home and Search (libraries, Live TV, IPTV,
+  Files, Torrents…) and hides the unused ones, per server and user, like the home rows. Home, Search and Settings
+  always stay ([#6](https://github.com/WicaebethTheo/wicaby/issues/6)).
+
 ## [0.10.10] - 2026-10-16
 
 The NetBird sign-in fix from 0.10.9, now actually in the apps (the embedded mesh helper was not rebuilt in 0.10.9).

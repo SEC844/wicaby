@@ -213,6 +213,11 @@
     <string name="home_row_posters">Affiches</string>
     <string name="home_row_thumbs">Vignettes</string>
     <string name="home_rows_reset">Rétablir les rangées par défaut</string>
+    <string name="group_tab_bar">Barre d’onglets</string>
+    <string name="tab_bar_hint">OK sur un onglet pour l’afficher ou le masquer, ou le déplacer. Accueil, Recherche et Réglages restent toujours affichés.</string>
+    <string name="tab_shown">Affiché</string>
+    <string name="tab_hidden">Masqué</string>
+    <string name="tab_bar_reset">Rétablir les onglets par défaut</string>
     <string name="group_screensaver">Économiseur d’écran</string>
     <string name="screensaver_after">Démarrer après</string>
     <string name="never">Jamais</string>
