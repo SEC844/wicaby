@@ -193,10 +193,10 @@
       "title": "Thème",
       "graphite": "Graphite",
       "graphiteDesc": "Gris neutre et Mica",
-      "graphiteDescLinux": "Gris neutre",
+      "graphiteDescNeutral": "Gris neutre",
       "oled": "OLED",
       "oledDesc": "Noir pur, sans Mica",
-      "oledDescLinux": "Noir pur",
+      "oledDescNeutral": "Noir pur",
       "slate": "Ardoise",
       "slateDesc": "Graphite légèrement bleuté",
       "cinema": "Cinéma",
@@ -205,10 +205,10 @@
       "contrastDesc": "Texte plus net, sans transparence",
       "light": "Clair",
       "lightDesc": "Fond clair et Mica",
-      "lightDescLinux": "Fond clair",
+      "lightDescNeutral": "Fond clair",
       "system": "Automatique",
       "systemDesc": "Suit le mode clair ou sombre de Windows",
-      "systemDescLinux": "Suit le mode clair ou sombre du système"
+      "systemDescNeutral": "Suit le mode clair ou sombre du système"
     },
     "accent": {
       "label": "Couleur d’accentuation"

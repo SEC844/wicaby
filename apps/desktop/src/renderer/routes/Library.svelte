@@ -150,7 +150,7 @@
       items = next;
       total = res.TotalRecordCount;
     } catch (err) {
-      error = errorMessage(err);
+      if (gen === generation) error = errorMessage(err);
     } finally {
       if (gen === generation) loading = false;
     }
@@ -195,7 +195,8 @@
       skipReset = false;
       return;
     }
-    void reset();
+    // Untracked: reset() reads the session store (api.items), and a session push must not reload page 1.
+    untrack(() => void reset());
   });
 
   // Re-created after each load: a new observer reports at once, so a sentinel that stays

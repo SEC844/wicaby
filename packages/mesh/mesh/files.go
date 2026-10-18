@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -55,6 +56,18 @@ func (w idleWriter) Write(p []byte) (int, error) {
 	_ = w.rc.SetWriteDeadline(time.Now().Add(filesWriteIdle))
 	return w.ResponseWriter.Write(p)
 }
+
+// ReadFrom copies a file in filesCopyBuf chunks: io.Copy's 32 KiB would be one synchronous SMB READ per 32 KiB, about
+// 1 MB/s at a 30 ms mesh round trip. Each Write still gets its own idle deadline.
+func (w idleWriter) ReadFrom(r io.Reader) (int64, error) {
+	buf := copyBufs.Get().(*[]byte)
+	defer copyBufs.Put(buf)
+	return io.CopyBuffer(struct{ io.Writer }{w}, r, *buf)
+}
+
+const filesCopyBuf = 1 << 20
+
+var copyBufs = sync.Pool{New: func() any { b := make([]byte, filesCopyBuf); return &b }}
 
 // FilesServer is the loopback listener every open share is served on.
 type FilesServer struct {
@@ -276,9 +289,11 @@ func backendError(w http.ResponseWriter, err error) {
 }
 
 // FilesDialer is how an SMB host is reached: the mesh node's userspace dialer when the host is one of its peers
-// (a NAS on the tailnet works away from home), else the plain network. A host inside a routed network (NetBird
-// network route) is often on the LAN itself (at home): it is dialled directly first, through the routing peer only
-// when it does not answer within directFirst.
+// (a NAS on the tailnet works away from home) or inside a routed network (NetBird network route, through the routing
+// peer), else nil for the plain network. A routed host never falls back to a direct dial: the same address on a
+// foreign Wi-Fi (a hotel using the home's subnet) would get the NTLM logon. The cost is that, at home with the mesh
+// connected, SMB goes through the routing peer, and fails as offline while that peer cannot reach the host. HTTP to
+// the same host still goes direct first (Android core/mesh DirectFirst): only SMB sends a reusable logon.
 func (n *Node) FilesDialer(host string) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	if n == nil {
 		return nil
@@ -288,24 +303,17 @@ func (n *Node) FilesDialer(host string) func(ctx context.Context, network, addr 
 	if !ok {
 		return nil
 	}
-	viaMesh := func(ctx context.Context, network, addr string) (net.Conn, error) {
+	routed := !v.ips[ip]
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		_, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, err
 		}
-		return n.p.dial(ctx, network, net.JoinHostPort(ip, port))
-	}
-	if !v.routedOnly(host) {
-		return viaMesh
-	}
-	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		d := net.Dialer{Timeout: directFirst}
-		if c, err := d.DialContext(ctx, network, addr); err == nil {
-			return c, nil
+		c, err := n.p.dial(ctx, network, net.JoinHostPort(ip, port))
+		if err != nil && routed {
+			// The "offline" body then says why a NAS that answers on the LAN still fails with the mesh on.
+			err = fmt.Errorf("reachable only through the NetBird routing peer: %w", err)
 		}
-		return viaMesh(ctx, network, addr)
+		return c, err
 	}
 }
-
-// How long a routed-network host gets to answer directly, as the desktop app's routes.
-const directFirst = 1500 * time.Millisecond

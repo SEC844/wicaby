@@ -8,6 +8,7 @@ import path from 'node:path';
 import { nativeImage } from 'electron';
 import { extOf } from '../../shared/files/names';
 import type { PhotoHead } from '../../shared/files/exif';
+import { imageSize } from '../comics/image-size';
 
 // Largest side asked (device px) -> the bucket made; past the last one the original is served (viewer zoom).
 const BUCKETS = [360, 720, 1440];
@@ -39,7 +40,6 @@ export class PhotoThumbs {
     if (bw === null || bh === null) return null;
     // The box is asked of the photo as shown: a quarter-turned one fits it with its stored sides swapped.
     const turned = (head.orientation ?? 1) >= 5;
-    const scale = Math.min(1, (turned ? bh : bw) / w, (turned ? bw : bh) / h);
     const file = path.join(this.dir, `${createHash('sha1').update(`${key}/${bw}x${bh}`).digest('hex')}.jpg`);
     try {
       return await fs.promises.readFile(file);
@@ -49,7 +49,12 @@ export class PhotoThumbs {
     let p = this.pending.get(file);
     if (!p) {
       p = this.slot(signal, async () => {
-        const img = nativeImage.createFromBuffer(await read());
+        const buf = await read();
+        // The head's sides may come from EXIF (the frame header past the bytes read): the real frame decides.
+        const real = imageSize(buf);
+        if (!real || real[0] * real[1] > MAX_PIXELS) return null;
+        const scale = Math.min(1, (turned ? bh : bw) / real[0], (turned ? bw : bh) / real[1]);
+        const img = nativeImage.createFromBuffer(buf);
         if (img.isEmpty()) return null;
         const size = img.getSize();
         const data = img.resize({ width: Math.max(1, Math.round(size.width * scale)), height: Math.max(1, Math.round(size.height * scale)), quality: 'good' }).toJPEG(82);

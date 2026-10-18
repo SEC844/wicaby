@@ -20,13 +20,23 @@ export interface ConnectSession {
   token: string;
 }
 
+// A host that accepts the connection and then stalls (captive portal, half-open VPN) must not leave the sign-in spinning.
+async function fetchTimed(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await net.fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
+  } catch (err) {
+    if ((err as Error)?.name === 'TimeoutError') throw new Error(t('errors.connection.embyConnect.unavailable', { status: 0 }));
+    throw err;
+  }
+}
+
 function appHeader(version: string): Record<string, string> {
   return { 'X-Application': `Wicaby/${version}`, Accept: 'application/json' };
 }
 
 export async function connectAuthenticate(username: string, password: string, version: string): Promise<ConnectSession> {
   const body = new URLSearchParams({ nameOrEmail: username, rawpw: password }).toString();
-  const res = await net.fetch(`${CONNECT_BASE}/user/authenticate`, {
+  const res = await fetchTimed(`${CONNECT_BASE}/user/authenticate`, {
     method: 'POST',
     headers: { ...appHeader(version), 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
     body,
@@ -38,7 +48,7 @@ export async function connectAuthenticate(username: string, password: string, ve
 }
 
 export async function connectServers(session: ConnectSession, version: string): Promise<ConnectServer[]> {
-  const res = await net.fetch(`${CONNECT_BASE}/servers?userId=${encodeURIComponent(session.userId)}`, {
+  const res = await fetchTimed(`${CONNECT_BASE}/servers?userId=${encodeURIComponent(session.userId)}`, {
     headers: { ...appHeader(version), 'X-Connect-UserToken': session.token },
   });
   if (!res.ok) throw new Error(t('errors.connection.embyConnect.serversUnavailable', { status: res.status }));
@@ -52,7 +62,7 @@ export async function connectExchange(
   accessKey: string,
   authorization: string,
 ): Promise<{ LocalUserId: string; AccessToken: string }> {
-  const res = await net.fetch(`${address}/emby/Connect/Exchange?format=json&ConnectUserId=${encodeURIComponent(connectUserId)}`, {
+  const res = await fetchTimed(`${address}/emby/Connect/Exchange?format=json&ConnectUserId=${encodeURIComponent(connectUserId)}`, {
     headers: { Accept: 'application/json', 'X-Emby-Token': accessKey, 'X-Emby-Authorization': authorization },
     // The access key would go along to wherever a redirect points.
     redirect: 'error',

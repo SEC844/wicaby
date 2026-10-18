@@ -106,6 +106,14 @@ async function fileHead(file: string, length = 1024): Promise<Buffer> {
   }
 }
 
+// A failure of the network or the server (tried again later), not of the book.
+function transientError(err: unknown): boolean {
+  const e = err as { name?: string; status?: unknown; message?: unknown } | null;
+  if (e?.name === 'TimeoutError' || e?.name === 'TypeError') return true;
+  if (typeof e?.status === 'number' && (e.status === 0 || e.status >= 500)) return true;
+  return typeof e?.message === 'string' && /^net::|^(timeout|aborted)$/i.test(e.message);
+}
+
 // What a failed archive read tells the user.
 function bookError(err: unknown): Error {
   const code = (err as { code?: string }).code;
@@ -120,9 +128,14 @@ function bookError(err: unknown): Error {
 // cover-image, else page 1) without reading the rest of the spine (a cover read with Range requests).
 async function epubBook(entries: ZipEntry[], read: (e: ZipEntry) => Promise<Buffer>, coverOnly = false): Promise<{ pages: ZipEntry[]; title?: string; cover?: ZipEntry }> {
   const byName = new Map(entries.map((e) => [e.name, e]));
-  const text = async (name: string) => {
+  // A stored entry reads compressedSize bytes whatever size it declares: both are capped, and the spine
+  // reads share one budget (a hostile book repeating one huge document must not stall main).
+  let budget = 64 * 1024 * 1024;
+  const text = async (name: string, metered = false) => {
     const e = byName.get(name);
-    return e && e.size <= MAX_COMIC_INFO * 4 ? (await read(e)).toString('utf8') : null;
+    if (!e || e.size > MAX_COMIC_INFO * 4 || e.compressedSize > MAX_COMIC_INFO * 4 || (metered && budget <= 0)) return null;
+    if (metered) budget -= Math.max(e.size, e.compressedSize);
+    return (await read(e)).toString('utf8');
   };
   const rootfile = epubRootfile((await text('META-INF/container.xml')) ?? '');
   const opf = rootfile ? await text(rootfile) : null;
@@ -131,14 +144,15 @@ async function epubBook(entries: ZipEntry[], read: (e: ZipEntry) => Promise<Buff
   const coverByManifest = pkg.cover ? byName.get(pkg.cover) : undefined;
   if (coverOnly && coverByManifest) return { pages: [], cover: coverByManifest };
   const pages: ZipEntry[] = [];
-  for (const doc of pkg.spine.slice(0, MAX_SPINE)) {
-    const xhtml = await text(doc);
+  const spine = [...new Set(pkg.spine)].slice(0, MAX_SPINE);
+  for (const doc of spine) {
+    const xhtml = await text(doc, true);
     const img = xhtml ? epubPageImage(xhtml, doc, pkg.fixedLayout) : null;
     const e = img ? byName.get(img) : undefined;
     if (e) pages.push(e);
     if (coverOnly && e) return { pages, cover: e };
   }
-  if (isTextBook(Math.min(pkg.spine.length, MAX_SPINE), pages.length)) throw Object.assign(new Error('text book'), { code: 'textBook' });
+  if (isTextBook(spine.length, pages.length)) throw Object.assign(new Error('text book'), { code: 'textBook' });
   // DRM: pages listed in encryption.xml cannot be shown (fonts obfuscated there are fine).
   const enc = await text('META-INF/encryption.xml');
   if (enc && pages.some((p) => enc.includes(p.name.slice(p.name.lastIndexOf('/') + 1)))) throw archiveError('encrypted');
@@ -257,8 +271,8 @@ export class ComicService {
           return data;
         })
         .catch((err: unknown) => {
-          // A card scrolled away (or a slow server) is tried again next time; anything else is not.
-          if (!signal?.aborted && (err as Error)?.name !== 'TimeoutError') this.coverFailed.add(key);
+          // A card scrolled away, a slow or unreachable server, a 5xx: tried again next time; a book without a cover is not.
+          if (!signal?.aborted && !transientError(err)) this.coverFailed.add(key);
           log.debug(`no cover for ${itemId}`, err);
           return null;
         })

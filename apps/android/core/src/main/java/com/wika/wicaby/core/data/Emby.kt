@@ -25,6 +25,9 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.JsonNamingStrategy
 import com.wika.wicaby.core.net.ServerTransport
 import com.wika.wicaby.core.net.await
+import com.wika.wicaby.core.net.cappedString
+import com.wika.wicaby.core.net.executeUse
+import com.wika.wicaby.core.net.head
 import com.wika.wicaby.core.net.origin
 import com.wika.wicaby.core.net.probeDispatcher
 import okhttp3.HttpUrl
@@ -433,7 +436,7 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
     }
 
     open suspend fun raw(method: String, path: String, body: String? = null, vararg query: Pair<String, Any?>): String =
-        stream(method, path, body, query.asList()) { it.body.string() }
+        stream(method, path, body, query.asList()) { it.body.cappedString() }
 
     // One call with the open response handed to [read] (Live TV decodes guide answers from the byte
     // stream and reads the Date header). [timeoutMs] > 0 bounds the whole call. Non-2xx: ApiException.
@@ -444,8 +447,8 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
         req.method(method, rb)
         val call = http.newCall(req.build())
         if (timeoutMs > 0) call.timeout().timeout(timeoutMs, TimeUnit.MILLISECONDS)
-        call.execute().use { res ->
-            if (!res.isSuccessful) throw ApiException(res.body.string().take(200).ifBlank { "HTTP ${res.code}" }, res.code)
+        call.executeUse { res ->
+            if (!res.isSuccessful) throw ApiException(res.body.head(200).ifBlank { "HTTP ${res.code}" }, res.code)
             read(res)
         }
     }

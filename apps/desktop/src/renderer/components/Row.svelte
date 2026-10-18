@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import type { BaseItem } from '../../shared/models';
   import { itemKey } from '../lib/api';
+  import { reducedMotion } from '../lib/motion';
   import { t } from '../lib/i18n.svelte';
   import { navigate } from '../lib/router.svelte';
   import Card from './Card.svelte';
@@ -41,7 +42,7 @@
     const cell = track.firstElementChild as HTMLElement | null;
     const step = cell ? cell.offsetWidth + parseFloat(getComputedStyle(track).columnGap || '0') : 200;
     const visible = Math.max(1, Math.floor((track.clientWidth - 2 * parseFloat(getComputedStyle(track).paddingLeft)) / step));
-    track.scrollBy({ left: dir * visible * step, behavior: 'smooth' });
+    track.scrollBy({ left: dir * visible * step, behavior: reducedMotion() ? 'auto' : 'smooth' });
   }
 
   $effect(() => {

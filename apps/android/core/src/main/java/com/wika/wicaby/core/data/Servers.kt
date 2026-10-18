@@ -6,9 +6,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
@@ -40,9 +40,15 @@ object Servers {
 
     fun isOffline(serverId: String): Boolean = serverId in offline
 
+    // Bumped by a merged load (a view opening, a pull-to-refresh): the offline probes run at once, not after their backoff.
+    private val wake = MutableStateFlow(0)
+
     // An extra server's part of a merged load waits this long at most (desktop reportFailure probes for 4 s).
     internal var extraTimeoutMs = 5_000L
     internal var retryMs = 30_000L
+
+    // The probe backs off (doubling up to 10 minutes): a server gone for the day must not wake the radio every 30 s.
+    internal fun nextRetry(wait: Long): Long = minOf(wait * 2, maxOf(retryMs, 600_000L))
 
     // A file source (core/files) and the IPTV sources (core/iptv) are found by their id too, though never merged.
     fun of(serverId: String?): Api? = all.firstOrNull { it.server.id == serverId } ?: com.wika.wicaby.core.files.FileSources.api(serverId)
@@ -56,6 +62,7 @@ object Servers {
     // The same query on every server in parallel, merged. Alone, the primary's answer (and its error) as is;
     // with several, a server that fails only leaves its part out.
     suspend fun merged(primary: Api, byDate: Boolean = false, fn: suspend (Api) -> List<Item>): List<Item> {
+        if (offline.isNotEmpty()) wake.value++
         val others = online.filter { it.server.id != primary.server.id }
         if (others.isEmpty()) return fn(primary)
         return merge(fanOut(listOf(primary) + others, fn), byDate)
@@ -96,15 +103,19 @@ object Servers {
     }
 
     // desktop: the server's socket reconnecting brings it back. Here a probe, at once (a slow answer is not
-    // a dead server) then every [retryMs] while it is still an extra server.
+    // a dead server) then after [retryMs], backing off (or at once on the next merged load), while it is still an extra server.
     private fun goOffline(a: Api) {
         val id = a.server.id
         if (!offline.add(id)) return
         Core.scope.launch {
+            var wait = retryMs
+            var seen = wake.value
             while (true) {
                 val gone = extra.none { it.server.id == id }
                 if (gone || runCatching { a.stream("GET", "/System/Info/Public", null, emptyList(), 4_000) {} }.isSuccess) break
-                delay(retryMs)
+                val woken = withTimeoutOrNull(wait) { wake.first { it != seen } }
+                seen = wake.value
+                wait = if (woken != null) retryMs else nextRetry(wait)
             }
             offline.remove(id)
             if (extra.any { it.server.id == id }) _back.value++

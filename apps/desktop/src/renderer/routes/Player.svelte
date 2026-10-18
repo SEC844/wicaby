@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Hls from 'hls.js';
+  import type Hls from 'hls.js';
   import { onDestroy, onMount } from 'svelte';
   import type { HtmlPlayerCommand, HtmlPlayerEvent, HtmlPlayerLoad } from '../../shared/contract';
   import Osd from '../components/Osd.svelte';
@@ -121,30 +121,52 @@
     v.muted = l.muted;
     // "Vitesse par défaut": the load algorithm resets playbackRate to defaultPlaybackRate.
     v.defaultPlaybackRate = v.playbackRate = l.rate ?? 1;
-    if (l.isHls && Hls.isSupported()) {
+    if (l.isHls) {
       pendingSeekMs = 0;
-      const h = new Hls({ startPosition: l.startMs / 1000, enableWorker: true, maxBufferLength: 60, backBufferLength: 90 });
-      h.on(Hls.Events.ERROR, (_e, data) => {
-        if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsRecoveries < 3) {
-          hlsRecoveries++;
-          h.startLoad();
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsRecoveries < 3) {
-          hlsRecoveries++;
-          h.recoverMediaError();
-        } else {
-          emit({ type: 'error', message: `Flux HLS illisible (${data.details})` });
-        }
-      });
-      h.loadSource(l.url);
-      h.attachMedia(v);
-      hls = h;
+      void attachHls(v, l);
     } else {
       pendingSeekMs = l.startMs;
       v.src = l.url;
+      void v.play().catch(() => undefined);
     }
     void setSubtitle(l.subtitleIndex);
+  }
+
+  // hls.js (a third of the renderer) is fetched with the first HLS stream, not at app start.
+  async function attachHls(v: HTMLVideoElement, l: HtmlPlayerLoad): Promise<void> {
+    let Hls: typeof import('hls.js').default;
+    try {
+      Hls = (await import('hls.js')).default;
+    } catch (err) {
+      if (current === l) emit({ type: 'error', message: `Flux HLS illisible (${String(err)})` });
+      return;
+    }
+    // Unloaded or replaced while it loaded.
+    if (current !== l) return;
+    if (!Hls.isSupported()) {
+      pendingSeekMs = l.startMs;
+      v.src = l.url;
+      void v.play().catch(() => undefined);
+      return;
+    }
+    const h = new Hls({ startPosition: l.startMs / 1000, enableWorker: true, maxBufferLength: 60, backBufferLength: 90 });
+    h.on(Hls.Events.ERROR, (_e, data) => {
+      if (!data.fatal) return;
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsRecoveries < 3) {
+        hlsRecoveries++;
+        h.startLoad();
+      } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsRecoveries < 3) {
+        hlsRecoveries++;
+        h.recoverMediaError();
+      } else {
+        emit({ type: 'error', message: `Flux HLS illisible (${data.details})` });
+      }
+    });
+    h.loadSource(l.url);
+    h.attachMedia(v);
+    // Only now: a play() before the source is set is undone (paused again) by the load attachMedia starts.
     void v.play().catch(() => undefined);
+    hls = h;
   }
 
   function unload(): void {

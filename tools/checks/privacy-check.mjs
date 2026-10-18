@@ -10,14 +10,23 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '../..');
 // Built from parts so this file never matches itself.
 const j = (...p) => p.join('');
+// The third field: RegExp flags ('i' where a case variant is the same leak; room names stay case-sensitive, French
+// UI text says "salon").
 const rules = [
   // "the owner" alone is fine: windows have owners too.
-  [j("\\bthe owner's (TV|server|network|PC|Emby|Sony)|\\b(user|owner)'s (Sony|Bravia|real server|real TV)"), 'owner wording'],
+  [j("\\bthe owner's (TV|server|network|PC|Emby|Sony)|\\b(user|owner)'s (Sony|Bravia|real server|real TV)"), 'owner wording', 'i'],
   [j('\\bSal', 'on\\b|\\bCham', 'bre\\b'), 'household room name'],
-  [j('claude\\.ai/', 'code|Claude-', 'Session'), 'private session link'],
-  [j('graph', 'ify'), 'private tooling'],
+  [j('claude\\.ai/', 'code|Claude-', 'Session'), 'private session link', 'i'],
+  [j('graph', 'ify'), 'private tooling', 'i'],
 ];
-const binary = [[j('ca', 'BX'), 'C2PA metadata']];
+// C2PA in PNG (caBX) and in JPEG (JUMBF boxes), EXIF and XMP: camera, GPS, software and user paths.
+const binary = [
+  [j('ca', 'BX'), 'C2PA metadata'],
+  [j('ju', 'mb'), 'C2PA (JUMBF) metadata'],
+  [j('c2', 'pa'), 'C2PA metadata'],
+  [j('Ex', 'if\0\0'), 'EXIF metadata'],
+  [j('http://ns.adobe.com/', 'xap'), 'XMP metadata'],
+];
 
 const local = path.join(root, '.dev', 'privacy-patterns.json');
 if (existsSync(local)) {
@@ -36,9 +45,12 @@ for (const f of files) {
   } catch {
     continue; // deleted in the working tree
   }
-  if (!buf.subarray(0, 8000).includes(0)) {
-    buf.toString('utf8').split('\n').forEach((line, i) => {
-      for (const [re, why] of rules) if (new RegExp(re).test(line)) hits.push(`${f}:${i + 1}: ${why}`);
+  // UTF-16 text (a PowerShell or .reg export) gets the text rules too.
+  const utf16 = buf[0] === 0xff && buf[1] === 0xfe ? 'utf16le' : buf[0] === 0xfe && buf[1] === 0xff ? 'utf16be' : null;
+  if (utf16 || !buf.subarray(0, 8000).includes(0)) {
+    const text = utf16 === 'utf16be' ? Buffer.from(buf.subarray(0, buf.length & ~1)).swap16().toString('utf16le') : buf.toString(utf16 ?? 'utf8');
+    text.split('\n').forEach((line, i) => {
+      for (const [re, why, flags] of rules) if (new RegExp(re, flags).test(line)) hits.push(`${f}:${i + 1}: ${why}`);
     });
   } else {
     const s = buf.toString('latin1');

@@ -94,6 +94,7 @@
     <string name="downloads_empty_sub">Tap Download on a movie or episode to watch it offline.</string>
     <string name="download_queued">Queued</string>
     <string name="download_failed">Failed · tap to retry</string>
+    <string name="download_server_signed_out">Sign in to the server of this download to play it.</string>
     <string name="download_size">%1$s of %2$s</string>
     <string name="downloaded_size">Downloaded · %1$s</string>
     <string name="delete">Delete</string>

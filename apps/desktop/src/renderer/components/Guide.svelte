@@ -7,6 +7,9 @@
   // (a white wordmark) is drawn in ink instead, like plain text; only a light coloured one keeps a plate.
   // The media scheme answers with CORS, so <img crossorigin="anonymous"> keeps the canvas readable.
   const plates = new Map<string, { lum: number; chroma: number }>();
+  // Mounted logos, set again when the theme changes under them ('system' follows the OS live).
+  const mounted = new Set<() => void>();
+  let themeWatch: MutationObserver | null = null;
   export function logoPlate(img: HTMLImageElement): { destroy(): void } {
     const check = (): void => {
       const key = img.currentSrc || img.src;
@@ -32,13 +35,25 @@
         }
         plates.set(key, m);
       }
-      const light = document.documentElement.dataset.theme === 'light';
+      // A media surface (.on-media: the OSD guide overlay, …) stays dark even in Light.
+      const light = document.documentElement.dataset.theme === 'light' && !img.closest('.on-media');
       img.toggleAttribute('data-ink', light && m.lum > 0.7 && m.chroma < 0.15);
       img.toggleAttribute('data-plate', light ? m.lum > 0.7 && m.chroma >= 0.15 : m.lum < 0.3);
     };
     if (img.complete && img.naturalWidth) check();
     img.addEventListener('load', check);
-    return { destroy: () => img.removeEventListener('load', check) };
+    const recheck = () => void (img.complete && img.naturalWidth && check());
+    mounted.add(recheck);
+    if (!themeWatch) {
+      themeWatch = new MutationObserver(() => mounted.forEach((f) => f()));
+      themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+    return {
+      destroy: () => {
+        img.removeEventListener('load', check);
+        mounted.delete(recheck);
+      },
+    };
   }
 
   // Server-resized channel logo (§21.9): never the 512–1,000 px original.

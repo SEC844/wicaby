@@ -170,3 +170,15 @@ export function validateImport(doc: unknown, rows: readonly Shortcut[] = SHORTCU
   if (conflicts(applied).length) return null;
   return Object.entries(out).some(([id, ks]) => ks?.some((k) => conflictWith(applied, id, k))) ? null : out;
 }
+
+// Stored settings on start: a map that is still valid is kept whole (swapped keys only fit together);
+// otherwise the overrides that still fit are kept one by one (a newer build may have removed an action
+// or given its key to a new default). An import stays all-or-nothing (validateImport).
+export function repairOverrides(doc: unknown, rows: readonly Shortcut[] = SHORTCUTS): ShortcutOverrides {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return {};
+  const whole = validateImport(doc, rows);
+  if (whole) return whole;
+  let out: ShortcutOverrides = {};
+  for (const [id, v] of Object.entries(doc)) out = validateImport({ ...out, [id]: v }, rows) ?? out;
+  return out;
+}

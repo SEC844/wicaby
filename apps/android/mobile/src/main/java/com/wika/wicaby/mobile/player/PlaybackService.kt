@@ -348,8 +348,13 @@ private class AutoLibrary(private val context: Context) : MediaLibrarySession.Ca
     }
 
     // Auto's picks carry only their media id: kept as they are, LivePlayer.setMediaItems turns them into a queue.
-    override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> =
-        if (denied(controller)) super.onAddMediaItems(mediaSession, controller, mediaItems) else Futures.immediateFuture(mediaItems)
+    // Any other app: refused. The service is exported, and its URLs would be fetched from this process with the
+    // server's token, onto the LAN or the mesh.
+    override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> = when {
+        !denied(controller) -> Futures.immediateFuture(mediaItems)
+        controller.packageName == context.packageName -> super.onAddMediaItems(mediaSession, controller, mediaItems)
+        else -> Futures.immediateFailedFuture(UnsupportedOperationException())
+    }
 
     /** True when [items] come from the tree: the queue then starts on the picked track's list. */
     fun play(items: List<MediaItem>, index: Int): Boolean {

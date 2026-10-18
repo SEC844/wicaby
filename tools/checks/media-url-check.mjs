@@ -237,6 +237,11 @@ assert.deepEqual(sent.map((r) => [r.url, r.headers['X-Emby-Token'], r.headers.Ra
 hops = { 'https://a.example/x': 'https://b.example/x', 'https://b.example/x': 'https://a.example/x', [`${SRV}/loop`]: 'https://a.example/x' };
 assert.equal(await fetchFollowing(emby, `${SRV}/loop`, { method: 'GET', headers: {}, auth }), null, 'endless redirects end');
 await assert.rejects(fetchFollowing(emby, `${SRV}/x`, { method: 'GET', headers: {}, auth, signal: AbortSignal.abort() }), /aborted/);
+// A URL-signed server (Navidrome: u/t/s in the query): the signature never follows a hop elsewhere.
+sent.length = 0;
+hops = { [`${SRV}/rest/stream?id=1&u=me&t=abc&s=salt&v=1.16.1`]: 'https://cdn.example/a.flac?u=me&t=abc&s=salt&v=1.16.1' };
+await fetchFollowing(emby, `${SRV}/rest/stream?id=1&u=me&t=abc&s=salt&v=1.16.1`, { method: 'GET', headers: {}, auth: {}, secret: ['u', 't', 's', 'p'] });
+assert.equal(sent.at(-1).url, 'https://cdn.example/a.flac?v=1.16.1', 'Subsonic signature dropped on a foreign hop');
 const embyApi = { ...emby, authHeaders: () => auth };
 hops = { [`${SRV}/Videos/1/stream`]: 'https://cdn.example/v.mkv' };
 assert.equal(await redirectTarget(embyApi, `${SRV}/Videos/1/stream`), 'https://cdn.example/v.mkv');

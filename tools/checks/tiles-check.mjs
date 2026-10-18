@@ -112,6 +112,38 @@ assert.equal(seen.length, 0, 'recently used tile kept');
 await lru('/6/1/0');
 assert.equal(seen.length, 1, 'least recently used tile evicted');
 
+// 6b. Cancelled tiles: a request aborted while it waits for a slot is never fetched, and an aborted fetch
+//     frees its slot (a stalled host cannot hold the two slots).
+{
+  let calls = 0;
+  const stall = (_u, init) => (calls++, new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted')))));
+  const hang = tileService({ config: () => cfg, userAgent: ua, dir: fs.mkdtempSync(path.join(os.tmpdir(), 'wicaby-tiles-abort-')), now: () => clock, fetch: stall });
+  const ctl = [new AbortController(), new AbortController(), new AbortController()];
+  const pending = ctl.map((c, i) => hang(`/7/${i}/0`, c.signal));
+  await new Promise((r) => setTimeout(r, 20));
+  ctl[2].abort();
+  ctl[0].abort();
+  ctl[1].abort();
+  assert.deepEqual((await Promise.all(pending)).map((r) => r.status), [502, 502, 502]);
+  assert.equal(calls, 2, 'the tile panned away before its turn is not fetched');
+}
+
+// 6c. The fetch timeout starts when a tile gets its slot: a tile queued behind slow ones is not born timed out.
+{
+  const timeout = AbortSignal.timeout;
+  AbortSignal.timeout = () => timeout(60);
+  try {
+    let n = 0;
+    const slow = (_u, init) => init.signal.aborted ? Promise.reject(new Error('aborted'))
+      : new Promise((r) => setTimeout(() => r(new Response(PNG, { headers: { 'Content-Type': 'image/png' } })), n++ < 2 ? 100 : 0));
+    const queued = tileService({ config: () => cfg, userAgent: ua, dir: fs.mkdtempSync(path.join(os.tmpdir(), 'wicaby-tiles-queue-')), now: () => clock, fetch: slow });
+    const all = await Promise.all([0, 1, 2, 3].map((i) => queued(`/8/${i}/0`)));
+    assert.deepEqual(all.map((r) => r.status), [200, 200, 200, 200], 'queued tiles keep their full timeout');
+  } finally {
+    AbortSignal.timeout = timeout;
+  }
+}
+
 // 7. Nothing in the tile code logs (a tile address is a place, spec §6.1).
 const src = fs.readFileSync(path.join(import.meta.dirname, '../../apps/desktop/src/main/photos/tiles.ts'), 'utf8');
 assert.ok(!/\b(console|log)\.\w+\(/.test(src), 'tiles.ts logs nothing');
@@ -143,6 +175,19 @@ const own = 'http://192.0.2.10:8080/tiles/{z}/{x}/{y}.png';
 assert.equal(svc.update({ photos: { map: { tileUrl: own } } }).photos.map.tileUrl, own);
 assert.equal(svc.update({ photos: { map: { tileUrl: 'http://192.0.2.10:8080/tiles/{z}/{x}.png' } } }).photos.map.tileUrl, own, 'refused edit keeps the previous server');
 svc.flush();
+// 8b. (settings.ts robustness) A hand-edited file with null sections loads with the defaults instead of crashing
+// the start; window bounds that are not numbers never reach the screen APIs; one stale shortcut drops alone.
+{
+  const bad = path.join(dir, 'settings-bad.json');
+  fs.writeFileSync(bad, JSON.stringify({ ui: { theme: 'light', shortcuts: { 'vod.mute': ['U'], 'gone.action': ['X'] } }, playback: 'x', window: null }));
+  const s = new SettingsService(bad);
+  assert.equal(s.value.playback.player, 'auto');
+  assert.deepEqual(s.value.window, {});
+  assert.deepEqual(s.value.ui.shortcuts, { 'vod.mute': ['U'] });
+  assert.deepEqual(s.update({ window: { bounds: { x: 'a', y: 0, width: 10, height: 10 }, maximized: true } }).window, { maximized: true });
+  assert.equal(s.update({ window: null, ui: null }).ui.theme, 'light');
+  s.flush();
+}
 
 // 9. Clusters on the mock's generated photos (PH-00): every geotagged photo in exactly one cluster at each zoom;
 // one cluster per landmark from zoom 6 to 8. The spec's "6 at zoom 3" cannot hold with 60 px groups: at zoom 3 Paris,

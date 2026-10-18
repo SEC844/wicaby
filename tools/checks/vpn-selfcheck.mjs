@@ -137,9 +137,13 @@ const fake = (kind, state, peers) => ({ kind, status: async () => ({ kind, state
 const vpn = new VpnService(() => {});
 vpn.installed = [fake('tailscale', 'connected', ts.peers), fake('netbird', 'stopped', nb.peers)];
 // Known by LAN IP only: matched through the peer's endpoints.
-assert.deepEqual(await vpn.candidatesFor({ name: 'Emby maison', addresses: ['http://192.0.2.10:8096'] }), ['http://100.90.1.2:8096', 'http://nas.tail1234.ts.net:8096']);
+const addrs = (c) => c.map((x) => x.address);
+assert.deepEqual(addrs(await vpn.candidatesFor({ name: 'Emby maison', addresses: ['http://192.0.2.10:8096'] })), ['http://100.90.1.2:8096', 'http://nas.tail1234.ts.net:8096']);
+// Trusted only when the peer carries a host the token is bound to (here its LAN endpoint), never by name alone.
+assert.ok((await vpn.candidatesFor({ name: 'Emby maison', addresses: ['http://192.0.2.10:8096'], trusted: ['http://192.0.2.10:8096'] })).every((x) => x.trusted));
 // Matched by server name = host name, custom port kept.
-assert.deepEqual(await vpn.candidatesFor({ name: 'NAS', addresses: ['https://emby.example.fr:8920'] }), ['http://100.90.1.2:8920', 'http://nas.tail1234.ts.net:8920']);
+assert.deepEqual(addrs(await vpn.candidatesFor({ name: 'NAS', addresses: ['https://emby.example.fr:8920'] })), ['http://100.90.1.2:8920', 'http://nas.tail1234.ts.net:8920']);
+assert.ok((await vpn.candidatesFor({ name: 'NAS', addresses: ['https://emby.example.fr:8920'], trusted: ['https://emby.example.fr:8920'] })).every((x) => !x.trusted), 'a name match is not trusted');
 // Offline peer, or a network that is not connected: nothing.
 assert.deepEqual(await vpn.candidatesFor({ name: 'phone', addresses: [] }), []);
 assert.deepEqual(await vpn.candidatesFor({ name: 'media', addresses: [] }), []);

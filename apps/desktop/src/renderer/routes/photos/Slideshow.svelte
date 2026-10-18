@@ -49,6 +49,7 @@
   let seq = 0;
   let slides = $state<{ key: number; index: number; url: string; turn: number; drift: number }[]>([]);
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let destroyed = false;
 
   const url = (i: number) => {
     const dpr = window.devicePixelRatio || 1;
@@ -77,7 +78,8 @@
     const src = url(i);
     const d = decode(src);
     await d.ready;
-    if (pos !== p) return;
+    // Closed while it decoded: no timer re-armed after destroy (it would loop on in the background).
+    if (destroyed || pos !== p) return;
     const o = assets[i].orient;
     const turn = o ? rotation(o.o, o.w, o.h, d.img.naturalWidth, d.img.naturalHeight) : 0;
     slides = [...slides.slice(-1), { key: ++seq, index: i, url: src, turn, drift: seq % 4 }];
@@ -89,7 +91,7 @@
 
   function arm(): void {
     clearTimeout(timer);
-    if (!paused) timer = setTimeout(() => void showAt(pos + 1), interval * 1000);
+    if (!paused && !destroyed) timer = setTimeout(() => void showAt(pos + 1), interval * 1000);
   }
 
   function save(): void {
@@ -158,6 +160,7 @@
     void showAt(pos);
   });
   onDestroy(() => {
+    destroyed = true;
     clearTimeout(timer);
     clearTimeout(hideTimer);
     void w.photos.keepAwake(false);

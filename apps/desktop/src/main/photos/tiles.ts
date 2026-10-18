@@ -14,6 +14,7 @@ export const MIN_TTL_MS = 7 * 86_400_000;
 export const CACHE_BYTES = 200 * 1024 * 1024;
 const MAX_TILE_BYTES = 2 * 1024 * 1024;
 const PARALLEL = 2;
+const TILE_TIMEOUT_MS = 15_000;
 const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 const TYPE: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
 
@@ -140,14 +141,19 @@ export class TileCache {
   }
 }
 
-export function tileService(deps: TileDeps): (pathname: string) => Promise<Response> {
+export function tileService(deps: TileDeps): (pathname: string, signal?: AbortSignal) => Promise<Response> {
   const now = deps.now ?? Date.now;
   const get = deps.fetch ?? fetch;
   const cache = new TileCache(deps.dir, deps.maxBytes ?? CACHE_BYTES);
   let active = 0;
   const waiting: (() => void)[] = [];
-  const slot = async <T>(run: () => Promise<T>): Promise<T> => {
+  // A tile panned away before its turn is not fetched (its turn goes to the next one).
+  const slot = async <T>(signal: AbortSignal | undefined, run: () => Promise<T>): Promise<T> => {
     if (active >= PARALLEL) await new Promise<void>((r) => waiting.push(r));
+    if (signal?.aborted) {
+      waiting.shift()?.();
+      throw new Error('aborted');
+    }
     active++;
     try {
       return await run();
@@ -159,7 +165,7 @@ export function tileService(deps: TileDeps): (pathname: string) => Promise<Respo
   const image = (body: Buffer, type: string) =>
     new Response(new Uint8Array(body), { headers: { 'Content-Type': type, 'Content-Length': String(body.length), 'Cache-Control': 'private, max-age=86400' } });
 
-  return async (pathname) => {
+  return async (pathname, signal) => {
     const cfg = deps.config();
     const target = cfg.enabled ? tileTarget(cfg.tileUrl, pathname) : null;
     if (!target) return new Response('Not found', { status: 404 });
@@ -167,7 +173,12 @@ export function tileService(deps: TileDeps): (pathname: string) => Promise<Respo
     const hit = cache.get(key, now());
     if (hit?.fresh) return image(hit.body, hit.type);
     try {
-      const res = await slot(() => get(target, { headers: { 'User-Agent': deps.userAgent, Accept: 'image/png,image/jpeg,image/webp' }, redirect: 'error' }));
+      // A host that accepts and stalls must not hold the two slots for minutes; the clock starts with the slot,
+      // not in the queue (a map view asks for dozens of tiles at once).
+      const res = await slot(signal, () => {
+        const cut = signal ? AbortSignal.any([signal, AbortSignal.timeout(TILE_TIMEOUT_MS)]) : AbortSignal.timeout(TILE_TIMEOUT_MS);
+        return get(target, { headers: { 'User-Agent': deps.userAgent, Accept: 'image/png,image/jpeg,image/webp' }, redirect: 'error', signal: cut });
+      });
       const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
       if (!res.ok || !EXT[type] || Number(res.headers.get('content-length') ?? 0) > MAX_TILE_BYTES) {
         void res.body?.cancel();

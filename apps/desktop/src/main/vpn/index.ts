@@ -33,6 +33,15 @@ export interface VpnProvider {
 export interface ServerHints {
   name: string;
   addresses: string[];
+  // Addresses the stored token is bound to: a peer that carries one of their hosts is this server's machine.
+  trusted?: string[];
+}
+
+// trusted: the peer was matched by a host of a bound address (its overlay IP, MagicDNS name or a LAN endpoint),
+// not only by a name, which whoever owns the peer picks.
+export interface VpnCandidate {
+  address: string;
+  trusted: boolean;
 }
 
 const PEER_PROBE_MS = 2500;
@@ -137,26 +146,26 @@ export class VpnService {
   // Extra addresses for a server that may only be reachable over a connected
   // VPN: an online peer whose host name matches the server name or one of its
   // known hosts, or whose endpoints include the server's LAN IP.
-  async candidatesFor(server: ServerHints): Promise<string[]> {
+  async candidatesFor(server: ServerHints): Promise<VpnCandidate[]> {
     const known = server.addresses.map(hostOf).filter(Boolean) as string[];
+    const bound = (server.trusted ?? []).map(hostOf).filter(Boolean) as string[];
     const names = new Set([label(server.name), ...known.filter((h) => !/^[\d.:]+$/.test(h)).map(label)].filter(Boolean));
     const port = server.addresses.map(portOf).find((p) => p !== null) ?? 8096;
-    const out: string[] = [];
+    const out = new Map<string, boolean>();
     for (const status of await this.status()) {
       if (status.state !== 'connected') continue;
       const peers = await this.rawPeers(status.kind).catch(() => [] as PeerInfo[]);
       for (const peer of peers) {
         if (!peer.online) continue;
         const hosts = [...peer.ips, peer.dnsName?.replace(/\.$/, '')].filter(Boolean) as string[];
-        const match =
-          [...hosts, ...(peer.endpoints ?? [])].some((h) => known.includes(h.toLowerCase())) ||
-          names.has(label(peer.name)) ||
-          names.has(label(peer.dnsName));
+        const carried = [...hosts, ...(peer.endpoints ?? [])].map((h) => h.toLowerCase());
+        const match = carried.some((h) => known.includes(h)) || names.has(label(peer.name)) || names.has(label(peer.dnsName));
         if (!match) continue;
-        for (const h of hosts) if (!h.includes(':')) out.push(`http://${h}:${port}`);
+        const trusted = carried.some((h) => bound.includes(h));
+        for (const h of hosts) if (!h.includes(':')) out.set(`http://${h}:${port}`, (out.get(`http://${h}:${port}`) ?? false) || trusted);
       }
     }
-    return [...new Set(out)];
+    return [...out].map(([address, trusted]) => ({ address, trusted }));
   }
 
   // Plain text for a support request, redacted (diagnostics.ts): every network Wicaby sees, its peers counted

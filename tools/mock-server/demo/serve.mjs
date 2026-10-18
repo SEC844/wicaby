@@ -5,4 +5,5 @@ import http from 'node:http';
 
 process.env.MOCK_DATASET = 'demo';
 const { handler, PORT, VIDEO } = await import('../mock-emby.mjs');
-http.createServer(handler).listen(PORT, () => console.log(`Mock Emby (demo dataset) on http://127.0.0.1:${PORT} (user Wika / wicaby)${VIDEO ? `, video ${VIDEO}` : ''}`));
+// Loopback only, as mock-emby.mjs: a mock reachable from the LAN would show up in real clients.
+http.createServer(handler).listen(PORT, process.env.MOCK_HOST || '127.0.0.1', () => console.log(`Mock Emby (demo dataset) on http://127.0.0.1:${PORT} (user Wika / wicaby)${VIDEO ? `, video ${VIDEO}` : ''}`));

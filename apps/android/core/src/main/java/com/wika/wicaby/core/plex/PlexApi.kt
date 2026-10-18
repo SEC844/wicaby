@@ -6,6 +6,9 @@ import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Server
 import com.wika.wicaby.core.data.SocketMessage
+import com.wika.wicaby.core.net.cappedString
+import com.wika.wicaby.core.net.executeUse
+import com.wika.wicaby.core.net.head
 import com.wika.wicaby.core.player.Quality
 import com.wika.wicaby.core.player.RemoteControl
 import kotlinx.coroutines.Dispatchers
@@ -137,10 +140,10 @@ class PlexApi(
         req.method(r.method, if (r.method == "GET" || r.method == "DELETE") null else ByteArray(0).toRequestBody())
         val call = http.newCall(req.build())
         call.timeout().timeout(timeoutMs, TimeUnit.MILLISECONDS)
-        call.execute().use { res ->
-            val text = res.body.string()
-            if (!res.isSuccessful) throw ApiException(text.take(300).ifBlank { "HTTP ${res.code}" }, res.code)
-            if (text.isBlank() || res.header("Content-Type")?.contains("json") != true) return@use null
+        call.executeUse { res ->
+            if (!res.isSuccessful) throw ApiException(res.body.head(300).ifBlank { "HTTP ${res.code}" }, res.code)
+            val text = res.body.cappedString()
+            if (text.isBlank() || res.header("Content-Type")?.contains("json") != true) return@executeUse null
             val e = runCatching { plexJson.parseToJsonElement(text) }.getOrNull()
             e["MediaContainer"] ?: e
         }

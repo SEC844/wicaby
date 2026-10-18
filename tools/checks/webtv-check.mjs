@@ -26,7 +26,7 @@ const stubs = {
 };
 async function load(rel) {
   const out = path.join(dir, `${path.basename(rel).replace(/\W/g, '_')}.mjs`);
-  await build({ entryPoints: [path.join(repo, rel)], bundle: true, platform: 'node', format: 'esm', outfile: out, logLevel: 'error', plugins: [stubs], packages: 'external', define: { 'import.meta.env.VITE_WICABY_DEMO': '"1"' } });
+  await build({ entryPoints: [path.join(repo, rel)], bundle: true, platform: 'node', format: 'esm', outfile: out, logLevel: 'error', plugins: [stubs], packages: 'external', define: { 'import.meta.env.VITE_WICABY_DEMO': '"1"', 'import.meta.env.VITE_WICABY_VERSION': '"0"' } });
   return import(pathToFileURL(out).href);
 }
 
@@ -126,6 +126,91 @@ assert.equal(mediaUrl(jf, 'file:///etc/passwd'), null);
   }
   assert.equal(loads[0]?.isHls, true);
   assert.equal(loads[0].startMs, 55_000, 'resume at 60 s minus the 5 s rewind, not 0:00');
+}
+
+// --- Playback edge cases: 'previous' on the first item, a player error, a refused second item.
+{
+  const { WebPlayback } = await load('apps/webtv/src/playback.ts');
+  const { defaultSettings } = await load('apps/desktop/src/shared/default-settings.ts');
+  const settings = defaultSettings('');
+  const commands = [];
+  const published = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/Items/refused')) return new Response('no', { status: 500 });
+    const body = u.includes('/PlaybackInfo')
+      ? { PlaySessionId: 'p1', MediaSources: [{ Id: 'src1', SupportsDirectPlay: true, MediaStreams: [] }] }
+      : u.includes('/Sessions/')
+        ? {}
+        : { Id: 'm1', Name: 'M', Type: 'Movie', RunTimeTicks: 72_000_000_000, MediaSources: [{ Id: 'src1', MediaStreams: [] }] };
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const host = { server: () => ({ id: 's1', address: 'http://127.0.0.1:8096', kind: 'emby', token: 'T', userId: 'u1' }), identity: id, settings: () => settings, load: () => {}, command: (c) => commands.push(c), publish: (s) => published.push(s), log: () => {} };
+  try {
+    const pb = new WebPlayback(host);
+    await pb.play({ itemIds: ['m1'], serverId: 's1' });
+    await pb.command({ type: 'previous' });
+    assert.deepEqual(commands.at(-1), { type: 'seek', positionMs: 0 }, "'previous' on the first item restarts it");
+    assert.equal(pb.value.active, true);
+
+    pb.onEvent({ type: 'error', message: 'codec' });
+    assert.ok(published.some((s) => s.error === 'codec'), 'a player error is published before the reset');
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(pb.value.active, false);
+
+    await pb.play({ itemIds: ['m1'], serverId: 's1' });
+    commands.length = 0;
+    await assert.rejects(pb.play({ itemIds: ['refused'], serverId: 's1' }));
+    assert.deepEqual(commands, [{ type: 'unload' }], 'a refused new item unloads the old one');
+    assert.equal(pb.value.active, false);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+
+// --- Web bridge: a re-added server on another origin loses its token; the selected server survives a restart.
+{
+  const mem = () => {
+    const m = new Map();
+    return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+  };
+  const saved = { localStorage: globalThis.localStorage, sessionStorage: globalThis.sessionStorage, window: globalThis.window, fetch: globalThis.fetch };
+  Object.assign(globalThis, { localStorage: mem(), sessionStorage: mem(), window: { addEventListener: () => {} } });
+  const ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/System/Info/Public')) return new Response(JSON.stringify({ Id: ID, ServerName: 'S', ProductName: 'Emby Server' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (u.includes('/AuthenticateByName')) return new Response(JSON.stringify({ AccessToken: 'TOK', User: { Id: 'u1', Name: 'Wika' } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ Id: 'u1', Name: 'Wika' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    const { createWebBridge } = await load('apps/webtv/src/bridge.ts');
+    const w = createWebBridge().bridge;
+    await w.servers.add('https://media.example');
+    await w.session.login('Wika', 'pw', ID);
+    assert.equal((await w.servers.add('https://media.example')).hasToken, true, 'same origin keeps the sign-in');
+    const moved = await w.servers.add('http://evil.example');
+    assert.equal(moved.hasToken, false, 'a server Id answered by another origin does not inherit the token');
+    assert.equal(moved.userId, undefined);
+    await w.servers.add('http://127.0.0.1:8096');
+    assert.equal((await w.servers.list()).length, 1);
+    const B = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    const json = (v) => new Response(JSON.stringify(v), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    globalThis.fetch = async (url) => {
+      const u = String(url);
+      if (u.includes('/System/Info/Public')) return json({ Id: u.includes(':8097') ? B : ID, ServerName: 'S' });
+      if (u.includes('/AuthenticateByName')) return json({ AccessToken: 'TOK', User: { Id: 'u1', Name: 'Wika' } });
+      return json({ Id: 'u1', Name: 'Wika' });
+    };
+    await w.servers.add('http://127.0.0.1:8097');
+    await w.session.login('Wika', 'pw', B);
+    await w.session.login('Wika', 'pw', ID);
+    await w.servers.select(B);
+    assert.equal((await createWebBridge().bridge.session.get()).server?.id, B, 'the selected server is still first after a restart');
+  } finally {
+    Object.assign(globalThis, saved);
+  }
 }
 
 // --- The demo server: browse, favourites, progress, all in the page.

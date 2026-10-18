@@ -30,6 +30,9 @@ object RemotePlays {
     // The request the notification plays: kept here, not in the PendingIntent (MainActivity is exported).
     @Volatile
     private var offer: Pair<RemotePlay, Long>? = null
+    // The offer is a music track: accepted, it goes to the music session (as in front), not the player.
+    @Volatile
+    private var offerMusic = false
     private var installed = false
 
     /** Once per process, from MainActivity. */
@@ -56,12 +59,13 @@ object RemotePlays {
 
     /** false when notifications are refused: the request is dropped. */
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun notify(context: Context, r: RemotePlay, who: String, itemName: String?): Boolean {
+    fun notify(context: Context, r: RemotePlay, who: String, itemName: String?, music: Boolean = false): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (!nm.areNotificationsEnabled()) return false
         val res = AppLanguage.localized(context)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, res.getString(R.string.remote_channel_name), NotificationManager.IMPORTANCE_HIGH))
         offer = r to System.currentTimeMillis()
+        offerMusic = music
         val play = PendingIntent.getActivity(
             context, NOTIFICATION_ID, Intent(context, MainActivity::class.java).setAction(ACTION_PLAY),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -86,6 +90,6 @@ object RemotePlays {
         context.getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
         if (System.currentTimeMillis() - at > TIMEOUT_MS || Core.api == null) return
         RemoteControl.arm(r)
-        start(context, r)
+        if (offerMusic) playRemote(context, r, consented = true) else start(context, r)
     }
 }

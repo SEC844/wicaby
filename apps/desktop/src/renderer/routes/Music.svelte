@@ -86,6 +86,8 @@
   let error = $state('');
   let sentinel = $state<HTMLDivElement>();
   let generation = 0;
+  // Items the server sent again (dropped by dedupe): the next page starts after them.
+  let repeated = 0;
 
   const albumQuery = (): Query => ({
     SortBy: prefs.sort === 'SortName' ? 'SortName' : `${prefs.sort},SortName`,
@@ -126,11 +128,13 @@
     error = '';
     items = [];
     total = 0;
+    repeated = 0;
     if (prefs.tab === 'songs') return void (loading = false);
     try {
       const r = await fetchPage(0);
       if (gen !== generation) return;
       items = dedupe(r.Items);
+      repeated = r.Items.length - items.length;
       total = r.TotalRecordCount;
     } catch (err) {
       if (gen === generation) error = errorMessage(err);
@@ -140,12 +144,18 @@
   }
 
   async function more(): Promise<void> {
-    if (loading || !paged() || items.length >= total) return;
+    if (loading || !paged() || items.length + repeated >= total) return;
     const gen = generation;
     loading = true;
     try {
-      const r = await fetchPage(items.length);
-      if (gen === generation) items = dedupe([...items, ...r.Items]);
+      const r = await fetchPage(items.length + repeated);
+      if (gen === generation) {
+        const next = dedupe([...items, ...r.Items]);
+        repeated += items.length + r.Items.length - next.length;
+        // A page with nothing new (a Random sort reshuffles every request): the end, not a request loop.
+        if (next.length === items.length) total = items.length + repeated;
+        items = next;
+      }
     } catch (err) {
       if (gen === generation) error = errorMessage(err);
     } finally {

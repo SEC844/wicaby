@@ -179,6 +179,8 @@ try {
     eq(api.mediaPath('/Videos/x/stream'), null, 'not a track: 404');
     const cover = await fetch(api.sign(`${mock.url}${img}`));
     ok(cover.ok && cover.headers.get('content-type') === 'image/png', 'cover loads, signed');
+    eq(api.sign(`${mock.url}${img}`, true), api.sign(`${mock.url}${img}`, true), 'a media URL signs the same each time (HTTP cache)');
+    ok((await fetch(api.sign(`${mock.url}${img}`, true))).ok, 'cover loads with the client media salt');
     const stream = api.url('/Audio/tr_track-0-0-0/stream', { Static: true, MediaSourceId: 'tr_track-0-0-0', PlaySessionId: 'x', DeviceId: 'd' });
     ok(/\/rest\/stream\?id=track-0-0-0&format=raw&u=wika&t=[0-9a-f]{32}&s=[0-9a-f]+/.test(stream), `mpv URL signed for this machine (${F.redact(stream)})`);
     eq(F.redact(stream).includes('mock-pass') || /t=[0-9a-f]{32}/.test(F.redact(stream)), false, 'the signed URL redacts');

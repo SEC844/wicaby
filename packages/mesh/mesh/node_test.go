@@ -2,8 +2,10 @@ package mesh
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -62,17 +64,22 @@ func TestCloseWithoutStart(t *testing.T) {
 type meshDialer struct {
 	slowStop
 	dialled []string
+	fail    bool
 }
 
 func (p *meshDialer) dial(_ context.Context, _, addr string) (net.Conn, error) {
 	p.dialled = append(p.dialled, addr)
+	if p.fail {
+		return nil, errors.New("no route")
+	}
 	c, _ := net.Pipe()
 	return c, nil
 }
 
-// SMB to a host in a NetBird routed network: direct when it answers (at home), else through the routing peer.
-// A peer is always dialled through the mesh; any other host gets no mesh dialer at all.
-func TestFilesDialerDirectFirstForRoutes(t *testing.T) {
+// SMB to a host in a NetBird routed network: always through the routing peer, never dialled directly, even when the
+// mesh cannot reach it (no NTLM logon to whoever has that address on a foreign Wi-Fi). A peer is always dialled
+// through the mesh; any other host gets no mesh dialer at all.
+func TestFilesDialerMeshOnlyForRoutes(t *testing.T) {
 	p := &meshDialer{}
 	n := testNode(p)
 	st := testStatus()
@@ -84,22 +91,25 @@ func TestFilesDialerDirectFirstForRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer open.Close()
-	closedLn, _ := net.Listen("tcp", "127.0.0.1:0")
-	closed := closedLn.Addr().String()
-	closedLn.Close()
 
 	d := n.FilesDialer("127.0.0.1")
 	c, err := d(context.Background(), "tcp", open.Addr().String())
-	if err != nil || len(p.dialled) != 0 {
-		t.Fatalf("answering directly: err %v, mesh dials %v", err, p.dialled)
+	if err != nil || len(p.dialled) != 1 || p.dialled[0] != open.Addr().String() {
+		t.Fatalf("via mesh: err %v, mesh dials %v", err, p.dialled)
 	}
 	c.Close()
-	if c, err = d(context.Background(), "tcp", closed); err != nil || len(p.dialled) != 1 || p.dialled[0] != closed {
-		t.Fatalf("not answering: err %v, mesh dials %v", err, p.dialled)
+	// The host answers directly, but a routed host must never be dialled outside the mesh (NTLM on a foreign Wi-Fi).
+	p.fail = true
+	if c, err = d(context.Background(), "tcp", open.Addr().String()); err == nil {
+		c.Close()
+		t.Fatal("mesh failing: fell back to a direct dial")
+	} else if !strings.Contains(err.Error(), "routing peer") {
+		t.Fatalf("routed dial error lacks the routing-peer hint: %v", err)
 	}
-	c.Close()
+	p.fail = false
+	p.dialled = nil
 
-	if c, err = n.FilesDialer("100.64.0.7")(context.Background(), "tcp", "100.64.0.7:445"); err != nil || p.dialled[1] != "100.64.0.7:445" {
+	if c, err = n.FilesDialer("100.64.0.7")(context.Background(), "tcp", "100.64.0.7:445"); err != nil || p.dialled[0] != "100.64.0.7:445" {
 		t.Fatalf("peer: err %v, mesh dials %v", err, p.dialled)
 	}
 	c.Close()

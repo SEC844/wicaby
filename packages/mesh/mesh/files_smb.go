@@ -38,7 +38,13 @@ type smbBackend struct {
 	timer  *time.Timer
 	reads  int // files handed out by Open and not closed yet
 	closed bool
+	// An unreachable host fails every request at once for smbDownFor instead of each one dialling again in turn
+	// under mu (a poster grid would queue a 5-15 s attempt per slot).
+	downUntil time.Time
+	downErr   error
 }
+
+const smbDownFor = 5 * time.Second
 
 // NewSMBBackend checks the share once (dial, logon, mount) so a wrong password or a missing share is told at once.
 func NewSMBBackend(cfg SMBConfig) (fileBackend, error) {
@@ -67,6 +73,18 @@ func (b *smbBackend) mount() (*smb2.Share, error) {
 	if b.share != nil {
 		return b.share, nil
 	}
+	if time.Now().Before(b.downUntil) {
+		return nil, b.downErr
+	}
+	sh, err := b.dialShare()
+	if errors.Is(err, errOffline) {
+		b.downUntil, b.downErr = time.Now().Add(smbDownFor), err
+	}
+	return sh, err
+}
+
+// dialShare dials, signs in and mounts the share (mount holds mu).
+func (b *smbBackend) dialShare() (*smb2.Share, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	dial := b.cfg.Dial
@@ -223,6 +241,10 @@ const (
 	statusAccessDenied      = 0xC0000022
 	statusAccountRestricted = 0xC000006E
 	statusPasswordExpired   = 0xC0000071
+	statusAccountDisabled   = 0xC0000072
+	statusAccountLockedOut  = 0xC0000234
+	statusInvalidLogonHours = 0xC000006F
+	statusLogonTypeDenied   = 0xC000015B
 	statusBadNetworkName    = 0xC00000CC
 	statusNameNotFound      = 0xC0000034
 	statusPathNotFound      = 0xC000003A
@@ -234,7 +256,8 @@ const (
 // unsigned (go-smb2 refuses an empty user name). Any other name the server maps to guest still fails.
 func smbSigns(user string) bool { return !strings.EqualFold(user, "guest") }
 
-// smbError names a go-smb2 failure with the kinds of files.go (auth, notfound, smb1, offline).
+// smbError names a go-smb2 failure with the kinds of files.go (auth, notfound, smb1, offline): always one of them,
+// as mobile.OpenFiles promises (Android maps the prefix to its FileError).
 func smbError(err error) error {
 	if err == nil {
 		return nil
@@ -242,14 +265,15 @@ func smbError(err error) error {
 	var re *smb2.ResponseError
 	if errors.As(err, &re) {
 		switch re.Code {
-		case statusLogonFailure, statusAccessDenied, statusAccountRestricted, statusPasswordExpired:
+		case statusLogonFailure, statusAccessDenied, statusAccountRestricted, statusPasswordExpired,
+			statusAccountDisabled, statusAccountLockedOut, statusInvalidLogonHours, statusLogonTypeDenied:
 			return fmt.Errorf("%w: %v", errAuth, err)
 		case statusBadNetworkName, statusNameNotFound, statusPathNotFound:
 			return fmt.Errorf("%w: %v", errNotFound, err)
 		case statusNotSupported:
 			return fmt.Errorf("%w: %v", errSMB1, err)
 		}
-		return err
+		return fmt.Errorf("%w: %v", errOffline, err)
 	}
 	if errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("%w: %v", errNotFound, err)
@@ -263,8 +287,9 @@ func smbError(err error) error {
 	if errors.As(err, &inv) && (strings.Contains(err.Error(), "guest account") || strings.Contains(err.Error(), "anonymous account")) {
 		return fmt.Errorf("%w: %v", errAuth, err)
 	}
-	if isTransport(err) {
-		return fmt.Errorf("%w: %v", errOffline, err)
+	// go-smb2 turns STATUS_ACCESS_DENIED (a share or file refusing this user) into os.ErrPermission.
+	if errors.Is(err, fs.ErrPermission) {
+		return fmt.Errorf("%w: %v", errAuth, err)
 	}
-	return err
+	return fmt.Errorf("%w: %v", errOffline, err)
 }

@@ -28,6 +28,7 @@ import com.wika.wicaby.core.data.SessionGate
 import com.wika.wicaby.core.pair.PairRequest
 import com.wika.wicaby.core.pair.PairServer
 import com.wika.wicaby.core.pair.isLanAddress
+import com.wika.wicaby.core.pair.pairable
 import com.wika.wicaby.meshui.QrCode
 import com.wika.wicaby.tv.LocalSnapshot
 import com.wika.wicaby.tv.R
@@ -48,6 +49,7 @@ private suspend fun signIn(req: PairRequest, deviceId: String, probed: (String) 
     if (!SafeNames.isValidId(req.userId)) return false
     val server = Api.probe(req.server)
     probed(server.id)
+    if (!pairable(server.kind)) return false
     val api = Api.of(server, deviceId, req.accessToken, req.userId)
     // TP-11: the token check both servers refuse outside the hours (and the hours, kept for the message).
     val user = AccessSchedules.verify(api, req.userId)

@@ -101,6 +101,7 @@
     <string name="downloads_empty_sub">Touchez Télécharger sur un film ou un épisode pour le regarder hors ligne.</string>
     <string name="download_queued">En attente</string>
     <string name="download_failed">Échec · touchez pour réessayer</string>
+    <string name="download_server_signed_out">Connectez-vous au serveur de ce téléchargement pour le lire.</string>
     <string name="download_size">%1$s sur %2$s</string>
     <string name="downloaded_size">Téléchargé · %1$s</string>
     <string name="delete">Supprimer</string>

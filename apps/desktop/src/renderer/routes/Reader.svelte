@@ -12,7 +12,7 @@
   import { back, router } from '../lib/router.svelte';
   import { dataVersion, errorMessage } from '../lib/stores.svelte';
   import { ZoomPan } from '../lib/zoom.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, reducedMotion } from '../lib/motion';
 
   // Comic reader (CBZ). Pages come from wicaby-media://comic/<id>/<n>, which
   // main serves out of the cached archive. Spreads, zoom and pan move with
@@ -134,7 +134,7 @@
   }
 
   function scrollBy(dy: number): void {
-    scroller?.scrollBy({ top: dy, behavior: document.documentElement.hasAttribute('data-reduce-motion') ? 'auto' : 'smooth' });
+    scroller?.scrollBy({ top: dy, behavior: reducedMotion() ? 'auto' : 'smooth' });
   }
 
   // Entering the mode (or opening a webtoon) lands on the current page.
@@ -424,8 +424,7 @@
     void spreadIndex;
     if (!chrome || !strip) return;
     const el = strip.querySelector<HTMLElement>('.thumb.on');
-    const reduce = document.documentElement.hasAttribute('data-reduce-motion');
-    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
   });
 
   function stripWheel(e: WheelEvent): void {

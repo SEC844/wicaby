@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { BaseItem } from '../../shared/models';
   import { itemKey, itemPath, playQueueFor } from '../lib/api';
   import { w } from '../lib/bridge';
@@ -26,6 +27,15 @@
 
   const idx = $derived(Math.min(current, Math.max(0, slides.length - 1)));
   const item = $derived(slides[idx]);
+  // Backdrops load for the slide shown and the next one (ready for the crossfade), then stay: not all six at
+  // start for slides that may never come (autoplay off, reduced motion).
+  let warm = $state<string[]>([]);
+  $effect(() => {
+    for (const s of [slides[idx], slides[(idx + 1) % Math.max(1, slides.length)]]) {
+      const k = s && itemKey(s);
+      if (k && !untrack(() => warm).includes(k)) warm = [...untrack(() => warm), k];
+    }
+  });
 
   // Hover, focus or scrolling the hero away holds the slide; the full delay restarts afterwards.
   $effect(() => {
@@ -118,7 +128,7 @@
       {#each slides as s, i (itemKey(s))}
         {@const bg = backdropUrl(s, 1920)}
         <div class="bg" class:active={i === idx}>
-          {#if bg}<img class="reveal" use:reveal src={bg} alt="" decoding="async" fetchpriority={i === 0 ? 'high' : 'low'} />{/if}
+          {#if bg && warm.includes(itemKey(s))}<img class="reveal" use:reveal src={bg} alt="" decoding="async" fetchpriority={i === 0 ? 'high' : 'low'} />{/if}
         </div>
       {/each}
     </div>

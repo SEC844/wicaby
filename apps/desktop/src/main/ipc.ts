@@ -384,6 +384,8 @@ export function registerIpc(deps: IpcDeps): void {
   });
 
   // api proxy
+  // One liveness check (and at most one sign-out) per server for a burst of parallel 401s.
+  const tokenChecks = new Map<string, Promise<void>>();
   handle(Channels.apiRequest, async (_e, method: unknown, path: unknown, query: unknown, body: unknown, serverId: unknown) => {
     if (method !== 'GET' && method !== 'POST' && method !== 'DELETE' && method !== 'PUT') throw new Error(t('errors.ipc.methodRefused'));
     if (!isSafeApiPath(path)) throw new Error(t('errors.ipc.pathRefused'));
@@ -398,14 +400,22 @@ export function registerIpc(deps: IpcDeps): void {
       if (err instanceof ApiError && err.status === 0 && s) void connection.reportFailure(s.server.id);
       const userId = s?.user?.id;
       if (err instanceof ApiError && err.status === 401 && s?.status === 'signed-in' && userId) {
-        const alive = await api.request('GET', `/Users/${userId}`).then(
-          () => true,
-          (e: unknown) => !(e instanceof ApiError && e.status === 401),
-        );
-        if (!alive) {
-          log.warn(`token rejected by ${s.server.name}, signing out`);
-          await connection.logout(s.server.id);
-        } else log.warn(`401 on ${method} ${path} (token still valid)`);
+        const id = s.server.id;
+        let check = tokenChecks.get(id);
+        if (!check) {
+          check = (async () => {
+            const alive = await api.request('GET', `/Users/${userId}`).then(
+              () => true,
+              (e: unknown) => !(e instanceof ApiError && e.status === 401),
+            );
+            if (!alive && connection.sessionFor(id)?.status === 'signed-in') {
+              log.warn(`token rejected by ${s.server.name}, signing out`);
+              await connection.logout(id);
+            } else if (alive) log.warn(`401 on ${method} ${path} (token still valid)`);
+          })().finally(() => tokenChecks.delete(id));
+          tokenChecks.set(id, check);
+        }
+        await check;
       }
       // Only the message crosses IPC: keep the status readable for the renderer (livetv/api.ts statusOf).
       if (err instanceof ApiError && err.status > 0 && !/\bHTTP \d{3}\b/.test(err.message)) throw new ApiError(`${err.message} (HTTP ${err.status})`, err.status);

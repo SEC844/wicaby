@@ -70,6 +70,10 @@ try {
     assert.equal(F.epubPageImage(`<body><img src="a.png"/><p>${'mot '.repeat(80)}</p></body>`, 'x.xhtml', false), null, 'reflowable page with text: a text page');
     assert.equal(F.epubPageImage(`<body><img src="a.png"/><p>${'mot '.repeat(80)}</p></body>`, 'x.xhtml', true), 'a.png', 'fixed layout: the image counts');
     assert.equal(F.epubPageImage('<img src="https://example.invalid/a.png"/>', 'x.xhtml', true), null, 'remote images are not pages');
+    // A hostile page of '<' with no '>' is stripped in linear time (the old /<[^>]*>/ took minutes on 4 MiB).
+    const t0 = performance.now();
+    F.epubPageImage(`<body>${'<'.repeat(200_000)}`, 'x.xhtml', false);
+    assert.ok(performance.now() - t0 < 1000, `tag strip is linear (${Math.round(performance.now() - t0)} ms)`);
     assert.equal(F.isTextBook(10, 4), true);
     assert.equal(F.isTextBook(10, 5), false);
   }
@@ -157,6 +161,14 @@ try {
   await rejects(extract('total.cbr', rar5(pages(5)), { ...LIMITS, maxTotal: 600 }), 'tooLarge', 'more bytes than the book cap');
   await rejects(extract('locked.cbr', rar5(pages(2), { encrypted: true })), 'encrypted', 'an encrypted RAR is refused');
   await rejects(job({ mode: 'extract', file: path.join(tmp, 'book-RAR5'), dir: path.join(tmp, 'cap.d'), maxArchive: 100, limits: LIMITS }), 'tooLarge', 'an archive past the in-memory cap');
+  {
+    // A worker cut off by the timeout never cleans up itself: its half-written folder goes with it.
+    const dir = path.join(tmp, 'slow.d');
+    fs.mkdirSync(`${dir}.part`, { recursive: true });
+    fs.writeFileSync(path.join(`${dir}.part`, '0001.png'), 'half');
+    await rejects(job({ mode: 'extract', file: path.join(tmp, 'book-RAR5'), dir, maxArchive: 1024 ** 3, limits: LIMITS }, 1), 'tooLarge', 'a timed-out extract');
+    assert.ok(!fs.existsSync(`${dir}.part`), 'no .part folder left after a timeout');
+  }
   {
     const { dir, names } = await extract('evil.cbt', tar([{ name: '../escape.png', data: three[0].data }, { name: '/abs/02.png', data: three[1].data }]));
     // '..' reads as a hidden path part and is skipped; the absolute name is flattened into the folder.

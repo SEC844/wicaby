@@ -37,11 +37,25 @@ object G {
     var theme by mutableStateOf(Tokens.Graphite.id)
     var systemDark by mutableStateOf(true)
     // The player and the reader stay dark in the light theme, like the desktop's media surfaces: counted up in
-    // their onStart and down in onStop, so a reader opened over a PiP player stays dark when the player stops.
+    // their onStart and down in onStop ([MediaHold]), so a reader opened over a PiP player stays dark when the player stops.
     // shortcut: process-wide, so the screen behind a picture-in-picture player is dark too; a per-window palette
     // (CompositionLocal) would fix it.
     var mediaStarted by mutableIntStateOf(0)
     val media get() = mediaStarted > 0
+
+    /** One activity's share of [mediaStarted]: on in onStart, off in onStop, or already in onPause when it is
+     *  finishing (the screen behind resumes before this one stops, and would draw one dark frame). */
+    class MediaHold {
+        private var on = false
+        fun start() {
+            if (!on) mediaStarted++
+            on = true
+        }
+        fun stop() {
+            if (on) mediaStarted--
+            on = false
+        }
+    }
     val palette: Tokens.Palette get() {
         val p = if (theme == THEME_SYSTEM) (if (systemDark) Tokens.Graphite else Tokens.Light) else Tokens.byId(theme)
         return if (media && p.light) Tokens.Graphite else p
@@ -67,7 +81,11 @@ object G {
 
 // Same order and values as html[data-accent] and the TV app, in the current theme's tones; the index is what
 // Prefs stores. [ACCENT_SYSTEM] comes after them.
-val Accents get() = G.palette.accents.map { Color(it.argb) }
+// Built once per palette: both are read during composition.
+private val accentColors = Tokens.Themes.associateWith { p -> p.accents.map { Color(it.argb) } }
+// The theme's tones first, then the Graphite ones (reversed: associate keeps the last of equal keys).
+private val onAccents = Tokens.Themes.associateWith { p -> (p.accents + Tokens.Accents).asReversed().associate { Color(it.argb) to Color(it.onArgb) } }
+val Accents get() = accentColors.getValue(G.palette)
 
 // The wallpaper's colour (Material You, Android 12+): the accent only, the canvas stays the theme's.
 const val ACCENT_SYSTEM = 8
@@ -102,7 +120,7 @@ val AccentNames = listOf(
 )
 
 fun onAccent(c: Color) = dynamicAccent?.takeIf { it.first == c }?.second
-    ?: (G.palette.accents + Tokens.Accents).firstOrNull { Color(it.argb) == c }?.let { Color(it.onArgb) } ?: Color.White
+    ?: onAccents.getValue(G.palette)[c] ?: Color.White
 
 val LocalAccent = staticCompositionLocalOf { Accents[0] }
 

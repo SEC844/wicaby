@@ -1,6 +1,7 @@
 package com.wika.wicaby.mobile.download
 
 import com.wika.wicaby.core.data.Item
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,5 +44,30 @@ class ContinuesPartTest {
         assertFalse(keepsPart(old, "/d/a.mp4", "v1"))
         // Kept validator: a same-size source edited in place no longer splices.
         assertFalse(continuesPart(500, "bytes 500-999/1000", "\"e2\"", old.validator, old.total))
+    }
+
+    // A failed copy from a released build ("<id>.mkv" + its .part) re-downloads into the same file, so it resumes.
+    @Test
+    fun legacyFileNameIsKeptOnReDownload() {
+        assertEquals("/d/4512.mkv", targetPath("/d/4512.mkv", "/d/4512.mkv", "/d/srvA-4512.mkv"))
+        assertEquals("/d/srvA-4512.mkv", targetPath(null, "/d/4512.mkv", "/d/srvA-4512.mkv"))
+        // Another version (other extension): the new name.
+        assertEquals("/d/srvA-4512.mp4", targetPath("/d/4512.mkv", "/d/4512.mp4", "/d/srvA-4512.mp4"))
+    }
+
+    // Two Emby servers both have an item "4512": each copy is its server's, never the other's.
+    @Test
+    fun copiesAreKeyedByServerAndId() {
+        val a = DownloadEntry("4512", "srvA", "u", Item("4512"), "/d/srvA-4512.mkv")
+        assertTrue(a.isOf("srvA", "4512"))
+        assertFalse(a.isOf("srvB", "4512"))
+        assertFalse(workName("srvA", "4512") == workName("srvB", "4512"))
+    }
+
+    // Released builds queued "dl-<id>": the startup check and delete() must still find that job.
+    @Test
+    fun legacyWorkNameMatchesReleasedBuilds() {
+        assertEquals("dl-4512", legacyWorkName("4512"))
+        assertFalse(legacyWorkName("4512") == workName("srvA", "4512"))
     }
 }

@@ -28,6 +28,7 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.pair.PairTarget
+import com.wika.wicaby.core.pair.pairable
 import com.wika.wicaby.core.pair.parsePairUrl
 import com.wika.wicaby.core.pair.sendPair
 import com.wika.wicaby.mobile.R
@@ -89,6 +90,7 @@ fun PairTvRow(api: Api, userName: String) {
         confirmButton = {
             TextButton({
                 target = null
+                if (!pairable(api.server.kind)) return@TextButton
                 val userId = api.userId ?: return@TextButton
                 val token = api.token ?: return@TextButton
                 scope.launch {

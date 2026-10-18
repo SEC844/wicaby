@@ -64,12 +64,21 @@ export class CredentialVault {
   private async load(): Promise<void> {
     if (!fs.existsSync(this.filePath)) return;
     let reEncrypt = false;
+    let blob: Buffer | null = null;
     try {
-      const blob = fs.readFileSync(this.filePath);
+      blob = fs.readFileSync(this.filePath);
       const { result, shouldReEncrypt } = await this.decrypt(blob);
       this.entries = JSON.parse(result) as Record<string, StoredCredential>;
       reEncrypt = shouldReEncrypt;
     } catch (err) {
+      // No usable key right now (Linux keyring not up yet at login, unlock prompt dismissed: basic_text cannot
+      // open a keyring 'v11' blob) is not a corrupt file: it stays in place for the next start, memory only meanwhile.
+      if (blob && (!(await this.available()) || (this.plainText && blob.subarray(0, 3).toString() === 'v11'))) {
+        this.readOnly = true;
+        this.entries = {};
+        log.warn('credential vault not readable with the current OS key, kept in place; credentials are in memory only for now', err);
+        return;
+      }
       // Kept aside rather than overwritten by the next save: another Windows user or a
       // restored profile key may still open it.
       const aside = `${this.filePath}.${Date.now()}.unreadable`;
@@ -108,6 +117,16 @@ export class CredentialVault {
   // True when the OS "encryption" is a fixed key anyone can undo (Linux, no keyring).
   get plainText(): boolean {
     return (this.opts.platform ?? process.platform) === 'linux' && this.storage.getSelectedStorageBackend?.() === 'basic_text';
+  }
+
+  private async available(): Promise<boolean> {
+    const s = this.storage;
+    try {
+      if (hasAsync(s)) return await s.isAsyncEncryptionAvailable!();
+      return typeof s.isEncryptionAvailable === 'function' && s.isEncryptionAvailable();
+    } catch {
+      return false;
+    }
   }
 
   private async encrypt(plainText: string): Promise<Buffer | null> {

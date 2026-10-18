@@ -136,4 +136,14 @@ class ComicsTest {
         val f = File.createTempFile("comic", ".cbr").apply { writeBytes("Rar!\u001a\u0007\u0000 not a zip".toByteArray()); deleteOnExit() }
         ComicArchive(f)
     }
+
+    @Test
+    fun downloadCopyIsCapped() {
+        val out = java.io.ByteArrayOutputStream()
+        assertEquals(10L, Comics.copyCapped(ByteArray(10).inputStream(), out, 10))
+        assertEquals(10, out.size())
+        // A body past the cap (a chunked one has no length to check first) is refused while copying.
+        val refused = runCatching { Comics.copyCapped(ByteArray(200_000).inputStream(), java.io.ByteArrayOutputStream(), 100_000) }
+        assertEquals(ComicRefused.Reason.TOO_LARGE, (refused.exceptionOrNull() as ComicRefused).reason)
+    }
 }

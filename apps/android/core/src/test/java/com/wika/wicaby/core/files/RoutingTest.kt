@@ -74,6 +74,21 @@ class RoutingTest {
     }
 
     @Test
+    fun basicAuthSurvivesTheMeshForwarder() {
+        // A source on a mesh address (192.0.2.50 is never contacted) reached through the local forwarder at [dav].
+        val forwarder = dav.url("/tok").toString()
+        val mesh = OkHttpClient.Builder()
+            .addInterceptor(TransportInterceptor { object : ServerTransport { override fun forward(origin: String) = forwarder.takeIf { origin == "http://192.0.2.50:8080" } } })
+            .build()
+        val source = FilesTestKit.source("http://192.0.2.50:8080/media")
+        dav.enqueue(ok())
+        davClient(mesh, source, creds).newCall(Request.Builder().url("http://192.0.2.50:8080/media/a.mkv").build()).execute().use { assertEquals(200, it.code) }
+        val r = dav.takeRequest()
+        assertEquals("/tok/media/a.mkv", r.target)
+        assertEquals(basic, r.headers["Authorization"])
+    }
+
+    @Test
     fun aRedirectOffTheHostDropsAuthorization() {
         dav.enqueue(MockResponse.Builder().code(302).addHeader("Location", other.url("/elsewhere.mkv")).build())
         other.enqueue(ok())

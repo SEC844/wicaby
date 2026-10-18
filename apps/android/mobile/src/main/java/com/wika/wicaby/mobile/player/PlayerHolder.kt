@@ -53,7 +53,7 @@ object PlayerHolder {
         Casting.stopDirect()
         val eng = ensureEngine(app)
         val start = if (shuffle && items.isNotEmpty()) items.indices.random() else index
-        val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(id) }, onReleased = { if (music === it) music = null })
+        val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(api.server.id, id) }, onReleased = { if (music === it) music = null })
         s.start()
         if (shuffle) s.toggleShuffle()
         music = s
@@ -74,7 +74,7 @@ object PlayerHolder {
         val pb = Playback(
             context.applicationContext, api, eng.player, id, fromStart,
             // A downloaded copy resumes where it was last watched offline (OfflineProgress), not where it was downloaded.
-            local = { id -> Downloads.local(id)?.let { LocalMedia(it.item.withPending(OfflineProgress.pending(), api.server.id, api.userId), it.uri) } },
+            local = { id -> Downloads.local(api.server.id, id)?.let { LocalMedia(it.item.withPending(OfflineProgress.pending(), api.server.id, api.userId), it.uri) } },
             onStopped = { Cache.invalidateHome() },
             onEnded = { playback?.let(::autoNext) },
             trailer = trailer,

@@ -128,6 +128,18 @@ try {
   const f1 = await svc.saveOriginal(sid, target.id);
   const f2 = await svc.saveOriginal(sid, target.id);
   assert.ok(f1 !== f2 && fs.existsSync(f1) && fs.existsSync(f2) && path.dirname(f1) === path.join(dir, 'dl'), 'originals never overwrite');
+  assert.equal(fs.readFileSync(f1).length, Number((await (await fetch(`${m.base}/api/assets/${target.id}/original`, { headers: { 'x-api-key': KEY } })).arrayBuffer()).byteLength), 'streamed whole');
+  // Marked as downloaded from the internet (SmartScreen asks before running it).
+  if (process.platform === 'win32') assert.match(fs.readFileSync(`${f1}:Zone.Identifier`, 'utf8'), /ZoneId=3/);
+  // A name taken between the free-name check and the open (another save, another process): that file stays.
+  const exists = fs.existsSync;
+  fs.existsSync = () => false;
+  try {
+    await assert.rejects(svc.saveOriginal(sid, target.id), /EEXIST/);
+  } finally {
+    fs.existsSync = exists;
+  }
+  assert.ok(fs.existsSync(f1), 'a lost race never deletes the file that was there');
   ok('favourite toggle, thumbnail through media(), refused paths, original saved without overwriting');
 
   // The key travelled in the header only, and only to the mock.

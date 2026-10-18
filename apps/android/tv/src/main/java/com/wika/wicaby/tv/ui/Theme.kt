@@ -55,9 +55,13 @@ object TvFocus {
 }
 
 // Same order and values as html[data-accent] in the desktop app, in the current theme's tones.
-val Accents get() = C.palette.accents.map { Color(it.argb) }
+// Built once per palette: both are read during composition.
+private val accentColors = Tokens.Themes.associateWith { p -> p.accents.map { Color(it.argb) } }
+// The theme's tones first, then the Graphite ones (reversed: associate keeps the last of equal keys).
+private val onAccents = Tokens.Themes.associateWith { p -> (p.accents + Tokens.Accents).asReversed().associate { Color(it.argb) to Color(it.onArgb) } }
+val Accents get() = accentColors.getValue(C.palette)
 
-fun onAccent(c: Color) = (C.palette.accents + Tokens.Accents).firstOrNull { Color(it.argb) == c }?.let { Color(it.onArgb) } ?: Color.White
+fun onAccent(c: Color) = onAccents.getValue(C.palette)[c] ?: Color.White
 
 val LocalAccent = staticCompositionLocalOf { Accents[0] }
 

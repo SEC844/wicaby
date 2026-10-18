@@ -126,7 +126,7 @@ export class Relay {
       const up = await fetchFromServer(entry.api, stripTokenParams(m[2] + (m[3] ?? '')), req.method, (h) => {
         const v = req.headers[h];
         return typeof v === 'string' ? v : null;
-      });
+      }, ac.signal);
       const headers: Record<string, string> = {};
       for (const h of PASS) {
         const v = up.headers.get(h);

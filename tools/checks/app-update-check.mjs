@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { compareVersions, installKind, parseVersion, releaseUpdate, trimRelease } from '../../apps/desktop/src/shared/app-update.ts';
+import { defaultSettings, merge } from '../../apps/desktop/src/shared/default-settings.ts';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -23,7 +24,21 @@ assert.equal(installKind('win32', { PORTABLE_EXECUTABLE_DIR: 'D:\\Apps' }), 'por
 assert.equal(installKind('linux', { APPIMAGE: '/home/a/Wicaby.AppImage' }), 'appimage');
 assert.equal(installKind('linux', {}), 'deb');
 
-// 3. The release answer, with this repo's real asset names.
+// 2b. Settings merge (the updates section lives there): a section never turns into null or a scalar, so a
+// hand-edited settings.json or a bad patch cannot crash main on the next start.
+{
+  const d = defaultSettings();
+  const m = merge(d, { ui: null, playback: 'x', window: null, updates: { autoCheck: false } });
+  assert.deepEqual(m.ui, d.ui);
+  assert.deepEqual(m.playback, d.playback);
+  assert.deepEqual(m.window, {});
+  assert.equal(m.updates.autoCheck, false);
+}
+
+// 3. The release answer, with this repo's real asset names (the ones electron-builder.yml writes).
+const builder = read('apps/desktop/electron-builder.yml');
+assert.match(builder, /^artifactName: \$\{productName\}-\$\{version\}-\$\{arch\}\.\$\{ext\}$/m, 'setup: Wicaby-X.Y.Z-x64.exe');
+assert.match(builder, /^  artifactName: \$\{productName\}-\$\{version\}-portable\.\$\{ext\}$/m, 'portable: Wicaby-X.Y.Z-portable.exe');
 const dl = (tag, name) => `https://github.com/WicaebethTheo/wicaby/releases/download/${tag}/${name}`;
 const release = (tag = 'v0.10.6', extra = {}) => ({
   tag_name: tag,
@@ -31,15 +46,15 @@ const release = (tag = 'v0.10.6', extra = {}) => ({
   draft: false,
   prerelease: false,
   assets: [
-    'SHA256SUMS.txt', `Wicaby-${tag.slice(1)}-x64-setup.exe`, `Wicaby-${tag.slice(1)}-x64-portable.exe`,
+    'SHA256SUMS.txt', `Wicaby-${tag.slice(1)}-x64.exe`, `Wicaby-${tag.slice(1)}-portable.exe`,
     `Wicaby-${tag.slice(1)}-arm64.AppImage`, `Wicaby-${tag.slice(1)}-x86_64.AppImage`, `Wicaby-${tag.slice(1)}-amd64.deb`, `Wicaby-${tag.slice(1)}.tar.gz`,
     `Wicaby-TV-foss-${tag.slice(1)}-arm64.apk`,
   ].map((name) => ({ name, browser_download_url: dl(tag, name) })),
   ...extra,
 });
 const page = 'https://github.com/WicaebethTheo/wicaby/releases/tag/v0.10.6';
-assert.deepEqual(releaseUpdate(release(), '0.10.5', 'setup'), { version: '0.10.6', notesUrl: page, downloadUrl: dl('v0.10.6', 'Wicaby-0.10.6-x64-setup.exe') });
-assert.equal(releaseUpdate(release(), '0.10.5', 'portable').downloadUrl, dl('v0.10.6', 'Wicaby-0.10.6-x64-portable.exe'));
+assert.deepEqual(releaseUpdate(release(), '0.10.5', 'setup'), { version: '0.10.6', notesUrl: page, downloadUrl: dl('v0.10.6', 'Wicaby-0.10.6-x64.exe') });
+assert.equal(releaseUpdate(release(), '0.10.5', 'portable').downloadUrl, dl('v0.10.6', 'Wicaby-0.10.6-portable.exe'));
 assert.equal(releaseUpdate(release(), '0.10.5', 'appimage').downloadUrl, dl('v0.10.6', 'Wicaby-0.10.6-x86_64.AppImage'), 'never the arm64 AppImage');
 assert.equal(releaseUpdate(release(), '0.10.5', 'deb').downloadUrl, dl('v0.10.6', 'Wicaby-0.10.6-amd64.deb'));
 // The trimmed cache copy gives the same answer.
@@ -53,15 +68,15 @@ assert.equal(releaseUpdate(release('v0.11.0-beta.1'), '0.10.5', 'setup'), null);
 for (const junk of [null, 'x', 42, [], {}]) assert.equal(releaseUpdate(junk, '0.10.5', 'setup'), null);
 
 // 4. Trust boundary: only https://github.com/WicaebethTheo/wicaby/releases/download/<tag>/… is ever opened.
-const hostile = (url) => release('v0.10.6', { assets: [{ name: 'Wicaby-0.10.6-x64-setup.exe', browser_download_url: url }] });
+const hostile = (url) => release('v0.10.6', { assets: [{ name: 'Wicaby-0.10.6-x64.exe', browser_download_url: url }] });
 for (const url of [
-  'https://evil.example/Wicaby-0.10.6-x64-setup.exe',
-  'http://github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64-setup.exe',
-  'https://github.com/someone/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64-setup.exe',
-  'https://github.com/WicaebethTheo/wicaby/releases/download/v0.9.0/Wicaby-0.10.6-x64-setup.exe',
+  'https://evil.example/Wicaby-0.10.6-x64.exe',
+  'http://github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64.exe',
+  'https://github.com/someone/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64.exe',
+  'https://github.com/WicaebethTheo/wicaby/releases/download/v0.9.0/Wicaby-0.10.6-x64.exe',
   'https://github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/../../../../x.exe',
-  'https://user:pass@github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64-setup.exe',
-  'https://github.com.evil.example/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64-setup.exe',
+  'https://user:pass@github.com/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64.exe',
+  'https://github.com.evil.example/WicaebethTheo/wicaby/releases/download/v0.10.6/Wicaby-0.10.6-x64.exe',
   'javascript:alert(1)',
   42,
 ]) assert.equal(releaseUpdate(hostile(url), '0.10.5', 'setup').downloadUrl, page, `refused: ${url}`);

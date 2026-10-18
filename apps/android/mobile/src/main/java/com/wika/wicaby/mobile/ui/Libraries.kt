@@ -61,13 +61,15 @@ import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.Servers
 import com.wika.wicaby.mobile.R
+import com.wika.wicaby.mobile.music.addNew
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibrariesScreen(api: Api, nav: NavController) {
     var nonce by remember { mutableIntStateOf(0) }
-    val views = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
+    // Both counters only grow: a music source change reloads, the list staying on screen meanwhile.
+    val views = rememberLoad("views", nonce + com.wika.wicaby.core.music.MusicSource.version) { allViews(api).filter { it.collectionType in BROWSABLE } }
     val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
     PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
         val list = views.value
@@ -159,6 +161,8 @@ private class Paged {
     var total by mutableIntStateOf(-1)
     var loading = false
     var failed by mutableStateOf(false)
+    // The server's offset: items can be fewer once repeats are dropped (addNew).
+    var offset = 0
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,15 +183,16 @@ fun GridScreen(api: Api, route: GridRoute, nav: NavController) {
     }
 
     suspend fun more() {
-        if (paged.loading || (paged.total >= 0 && paged.items.size >= paged.total)) return
+        if (paged.loading || (paged.total >= 0 && paged.offset >= paged.total)) return
         paged.loading = true
         try {
             val r = api.items(
                 "ParentId" to route.parentId, "PersonIds" to route.personId, "IncludeItemTypes" to types, "Recursive" to (types != null),
                 "SortBy" to sort.by, "SortOrder" to if (sort.descending != flip) "Descending" else "Ascending",
-                "Filters" to filter.query, "StartIndex" to paged.items.size, "Limit" to 100,
+                "Filters" to filter.query, "StartIndex" to paged.offset, "Limit" to 100,
             )
-            paged.items += r.items
+            paged.offset += r.items.size
+            paged.items.addNew(r.items)
             paged.total = r.totalRecordCount
             paged.failed = false
         } catch (e: Exception) {

@@ -240,6 +240,11 @@ function Sign-In([string]$Serial, [string]$Package, [string]$Activity, [string]$
   Type-Into-Field $Serial 'wicaby'
   # Android TV asks once whether to add the app's launcher channel to the home screen: say no (system language).
   if ($Package -eq 'com.wika.wicaby.tv') { try { Tap-Text $Serial 'Cancel' 15; Pause-For 2 } catch { Write-Host "$Serial`: no channel prompt" } }
+  # Then Home suggests the OLED or Cinema theme once, in place of the first row: keep the default Graphite.
+  if ($Package -eq 'com.wika.wicaby.tv') {
+    $keep = @{ 'fr-FR' = 'Garder Graphite'; 'en-US' = 'Keep Graphite' }[$Locale]
+    try { Tap-Text $Serial $keep 15; Pause-For 2 } catch { Write-Host "$Serial`: no theme suggestion" }
+  }
 }
 
 # --- embedded helpers (written to the temp folder) -------------------------------------------

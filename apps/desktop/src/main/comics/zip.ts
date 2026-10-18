@@ -309,7 +309,8 @@ export async function rangeBody(res: Response, max: number): Promise<Buffer> {
 export async function httpSource(get: RangeFetch): Promise<ZipSource> {
   const refuse = (res: Response): never => {
     void res.body?.cancel();
-    throw new Error(`Range refusé (HTTP ${res.status})`); // i18n-ignore: covers fail silently
+    // status: a 5xx (or 502 for no answer) is the server's passing trouble, not the book's (ComicService.cover).
+    throw Object.assign(new Error(`Range refusé (HTTP ${res.status})`), { status: res.status }); // i18n-ignore: covers fail silently
   };
   const first = await get(`bytes=-${TAIL}`);
   const m = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(first.headers.get('content-range') ?? '');

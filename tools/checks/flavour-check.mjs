@@ -122,7 +122,7 @@ try {
   const tvVersion = /versionName\s*=\s*"([^"]+)"/.exec(read('apps/android/tv/build.gradle.kts'))[1];
   const gh = manifestFor([
     ['', `Wicaby-TV-foss-${tvVersion}-armv7.apk`], ['', `Wicaby-TV-foss-${tvVersion}-universal.apk`],
-    ['', `Wicaby-Mobile-foss-${version}-arm64.apk`], ['', `Wicaby-Mobile-gplay-${version}-arm64.apk`], ['', `Wicaby-${version}-x64-setup.exe`],
+    ['', `Wicaby-Mobile-foss-${version}-arm64.apk`], ['', `Wicaby-Mobile-gplay-${version}-arm64.apk`], ['', `Wicaby-${version}-x64.exe`],
   ]);
   assert.deepEqual(Object.keys(gh).sort(), ['mobile', 'mobile-gplay', 'tv']);
   assert.equal(gh.tv.apks['armeabi-v7a'].url, `https://example.org/r/Wicaby-TV-foss-${tvVersion}-armv7.apk`);

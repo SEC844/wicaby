@@ -206,16 +206,23 @@ class PlayerActivity : AppCompatActivity() {
         inPip = isInPictureInPictureMode
     }
 
+    private val media = G.MediaHold()
+
     override fun onStart() {
         super.onStart()
         PlayerHolder.visible = true
-        G.mediaStarted++
+        media.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isFinishing) media.stop()
     }
 
     override fun onStop() {
         super.onStop()
         PlayerHolder.visible = false
-        G.mediaStarted = (G.mediaStarted - 1).coerceAtLeast(0)
+        media.stop()
         // Stopped in PiP with the screen on = the PiP window was dismissed: end playback. Locking
         // the phone in PiP stops the activity too, with the screen off: playback goes on.
         if (inPip && getSystemService(PowerManager::class.java).isInteractive) exit()

@@ -61,6 +61,8 @@
     void tick().then(() => (panel?.querySelector<HTMLElement>('[data-autofocus]') ?? panel?.querySelector<HTMLElement>('button:not([disabled]), input'))?.focus({ preventScroll: true }));
     const key = (e: KeyboardEvent) => {
       if (stack.at(-1) !== layer) return;
+      // A menu open inside the sheet (Picker, BrowseMenu) closes first: its own capture listener takes the key.
+      if (panel?.querySelector('[role="menu"]')) return;
       const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
       const back = e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing);
       if (e.key === 'Escape' || back) {

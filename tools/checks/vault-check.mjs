@@ -219,6 +219,25 @@ for (const storage of [asyncStorage({ available: false }), syncStorage({ availab
   assert.deepEqual((await CredentialVault.open(f, asyncStorage())).get('server:A'), A, 'new vault written next to it');
 }
 
+// ---- 9c. No usable OS key right now (Linux keyring not up yet): the vault stays in place, nothing overwrites it,
+//          and the next start with the keyring back opens it.
+{
+  const sub = fs.mkdtempSync(path.join(tmp, 'keyring-late-'));
+  const f = path.join(sub, 'vault.bin');
+  const blob = Buffer.concat([Buffer.from('v11'), Buffer.from('sealed by the keyring')]);
+  for (const storage of [
+    { ...asyncStorage({ sync: false, failDecrypt: true }), getSelectedStorageBackend: () => 'basic_text' },
+    asyncStorage({ sync: false, failDecrypt: true, available: false }),
+  ]) {
+    fs.writeFileSync(f, blob);
+    const v = await quiet(() => CredentialVault.open(f, storage, { platform: 'linux', allowPlainText: () => true }));
+    await quiet(() => v.set('server:A', A));
+    assert.deepEqual(fs.readdirSync(sub), ['vault.bin'], 'not moved aside');
+    assert.deepEqual(fs.readFileSync(f), blob, 'not overwritten');
+    assert.deepEqual(v.get('server:A'), A, 'memory only meanwhile');
+  }
+}
+
 // ---- 10. Without an explicit storage, Electron's safeStorage is used.
 {
   globalThis.__safeStorage = asyncStorage();

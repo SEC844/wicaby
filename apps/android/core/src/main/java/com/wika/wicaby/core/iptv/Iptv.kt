@@ -166,8 +166,8 @@ object Iptv {
         val src = IptvSource(UUID.randomUUID().toString().replace("-", "").take(8), name.trim().ifEmpty { hostOf(u) }.take(80), u, g)
         val p = fetchPlaylist(src)
         if (p.channels.isEmpty()) throw IptvError(IptvError.Kind.EMPTY)
-        store(src, p)
         saveSources(_sources.value + src)
+        store(src, p)
         bump()
         // Marked as refreshing: the screens' first calls must not start a second guide download.
         refreshing.add(src.id)
@@ -184,8 +184,11 @@ object Iptv {
     suspend fun remove(id: String) {
         start()
         saveSources(_sources.value.filterNot { it.id == id })
-        loaded.remove(id)
-        cache(id).deleteRecursively()
+        // Under the source's lock: a playlist or guide refresh in flight finds it gone and writes nothing back.
+        lock(id).withLock {
+            loaded.remove(id)
+            cache(id).deleteRecursively()
+        }
         val prefix = "$id-"
         updateState { s -> IptvState(s.favorites.filterNot { it.startsWith(prefix) }, s.played.filterKeys { !it.startsWith(prefix) }, s.prefs) }
         bump()
@@ -270,12 +273,16 @@ object Iptv {
         if (g != null && (g.guide == null || now - g.guideAt > REFRESH_MS)) refreshGuide(s)
     }
 
-    private suspend fun store(s: IptvSource, p: Playlist) = lock(s.id).withLock {
+    private suspend fun store(s: IptvSource, p: Playlist): Unit = lock(s.id).withLock {
+        if (!listed(s.id)) return@withLock
         val at = System.currentTimeMillis()
         val old = loaded[s.id]
         loaded[s.id] = Loaded(p, at, old?.guide, old?.guideAt ?: 0)
         writePlaylist(s.id, p, at)
     }
+
+    // Still a source: remove() ran while a download was in flight otherwise.
+    private fun listed(id: String) = _sources.value.any { it.id == id }
 
     private fun writePlaylist(id: String, p: Playlist, at: Long) = runCatching {
         writeAtomic(File(cache(id), "playlist.sealed")) { it.write(Vault.encrypt(jsonOut.encodeToString(PlaylistFile.serializer(), PlaylistFile(at, p))).toByteArray()) }
@@ -313,11 +320,11 @@ object Iptv {
             }
             val g = c.finish()
             log("guide ${hostOf(u)}: ${c.parser.channels} channels, ${c.count()} programmes kept of ${c.parser.programmes}, ${c.parser.skipped} skipped, ${System.currentTimeMillis() - now} ms")
-            lock(s.id).withLock {
-                val cur = loaded[s.id] ?: return@withLock
+            lock(s.id).withLock inner@{
+                val cur = loaded[s.id]?.takeIf { listed(s.id) } ?: return@inner
                 loaded[s.id] = Loaded(cur.playlist, cur.at, g, now)
+                runCatching { writeAtomic(File(cache(s.id), "guide.json")) { jsonOut.encodeToStream(GuideFile.serializer(), GuideFile(now, g), it) } }
             }
-            runCatching { writeAtomic(File(cache(s.id), "guide.json")) { jsonOut.encodeToStream(GuideFile.serializer(), GuideFile(now, g), it) } }
             bump()
             return@withLock
         }

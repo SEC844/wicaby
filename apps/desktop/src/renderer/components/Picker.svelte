@@ -28,6 +28,22 @@
     if (refocus) root?.querySelector<HTMLElement>('.pill')?.focus();
   }
 
+  // Capture phase, like the other menus: Escape or Back closes the menu only (not the page, nor a Sheet around it,
+  // which leaves keys to an open menu).
+  $effect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => {
+      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      if (e.key === 'Escape' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        close();
+      }
+    };
+    window.addEventListener('keydown', key, true);
+    return () => window.removeEventListener('keydown', key, true);
+  });
+
   function pick(v: T): void {
     close();
     if (v !== value) onchange(v);
@@ -37,13 +53,6 @@
 <svelte:window
   onpointerdown={(e) => {
     if (open && root && !root.contains(e.target as Node)) close(false);
-  }}
-  onkeydown={(e) => {
-    if (open && e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      close();
-    }
   }}
 />
 

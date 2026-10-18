@@ -2,9 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type { ImmichSource, ImmichTestResult, Query } from '../../shared/contract';
 import { JsonStore } from '../core/json-store';
 import type { CredentialVault } from '../core/vault';
+import { safeExt, safeName, ZONE_INTERNET } from '../downloads/download-path';
 
 // Immich as a second photo source (photos spec §3.2, PH-12), shown as its own library. Requests are written by hand
 // from the published HTTP API reference: no Immich code or SDK (spec §0). The API key lives in the vault, bound to
@@ -228,14 +231,32 @@ export class ImmichService extends EventEmitter {
       void r.body?.cancel();
       throw new ImmichError(r.status);
     }
+    if (!r.body) throw new ImmichError(502);
     const dir = this.deps.downloads();
     fs.mkdirSync(dir, { recursive: true });
+    // The name comes from whoever uploaded the asset: a media extension only (an .lnk, .hta or "x.jpg.exe"
+    // would run from Downloads), the stem cleaned like a download's (separators, device names).
     const raw = typeof meta.originalFileName === 'string' ? path.basename(meta.originalFileName) : '';
-    const name = raw.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/^\.+/, '').slice(0, 200) || `${assetId}.jpg`;
-    const ext = path.extname(name);
-    let file = path.join(dir, name);
-    for (let n = 1; fs.existsSync(file); n++) file = path.join(dir, `${path.basename(name, ext)} (${n})${ext}`);
-    fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()), { flag: 'wx' });
+    const dot = raw.lastIndexOf('.');
+    const ext = safeExt(dot > 0 ? raw.slice(dot + 1) : '') ?? 'bin';
+    const stem = safeName(dot > 0 ? raw.slice(0, dot) : raw, assetId);
+    let file = path.join(dir, `${stem}.${ext}`);
+    for (let n = 1; fs.existsSync(file); n++) file = path.join(dir, `${stem} (${n}).${ext}`);
+    // Streamed: a video original can be gigabytes, never held whole in main.
+    try {
+      await pipeline(Readable.fromWeb(r.body as import('node:stream/web').ReadableStream), fs.createWriteStream(file, { flags: 'wx' }));
+    } catch (err) {
+      // EEXIST: the name was taken after the check, and that file is someone else's.
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') fs.rmSync(file, { force: true });
+      throw err;
+    }
+    if (process.platform === 'win32') {
+      try {
+        fs.writeFileSync(`${file}:Zone.Identifier`, ZONE_INTERNET);
+      } catch {
+        // FAT and exFAT drives have no alternate streams.
+      }
+    }
     return file;
   }
 }

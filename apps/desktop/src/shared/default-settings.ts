@@ -129,6 +129,9 @@ export function merge<T>(base: T, patch: DeepPartial<T> | undefined): T {
     const current = out[key];
     if (value && typeof value === 'object' && !Array.isArray(value) && current && typeof current === 'object' && !Array.isArray(current)) {
       out[key] = merge(current, value as DeepPartial<typeof current>);
+    } else if (current && typeof current === 'object' && !Array.isArray(current)) {
+      // A section never becomes a scalar or null (a hand-edited file, a bad patch): the current one stays.
+      continue;
     } else if (value !== undefined) {
       out[key] = value;
     }

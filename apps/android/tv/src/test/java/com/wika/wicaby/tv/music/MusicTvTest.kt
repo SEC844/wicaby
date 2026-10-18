@@ -1,5 +1,7 @@
 package com.wika.wicaby.tv.music
 
+import android.app.ActivityManager
+import android.app.NotificationManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
@@ -37,6 +39,7 @@ import com.wika.wicaby.core.data.UserData
 import com.wika.wicaby.core.music.Lrc
 import com.wika.wicaby.tv.LocalNav
 import com.wika.wicaby.tv.Nav
+import com.wika.wicaby.tv.RemotePlays
 import com.wika.wicaby.tv.Route
 import com.wika.wicaby.tv.play
 import com.wika.wicaby.tv.playRemote
@@ -516,5 +519,27 @@ class MusicTvTest {
         playRemote(rule.activity, RemotePlay("v1", null, null, null, null))
         waitFor { shadowOf(rule.activity).peekNextStartedActivity() != null }
         assertEquals(PlayerActivity::class.java.name, shadowOf(rule.activity).nextStartedActivity.component?.className)
+    }
+
+    // In the background (MusicService's FOREGROUND_SERVICE does not count), a remote Play of a track asks first; the
+    // notification's tap then starts the music session at the asked track.
+    @Test
+    fun aRemotePlayOfATrackInTheBackgroundAsksThenStartsTheMusicSession() {
+        Music.testPlayer = ExoPlayer.Builder(app).build()
+        Core.api = api
+        val bg = ActivityManager.RunningAppProcessInfo().apply {
+            pid = android.os.Process.myPid()
+            importance = ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE
+        }
+        shadowOf(app.getSystemService(ActivityManager::class.java)).setProcesses(listOf(bg))
+        assertFalse(RemotePlays.canStart())
+        val nm = app.getSystemService(NotificationManager::class.java)
+        assertTrue(playRemote(rule.activity, RemotePlay("t2", 5_000, null, null, null, queue = listOf("t1", "t2", "t3"))))
+        waitFor { shadowOf(nm).getNotification(RemotePlays.NOTIFICATION_ID) != null }
+        assertNull(Music.session)
+        RemotePlays.accept(rule.activity)
+        waitFor { Music.session != null }
+        assertEquals(listOf("t1", "t2", "t3"), Music.session!!.queue.ids.toList())
+        assertEquals(1, Music.session!!.queue.index)
     }
 }

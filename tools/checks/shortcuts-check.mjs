@@ -158,6 +158,18 @@ check('music rows are editable, a music key does not clash with vod', () => {
   assert.equal(sc.conflictWith(table, 'vod.mute', 'R'), null);
 });
 check('a music override imports', () => assert.deepEqual(sc.validateImport({ 'music.lyrics': ['Shift+L'] }), { 'music.lyrics': ['Shift+L'] }));
+// Stored settings on start: one stale binding (here a key a newer default took) drops alone.
+check('repairOverrides keeps the bindings that still fit', () => {
+  const stored = { 'vod.mute': ['U'], 'music.lyrics': ['Ctrl+L'], 'gone.action': ['X'], 'music.queue': ['Shift+Q'] };
+  assert.equal(sc.validateImport(stored), null);
+  assert.deepEqual(sc.repairOverrides(stored), { 'vod.mute': ['U'], 'music.queue': ['Shift+Q'] });
+  assert.deepEqual(sc.repairOverrides(null), {});
+});
+check('repairOverrides keeps a valid map whole (two actions with swapped keys)', () => {
+  const swapped = { 'music.queue': ['L'], 'music.lyrics': ['Q'] };
+  assert.deepEqual(sc.validateImport(swapped), swapped);
+  assert.deepEqual(sc.repairOverrides(swapped), swapped);
+});
 for (const lang of ['fr', 'en']) {
   const doc = cat(lang);
   check(`music labels in ${lang}`, () => {

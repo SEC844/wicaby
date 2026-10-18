@@ -4,6 +4,7 @@
 //   - dist/packages/wicaby-tizen-<version>.wgt: Samsung Tizen, UNSIGNED (a .wgt is signed with the certificate of the
 //     TV it goes to: Tizen Studio or the CLI signs it, docs/webtv.md).
 // Run: node apps/webtv/scripts/package.mjs (tools/checks/webtv-check.mjs reads back what it writes)
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -170,7 +171,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
     console.error('package: apps/webtv/dist/tv is missing; run npm run build:webtv first');
     process.exit(1);
   }
+  // The GPL text, the notices and the npm licence texts ship inside the packages, as on the desktop.
+  execFileSync(process.execPath, [path.join(repo, 'tools/release/licenses.mjs'), path.join(dist, 'licenses')], { stdio: 'inherit' });
   const files = walk(dist);
+  if (!files.some((f) => f.rel === 'licenses/LICENSE.txt')) throw new Error('package: licenses/LICENSE.txt missing');
   const out = path.join(root, 'dist', 'packages');
   fs.mkdirSync(out, { recursive: true });
   const ipk = path.join(out, `wicaby-webos-${version}.ipk`);

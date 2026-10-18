@@ -2,6 +2,9 @@ package com.wika.wicaby.core.files
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Vault
@@ -40,8 +43,13 @@ object FileSources {
         Api.forKind = { server, device, _, _ -> if (server.isFiles) { deviceId = device; api(server.id) } else null }
     }
 
+    // Sources whose stored password no longer opens, worked out here once: screens ask per row on every
+    // recomposition, and each answer is a file read plus a Keystore decrypt. Compose state, so rows follow it.
+    private var signIn by mutableStateOf(emptySet<String>())
+
     private fun reload() {
         every = store.list()
+        signIn = every.filter(store::needsSignIn).mapTo(HashSet()) { it.id }
         _list.value = every.filterNot { it.photos }
         _photos.value = every.filter { it.photos }
         _showOnHome.value = store.showOnHome
@@ -69,7 +77,7 @@ object FileSources {
     // Home's Continue row: only with the setting on (caps homeOptIn).
     fun forHome(): List<Api> = if (_showOnHome.value) all() else emptyList()
 
-    fun needsSignIn(s: FileSource) = store.needsSignIn(s)
+    fun needsSignIn(s: FileSource) = s.id in signIn
 
     fun backend(s: FileSource, creds: FileCredentials?): FileBackend = when (s.protocol) {
         FileSource.LOCAL -> LocalSaf(Core.app, s)

@@ -147,8 +147,8 @@ export class ApiClient {
 const TOKEN_PARAMS = new Set(['api_key', 'apikey', 'x-emby-token', 'x-mediabrowser-token']);
 const ABSOLUTE = /^[a-z][a-z0-9+.-]*:/i;
 
-// Removes token parameters from a URL's query, keeping the rest byte for byte.
-export function stripTokenParams(url: string): string {
+// Removes token parameters (and `extra` ones, lower case) from a URL's query, keeping the rest byte for byte.
+export function stripTokenParams(url: string, extra: readonly string[] = []): string {
   const q = url.indexOf('?');
   if (q < 0) return url;
   const h = url.indexOf('#', q);
@@ -164,7 +164,8 @@ export function stripTokenParams(url: string): string {
       } catch {
         // Malformed escape: compare it as written.
       }
-      return !TOKEN_PARAMS.has(name.trim().toLowerCase());
+      const key = name.trim().toLowerCase();
+      return !TOKEN_PARAMS.has(key) && !extra.includes(key);
     });
   return url.slice(0, q) + (kept.length ? `?${kept.join('&')}` : '') + url.slice(end);
 }
@@ -297,15 +298,19 @@ export function fetchServer(
 }
 
 // fetchServer as a plain Response: `auth` goes to the server only, a hop to another
-// origin is fetched again with `headers` alone (at most 5 hops). Null past that.
+// origin is fetched again with `headers` alone and without the `secret` query parameters
+// (a URL-signed server: Subsonic u/t/s/p) (at most 5 hops). Null past that.
 export async function fetchFollowing(
   api: Pick<ApiClient, 'address'>,
   url: string,
-  init: { method: string; headers: Record<string, string>; auth: Record<string, string>; signal?: AbortSignal },
+  init: { method: string; headers: Record<string, string>; auth: Record<string, string>; signal?: AbortSignal; timeoutMs?: number; secret?: readonly string[] },
 ): Promise<Response | null> {
-  const plain = { method: init.method, headers: init.headers, signal: init.signal };
+  const plain = { method: init.method, headers: init.headers, signal: init.signal, timeoutMs: init.timeoutMs };
   let hop = await fetchServer(api, url, { ...plain, headers: { ...init.headers, ...init.auth } });
-  for (let n = 0; 'foreign' in hop && n < 5; n++) hop = await fetchServer({ address: hop.foreign }, hop.foreign, plain);
+  for (let n = 0; 'foreign' in hop && n < 5; n++) {
+    const next = init.secret ? stripTokenParams(hop.foreign, init.secret) : hop.foreign;
+    hop = await fetchServer({ address: next }, next, plain);
+  }
   return 'response' in hop ? hop.response : null;
 }
 

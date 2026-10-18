@@ -26,8 +26,8 @@
 // player shot is a fake PlaybackState pushed into the renderer: nothing plays, nothing makes a sound
 // (the mock is started without a video file, so even a real play request would fail to open).
 //
-// Options: --only=<names>  (home, item, player, settings, admin, livetv, livetv-guide, livetv-player, reader, photos,
-//                           music, plex, home-en)
+// Options: --only=<names>  (home, home-light, item, player, settings, admin, livetv, livetv-guide, livetv-player, reader,
+//                           photos, music, navidrome, plex, home-en)
 //          --out=<dir>     (default docs/screenshots)
 //          --raw           also keep the untouched captures next to the output, as <name>.raw.png
 //          --frames[=dir]  demo mode: home, item, player and Live TV guide captured untouched into <dir>
@@ -35,7 +35,7 @@
 //          --keep          keep the app and the mock running after the shots, until Ctrl+C (to poke at them
 //                          with CDP_PORT=9700 node apps/desktop/scripts/cdp.mjs)
 // Ports: SHOTS_MOCK_PORT (8900), SHOTS_DEV_PORT (5580), SHOTS_CDP_PORT (9700), SHOTS_PLEX_PORT (8910, plex.tv on +1,
-// the relay on +2).
+// the relay on +2), SHOTS_NAVIDROME_PORT (8920).
 // Clock: the mock, the app's main process and the renderer all start at SHOTS_CLOCK (local time, default
 // 2026-10-09T20:30:00) and run at real speed from there, so the shots never show when they were taken.
 import { spawn, spawnSync } from 'node:child_process';
@@ -45,6 +45,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { MACHINE_ID as PLEX_SERVER } from '../mock-server/mock-plex.mjs';
+import { startMockNavidrome, USERS as ND_USERS } from '../mock-server/mock-navidrome.mjs';
 import { strip } from './strip-metadata.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -59,6 +60,7 @@ const MOCK_PORT = Number(process.env.SHOTS_MOCK_PORT) || 8900;
 const DEV_PORT = Number(process.env.SHOTS_DEV_PORT) || 5580;
 const CDP_PORT = Number(process.env.SHOTS_CDP_PORT) || 9700;
 const PLEX_PORT = Number(process.env.SHOTS_PLEX_PORT) || 8910;
+const ND_PORT = Number(process.env.SHOTS_NAVIDROME_PORT) || 8920;
 const PLEXTV = `http://127.0.0.1:${PLEX_PORT + 1}`;
 const PLEX_OWNER = 'a1b2c3d4e5f60718'; // the mock's Home owner, Wika (no PIN)
 const WIDTH = 1600;
@@ -183,6 +185,8 @@ if (process.versions.electron) {
     const m = load.call(this, request, ...rest);
     if (!hooked && request === 'electron' && m && m.app) {
       hooked = true;
+      // A dead proxy: Chromium and net.fetch reach loopback only (the update check, map tiles…).
+      m.app.commandLine.appendSwitch('proxy-server', 'http://127.0.0.1:9');
       m.app.commandLine.appendSwitch('mute-audio');
       m.app.on('browser-window-created', (_e, win) => {
         win.show = () => win.showInactive();
@@ -212,6 +216,8 @@ function seedProfile(lang, { emby = true } = {}) {
       downloads: { folder: 'D:\\Vidéos\\Wicaby' },
       window: { bounds: { x: 40, y: 30, width: WIDTH, height: HEIGHT } },
       windows: { trayHintShown: true },
+      // No GitHub release check (the guard's dead proxy would fail it anyway): no update notice in the shots.
+      updates: { autoCheck: false },
     }),
   );
   const guard = path.join(PROFILE, 'shots-guard.cjs');
@@ -422,7 +428,7 @@ async function shotPlayer() {
 async function shotSettings() {
   // The shots run with reduced motion and without hero autoplay; the settings page shows the defaults.
   await setSettings({ ui: { reduceMotion: false, heroAutoplay: true } });
-  await go('/settings');
+  await go('/settings?pane=appearance');
   await settle(1200);
   await capture('desktop-settings');
   await setSettings({ ui: { reduceMotion: true, heroAutoplay: false } });
@@ -569,7 +575,7 @@ async function seedComic() {
   entries.push({ name: 'ComicInfo.xml', data: Buffer.from('<ComicInfo><Series>Les Cartographes</Series><Number>1</Number></ComicInfo>') });
   const dir = path.join(PROFILE, 'cache', 'comics');
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, `${SERVER_ID}-${COMIC}.cbz`), zip(entries));
+  fs.writeFileSync(path.join(dir, `${SERVER_ID}-${COMIC}.book`), zip(entries));
 }
 
 async function shotReader() {
@@ -599,13 +605,62 @@ async function shotMusic() {
   await capture('desktop-music');
 }
 
+// The Light theme on Home (desktop-home-light), then back to the default Graphite.
+async function shotHomeLight() {
+  await setSettings({ ui: { theme: 'light' } });
+  await shotHome('desktop-home-light');
+  await setSettings({ ui: { theme: 'graphite' } });
+}
+
+// Navidrome (tools/mock-server/mock-navidrome.mjs, the mocks' invented music library) added through Sources, then
+// the Music page switched to it with the source menu open. The source is removed afterwards so later shots keep Emby only.
+async function shotNavidrome() {
+  const click = (sel, text) => cdp.evaluate(`(() => { const b = [...document.querySelectorAll(${js(sel)})].find((x) => ${text ? `x.textContent.includes(${js(text)})` : 'true'}); if (!b) return false; b.click(); return true; })()`);
+  const type = (sel, v) => cdp.evaluate(`(() => { const i = document.querySelector(${js(sel)}); if (!i) return false; i.value = ${js(v)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  const nd = await startMockNavidrome({ port: ND_PORT, quiet: true });
+  try {
+    await go('/servers');
+    // With a server already added, the source types sit behind the Add button.
+    await until('the Navidrome source type', async () => (await click('[data-type="navidrome"]')) || ((await click('.head-actions button.btn.primary')) && false), 20000, 500);
+    await until('the address field', () => type('#source-address', nd.url), 10000);
+    await cdp.evaluate(`document.querySelector('#source-address').form.requestSubmit(), true`);
+    await until('the Navidrome sign-in', () => cdp.evaluate(`location.hash.startsWith('#/login/')`), 20000);
+    const sid = await cdp.evaluate(`location.hash.split('/')[2]`);
+    await until('the sign-in form', () => cdp.evaluate(`!!document.querySelector('form.fields input[type=password]')`), 15000);
+    await type('form.fields input[autocomplete=username]', 'wika');
+    await type('form.fields input[type=password]', ND_USERS.wika);
+    await cdp.evaluate(`document.querySelector('form.fields button[type=submit]').click(), true`);
+    await until('Navidrome signed in', () => cdp.evaluate(`wicaby.session.get().then((s) => s.sessions.some((x) => x.server.id === ${js(sid)} && x.status === 'signed-in'))`), 20000);
+    await cdp.evaluate(`wicaby.servers.select(${js(SERVER_ID)}).then(() => true)`);
+    await sleep(1500);
+    const music = await until('the Emby music view', () => cdp.evaluate(`(async () => { const s = await wicaby.session.get(); const u = s.sessions.find((x) => x.server.id === ${js(SERVER_ID)}).user.id; const r = await wicaby.api.get('/Users/' + u + '/Views', undefined, ${js(SERVER_ID)}); return r.Items.find((v) => v.CollectionType === 'music')?.Id ?? null; })()`), 20000);
+    await go(`/library/${SERVER_ID}/${music}`);
+    await until('the music source switch', () => click('.music .head .trigger'), 20000);
+    await until('the source menu', () => click('[role="menuitemradio"]', 'Navidrome'), 5000);
+    await until('Navidrome music', () => cdp.evaluate(`location.hash.startsWith(${js(`#/library/${sid}/`)})`), 15000);
+    await until('the Navidrome albums', () => cdp.evaluate(`[...document.querySelectorAll('main img')].filter((i) => i.complete && i.naturalWidth > 0).length >= 6`), 20000);
+    await settle(1500);
+    await click('.music .head .trigger');
+    await sleep(500);
+    await capture('desktop-navidrome');
+    await cdp.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true`);
+    await setSettings({ music: { source: '' } }).catch(() => {});
+    await cdp.evaluate(`wicaby.servers.remove(${js(sid)}).then(() => wicaby.servers.select(${js(SERVER_ID)})).then(() => true)`);
+    await go('/home');
+    await sleep(1000);
+  } finally {
+    void nd.close(); // not awaited: the app may keep a connection alive
+  }
+}
+
 // Plex alone (no Emby on this profile, see main): link the mock plex.tv with a code, confirm its plain-http LAN address, pick the owner's
 // profile, then capture its Films section. Main reaches plex.tv only through WICABY_PLEXTV_BASE (the mock).
 async function shotPlex() {
   const click = (sel, text) => cdp.evaluate(`(() => { const b = [...document.querySelectorAll(${js(sel)})].find((x) => ${text ? `x.textContent.includes(${js(text)})` : 'true'}); if (!b) return false; b.click(); return true; })()`);
   await go('/servers');
-  await until('the Plex link button', () => click('button', 'Lier avec un code'), 20000);
-  const code = await until('the Plex code', () => cdp.evaluate(`document.querySelector('.plex-link .code')?.textContent.trim() || null`), 15000);
+  // Sources > Plex asks for a code at once ("Obtenir un code" only shows when that failed).
+  await until('the Plex source type', () => click('[data-type="plex"]'), 20000);
+  const code = await until('the Plex code', async () => (await cdp.evaluate(`document.querySelector('.plex-link .code')?.textContent.trim() || null`)) || ((await click('button', 'Obtenir un code')) && null), 20000, 500);
   const linked = await fetch(`${PLEXTV}/Mock/Pin/Link?code=${code}`, { method: 'POST' });
   if (!linked.ok) throw new Error(`the Plex mock refused the code (${linked.status})`);
   await until('the Plex sign-in', () => cdp.evaluate(`location.hash === ${js(`#/login/${PLEX_SERVER}`)}`), 20000);
@@ -859,7 +914,7 @@ function optimize(png) {
 // ---------------------------------------------------------------- main
 
 async function main() {
-  for (const [port, env] of [[MOCK_PORT, 'SHOTS_MOCK_PORT'], [DEV_PORT, 'SHOTS_DEV_PORT'], [CDP_PORT, 'SHOTS_CDP_PORT'], [PLEX_PORT, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 1, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 2, 'SHOTS_PLEX_PORT']]) {
+  for (const [port, env] of [[MOCK_PORT, 'SHOTS_MOCK_PORT'], [DEV_PORT, 'SHOTS_DEV_PORT'], [CDP_PORT, 'SHOTS_CDP_PORT'], [PLEX_PORT, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 1, 'SHOTS_PLEX_PORT'], [PLEX_PORT + 2, 'SHOTS_PLEX_PORT'], [ND_PORT, 'SHOTS_NAVIDROME_PORT']]) {
     if (!(await portFree(port))) throw new Error(`port ${port} is in use (set ${env} to another port)`);
   }
   fs.mkdirSync(OUT, { recursive: true });
@@ -887,6 +942,7 @@ async function main() {
   await settle(1500);
 
   if (wanted('home')) await shotHome('desktop-home');
+  if (wanted('home-light') && !FRAMES) await shotHomeLight();
   if (wanted('item')) await shotItem();
   if (wanted('player')) await shotPlayer();
   if (wanted('settings')) await shotSettings();
@@ -897,6 +953,7 @@ async function main() {
   if (wanted('reader')) await shotReader();
   if (wanted('photos')) await shotPhotos();
   if (wanted('music')) await shotMusic();
+  if (wanted('navidrome') && !FRAMES) await shotNavidrome();
 
   if (FRAMES) assembleDemo();
 

@@ -18,6 +18,8 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.13] - 2026-10-19
+
 ### Added
 
 - Desktop: the comic reader opens CBR (RAR 4 and RAR 5), CB7 (7z), CBT (tar), PDF and image EPUB books, as well
@@ -45,20 +47,6 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   position back); the remote's focus scrolls into view on Chromium 79 to 85; glass buttons get an opaque fill
   without blur; flex gaps are replaced by margins on webOS 6; the search field's Ctrl K hint is hidden on TVs. On
   the Pages demo a real server's sign-in is kept for the browser tab only (the github.io origin is shared).
-
-### Security
-
-- Desktop: downloads and comic books from a server that redirects them to another host (a .strm file, a remote
-  path) no longer send your server sign-in along; the other host is asked without it.
-- Desktop: when the server does not say in time whether a stream redirects, the player asks once more and, without an
-  answer, shows "The server didn't answer, try again" instead of risking sending your server sign-in to another host.
-- Desktop: the Emby Connect sign-in no longer follows redirects with its access key.
-- Mesh file shares (Windows, Linux, Android): an SMB share opened with a user name now requires signed replies, so
-  someone on the same network cannot change what you read. A share that only allows guest access must be added
-  with the user name guest.
-
-### Added
-
 - New themes on every app: Slate (graphite with a cool tint), Cinema (warm tones for evening viewing) and High
   Contrast (sharper text, no transparency). Graphite stays the default, and body text meets the WCAG AA contrast
   level in every theme.
@@ -79,55 +67,6 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   theme with a clearer check mark, and the back arrow in the setup is visible in the Light theme.
 - Desktop: the theme cards in Settings show keyboard focus with a clear ring.
 - Android TV: Home suggests the OLED or Cinema theme once. Settings and the setup show every theme as a small preview.
-
-### Fixed
-
-- Android: the Live TV guide follows a theme change at once instead of after a restart.
-- Android: an IPTV channel whose playlist sets a user agent or referrer with accented or control characters no
-  longer stops playback; that value is ignored.
-- Android TV: the recordings list of a Plex server with 500 recordings or more no longer loads forever.
-- Android mobile: a crash while a download was saved no longer makes the app forget every download.
-- Desktop: seeking often in a video from a WebDAV share no longer piles up connections until playback stalls.
-- Desktop: a settings or server file that cannot be read is kept beside the original (`.corrupt-` and the time)
-  instead of being overwritten, and a file emptied to `{}` no longer stops the app from starting.
-- Desktop: a failed save (full disk, locked file) no longer crashes the app, and is tried again; quitting saves
-  everything else even when one save fails.
-- Mesh: browser sign-in to a NetBird server that cannot be reached for a moment is tried again, instead of stopping
-  with "this NetBird server offers no browser sign-in".
-- Android TV: "Play on Wicaby" from another device now works when you have left the app or it is in the
-  background (for example while music plays): a notification offers to play it.
-- Android TV: switching to another profile in "Who is watching?" clears the previous profile's titles from the
-  launcher's "Watch Next" row.
-- Android: adding a server or changing networks no longer waits about 6 seconds for an address that does not
-  answer when another one already did.
-- Android: leaving the player during a quality or subtitle change no longer shows a "failed" message on the next
-  screen.
-- Android: SMB shares on a Tailscale or NetBird device work again after Remote Access is turned off and on.
-- Mesh file shares: two requests that reconnect an SMB share at the same time no longer break each other's
-  playback.
-- Mesh: a network hiccup during NetBird browser sign-in no longer replaces the code on screen while you confirm it.
-- Mesh: offline NetBird devices are no longer shown as online, and server discovery no longer waits on them.
-- Desktop: a video playing in the built-in player no longer restarts from the beginning when a server comes back
-  online.
-- Desktop: removing the server that is playing now stops playback, without waiting long on a server that does not
-  answer.
-- Desktop: switching subtitles quickly in the built-in player no longer shows two subtitle tracks at once.
-- Desktop: error messages raised in a dialog are now read by screen readers and their buttons can be clicked
-  while the dialog is open.
-- Desktop: a server that fails to list its libraries once (still waking up, busy) no longer leaves them missing
-  from the sidebar and Home until you reconnect.
-- Desktop: leaving the Servers page while linking a Plex account with a code stops checking for the link.
-- Desktop: a comic book download that stalls now fails after a minute instead of hanging until restart, and a
-  book larger than 8 GB (or than the comics cache, if larger) is refused instead of filling the disk.
-- Android: the comic book reader lets the screen turn off (or the TV screensaver start) after 10 minutes without
-  a page turn or key press.
-- Android: keeping the playback stats open with Remote Access on no longer moves a NetBird network server's
-  traffic onto the mesh for the rest of the session.
-- Mesh file shares: browsing posters while a film plays no longer fails with "HTTP 503"; requests wait for a free
-  slot, and a paused player that holds a connection gives it back after a minute.
-
-### Added
-
 - Navidrome (and other OpenSubsonic servers): add one in Sources > Add a Source > Navidrome with its address, then
   your user name and password. Its music opens in the usual music player, with your favourites (Navidrome's stars)
   and playlists kept on the server, lyrics, the queue and plays sent to Navidrome. Desktop, Android TV and mobile.
@@ -178,6 +117,117 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 - Mesh helper (Windows, Linux, Android): NetBird client updated to 0.81.2, with pion/dtls v3 3.1.14 and quic-go
   0.64.0.
 - Desktop: bundled mpv player updated to the shinchiro build `20261018` (mpv `git-01e2533f31`).
+- Desktop: the app loads about 31% less code at start (2.40 MB down to 1.66 MB): the HLS player and the photo map
+  load when first used.
+- Desktop: Navidrome covers are cached, and sorted Navidrome album grids load once instead of once per page.
+- Desktop: idle Home uses less processor time (gamepad polling, hero backdrops, blur previews).
+- Android TV: more of the app starts precompiled (code run outside the startup profile: 3,529 methods down to
+  1,941), and the TV no longer fetches an emoji font at every start.
+- Android: Navidrome libraries load with at most six requests at a time.
+- Mesh file shares: SMB copies use 1 MiB reads, and an unreachable host fails at once for 5 seconds instead of
+  being dialled again by every request.
+
+### Fixed
+
+- Themes: white channel logos stay white in the live player's guide overlay on the Light theme; Reduce
+  transparency also makes the player, hero and photo viewer panels opaque on Light; the mini player follows
+  theme changes; macOS no longer shows the Windows and Mica wording on the theme cards; leaving the phone
+  player or comic reader on Light no longer flashes a dark frame on the screen behind.
+- Android: the Live TV guide follows a theme change at once instead of after a restart.
+- Android: an IPTV channel whose playlist sets a user agent or referrer with accented or control characters no
+  longer stops playback; that value is ignored.
+- Android TV: the recordings list of a Plex server with 500 recordings or more no longer loads forever.
+- Android mobile: a crash while a download was saved no longer makes the app forget every download.
+- Desktop: seeking often in a video from a WebDAV share no longer piles up connections until playback stalls.
+- Desktop: a settings or server file that cannot be read is kept beside the original (`.corrupt-` and the time)
+  instead of being overwritten, and a file emptied to `{}` no longer stops the app from starting.
+- Desktop: a failed save (full disk, locked file) no longer crashes the app, and is tried again; quitting saves
+  everything else even when one save fails.
+- Mesh: browser sign-in to a NetBird server that cannot be reached for a moment is tried again, instead of stopping
+  with "this NetBird server offers no browser sign-in".
+- Android TV: "Play on Wicaby" from another device now works when you have left the app or it is in the
+  background (for example while music plays): a notification offers to play it.
+- Android TV: switching to another profile in "Who is watching?" clears the previous profile's titles from the
+  launcher's "Watch Next" row.
+- Android: adding a server or changing networks no longer waits about 6 seconds for an address that does not
+  answer when another one already did.
+- Android: leaving the player during a quality or subtitle change no longer shows a "failed" message on the next
+  screen.
+- Android: SMB shares on a Tailscale or NetBird device work again after Remote Access is turned off and on.
+- Mesh file shares: two requests that reconnect an SMB share at the same time no longer break each other's
+  playback.
+- Mesh: a network hiccup during NetBird browser sign-in no longer replaces the code on screen while you confirm it.
+- Mesh: offline NetBird devices are no longer shown as online, and server discovery no longer waits on them.
+- Desktop: a video playing in the built-in player no longer restarts from the beginning when a server comes back
+  online.
+- Desktop: removing the server that is playing now stops playback, without waiting long on a server that does not
+  answer.
+- Desktop: switching subtitles quickly in the built-in player no longer shows two subtitle tracks at once.
+- Desktop: error messages raised in a dialog are now read by screen readers and their buttons can be clicked
+  while the dialog is open.
+- Desktop: a server that fails to list its libraries once (still waking up, busy) no longer leaves them missing
+  from the sidebar and Home until you reconnect.
+- Desktop: leaving the Servers page while linking a Plex account with a code stops checking for the link.
+- Desktop: a comic book download that stalls now fails after a minute instead of hanging until restart, and a
+  book larger than 8 GB (or than the comics cache, if larger) is refused instead of filling the disk.
+- Android: the comic book reader lets the screen turn off (or the TV screensaver start) after 10 minutes without
+  a page turn or key press.
+- Android: keeping the playback stats open with Remote Access on no longer moves a NetBird network server's
+  traffic onto the mesh for the rest of the session.
+- Mesh file shares: browsing posters while a film plays no longer fails with "HTTP 503"; requests wait for a free
+  slot, and a paused player that holds a connection gives it back after a minute.
+- Desktop: a settings file with a damaged section or window position no longer stops the app from starting, and a
+  startup error shows a message and quits instead of leaving a hidden process behind.
+- Desktop: one outdated keyboard shortcut no longer resets all your custom shortcuts at start.
+- Desktop (Linux): the saved sign-ins are no longer set aside when the system keyring is not ready yet at start.
+- Desktop: the update notice finds the Windows installer and portable downloads again.
+- Desktop: releases bundle an mpv build that also plays on processors without AVX2.
+- Desktop: a Navidrome server follows you to its new address when your network changes, and several expired
+  requests at once sign you out at most once.
+- Desktop: cancelled or stalled media requests stop holding server connections; Emby Connect gives up after 15
+  seconds.
+- Desktop: HLS videos in the built-in player start instead of staying paused.
+- Desktop: comic covers that failed on a network error are tried again later, and CBR and CB7 books with
+  uncompressed pages open.
+- Desktop: the music grid sorted at random no longer loads pages forever, a pushed session update no longer sends
+  Library and Files back to the first page, and Escape in a picker closes only the menu.
+- Desktop: quick gamepad taps are no longer missed.
+- Android mobile: downloads from two servers that use the same item number no longer overwrite each other.
+- Android: grids no longer crash when the server repeats a title across pages; signing out or changing server
+  stops the previous account's music.
+- Android: an offline server comes back sooner after it wakes up, and cancelled screens no longer mark a server
+  offline.
+- Android: large comic books (omnibus CBZ or PDF) can be downloaded again, and a cancelled book is closed.
+- Web TV app: offline servers reconnect on their own, and player errors are shown.
+
+### Security
+
+- Desktop: downloads and comic books from a server that redirects them to another host (a .strm file, a remote
+  path) no longer send your server sign-in along; the other host is asked without it.
+- Desktop: when the server does not say in time whether a stream redirects, the player asks once more and, without an
+  answer, shows "The server didn't answer, try again" instead of risking sending your server sign-in to another host.
+- Desktop: the Emby Connect sign-in no longer follows redirects with its access key.
+- Mesh file shares (Windows, Linux, Android): an SMB share opened with a user name now requires signed replies, so
+  someone on the same network cannot change what you read. A share that only allows guest access must be added
+  with the user name guest.
+- Desktop: your server sign-in goes to a Tailscale or NetBird device only when that device carries the server's own
+  address; a device that only has a matching name (anyone can call a device "jellyfin") asks you to sign in.
+- Desktop: a Plex server on a plain HTTP address in the 100.64/10 range or on a .lan or .home.arpa name asks before
+  your Plex sign-in is sent, like other local addresses.
+- Desktop and Android: a Navidrome sign-in is no longer passed to another host when a stream or cover redirects
+  there, and on Android only stream, download and cover links are signed.
+- Android: "Connect a TV" is not offered for Navidrome, because the pairing link is not encrypted and a Navidrome
+  sign-in carries the account password.
+- Android: other apps can no longer queue items in Wicaby's media sessions, web pages can no longer open a Live TV
+  channel through a wicaby://live link, and plex.tv, Trakt and GitHub accept only the system's certificates.
+- Android TV: a remote "Play" of music while the app is in the background asks first, like video.
+- Android: sign-in screens warn before you type a password on a plain HTTP address outside your home network.
+- Web TV app: a server that answers with a known server's Id from another address no longer gets its sign-in.
+- Mesh file shares: a server reached through a routed home network is only dialled through the mesh, so a foreign
+  Wi-Fi that reuses your home addresses never receives your SMB sign-in.
+- Desktop: archives, EPUB books, photo thumbnails, download posters and Immich originals are read within size limits,
+  so a hostile file cannot fill the memory or the disk; Immich originals keep a safe file name and extension.
+- Android: server answers are read within a size limit, and comic book downloads stop when the disk gets full.
 
 ## [0.10.12] - 2026-10-18
 

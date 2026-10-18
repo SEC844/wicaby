@@ -322,10 +322,11 @@ class Loaded<T>(val value: T?, val error: Throwable?)
 
 @Suppress("UNCHECKED_CAST")
 @Composable
-fun <T : Any> rememberLoad(cacheKey: String, refresh: Boolean = true, block: suspend () -> T): State<Loaded<T>> {
+// [nonce]: reloads when it changes while the cached value stays on screen (a key change would start empty).
+fun <T : Any> rememberLoad(cacheKey: String, refresh: Boolean = true, nonce: Int = 0, block: suspend () -> T): State<Loaded<T>> {
     val key = LocalCacheNs.current + cacheKey
     val state = remember(key) { mutableStateOf(Loaded(Cache.map[key] as T?, null)) }
-    LaunchedEffect(key, Cache.version) {
+    LaunchedEffect(key, Cache.version, nonce) {
         if (!refresh && state.value.value != null) return@LaunchedEffect
         try {
             val v = block()

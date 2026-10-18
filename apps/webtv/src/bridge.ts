@@ -27,6 +27,7 @@ import { exitApp, onTv, platform } from './tv';
 const SERVERS_KEY = 'wicaby.web.servers';
 const SETTINGS_KEY = 'wicaby.web.settings';
 const DEVICE_KEY = 'wicaby.web.device';
+const PRIMARY_KEY = 'wicaby.web.primary';
 
 function read<T>(key: string, fallback: T, store: () => Storage = () => localStorage): T {
   try {
@@ -92,7 +93,12 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
   // stays in this tab (sessionStorage); only the demo entry is kept. The TV packages run from their own origin.
   const session = () => sessionStorage;
   let servers = [...(demoAvailable ? read<StoredServer[]>(SERVERS_KEY, [], session) : []), ...read<StoredServer[]>(SERVERS_KEY, [])].filter((s) => s && typeof s.id === 'string' && typeof s.address === 'string');
-  let primary: string | undefined = servers[0]?.id;
+  const savedPrimary = read<string>(PRIMARY_KEY, '');
+  let primary: string | undefined = servers.some((s) => s.id === savedPrimary) ? savedPrimary : servers[0]?.id;
+  const setPrimary = (id: string | undefined) => {
+    primary = id;
+    write(PRIMARY_KEY, id ?? '');
+  };
   const sessions = new Map<string, ServerSession>();
   let settings: Settings = merge(webDefaults(), read<DeepPartial<Settings>>(SETTINGS_KEY, {}));
 
@@ -111,6 +117,13 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
   };
 
   const isDemo = (s: StoredServer) => s.address === DEMO_ADDRESS;
+  const origin = (address: string) => {
+    try {
+      return new URL(address).origin;
+    } catch {
+      return address; // the demo's 'demo'
+    }
+  };
   const saveServers = () => {
     if (!demoAvailable) return write(SERVERS_KEY, servers);
     write(SERVERS_KEY, servers.filter(isDemo));
@@ -142,11 +155,25 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
     publish();
   };
 
+  // An offline server (the TV started before its Wi-Fi, the server rebooting) is retried on its own: 5 s doubling to
+  // 60 s, and at once when the browser comes back online.
+  const retries = new Map<string, { timer: ReturnType<typeof setTimeout>; delay: number }>();
+  const isOffline = (s: StoredServer) => servers.includes(s) && sessions.get(s.id)?.status === 'offline';
+  const retryLater = (s: StoredServer) => {
+    const prev = retries.get(s.id);
+    if (prev) clearTimeout(prev.timer);
+    const delay = prev ? Math.min(prev.delay * 2, 60_000) : 5000;
+    retries.set(s.id, { delay, timer: setTimeout(() => void (isOffline(s) && connect(s)), delay) });
+  };
+  if (typeof window !== 'undefined') window.addEventListener('online', () => servers.filter(isOffline).forEach((s) => void connect(s)));
+
   async function connect(s: StoredServer): Promise<void> {
     if (!s.token || !s.userId) return setSession(s, { status: 'server-selected' });
     setSession(s, { status: 'connecting' });
     try {
       const u = await request<{ Id: string; Name: string; Policy?: { IsAdministrator?: boolean }; PrimaryImageTag?: string }>(s, identity, 'GET', `/Users/${s.userId}`);
+      clearTimeout(retries.get(s.id)?.timer);
+      retries.delete(s.id);
       setSession(s, { status: 'signed-in', user: { id: u.Id, name: u.Name, isAdmin: Boolean(u.Policy?.IsAdministrator), imageTag: u.PrimaryImageTag } });
     } catch (err) {
       if (err instanceof HttpError && err.status === 401) {
@@ -154,7 +181,10 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
         s.token = undefined;
         saveServers();
         setSession(s, { status: 'server-selected' });
-      } else setSession(s, { status: 'offline' });
+      } else {
+        setSession(s, { status: 'offline' });
+        retryLater(s);
+      }
     }
   }
 
@@ -171,7 +201,9 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
     log,
   });
 
-  const ready = Promise.all(servers.filter((s) => s.token).map(connect)).then(() => undefined);
+  // The UI waits for the primary server only: the others publish their state through sessionHub when they settle.
+  const connecting = new Map(servers.filter((s) => s.token).map((s) => [s.id, connect(s)]));
+  const ready = connecting.get(primary ?? '') ?? Promise.resolve();
   const notAvailable = () => Promise.reject(new Error(t('errors.web.notAvailable')));
   const apiCall = <T>(method: string, path: string, query?: Parameters<WicabyBridge['api']['get']>[1], body?: unknown, serverId?: string): Promise<T> => {
     const s = find(serverId);
@@ -268,6 +300,9 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
           s = { id: p.info.Id, name: p.info.ServerName || p.address, kind: p.kind, version: p.info.Version ?? '', address: p.address };
         }
         const known = servers.find((x) => x.id === s.id);
+        // The Id comes from the unauthenticated /System/Info/Public: a token only goes back to the origin it was
+        // issued at, so a new origin (another host, or http where it was https) means signing in again.
+        if (known?.token && origin(s.address) !== origin(known.address)) Object.assign(known, { token: undefined, userId: undefined, userName: undefined });
         if (known) Object.assign(known, { address: s.address, name: s.name, version: s.version, kind: s.kind });
         else servers.push(s);
         saveServers();
@@ -277,7 +312,7 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
       select: async (id: string) => {
         const s = find(id);
         if (!s) throw new Error(t('errors.connection.unknownServer'));
-        primary = id;
+        setPrimary(id);
         await connect(s);
         return state();
       },
@@ -286,7 +321,7 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
         if (s?.token) await request(s, identity, 'POST', '/Sessions/Logout').catch(() => undefined);
         servers = servers.filter((x) => x.id !== id);
         sessions.delete(id);
-        if (primary === id) primary = servers[0]?.id;
+        if (primary === id) setPrimary(servers[0]?.id);
         saveServers();
         publish();
       },
@@ -321,7 +356,7 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
         }
         Object.assign(s, { token: res.AccessToken, userId: res.User.Id, userName: res.User.Name });
         saveServers();
-        primary = s.id;
+        setPrimary(s.id);
         setSession(s, { status: 'signed-in', user: { id: res.User.Id, name: res.User.Name, isAdmin: Boolean(res.User.Policy?.IsAdministrator), imageTag: res.User.PrimaryImageTag } });
         return state();
       },

@@ -317,12 +317,14 @@ seen.length = 0;
   mq.flush();
 }
 
-// ---- VPN: an overlay peer the VPN service lists, answering with the server's Id, gets the
-// token (not bound for good); the same address once the VPN no longer lists it does not.
+// ---- VPN: an overlay peer the VPN service lists as this server's machine (trusted: it carries a bound host),
+// answering with the server's Id, gets the token (not bound for good); the same address once the VPN no longer
+// lists it does not, nor does a peer matched by its name only.
 {
   const OVERLAY = 'http://100.64.0.9:8096';
   let peers = [OVERLAY];
-  const vpn = { candidatesFor: async () => peers, networkOf: (a) => (a?.includes('100.64.') ? 'tailscale' : undefined) };
+  let trusted = true;
+  const vpn = { candidatesFor: async () => peers.map((address) => ({ address, trusted })), networkOf: (a) => (a?.includes('100.64.') ? 'tailscale' : undefined) };
   const v = new FakeVault();
   v.entries['server:V'] = { userId: 'u1', userName: 'me', token: SECRET, origins: [HOME] };
   const f = fresh('vpn.json', { tokenBinding: 1, servers: [{ id: 'V', name: 'V', kind: 'emby', version: '4.9', lastAddress: HOME }] });
@@ -347,6 +349,15 @@ seen.length = 0;
   assert.equal(statusOf(mv, 'V'), 'server-selected');
   assert.deepEqual(tokensSentTo(OVERLAY), []);
   mv.disconnect();
+  // A peer that only took the server's name (anyone's node on a shared tailnet) answering with the public Id: no token.
+  peers = [OVERLAY];
+  trusted = false;
+  seen.length = 0;
+  await mv.select('V').catch(() => undefined);
+  assert.deepEqual(tokensSentTo(OVERLAY), [], 'token sent to a peer matched by name only');
+  assert.notEqual(statusOf(mv, 'V'), 'signed-in');
+  mv.disconnect();
+  trusted = true;
   // A listed peer answering with another Id gets nothing.
   peers = [OVERLAY];
   net.set(OVERLAY, { id: 'OTHER', tokens: [SECRET] });

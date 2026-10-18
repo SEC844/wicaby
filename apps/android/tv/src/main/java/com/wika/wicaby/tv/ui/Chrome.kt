@@ -84,6 +84,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowRgb565
+import com.wika.wicaby.core.livetv.DeviceClassDetector
+import com.wika.wicaby.core.livetv.FormFactor
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
 import com.wika.wicaby.core.data.User
@@ -519,14 +523,17 @@ fun Screensaver(api: Api, source: String = TvSettings.screensaverSource.value, a
             index = (index + 1) % items.size
         }
     }
+    // tv-low (§21.9): Home's backdrop budget (1280 px, RGB565), and no endless Ken Burns redraw.
+    val context = LocalContext.current
+    val low = remember { DeviceClassDetector.detect(context, FormFactor.TV).isLow }
     Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures { Idle.saver = false; Idle.poke() } }) {
         val item = items.getOrNull(index)
         Crossfade(item, animationSpec = tween(1600), label = "saver") { it ->
             if (it != null) {
                 val zoom = remember(it.id) { Animatable(1f) }
-                LaunchedEffect(it.id) { zoom.animateTo(1.08f, tween(11_000, easing = LinearEasing)) }
+                if (!low) LaunchedEffect(it.id) { zoom.animateTo(1.08f, tween(11_000, easing = LinearEasing)) }
                 AsyncImage(
-                    api.backdrop(it), null, contentScale = ContentScale.Crop,
+                    remember(it.id) { ImageRequest.Builder(context).data(api.backdrop(it, if (low) 1280 else 1920)).allowRgb565(low).build() }, null, contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = zoom.value; scaleY = zoom.value },
                 )
             }

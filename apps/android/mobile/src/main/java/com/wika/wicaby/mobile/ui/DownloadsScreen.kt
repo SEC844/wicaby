@@ -1,6 +1,7 @@
 package com.wika.wicaby.mobile.ui
 
 import android.text.format.Formatter
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -93,14 +94,20 @@ fun DownloadsScreen(api: Api) {
                     }
                 }
             }
-            if (!torrents) items(entries.sortedBy { it.item.seriesName ?: it.item.name }, key = { it.id }) { e ->
+            if (!torrents) items(entries.sortedBy { it.item.seriesName ?: it.item.name }, key = { "${it.serverId}:${it.id}" }) { e ->
                 DownloadRow(api, e, onOpen = {
                     when (e.state) {
-                        DlState.Done -> PlayerActivity.start(context, e.id, false, server = Servers.extraOf(e.serverId)?.server?.id)
-                        DlState.Failed -> Downloads.retry(context, e.id)
+                        // As OfflineHome: a copy plays only through its own signed-in account; otherwise the player
+                        // would ask the active server for that id (another title, or an error).
+                        DlState.Done -> if (Servers.all.any { it.server.id == e.serverId && it.userId == e.userId }) {
+                            PlayerActivity.start(context, e.id, false, server = Servers.extraOf(e.serverId)?.server?.id)
+                        } else {
+                            Toast.makeText(context, R.string.download_server_signed_out, Toast.LENGTH_LONG).show()
+                        }
+                        DlState.Failed -> Downloads.retry(context, e.serverId, e.id)
                         else -> {}
                     }
-                }, onDelete = { Downloads.delete(context, e.id) })
+                }, onDelete = { Downloads.delete(context, e.serverId, e.id) })
             }
         }
         if (vm != null && ts != null) TorrentNotice(ts, vm, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))

@@ -97,20 +97,30 @@ suspend fun tracksOf(api: Api, id: String, type: String, name: String): List<Ite
     return api.items(*q, "IncludeItemTypes" to "Audio", "Recursive" to true, "Limit" to 500, "Fields" to api.trackFields).items
 }
 
+/** Adds the items of [page] not listed yet: offset paging repeats one when the server's order shifts between two
+ *  pages (a title imported meanwhile), and a repeated key crashes a lazy list. */
+fun MutableList<Item>.addNew(page: List<Item>) {
+    val seen = mapTo(HashSet()) { it.id }
+    addAll(page.filter { seen.add(it.id) })
+}
+
 /** A paged list (albums, songs): the next 100 when the end comes into view. */
 class Pages(private val load: suspend (start: Int) -> ItemsResult) {
     val items = mutableStateListOf<Item>()
     var total by mutableIntStateOf(-1)
     var failed by mutableStateOf(false)
     private var loading = false
+    // The server's offset: items can be fewer once repeats are dropped.
+    private var offset = 0
 
     suspend fun more() {
-        if (loading || (total >= 0 && items.size >= total)) return
+        if (loading || (total >= 0 && offset >= total)) return
         loading = true
         try {
-            val r = load(items.size)
-            items += r.items
-            total = if (r.items.isEmpty()) items.size else r.totalRecordCount
+            val r = load(offset)
+            offset += r.items.size
+            items.addNew(r.items)
+            total = if (r.items.isEmpty()) offset else r.totalRecordCount
             failed = false
         } catch (e: CancellationException) {
             throw e

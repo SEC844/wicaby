@@ -485,6 +485,10 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
                     modifier = Modifier.focusRequester(passwordFocus), password = true, imeAction = ImeAction.Go,
                     onSubmit = { login(p?.name ?: name, password) }, leading = Ic.Lock,
                 )
+                // Probe fell back to plain HTTP off the LAN: said before the password is typed (and sent in clear).
+                if (insecureAddress(server.address)) {
+                    Text(stringResource(com.wika.wicaby.core.R.string.server_insecure), style = Type.footnote, color = G.label2)
+                }
                 Box(Modifier.fillMaxWidth()) {
                     PillButton(stringResource(R.string.sign_in), { login(p?.name ?: name, password) }, primary = true, modifier = Modifier.fillMaxWidth())
                     if (busy) Spinner(Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).size(20.dp), onAccent(LocalAccent.current))

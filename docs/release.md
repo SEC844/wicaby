@@ -10,7 +10,7 @@ Wicaby uses two GitHub repositories:
 The binaries live in a public repo so that the Android apps can download `update.json` and the APKs **without a token**. Releases are published today on the public code repo itself, `WicaebethTheo/wicaby`, and the apps read from there:
 
 - **Android**: the default update URL (`UpdateLogic.DEFAULT_URL` in `core/update/Updates.kt`) is `https://github.com/WicaebethTheo/wicaby/releases/latest/download/update.json`. Settings → About → "Update URL" overrides it; an empty field means the default. Without an `update.json` asset on the latest release, the apps find nothing (silently).
-- **Desktop**: `main/features/app-updates.ts` reads `https://api.github.com/repos/WicaebethTheo/wicaby/releases/latest` (`shared/app-update.ts`) about 30 s after start and every 24 h, and shows "Wicaby X.Y.Z is available" with links to the release page and to the installer for this kind of install (`Wicaby-X.Y.Z-x64-setup.exe`, `-x64-portable.exe`, then a Linux `.AppImage` or `.deb` named `Wicaby-…`). It only opens assets under `https://github.com/WicaebethTheo/wicaby/releases/download/<tag>/`, so keep the asset names and the repository. To see the notice in a development build, start it with `WICABY_FAKE_VERSION=0.1.0` (ignored by packaged builds).
+- **Desktop**: `main/features/app-updates.ts` reads `https://api.github.com/repos/WicaebethTheo/wicaby/releases/latest` (`shared/app-update.ts`) about 30 s after start and every 24 h, and shows "Wicaby X.Y.Z is available" with links to the release page and to the installer for this kind of install (`Wicaby-X.Y.Z-x64.exe`, `Wicaby-X.Y.Z-portable.exe`, then a Linux `.AppImage` or `.deb` named `Wicaby-…`). It only opens assets under `https://github.com/WicaebethTheo/wicaby/releases/download/<tag>/`, so keep the asset names and the repository. To see the notice in a development build, start it with `WICABY_FAKE_VERSION=0.1.0` (ignored by packaged builds).
 
 If releases move to another repository (for example `wicaby-releases` below), change both defaults.
 
@@ -84,7 +84,7 @@ This section describes `.github/workflows/release.yml`. When you change one, upd
 
 ### Dry run
 
-Actions → Release → **Run workflow** (`workflow_dispatch`) on any branch runs the same jobs without publishing: no tag, no release, no write. It skips the CI and branch checks, keeps the `package.json` version, skips `windows` unless its **windows** box is ticked (Windows minutes count double), keeps its build artifacts for one day, and stops after `assemble`. With the signing secrets set it builds and verifies signed APKs as a real release would. Without any of them it builds **unsigned** APKs named `*-UNSIGNED.apk` and writes no `update.json`; with only some of them it fails. A dry run costs about as many Linux minutes as a release.
+Actions → Release → **Run workflow** (`workflow_dispatch`) on any branch runs the same jobs without publishing: no tag, no release, no write. It skips the CI and branch checks, keeps the `package.json` version, skips `windows` unless its **windows** box is ticked (Windows minutes count double), keeps its build artifacts for one day, and stops after `assemble`. With the signing secrets set, a dry run from `main` builds and verifies signed APKs as a real release would; from any other branch it builds unsigned ones. That check lives in `release.yml` itself, so a branch can remove it from its own copy: it keeps an honest dispatch from signing unreviewed code, but only a GitHub Environment (signing secrets moved into one limited to `main` and `v*` tags, `environment:` on the jobs that read them) enforces it. Without any of them it builds **unsigned** APKs named `*-UNSIGNED.apk` and writes no `update.json`; with only some of them it fails. A dry run costs about as many Linux minutes as a release.
 
 ### Unsigned builds
 
@@ -116,7 +116,7 @@ It also picks the target repository (see [Where a release goes](#where-a-release
 
 1. `npm ci` at the repo root (npm workspaces).
 2. Stamps the desktop version from the tag: `npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version --workspace apps/desktop`.
-3. `npm run fetch-mpv` downloads the shinchiro mpv build pinned in `apps/desktop/scripts/fetch-mpv.ps1` (`$MpvTag`, `$MpvCommit` and one SHA-256 per variant; for 0.2.0, release `20261011`, mpv `git-accb7b2821`, x86-64-v3) into `vendor/mpv`, and stops if the archive's SHA-256 differs. To move to a newer build, update the tag, the commit and both hashes together (the release page shows a `sha256:` digest next to each asset), and the mpv row of `THIRD_PARTY_NOTICES.md`.
+3. `fetch-mpv.ps1 -Generic` downloads the baseline x86_64 shinchiro mpv build (no AVX2 needed) pinned in `apps/desktop/scripts/fetch-mpv.ps1` (`$MpvTag`, `$MpvCommit` and one SHA-256 per variant; the `-Generic` x86_64 one is what ships) into `vendor/mpv`, and stops if the archive's SHA-256 differs. To move to a newer build, update the tag, the commit and both hashes together (the release page shows a `sha256:` digest next to each asset), and the mpv row of `THIRD_PARTY_NOTICES.md`.
 4. `npm run build:mesh` builds `vendor/vpn-helper/wicaby-mesh.exe` and its licence file with `build-vpn-helper.mjs`. It runs `go test ./mesh/` first and the AGPL guard after the build.
 5. `npm run dist -w apps/desktop -- --publish never` builds (the last build step, `tools/release/licenses.mjs`, stages `LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, the GPL-2.0 and LGPL-2.1 texts and `npm-licenses.txt` in `apps/desktop/out/licenses/`, which electron-builder copies to `resources/licenses/`), then writes `release/Wicaby-<version>-x64.exe` (NSIS installer) and `release/Wicaby-<version>-portable.exe`, unsigned (`CSC_IDENTITY_AUTO_DISCOVERY=false`).
 6. Uploads both `.exe` files as the `windows` workflow artifact.
@@ -267,7 +267,7 @@ node tools/release/make-update-manifest.mjs https://github.com/WicaebethTheo/wic
   --notes-en "$(cat release/notes.md)"
 git archive --format=tar.gz --prefix=wicaby-0.2.0/ -o release/wicaby-0.2.0-source.tar.gz v0.2.0
 cp LICENSE release/LICENSE.txt && cp THIRD_PARTY_NOTICES.md release/ && cp vendor/android/wicaby-mesh-THIRD_PARTY_LICENSES.txt release/
-# mpv source: the tag and commit pinned in apps/desktop/scripts/fetch-mpv.ps1 (20261011, accb7b2821 for 0.2.0).
+# mpv source: the tag and commit pinned in apps/desktop/scripts/fetch-mpv.ps1. The 20261011/accb7b2821 below are 0.2.0's; use the current pins.
 mkdir -p mpv-winbuild-20261011-source
 curl -fsSL https://github.com/shinchiro/mpv-winbuild-cmake/archive/refs/tags/20261011.tar.gz -o mpv-winbuild-20261011-source/mpv-winbuild-cmake-20261011.tar.gz
 curl -fsSL https://github.com/mpv-player/mpv/archive/accb7b2821.tar.gz -o mpv-winbuild-20261011-source/mpv-accb7b2821.tar.gz

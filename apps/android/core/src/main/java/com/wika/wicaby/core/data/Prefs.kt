@@ -13,7 +13,9 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.security.KeyStore
@@ -139,7 +141,9 @@ class Prefs(private val context: Context) {
     private val updateCheckedKey = longPreferencesKey("update_checked_at")
     private val remoteControlKey = booleanPreferencesKey("remote_control")
 
-    val data: Flow<Snapshot> = context.store.data.map { p -> snapshot(p) }
+    // Off the collector's thread: snapshot() opens every sealed token with the Keystore (binder calls), and the
+    // screens collect this on Main.
+    val data: Flow<Snapshot> = context.store.data.map { p -> snapshot(p) }.flowOn(Dispatchers.Default)
 
     private fun snapshot(p: Preferences): Snapshot {
         val server = p[serverKey]?.let { runCatching { json.decodeFromString(Server.serializer(), it) }.getOrNull() }
@@ -316,10 +320,15 @@ internal object Vault {
 
     // Synchronized: two first-launch callers would each generate a key, and the second replaces the
     // first under the same alias, so whatever the first sealed no longer opens (silent sign-out).
+    // Kept once loaded: each lookup is a Keystore round trip, and every Prefs change opens every sealed token.
+    @Volatile
+    private var cached: SecretKey? = null
+
     @Synchronized
     private fun key(): SecretKey {
+        cached?.let { return it }
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (ks.getKey(ALIAS, null) as? SecretKey)?.let { return it }
+        (ks.getKey(ALIAS, null) as? SecretKey)?.let { cached = it; return it }
         val gen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         gen.init(
             KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -327,7 +336,7 @@ internal object Vault {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .build(),
         )
-        return gen.generateKey()
+        return gen.generateKey().also { cached = it }
     }
 
     fun encrypt(plain: String): String {

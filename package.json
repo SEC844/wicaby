@@ -1,6 +1,6 @@
 {
   "name": "wicaby-monorepo",
-  "version": "0.10.12",
+  "version": "0.10.13",
   "description": "Wicaby: media clients for Emby and Jellyfin (Windows and Linux desktop, Android TV, Android mobile)",
   "license": "GPL-3.0-or-later",
   "private": true,
@@ -21,7 +21,7 @@
     "icon": "node brand/scripts/make-icon.mjs",
     "dev:webtv": "vite --config apps/webtv/vite.config.ts",
     "build:webtv": "vite build --config apps/webtv/vite.config.ts",
-    "build:webtv-demo": "node apps/webtv/scripts/demo-data.mjs && vite build --config apps/webtv/vite.config.ts --mode demo",
+    "build:webtv-demo": "node apps/webtv/scripts/demo-data.mjs && vite build --config apps/webtv/vite.config.ts --mode demo && node tools/release/licenses.mjs apps/webtv/dist/demo/licenses",
     "package:webtv": "node apps/webtv/scripts/package.mjs",
     "check:webtv": "svelte-check --tsconfig apps/webtv/tsconfig.json --threshold error",
     "build:mesh": "node packages/mesh/scripts/build-vpn-helper.mjs",

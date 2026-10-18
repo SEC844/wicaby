@@ -109,6 +109,8 @@ if (process.versions.electron) {
     const m = load.call(this, request, ...rest);
     if (!hooked && request === 'electron' && m && m.app) {
       hooked = true;
+      // A dead proxy: Chromium and net.fetch reach loopback only (the update check, map tiles…).
+      m.app.commandLine.appendSwitch('proxy-server', 'http://127.0.0.1:9');
       m.app.on('browser-window-created', (_e, win) => { win.show = () => win.showInactive(); win.setFocusable(false); win.setIgnoreMouseEvents(true); });
     }
     return m;
@@ -420,7 +422,7 @@ async function run() {
   const guard = seedProfile();
   const app = start(process.execPath, [path.join(DESKTOP, 'scripts', 'dev.mjs'), `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${CDP_PORT}`], {
     cwd: DESKTOP,
-    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), NODE_OPTIONS: `--require "${guard.replaceAll('\\', '/')}"` },
+    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), WICABY_TEST_SILENT: '1', NODE_OPTIONS: `--require "${guard.replaceAll('\\', '/')}"` },
   });
   app.on('exit', (code) => log(`dev app exited (${code})`));
   main = await mainPage();

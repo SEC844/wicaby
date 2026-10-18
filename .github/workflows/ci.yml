@@ -86,6 +86,9 @@ jobs:
               - 'packages/tokens/**'
               - 'packages/mesh/**'
               - 'tools/checks/flavour-check.mjs'
+              # Android unit tests read the shared vectors and run the mocks in place.
+              - 'tools/checks/fixtures/**'
+              - 'tools/mock-server/**'
               - '.github/workflows/ci.yml'
             mesh:
               - 'packages/mesh/**'
@@ -101,6 +104,10 @@ jobs:
 
       - name: Markdown links (relative links and images)
         run: node tools/checks/links-check.mjs
+
+      # Here, not only in npm run checks: a docs-only change (new README screenshots) skips the desktop jobs.
+      - name: Screenshot metadata
+        run: node tools/screenshots/strip-metadata.mjs --check
 
       # actionlint 1.7.12, checksum-verified release binary (shellcheck from the runner image checks
       # the run: scripts).

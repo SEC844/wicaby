@@ -14,6 +14,8 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,35 +82,44 @@ object Comics {
             return withContext(Dispatchers.IO) { checked(ComicFolder(folder)) }
         }
         val file = fetch(api, item.id, onProgress)
-        return withContext(Dispatchers.IO) {
-            try {
-                when (val format = ComicFormats.sniff(file)) {
-                    ComicFormat.ZIP, ComicFormat.EPUB -> ComicArchive(file, epub = format == ComicFormat.EPUB)
-                    ComicFormat.PDF -> ComicPdf(file)
-                    ComicFormat.RAR, ComicFormat.SEVEN_Z, ComicFormat.TAR -> {
-                        val ctx = coroutineContext
-                        // A TV has little storage: a decompression bomb must not fill it (half the free space at most).
-                        val limits = ComicFormats.Limits(maxTotal = minOf(ComicFormats.MAX_TOTAL, folder.parentFile!!.usableSpace / 2))
-                        ComicLibarchive.entries(file, format) { ComicFormats.extract(it, folder, limits) { ctx.ensureActive() } }
-                        file.delete()
-                        ComicFolder(folder)
-                    }
-                    null -> throw unsupported()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                // A cached copy that does not open would fail forever; drop it so a later open refetches.
-                // Throwable: a missing native library (LinkageError) is an unreadable book, not a crash.
-                file.delete()
-                folder.deleteRecursively()
-                throw when (e) {
-                    is ComicRefused -> refused(e)
-                    is ComicException -> e
-                    else -> unsupported()
-                }
-            }.let(::checked)
+        // withContext drops a finished result when the caller was cancelled meanwhile: that book must still close.
+        var built: ComicBook? = null
+        return try {
+            openFile(file, folder) { built = it }
+        } catch (e: CancellationException) {
+            built?.close()
+            throw e
         }
+    }
+
+    private suspend fun openFile(file: File, folder: File, built: (ComicBook) -> Unit): ComicBook = withContext(Dispatchers.IO) {
+        try {
+            when (val format = ComicFormats.sniff(file)) {
+                ComicFormat.ZIP, ComicFormat.EPUB -> ComicArchive(file, epub = format == ComicFormat.EPUB)
+                ComicFormat.PDF -> ComicPdf(file)
+                ComicFormat.RAR, ComicFormat.SEVEN_Z, ComicFormat.TAR -> {
+                    val ctx = coroutineContext
+                    // A TV has little storage: a decompression bomb must not fill it (half the free space at most).
+                    val limits = ComicFormats.Limits(maxTotal = minOf(ComicFormats.MAX_TOTAL, folder.parentFile!!.usableSpace / 2))
+                    ComicLibarchive.entries(file, format) { ComicFormats.extract(it, folder, limits) { ctx.ensureActive() } }
+                    file.delete()
+                    ComicFolder(folder)
+                }
+                null -> throw unsupported()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // A cached copy that does not open would fail forever; drop it so a later open refetches.
+            // Throwable: a missing native library (LinkageError) is an unreadable book, not a crash.
+            file.delete()
+            folder.deleteRecursively()
+            throw when (e) {
+                is ComicRefused -> refused(e)
+                is ComicException -> e
+                else -> unsupported()
+            }
+        }.let(::checked).also(built)
     }
 
     private fun checked(book: ComicBook): ComicBook {
@@ -148,20 +159,21 @@ object Comics {
             }
             val body = r.body
             val total = body.contentLength()
+            // A TV has little storage: a huge or endless body must not fill it (half the free space).
+            // Not CACHE_CAP: that only evicts other books, and a 1.3 GB omnibus still opens.
+            val limit = dir.usableSpace / 2
+            if (total > limit) throw refused(ComicRefused(ComicRefused.Reason.TOO_LARGE))
             val part = File(dir, "${file.name}.part")
-            body.byteStream().use { input ->
-                part.outputStream().use { out ->
-                    val buf = ByteArray(64 * 1024)
-                    var done = 0L
-                    while (true) {
-                        ensureActive()
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        done += n
-                        if (total > 0) onProgress(done.toFloat() / total)
+            try {
+                body.byteStream().use { input ->
+                    part.outputStream().use { out ->
+                        copyCapped(input, out, limit, { ensureActive() }) { done -> if (total > 0) onProgress(done.toFloat() / total) }
                     }
                 }
+            } catch (e: Throwable) {
+                // A failed or cancelled download must not stay on a full disk until the next book opens.
+                part.delete()
+                throw if (e is ComicRefused) refused(e) else e
             }
             if (!part.renameTo(file)) {
                 part.delete()
@@ -170,6 +182,21 @@ object Comics {
         }
         prune(file)
         file
+    }
+
+    // Copies at most [limit] bytes; more is ComicRefused(TOO_LARGE), so a chunked body is capped too.
+    internal fun copyCapped(input: InputStream, out: OutputStream, limit: Long, tick: () -> Unit = {}, onBytes: (Long) -> Unit = {}): Long {
+        val buf = ByteArray(64 * 1024)
+        var done = 0L
+        while (true) {
+            tick()
+            val n = input.read(buf)
+            if (n < 0) return done
+            done += n
+            if (done > limit) throw ComicRefused(ComicRefused.Reason.TOO_LARGE)
+            out.write(buf, 0, n)
+            onBytes(done)
+        }
     }
 
     private fun call(api: Api, path: String): Response {

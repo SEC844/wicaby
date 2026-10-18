@@ -37,6 +37,8 @@ class SubsonicApiTest {
     private val calls = CopyOnWriteArrayList<RecordedRequest>()
     private val salts = mutableSetOf<String>()
     private var problems = CopyOnWriteArrayList<String>()
+    private val inFlight = java.util.concurrent.atomic.AtomicInteger()
+    private val peak = java.util.concurrent.atomic.AtomicInteger()
 
     private fun ok(body: String = "") = MockResponse.Builder().addHeader("Content-Type", "application/json")
         .body("""{"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","openSubsonic":true${if (body.isEmpty()) "" else ",$body"}}}""").build()
@@ -68,7 +70,12 @@ class SubsonicApiTest {
                     "getArtists" -> ok(""""artists":{"index":[{"name":"N","artist":[{"id":"r1","name":"Nora Vale","albumCount":2},{"id":"r2","name":"Night Arcade","albumCount":1}]}]}""")
                     "getAlbumList2" -> ok(""""albumList2":{"album":[{"id":"a1","name":"Lignes claires","artist":"Nora Vale","artistId":"r1","songCount":2,"coverArt":"al-a1_0"}]}""")
                     "getAlbum" -> ok(""""album":{"id":"a1","name":"Lignes claires","song":[$song,$song2]}""")
-                    "getSong" -> ok(""""song":$song""")
+                    "getSong" -> {
+                        peak.accumulateAndGet(inFlight.incrementAndGet(), ::maxOf)
+                        Thread.sleep(20)
+                        inFlight.decrementAndGet()
+                        ok(""""song":$song""")
+                    }
                     "getPlaylist" -> ok(""""playlist":{"id":"p1","name":"Mix","entry":[$song,$song2,$song]}""")
                     "ping", "star", "unstar", "updatePlaylist", "createPlaylist", "scrobble" -> ok(if (name == "createPlaylist") """"playlist":{"id":"p9","name":"New"}""" else "")
                     "getLyricsBySongId" -> ok(""""lyricsList":{"structuredLyrics":[{"synced":true,"offset":0,"line":[{"start":1000,"value":"Une"}]}]}""")
@@ -122,6 +129,14 @@ class SubsonicApiTest {
         assertEquals(0, json.decodeFromString(ItemsResult.serializer(), a.raw("GET", "/UserItems/Resume", null)).items.size)
         // Every call signed with a fresh salt, as JSON.
         assertTrue(calls.all { it.url.queryParameter("f") == "json" && it.url.queryParameter("v") == "1.16.1" })
+    }
+
+    @Test
+    fun anIdsPageIsFetchedAFewAtATime() = runBlocking {
+        val ids = List(30) { "tr_s1" }.joinToString(",")
+        val r = json.decodeFromString(ItemsResult.serializer(), api().raw("GET", "/Items", null, "Ids" to ids))
+        assertEquals(30, r.items.size)
+        assertTrue("peak ${peak.get()}", peak.get() in 1..6)
     }
 
     @Test
@@ -179,6 +194,8 @@ class SubsonicApiTest {
             assertEquals(401, e.status)
         }
         assertTrue(a.raw("GET", "/Users/wika").contains("\"Id\":\"wika\""))
+        // Servers.goOffline's probe is mapped: an offline extra Navidrome can come back.
+        assertTrue(a.raw("GET", "/System/Info/Public").contains("\"Id\":\"nd0123456789abcd\""))
         for ((user, code) in listOf("wika" to 40, "ldap" to 41)) {
             try {
                 api(user, "wrong").raw("GET", "/UserViews")
@@ -209,6 +226,17 @@ class SubsonicApiTest {
         http.newCall(Request.Builder().url(stream).build()).execute().use { assertEquals("fLaC", it.body.string()) }
         // Another host with a /rest/ path gets nothing.
         http.newCall(Request.Builder().url(other.url("/rest/stream?id=s1")).build()).execute().close()
+        // An action URL on the server itself (a hostile logo pointing there) is not signed: the server refuses it.
+        calls.clear()
+        http.newCall(Request.Builder().url("$address/rest/deletePlaylist?id=p1").build()).execute().close()
+        assertNull(calls.single().url.queryParameter("t"))
+        // Nor a redirect from another host onto a media endpoint of the server.
+        other.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest) = MockResponse.Builder().code(302).addHeader("Location", stream).build()
+        }
+        calls.clear()
+        http.newCall(Request.Builder().url(other.url("/logo.png")).build()).execute().close()
+        assertNull(calls.single().url.queryParameter("t"))
         assertNull(calls.firstOrNull { it.url.queryParameter("p") != null })
     }
 }

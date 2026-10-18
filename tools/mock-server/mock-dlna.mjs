@@ -337,6 +337,8 @@ if (process.env.MOCK_SSDP === '1') {
     sock.send(reply, from.port, from.address);
     console.log(`SSDP M-SEARCH ${st} from ${from.address}:${from.port} -> LOCATION ${BASE}/desc.xml`);
   });
+  // Wildcard bind: Linux/macOS deliver multicast only to a socket on the group or wildcard address. LAN senders are
+  // dropped by the loopback filter above unless MOCK_DLNA_HOST opens the mock.
   sock.bind(1900, () => {
     try {
       sock.addMembership('239.255.255.250', OPEN ? undefined : '127.0.0.1');

@@ -2,6 +2,7 @@ package mesh
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -137,6 +138,41 @@ func TestFilesListAndRange(t *testing.T) {
 	}
 	if res, _ = get(t, "GET", base+"/f/"+esc("Été/a b.mkv"), nil); res.StatusCode != 200 {
 		t.Fatalf("non-ASCII path: %d", res.StatusCode)
+	}
+}
+
+// countingBackend counts the Read calls on the files it opens: each one is a synchronous SMB READ on a real share.
+type countingBackend struct {
+	*mapBackend
+	reads *int
+}
+
+type countingFile struct {
+	io.ReadSeekCloser
+	reads *int
+}
+
+func (f countingFile) Read(p []byte) (int, error) { *f.reads++; return f.ReadSeekCloser.Read(p) }
+
+func (c countingBackend) Open(rel string) (io.ReadSeekCloser, fs.FileInfo, error) {
+	f, fi, err := c.mapBackend.Open(rel)
+	if err != nil {
+		return nil, nil, err
+	}
+	return countingFile{f, c.reads}, fi, nil
+}
+
+// A film goes out in large reads, not io.Copy's 32 KiB (one SMB round trip each).
+func TestFilesStreamsInLargeReads(t *testing.T) {
+	reads := 0
+	b := countingBackend{&mapBackend{fsys: fstest.MapFS{"film.mkv": {Data: make([]byte, 4<<20), ModTime: mtime}}}, &reads}
+	_, base := serve(t, b)
+	res, body := get(t, "GET", base+"/f/film.mkv", nil)
+	if res.StatusCode != 200 || len(body) != 4<<20 {
+		t.Fatalf("film: %d, %d bytes", res.StatusCode, len(body))
+	}
+	if reads > 8 {
+		t.Fatalf("4 MiB took %d reads", reads)
 	}
 }
 
@@ -359,6 +395,44 @@ func TestFilesBackendErrorsAreNamed(t *testing.T) {
 		if w.code != c.code || !strings.HasPrefix(w.body.String(), c.pre) {
 			t.Errorf("%v: %d %q", c.err, w.code, w.body.String())
 		}
+	}
+}
+
+// Every failure carries one of the kinds OpenFiles promises: an unknown NTSTATUS is not passed through bare.
+func TestSMBErrorsAlwaysHaveAKind(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		want error
+	}{
+		{&smb2.ResponseError{Code: statusAccountDisabled}, errAuth},
+		{&smb2.ResponseError{Code: statusAccountLockedOut}, errAuth},
+		{&smb2.ResponseError{Code: statusLogonTypeDenied}, errAuth},
+		{fmt.Errorf("tree connect: %w", fs.ErrPermission), errAuth},
+		{&smb2.ResponseError{Code: statusPathNotFound}, errNotFound},
+		{&smb2.ResponseError{Code: 0xC0000043}, errOffline}, // sharing violation
+		{errors.New("something else"), errOffline},
+	} {
+		if err := smbError(c.err); !errors.Is(err, c.want) {
+			t.Errorf("%v: got %v, want %v", c.err, err, c.want)
+		}
+	}
+}
+
+// An unreachable host is dialled once per smbDownFor, not once per waiting request.
+func TestSMBOfflineHostFailsFast(t *testing.T) {
+	dials := 0
+	b := &smbBackend{cfg: SMBConfig{Host: "127.0.0.1", Port: 1, Dial: func(context.Context, string, string) (net.Conn, error) {
+		dials++
+		return nil, errors.New("no route")
+	}}}
+	defer b.Close()
+	for range 3 {
+		if _, err := b.ReadDir(""); !errors.Is(err, errOffline) {
+			t.Fatalf("offline host: %v", err)
+		}
+	}
+	if dials != 1 {
+		t.Fatalf("%d dials", dials)
 	}
 }
 

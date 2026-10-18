@@ -107,13 +107,27 @@ export function sendWakeOnLan(mac: string, port = 9, broadcast = '255.255.255.25
   for (let i = 0; i < 16; i++) macBytes.copy(packet, 6 + i * 6);
   return new Promise((resolve, reject) => {
     const socket = dgram.createSocket('udp4');
-    socket.bind(0, () => {
-      socket.setBroadcast(true);
-      socket.send(packet, port, broadcast, (err) => {
+    socket.on('error', (err) => {
+      try {
         socket.close();
-        if (err) reject(err);
-        else resolve();
-      });
+      } catch {
+        // already closed
+      }
+      reject(err);
+    });
+    socket.bind(0, () => {
+      // send() throws at once on a bad port or address (they come from the server): reject, never an uncaught error.
+      try {
+        socket.setBroadcast(true);
+        socket.send(packet, port, broadcast, (err) => {
+          socket.close();
+          if (err) reject(err);
+          else resolve();
+        });
+      } catch (err) {
+        socket.close();
+        reject(err);
+      }
     });
   });
 }

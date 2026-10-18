@@ -143,7 +143,8 @@ export async function readPlaylist(res: Response): Promise<string | null> {
 // token parameter the request carries, the auth headers go to the server only (a redirect elsewhere, strm, Live TV
 // or a CDN, is fetched again without them, never with a token parameter, and every later hop must be http(s): see
 // fetchServer), HLS playlists lose the token in their URIs (Jellyfin's subtitle playlists carry it), CORS is "*".
-export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqMethod: string, header: (name: string) => string | null): Promise<Response> {
+// signal: the caller's cancel (a seek, an image scrolled away), so the upstream request ends with it.
+export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqMethod: string, header: (name: string) => string | null, signal?: AbortSignal): Promise<Response> {
   // A Plex server: the Emby media path becomes its own (images, a play's part, BIF, subtitles), or 404.
   if (api instanceof PlexClient) {
     const mapped = await api.mediaPath(relWithQuery);
@@ -159,7 +160,7 @@ export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqM
     relWithQuery = mapped;
   }
   const resolved = resolveServerUrl(api, relWithQuery);
-  const target = resolved && subsonic ? api.sign(resolved) : resolved;
+  const target = resolved && subsonic ? api.sign(resolved, true) : resolved;
   if (!target) return new Response('Bad request', { status: 400, headers: CORS });
   const method = reqMethod === 'HEAD' ? 'HEAD' : 'GET';
   const plain: Record<string, string> = {};
@@ -167,7 +168,8 @@ export async function fetchFromServer(api: ApiClient, relWithQuery: string, reqM
     const v = header(h);
     if (v) plain[h] = v;
   }
-  const res = await fetchFollowing(api, target, { method, headers: plain, auth: api.authHeaders() });
+  // A server that accepts and never answers ends as a 502 after a minute (headers only: a long body streams on).
+  const res = await fetchFollowing(api, target, { method, headers: plain, auth: api.authHeaders(), signal, timeoutMs: 60_000, secret: subsonic ? ['u', 't', 's', 'p'] : undefined });
   if (!res) return new Response('Bad gateway', { status: 502, headers: CORS });
   const out = new Headers(res.headers);
   for (const [k, v] of Object.entries(CORS)) out.set(k, v);
@@ -217,7 +219,7 @@ export function handleProtocols(opts: {
   connection: ConnectionManager;
   downloads: DownloadManager;
   comics: ComicService;
-  tiles?: (pathname: string) => Promise<Response>;
+  tiles?: (pathname: string, signal?: AbortSignal) => Promise<Response>;
   immich?: Pick<ImmichService, 'media'>;
 }): void {
   const root = path.resolve(opts.rendererDir);
@@ -275,10 +277,10 @@ export function handleProtocols(opts: {
         // An IPTV source answers its Live TV calls and channel logos itself.
         if (api instanceof IptvClient) return await api.media(rel, req.method, url.searchParams);
         if (!rel.startsWith('/') || rel.startsWith('//') || !isServerOrigin(api, rel)) return new Response('Bad request', { status: 400, headers: CORS });
-        return await fetchFromServer(api, rel + url.search, req.method, (h) => req.headers.get(h));
+        return await fetchFromServer(api, rel + url.search, req.method, (h) => req.headers.get(h), req.signal);
       }
       if (url.host === 'remote-image') return await remoteImage(req);
-      if (url.host === 'tile' && opts.tiles) return await opts.tiles(url.pathname);
+      if (url.host === 'tile' && opts.tiles) return await opts.tiles(url.pathname, req.signal);
       if (url.host === 'immich' && opts.immich) return await opts.immich.media(url.pathname, url.searchParams, (h) => req.headers.get(h), req.signal);
       if (url.host === 'local' || url.host === 'poster') {
         const rec = opts.downloads.get(decodeURIComponent(url.pathname.slice(1)));

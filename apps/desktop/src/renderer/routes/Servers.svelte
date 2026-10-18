@@ -916,7 +916,7 @@
                   <div class="fixes" transition:slide={{ duration: dur('fast'), easing: cubicOut }}>
                     {#if server.kind !== 'plex'}<button class="text-btn" onclick={() => wake(server)}>{t('onboarding.servers.unreachable.wake')}</button>{/if}
                     <button class="text-btn" onclick={() => select(server)}>{t('common.actions.retry')}</button>
-                    <button class="text-btn" onclick={() => navigate('/downloads')}>{t('sources.offline.downloads')}</button>
+                    {#if !web}<button class="text-btn" onclick={() => navigate('/downloads')}>{t('sources.offline.downloads')}</button>{/if}
                     {#if meshDown}
                       {@const down = meshDown}
                       <button class="text-btn" onclick={() => meshConnect(down, server)}>{t('sources.offline.connectMesh', { name: meshName(down) })}</button>

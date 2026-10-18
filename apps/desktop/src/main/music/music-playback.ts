@@ -123,6 +123,8 @@ export class MusicPlayback {
     const mode = m.replayGain === 'auto' ? (this.host.queue.unshuffled ? 'track' : 'album') : m.replayGain;
     let server = typeof item.NormalizationGain === 'number' ? item.NormalizationGain : undefined;
     if (mode === 'album' && item.AlbumId) server = (await this.albumGain(item.AlbumId)) ?? server;
+    // The server's figure is data (a near-silent track measures +40 dB, a tag can say anything): -30..+12 dB.
+    server = server !== undefined && Number.isFinite(server) ? Math.max(-30, Math.min(12, server)) : undefined;
     if (mode === 'off') return { replayGain: 'no', untaggedDb: 0, untagged: 'none', preampDb: 0, htmlGainDb: 0 };
     return { replayGain: mode, untaggedDb: (server ?? m.fallbackDb) + m.preampDb, untagged: server === undefined ? 'none' : 'server', preampDb: m.preampDb, htmlGainDb: (server ?? 0) + m.preampDb };
   }

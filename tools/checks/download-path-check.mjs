@@ -77,7 +77,7 @@ try {
     assert.equal(safeExt(bad), undefined, `.${bad} refused`);
     assert.equal(pickExtension({ Container: bad }, { Type: 'Movie' }), 'mkv', `.${bad} container becomes .mkv`);
   }
-  for (const ok of ['mkv', 'MP4', 'm4v', 'ts', 'flac', 'mp3', 'opus', 'cbz', 'zip', 'epub', 'pdf', 'srt']) assert.equal(safeExt(ok), ok.toLowerCase(), `.${ok} kept`);
+  for (const ok of ['mkv', 'MP4', 'm4v', 'ts', 'flac', 'mp3', 'opus', 'cbz', 'zip', 'epub', 'pdf', 'srt', 'jxl', 'PEF', '3fr', 'x3f']) assert.equal(safeExt(ok), ok.toLowerCase(), `.${ok} kept`);
   assert.equal(pickExtension({ Container: 'lnk' }, { Type: 'Audio' }), 'mka', 'audio default');
   assert.equal(pickExtension({ Container: 'lnk' }, { Type: 'Book' }), 'bin', 'book default');
   assert.equal(rel(buildTargetPath(root, { Type: 'Book', Name: 'evil' }, { Container: 'lnk' }, folder)), path.join('books', 'evil.bin'));

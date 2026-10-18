@@ -47,6 +47,8 @@ const commit = /^\$MpvCommit = '([0-9a-f]{7,40})'/m.exec(ps1)?.[1];
 assert.ok(tag && commit, 'fetch-mpv.ps1 pins $MpvTag and $MpvCommit');
 for (const arch of ['x86_64-v3', 'x86_64']) assert.match(ps1, new RegExp(`'${arch}'\\s*=\\s*'[0-9a-f]{64}'`), `SHA-256 for ${arch}`);
 assert.match(ps1, /Get-FileHash -Algorithm SHA256/);
+// Releases bundle the baseline build: the AVX2 one dies with an illegal instruction on Celeron/Pentium HTPCs.
+assert.match(read('.github/workflows/release.yml'), /fetch-mpv\.ps1 -Generic/, 'release bundles the generic (non-AVX2) mpv');
 assert.doesNotMatch(ps1, /releases\/latest/);
 assert.ok(read('THIRD_PARTY_NOTICES.md').includes(`\`${tag}\` (\`git-${commit}\`)`), 'THIRD_PARTY_NOTICES.md names the pinned mpv build');
 ok(`mpv pinned to shinchiro ${tag} (git-${commit})`);

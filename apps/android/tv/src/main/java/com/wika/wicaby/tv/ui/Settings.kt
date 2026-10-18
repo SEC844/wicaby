@@ -646,7 +646,7 @@ private fun AccountsSection(api: Api, user: User?) {
     // Navigate first: signing out drops the api, which disposes this screen and its scope.
     fun leave(route: Route, revoke: Boolean) {
         nav.reset(route)
-        Cache.map.clear()
+        com.wika.wicaby.tv.signOutCleanup() // Changer de serveur too: its music must not play on with this token
         com.wika.wicaby.core.Core.scope.launch {
             // A token shared by the phone (pairing) stays valid: revoking it would sign the phone out.
             if (revoke && !session.shared) runCatching { api.raw("POST", "/Sessions/Logout") }

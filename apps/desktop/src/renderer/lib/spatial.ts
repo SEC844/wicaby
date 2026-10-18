@@ -16,12 +16,18 @@ function isTextInput(el: Element | null): el is HTMLInputElement | HTMLTextAreaE
   return (el as HTMLElement).isContentEditable;
 }
 
-function visible(el: HTMLElement): boolean {
-  const r = el.getBoundingClientRect();
-  // Off-screen elements stay eligible: rows and pages scroll them into view.
-  if (r.width < 2 || r.height < 2) return false;
+// Off-screen elements stay eligible: rows and pages scroll them into view.
+function sized(r: DOMRect): boolean {
+  return r.width >= 2 && r.height >= 2;
+}
+
+function shown(el: HTMLElement): boolean {
   const style = getComputedStyle(el);
   return style.visibility !== 'hidden' && style.display !== 'none' && !el.closest('[inert], [aria-hidden="true"]');
+}
+
+function visible(el: HTMLElement): boolean {
+  return sized(el.getBoundingClientRect()) && shown(el);
 }
 
 function candidates(scope: ParentNode): HTMLElement[] {
@@ -39,9 +45,12 @@ function pick(from: HTMLElement, dir: Dir): HTMLElement | null {
   const ca = center(a);
   let best: HTMLElement | null = null;
   let bestScore = Infinity;
-  for (const el of candidates(scope)) {
+  // One rect read per element; the style checks only for one that would beat the best so far (a grid of
+  // thousands of cards is measured once per key press, not styled).
+  for (const el of scope.querySelectorAll<HTMLElement>(FOCUSABLE)) {
     if (el === from || el.contains(from) || from.contains(el)) continue;
     const b = el.getBoundingClientRect();
+    if (!sized(b)) continue;
     const cb = center(b);
     let primary: number;
     let cross: number;
@@ -70,7 +79,7 @@ function pick(from: HTMLElement, dir: Dir): HTMLElement | null {
     // Overlapping elements give a slightly negative gap; treat as adjacent.
     const gap = Math.max(0, primary);
     const score = gap + cross * 2.5 + (dir === 'left' || dir === 'right' ? Math.abs(cb.y - ca.y) * 0.3 : Math.abs(cb.x - ca.x) * 0.15);
-    if (score < bestScore) {
+    if (score < bestScore && shown(el)) {
       bestScore = score;
       best = el;
     }
@@ -163,6 +172,7 @@ export function initSpatialNav(): () => void {
 
   // ---- Gamepad ----
   let raf = 0;
+  let idle = 0;
   let lastDir: Dir | null = null;
   let nextRepeat = 0;
   const pressed = new Set<number>();
@@ -203,10 +213,13 @@ export function initSpatialNav(): () => void {
         } else if (!down) pressed.delete(i);
       }
     }
-    raf = requestAnimationFrame(poll);
+    // Every frame only while something is held (repeat timing); an idle pad is polled every 30 ms, short
+    // enough to catch a quick tap (40-90 ms): the Gamepad API keeps no press that falls between two reads.
+    if (lastDir || pressed.size) raf = requestAnimationFrame(poll);
+    else idle = window.setTimeout(() => ((idle = 0), poll(performance.now())), 30);
   };
   const start = () => {
-    if (!raf) raf = requestAnimationFrame(poll);
+    if (!raf && !idle) raf = requestAnimationFrame(poll);
   };
   window.addEventListener('gamepadconnected', start);
   if (gamepads().some((p) => p?.connected)) start();
@@ -215,5 +228,6 @@ export function initSpatialNav(): () => void {
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('gamepadconnected', start);
     if (raf) cancelAnimationFrame(raf);
+    clearTimeout(idle);
   };
 }

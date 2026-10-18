@@ -70,7 +70,10 @@
     return typeof res === 'string' ? res : res == null ? '' : JSON.stringify(res, null, 2);
   }
 
+  // The latest show() wins: a slow earlier file never lands under the one opened after it.
+  let showSeq = 0;
   async function show(f: LogFile): Promise<void> {
+    const seq = ++showSeq;
     open = f;
     text = '';
     query = '';
@@ -79,13 +82,15 @@
     viewError = '';
     viewLoading = true;
     try {
-      text = await fetchText(f.Name);
+      const got = await fetchText(f.Name);
+      if (seq !== showSeq || open?.Name !== f.Name) return;
+      text = got;
       await tick();
       toBottom();
     } catch (err) {
-      viewError = adminError(err);
+      if (seq === showSeq && open?.Name === f.Name) viewError = adminError(err);
     } finally {
-      viewLoading = false;
+      if (seq === showSeq) viewLoading = false;
     }
   }
 
@@ -176,7 +181,11 @@
   $effect(() => {
     if (!follow || !open) return;
     const name = open.Name;
+    // One download at a time: on a slow link the ticks wait instead of stacking.
+    let busy = false;
     timer = setInterval(async () => {
+      if (busy) return;
+      busy = true;
       const stick = atBottom();
       try {
         const next = await fetchText(name);
@@ -186,6 +195,8 @@
         if (stick) toBottom();
       } catch {
         /* keep the last text; the next tick retries */
+      } finally {
+        busy = false;
       }
     }, 4000);
     return () => clearInterval(timer);

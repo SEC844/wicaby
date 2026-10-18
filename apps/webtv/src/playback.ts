@@ -102,7 +102,13 @@ export class WebPlayback {
     this.index = Math.min(req.startIndex ?? 0, ids.length - 1);
     // Resuming rewinds 5 s, like the desktop.
     const startMs = req.startPositionTicks ? Math.max(0, req.startPositionTicks / TICKS_PER_MS - 5000) : 0;
-    await this.start({ startMs, mediaSourceId: req.mediaSourceId, audio: req.audioStreamIndex, subtitle: req.subtitleStreamIndex });
+    try {
+      await this.start({ startMs, mediaSourceId: req.mediaSourceId, audio: req.audioStreamIndex, subtitle: req.subtitleStreamIndex });
+    } catch (err) {
+      // The previous item is already reported stopped: unload it rather than leave it playing untracked.
+      await this.stop();
+      throw err;
+    }
   }
 
   private async start(o: { startMs: number; mediaSourceId?: string; audio?: number; subtitle?: number }): Promise<void> {
@@ -286,6 +292,8 @@ export class WebPlayback {
       case 'error':
         this.host.log('error', `player: ${ev.message}`);
         this.state.error = ev.message;
+        // Published before stop() resets the state, so the bridge toasts it.
+        this.publish();
         void this.stop();
         return;
     }
@@ -303,6 +311,8 @@ export class WebPlayback {
 
   private fail(err: unknown): void {
     this.host.log('error', `playback: ${String(err)}`);
+    this.state.error = err instanceof Error ? err.message : String(err);
+    this.publish();
     void this.stop();
   }
 
@@ -333,7 +343,7 @@ export class WebPlayback {
       case 'next':
         return this.advance(1);
       case 'previous':
-        return st.positionMs > 5000 ? this.host.command({ type: 'seek', positionMs: 0 }) : this.advance(-1);
+        return st.positionMs > 5000 || this.index === 0 ? this.host.command({ type: 'seek', positionMs: 0 }) : this.advance(-1);
       case 'volume':
         return this.host.command({ type: 'volume', value: c.value });
       case 'mute':

@@ -34,6 +34,10 @@ define(Promise, 'any', (list: Iterable<Promise<unknown>>) =>
     for (const p of all) Promise.resolve(p).then(resolve, () => --left === 0 && reject(new Error('All promises were rejected')));
   }),
 ); // Chrome 85
+// Svelte's animate:flip calls it on every removed item (Toasts, Home rows) only to skip one already animating.
+define(Element.prototype, 'getAnimations', function () {
+  return [];
+}); // Chrome 84
 
 // shortcut: Svelte's $state.snapshot clones Dates with it; JSON covers the rest, enough for what the app snapshots.
 define(globalThis, 'structuredClone', (v: unknown) => (v instanceof Date ? new Date(v.getTime()) : v === undefined ? v : JSON.parse(JSON.stringify(v)))); // Chrome 98

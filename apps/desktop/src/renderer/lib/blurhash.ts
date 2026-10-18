@@ -66,10 +66,22 @@ export function blurhashOf(item: BaseItem, type: 'Primary' | 'Thumb' | 'Backdrop
   return (tag && all[tag]) || Object.values(all)[0];
 }
 
+// Decoded once per hash (a grid remounts its tiles while scrolling), at 16 × 16: CSS stretches it anyway.
+const decoded = new Map<string, ImageData | null>();
+function cachedDecode(h: string): ImageData | null {
+  let data = decoded.get(h);
+  if (data === undefined) {
+    data = decodeBlurhash(h, 16, 16);
+    if (decoded.size >= 1000) decoded.delete(decoded.keys().next().value!);
+    decoded.set(h, data);
+  }
+  return data;
+}
+
 // Svelte action: paint a hash into a small canvas that CSS stretches to the frame.
 export function blurhash(canvas: HTMLCanvasElement, hash: string | undefined) {
   const paint = (h: string | undefined) => {
-    const data = h ? decodeBlurhash(h) : null;
+    const data = h ? cachedDecode(h) : null;
     if (!data) return;
     canvas.width = data.width;
     canvas.height = data.height;

@@ -7,10 +7,10 @@
 
 # Wicaby
 
-**Tous vos médias au même endroit.** Vos serveurs Emby, Jellyfin et Plex, superbement lus sur Windows, Linux, Android TV et Android.
+**Tous vos médias au même endroit.** Vos serveurs Emby, Jellyfin, Plex et Navidrome, superbement lus sur Windows, Linux, Android TV et Android.
 
 [![Plateformes](https://img.shields.io/badge/plateformes-Windows%20%7C%20Linux%20%7C%20Android%20TV%20%7C%20Android-informational.svg)](#téléchargement)
-[![Serveurs](https://img.shields.io/badge/serveurs-Emby%20%7C%20Jellyfin%20%7C%20Plex-52b54b.svg)](#pourquoi-wicaby-)
+[![Serveurs](https://img.shields.io/badge/serveurs-Emby%20%7C%20Jellyfin%20%7C%20Plex%20%7C%20Navidrome-52b54b.svg)](#pourquoi-wicaby-)
 [![Licence : GPL-3.0-or-later](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 [Téléchargement](#téléchargement) · [Fonctionnalités](#fonctionnalités) · [Prise en main](#prise-en-main) · [Docs](docs/features.md) · [English](README.md)
@@ -25,7 +25,7 @@
 
 ## Galerie
 
-### Windows
+### Windows et Linux
 
 <table>
   <tr>
@@ -49,16 +49,22 @@
     </td>
     <td align="center">
       <img src="docs/screenshots/desktop-reader.png" alt="Le lecteur de BD avec une double page" width="280"><br>
-      <b>Lecteur de BD</b><br><sub>Doubles pages, sens manga et défilement webtoon</sub>
+      <b>Lecteur de BD</b><br><sub>CBZ, CBR, CB7, CBT, PDF et EPUB, doubles pages et sens manga</sub>
     </td>
     <td align="center">
-      <img src="docs/screenshots/desktop-settings.png" alt="Les réglages avec la section des raccourcis clavier" width="280"><br>
-      <b>Réglages</b><br><sub>Avec recherche et raccourcis personnalisables</sub>
+      <img src="docs/screenshots/desktop-settings.png" alt="Les réglages d'apparence avec les sept thèmes et les couleurs d'accentuation" width="280"><br>
+      <b>Thèmes</b><br><sub>Graphite, OLED, Ardoise, Cinéma, Contraste élevé, Clair ou Automatique</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3">
+      <img src="docs/screenshots/desktop-home-light.png" alt="L'accueil avec le thème Clair et Caminandes en bannière" width="560"><br>
+      <b>Thème Clair</b><br><sub>Ou Automatique, qui suit le système ; vidéos, photos et BD restent sombres</sub>
     </td>
   </tr>
 </table>
 
-### Photos, musique et Plex
+### Photos, musique, Navidrome et Plex
 
 <table>
   <tr>
@@ -76,8 +82,12 @@
     </td>
   </tr>
   <tr>
-    <td align="center" colspan="2">
-      <img src="docs/screenshots/tv-photos.png" alt="La chronologie des photos sur Android TV" width="420"><br>
+    <td align="center">
+      <img src="docs/screenshots/desktop-navidrome.png" alt="La page Musique d'une bibliothèque Navidrome, avec le menu de la source musicale ouvert sur Automatique, Emby et Navidrome" width="280"><br>
+      <b>Navidrome</b><br><sub>Choisissez le serveur que montre la section Musique</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/tv-photos.png" alt="La chronologie des photos sur Android TV" width="280"><br>
       <b>Photos sur Android TV</b><br><sub>Vos photos sur grand écran</sub>
     </td>
     <td align="center">
@@ -148,12 +158,13 @@
 ## Pourquoi Wicaby ?
 
 - **Une seule application pour Emby et Jellyfin**, même avec plusieurs serveurs à la fois, sur tous vos appareils.
+- **À votre goût** : sept thèmes (Graphite, OLED, Ardoise, Cinéma, Contraste élevé, plus Clair et Automatique sur ordinateur et téléphone), huit couleurs d'accentuation, et la couleur du fond d'écran sur les téléphones Android 12 et plus récents.
 - **Le fichier d'origine, dès que possible.** Wicaby lit vos fichiers directement et ne demande une conversion au serveur que si l'appareil ne peut vraiment pas.
 - **HDR et Dolby Vision bien gérés**, avec bascule automatique du HDR de Windows et son surround transmis à votre ampli.
-- **La musique bien faite** : lecture sans blanc, ReplayGain et sortie bit-perfect sur ordinateur, une file d'attente modifiable, des mix, les paroles, et la musique qui continue sur la TV.
+- **La musique bien faite** : lecture sans blanc, ReplayGain et sortie bit-perfect sur ordinateur, une file d'attente modifiable, des mix, les paroles, et la musique qui continue sur la TV. Navidrome et les autres serveurs OpenSubsonic aussi, avec leurs étoiles, leurs playlists et le scrobbling.
 - **Plex aussi** : liez votre compte Plex avec un code, et vos serveurs Plex, comme ceux partagés avec vous, rejoignent Emby et Jellyfin. Un client non officiel, sans lien avec Plex.
 - **Vos fichiers aussi** : dossiers, partages WebDAV et SMB, parcourus et lus tels quels, à côté de vos serveurs.
-- **Une vraie TV en direct** : guide complet, zapping rapide, mini-guide et enregistrements, sur tous les écrans.
+- **Une vraie TV en direct** : guide complet, zapping rapide, mini-guide et enregistrements, sur tous les écrans. Pas de tuner sur votre serveur ? Ajoutez une liste de chaînes IPTV (M3U) avec son guide XMLTV.
 - **Votre serveur de partout**, avec Tailscale et NetBird intégrés. Aucune application VPN à installer.
 - **Sur tous les écrans** : « Lire sur » une autre app Wicaby, Emby ou Jellyfin, une TV DLNA ou un Chromecast, depuis un seul bouton Diffuser. AirPlay n’est pas pris en charge.
 - **Respect de la vie privée** : aucun pistage, aucune statistique, aucun rapport de plantage.
@@ -166,23 +177,28 @@
 - Les bonus sur les fiches ; marquer une saison ou tous les épisodes précédents comme vus.
 - Choix de la version, de l'audio et des sous-titres ; Wicaby retient vos choix pour chaque titre.
 - Recherche et téléchargement de sous-titres depuis le lecteur.
-- TV en direct avec guide, enregistrements et rappels.
-- Lecteur de BD synchronisé avec votre serveur.
+- TV en direct avec guide, enregistrements et rappels, toujours dans le menu, avec une page de configuration quand aucun serveur n'a de tuner.
+- IPTV : une liste de chaînes M3U ou M3U8 (adresses de type Xtream comprises) et un guide XMLTV, lus dans les pages de la TV en direct, sans serveur.
+- Lecteur de BD synchronisé avec votre serveur : livres CBZ, CBR, CB7, CBT, PDF et EPUB d'images.
 - Photos : une chronologie de vos bibliothèques de photos et de vidéos personnelles, albums, favoris, visionneuse avec les détails de prise de vue, diaporamas et « Ce jour-là ».
 - Musique : albums, artistes, titres, genres et playlists, une file d'attente modifiable, mix et radio, les paroles synchronisées de votre serveur, et le ReplayGain.
 - Sources de fichiers : lisez les vidéos d'un dossier, d'un serveur WebDAV ou d'un partage SMB, avec les titres des fichiers NFO, les affiches, les sous-titres posés à côté et la progression gardée sur l'appareil.
+- Navidrome et les autres serveurs OpenSubsonic : votre musique avec les étoiles et les playlists de Navidrome, les paroles et les écoutes envoyées au serveur ; choisissez le serveur que montre la section Musique ([détails](docs/features.md#navidrome)).
 - Serveurs Plex : liaison avec un code, profils Plex Home avec leur code PIN, navigation, lecture et reprise, et les rangées d’accueil de Plex ([ce qui marche](docs/features.md#plex)).
+- Thèmes : Graphite (par défaut), OLED, Ardoise, Cinéma et Contraste élevé, avec huit couleurs d'accentuation.
+- Historique de visionnage.
 - Chaque app Wicaby se pilote avec « Lire sur » depuis une autre app Wicaby, Emby ou Jellyfin.
 - Un court assistant d'accueil au premier lancement (langue, apparence, votre serveur, accès à distance), et une page Accès à distance avec des diagnostics à partager.
 - Français et anglais.
 
 **Windows**
-- Lecture fluide : décodage matériel, fréquence d'affichage adaptée et sortie HDR.
+- Lecture fluide : décodage matériel, fréquence d'affichage adaptée et sortie HDR, et une option Lecture fluide qui cale les images sur l'écran.
 - Son surround transmis à votre ampli (Dolby, DTS, TrueHD).
 - Administration du serveur sans le tableau de bord web.
 - Une carte des photos facultative (OpenStreetMap), désactivée tant que vous ne l’activez pas.
 - Téléchargements hors ligne et pilotage de qBittorrent.
-- Touches multimédias, boutons dans la barre des tâches, thèmes Mica et OLED, manette.
+- Touches multimédias, boutons dans la barre des tâches, thèmes Mica, Clair et Automatique, manette.
+- Un avis quand une nouvelle version sort, et un bouton GitHub dans la barre de titre qui devient Mettre à jour. Rien ne s'installe tout seul.
 - Une file de lecture avec lecture aléatoire, et les rangées « À venir » et « Parce que vous avez regardé ».
 - Continuer à regarder depuis la liste de raccourcis et la zone de notification.
 - Historique et statistiques de visionnage, connexion et scrobbling Trakt.
@@ -203,7 +219,7 @@
 - Connexion à l'accès à distance par QR code.
 - Recherche vocale, lecteur externe en secours, économiseur d'écran du système et chaînes du lanceur (À suivre, Ajouts récents).
 - Connexion avec votre téléphone : scannez le code affiché sur la TV. Puis « Lire sur » depuis le téléphone ou n'importe quelle app Emby ou Jellyfin.
-- Mode nuit, dialogues renforcés et amplification du volume ; sous-titres personnalisés ; thème noir OLED et couleurs d'accent.
+- Mode nuit, dialogues renforcés et amplification du volume ; sous-titres personnalisés ; thèmes et couleurs d'accent.
 - Lecture aléatoire et file d'attente, « Ajouter à une playlist » et « Ajouter à une collection », rangées de l'accueil personnalisables.
 - Plusieurs serveurs à la fois, historique et statistiques de visionnage, connexion et scrobbling Trakt.
 - Profils « Qui regarde ? » avec code PIN, plages horaires du contrôle parental, et recherche vocale des chaînes et programmes de la TV en direct.
@@ -212,7 +228,7 @@
 - Gestes pour avancer, régler le volume, la luminosité et le format d'image.
 - Picture-in-Picture et lecture audio en arrière-plan.
 - Téléchargements hors ligne qui synchronisent votre progression au retour du réseau, et un accueil hors ligne quand le serveur est injoignable.
-- Plusieurs serveurs à la fois, et un thème noir OLED avec couleurs d'accent.
+- Plusieurs serveurs à la fois, des thèmes dont Clair et Automatique, et la couleur d'accent du fond d'écran sur Android 12 et plus récent.
 - Recherche vocale et lecteur externe pour les fichiers que le téléphone ne sait pas lire.
 - « Lire sur » votre TV ou une autre app, ou diffuser vers une TV DLNA ; la version Cast ajoute Chromecast et Google TV. Connexion d'une TV en photographiant son code.
 
@@ -220,7 +236,7 @@ La liste complète, avec le détail sur la confidentialité, est dans [docs/feat
 
 ## Téléchargement
 
-**Bientôt disponible.** La première version publique, 0.2.0, est en préparation ; voici les fichiers que contiendra chaque version.
+Les fichiers sont dans la [dernière version](https://github.com/WicaebethTheo/wicaby/releases/latest). L'application de bureau vous prévient quand une nouvelle version sort, et les applications Android proposent les mises à jour depuis l'application.
 
 **Windows 10 ou 11 (x64)**
 
@@ -229,17 +245,17 @@ La liste complète, avec le détail sur la confidentialité, est dans [docs/feat
 | `Wicaby-<version>-x64.exe` | **Installeur** (recommandé) |
 | `Wicaby-<version>-portable.exe` | **Portable**, sans installation |
 
-**Linux (x64)** : nécessite **mpv 0.37 ou plus récent** fourni par votre distribution (Debian 13, Ubuntu 24.04, Fedora 40 ou plus récentes le proposent).
+**Linux (x64)** : nécessite **mpv 0.37 ou plus récent** fourni par votre distribution (Debian 13, Ubuntu 24.04, Fedora 40 ou plus récentes le proposent).
 
 | Fichier | |
 |---|---|
-| `Wicaby-<version>-amd64.deb` | **Debian et Ubuntu** (recommandé) : `sudo apt install ./Wicaby-<version>-amd64.deb` installe mpv avec |
-| `Wicaby-<version>-x86_64.AppImage` | **Toutes distributions** : `chmod +x`, puis lancez-le ; installez d'abord mpv |
-| `Wicaby-<version>-x64.tar.gz` | **Toutes distributions**, à décompresser où vous voulez ; installez d'abord mpv |
+| `Wicaby-<version>-amd64.deb` | **Debian et Ubuntu** (recommandé) : `sudo apt install ./Wicaby-<version>-amd64.deb` installe mpv avec |
+| `Wicaby-<version>-x86_64.AppImage` | **Toutes distributions** : `chmod +x`, puis lancez-le ; installez d'abord mpv |
+| `Wicaby-<version>-x64.tar.gz` | **Toutes distributions**, à décompresser où vous voulez ; installez d'abord mpv |
 
-Limites connues sous Linux : la vidéo s'affiche dans une fenêtre X11 (XWayland dans une session Wayland) et uniquement en SDR ; l'adaptation de la fréquence d'affichage nécessite X11 ou KDE Plasma ; sans trousseau système (GNOME Keyring, KWallet), les connexions durent jusqu'à la fermeture de Wicaby, sauf si vous choisissez de les garder non chiffrées ; l'icône de notification nécessite un bureau qui l'affiche (sous GNOME, l'extension AppIndicator). Pas de mise à jour automatique : installez le nouveau paquet.
+Limites connues sous Linux : la vidéo s'affiche dans une fenêtre X11 (XWayland dans une session Wayland) et uniquement en SDR ; l'adaptation de la fréquence d'affichage nécessite X11 ou KDE Plasma ; sans trousseau système (GNOME Keyring, KWallet), les connexions durent jusqu'à la fermeture de Wicaby, sauf si vous choisissez de les garder non chiffrées ; l'icône de notification nécessite un bureau qui l'affiche (sous GNOME, l'extension AppIndicator). Les mises à jour ne s'installent pas toutes seules : Wicaby signale la nouvelle version, installez ensuite le nouveau paquet.
 
-**Android TV** (Android 6.0 ou plus récent) : `Wicaby-TV-<version>-<abi>.apk`
+**Android TV** (Android 6.0 ou plus récent) : `Wicaby-TV-foss-<version>-<abi>.apk`
 
 | APK | À choisir pour |
 |---|---|
@@ -247,14 +263,16 @@ Limites connues sous Linux : la vidéo s'affiche dans une fenêtre X11 (XWaylan
 | `arm64` | NVIDIA Shield et autres boîtiers 64 bits |
 | `universal` | En cas de doute (téléchargement plus lourd) |
 
-**Téléphones et tablettes** (Android 8.0 ou plus récent) : `Wicaby-Mobile-<version>-<abi>.apk`, `arm64` pour la plupart des téléphones, `armv7` pour les plus anciens. `Wicaby-Mobile-Cast-<version>-<abi>.apk` ajoute Chromecast et Google TV grâce aux services Google Play (propriétaires, voir [LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md)) et n’a pas de décodeur audio FFmpeg ; chacune ne se met à jour que vers sa propre version.
+**Téléphones et tablettes** (Android 8.0 ou plus récent) : `Wicaby-Mobile-foss-<version>-<abi>.apk`, `arm64` pour la plupart des téléphones, `armv7` pour les plus anciens. `Wicaby-Mobile-gplay-<version>-<abi>.apk` ajoute Chromecast et Google TV grâce aux services Google Play (propriétaires, voir [LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md)) et n’a pas de décodeur audio FFmpeg ; chacune ne se met à jour que vers sa propre version.
 
 Installer sur une TV et activer les mises à jour automatiques : voir [Install on a TV](apps/android/README.md#install-on-a-tv) et [Updates for sideloaded APKs](apps/android/README.md#updates-for-sideloaded-apks) (en anglais).
+
+**TV LG et Samsung (versions de test)** : une app TV web pour LG webOS 6+ et Samsung Tizen 6.5+, avec Emby et Jellyfin. C'est un aperçu, jamais testé sur une vraie TV et absent des versions publiées : les paquets `.ipk` et `.wgt` (non signé) sont des artefacts du workflow, et une démo tourne dans le navigateur sur GitHub Pages. Voir [docs/webtv.md](docs/webtv.md) (en anglais).
 
 ## Prise en main
 
 1. **Installez** Wicaby sur votre appareil (voir [Téléchargement](#téléchargement)).
-2. **Ajoutez votre serveur.** Un court assistant d'accueil vous guide : Wicaby trouve les serveurs Emby et Jellyfin de votre réseau, ou saisissez l'adresse. Loin de chez vous ? Connectez-vous à Tailscale ou NetBird directement dans l'application ([guide](docs/remote-access.md)).
+2. **Ajoutez votre serveur.** Un court assistant d'accueil vous guide : Wicaby trouve les serveurs Emby et Jellyfin de votre réseau, ou saisissez l'adresse. Plex se lie avec un code ; Navidrome, les listes IPTV et les partages de fichiers s'ajoutent à côté de vos serveurs. Loin de chez vous ? Connectez-vous à Tailscale ou NetBird directement dans l'application ([guide](docs/remote-access.md)).
 3. **Profitez.** Connectez-vous avec votre compte du serveur et lancez la lecture.
 
 ## Pour les développeurs
@@ -279,6 +297,6 @@ Tout le reste est dans [docs/](docs/) : [fonctionnalités](docs/features.md), [W
 
 Wicaby est un logiciel libre, sous **[licence publique générale GNU, version 3 ou ultérieure](LICENSE)** (GPL-3.0-or-later). Chaque release contient son code source complet. La variante Android facultative `gplay` (Google Cast) s'appuie aussi sur une permission additionnelle (article 7) pour les services Google Play, dans [LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md). Les composants tiers gardent leur propre licence : voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). L'application Windows embarque ces licences dans `resources/licenses/` ; les applications Android les listent dans Réglages > À propos.
 
-Wicaby est un projet indépendant, ni affilié à Emby LLC, au projet Jellyfin, à Tailscale Inc. ou à NetBird, ni approuvé par eux.
+Wicaby est un projet indépendant, ni affilié à Emby LLC, au projet Jellyfin, à Plex Inc., au projet Navidrome, à Tailscale Inc. ou à NetBird, ni approuvé par eux.
 
 **Crédits.** [mpv](https://mpv.io), [AndroidX Media3](https://developer.android.com/media/media3), [Tailscale](https://tailscale.com), [NetBird](https://netbird.io), les icônes [Lucide](https://lucide.dev), la police [Geist](https://vercel.com/font) et les films libres de la [Blender Foundation](https://studio.blender.org/films/) (CC BY) utilisés dans la démo. Merci aussi aux équipes d'Emby et de Jellyfin.

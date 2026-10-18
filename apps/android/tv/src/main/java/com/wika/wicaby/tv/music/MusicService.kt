@@ -11,12 +11,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.Item
@@ -136,7 +138,7 @@ class MusicService : MediaSessionService() {
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MusicActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        media = MediaSession.Builder(this, QueuePlayer(s.player)).setId("music").setSessionActivity(open).build().also { addSession(it) }
+        media = MediaSession.Builder(this, QueuePlayer(s.player)).setId("music").setSessionActivity(open).setCallback(OwnItemsOnly).build().also { addSession(it) }
         Music.onRelease = {
             media?.release()
             media = null
@@ -145,6 +147,14 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = media
+
+    // The service is exported: another app may pause or skip, never hand the player its own URLs (requests from this
+    // process with the server's token, onto the LAN or the mesh).
+    private object OwnItemsOnly : MediaSession.Callback {
+        override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> =
+            if (controller.packageName == BuildConfig.APPLICATION_ID) super.onAddMediaItems(mediaSession, controller, mediaItems)
+            else Futures.immediateFailedFuture(UnsupportedOperationException())
+    }
 
     override fun onDestroy() {
         media?.release()

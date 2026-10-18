@@ -145,7 +145,12 @@ function dropUnsafeMeshControlUrl(file: string): void {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  void bootstrap();
+  // A start that throws (a bad file, a locked profile) must not leave a windowless process holding the lock.
+  bootstrap().catch((err: unknown) => {
+    logger.errorSync('main', `start failed: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
+    dialog.showErrorBox('Wicaby', String(err));
+    app.exit(1);
+  });
 }
 
 async function bootstrap(): Promise<void> {
@@ -501,7 +506,7 @@ async function bootstrap(): Promise<void> {
         if (vault.busy) await Promise.race([vault.flush(), new Promise((r) => setTimeout(r, 2000))]);
       } finally {
         // One failing step must not skip the others' writes, nor app.quit().
-        for (const step of [() => settings.flush(), () => reminders.flush(), () => connection.flush(), () => files.shutdown(), () => iptv.shutdown(), () => downloads.flush(), () => torrents.flush(), () => adminAlerts.flush(), () => updates.flush(), () => vpn.dispose(), () => desktop.dispose(), () => pdfPages.close()]) {
+        for (const step of [() => windows.saveState(), () => settings.flush(), () => reminders.flush(), () => connection.flush(), () => files.shutdown(), () => iptv.shutdown(), () => downloads.flush(), () => torrents.flush(), () => adminAlerts.flush(), () => updates.flush(), () => vpn.dispose(), () => desktop.dispose(), () => pdfPages.close()]) {
           try {
             step();
           } catch (err) {

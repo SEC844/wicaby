@@ -100,7 +100,8 @@ fun HomeScreen(api: Api, nav: NavController, openTab: (Tab) -> Unit) {
     val context = LocalContext.current
     var nonce by rememberSaveable { mutableIntStateOf(0) }
     var pulled by remember { mutableStateOf(false) }
-    val views = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}", nonce) { allViews(api).filter { it.collectionType in BROWSABLE } }
+    // Both counters only grow: a music source change reloads, the list staying on screen meanwhile.
+    val views = rememberLoad("views", nonce + com.wika.wicaby.core.music.MusicSource.version) { allViews(api).filter { it.collectionType in BROWSABLE } }
     val hero = rememberLoad("hero", nonce) {
         Servers.merged(api) { a ->
             a.items(
@@ -266,7 +267,7 @@ private fun OfflineHome(api: Api, onRetry: () -> Unit, onDownloads: () -> Unit) 
             }
         }
         item("title", span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.tab_downloads), style = Type.title3, color = G.label, modifier = Modifier.padding(top = 10.dp)) }
-        items(done, key = { it.id }, contentType = { "poster" }) { e ->
+        items(done, key = { "${it.serverId}:${it.id}" }, contentType = { "poster" }) { e ->
             // Local artwork: no server to ask.
             val art = remember(e.poster) { e.poster?.let(::File)?.takeIf { it.exists() } }
             PosterCard(e.item.withPending(pending, e.serverId, e.userId), api, onClick = { PlayerActivity.start(context, e.id, false, server = Servers.extraOf(e.serverId)?.server?.id) }, width = null, art = art)

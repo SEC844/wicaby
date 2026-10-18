@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class ThemeTest {
@@ -51,6 +52,14 @@ class ThemeTest {
         C.theme = "contrast"
         assertEquals(List(8) { Color.Black }, Accents.map(::onAccent))
         assertEquals(Color(0xFF409CFF), Accents[0])
+    }
+
+    // Read during composition: one list per palette, not a new one per access.
+    @Test
+    fun accentsAreCachedPerPalette() {
+        assertSame(Accents, Accents)
+        C.theme = "slate"
+        assertSame(Accents, Accents)
     }
 
     // The inverted focus pair is the exact white and black the screens were written with.

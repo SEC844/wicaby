@@ -295,7 +295,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                                     true
                                 }) { casting, onClick -> ActionIcon(Ic.Cast, stringResource(com.wika.wicaby.core.R.string.cast_button), onClick, active = casting) }
                             }
-                            if (!item.isSeries && caps.castSend && canDownload) DownloadAction(downloads.firstOrNull { it.id == item.id }) { download(item) }
+                            if (!item.isSeries && caps.castSend && canDownload) DownloadAction(downloads.firstOrNull { it.isOf(api.server.id, item.id) }) { download(item) }
                             if (caps.favorites) ActionIcon(if (favorite) Ic.HeartFilled else Ic.Heart, stringResource(R.string.favorite), active = favorite, onClick = {
                                 scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite } }
                             })
@@ -346,7 +346,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                     }
                     items(episodes, key = { it.id }, contentType = { "episode" }) { ep ->
                         EpisodeRow(
-                            ep, api, downloads.firstOrNull { it.id == ep.id }, onPlay = { play(context, ep) }, onDownload = { download(ep) }.takeIf { episodesDownload },
+                            ep, api, downloads.firstOrNull { it.isOf(api.server.id, ep.id) }, onPlay = { play(context, ep) }, onDownload = { download(ep) }.takeIf { episodesDownload },
                             onMark = { on -> mark(on) { listOf(ep) } },
                             // The whole series, so earlier seasons count too.
                             onMarkPrevious = { mark(true) { previousEpisodes(api.episodes(id), ep) } },

@@ -7,8 +7,8 @@
      mesh transport also talks to its own loopback proxy (http://127.0.0.1:<port>/...).
      What covers it instead: connections are tried over https first and an http answer never
      wins over an https one (core Emby.kt); a server reached over plain http is marked
-     Server.insecure, with R.string.server_insecure as the warning text. TODO: that warning is
-     not yet shown by the tv/mobile server and sign-in screens. The updater refuses http itself.
+     Server.insecure; the sign-in screens show R.string.server_insecure above the password when
+     that address is off the LAN. The updater refuses http itself.
 
      Trust: the system CA store, plus user-installed CAs so a server behind a private CA (home
      reverse proxy, self-hosted PKI) works once its CA is installed in Android's settings.
@@ -24,6 +24,11 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">tailscale.com</domain>
         <domain includeSubdomains="true">netbird.io</domain>
+        <!-- Account tokens (plex.tv, Trakt) and update metadata and downloads (GitHub). -->
+        <domain includeSubdomains="true">plex.tv</domain>
+        <domain includeSubdomains="true">trakt.tv</domain>
+        <domain includeSubdomains="true">github.com</domain>
+        <domain includeSubdomains="true">githubusercontent.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

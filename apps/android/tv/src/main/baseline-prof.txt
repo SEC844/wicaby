@@ -5,25 +5,18 @@
 # exist yet (the Live TV UI lands with TV-1 to TV-5) match nothing until then.
 
 # Startup: application, home shell, theme and the shared core it touches first.
-HSPLcom/wika/wicaby/tv/Wicaby**->**(**)**
-HSPLcom/wika/wicaby/tv/MainActivity**->**(**)**
-HSPLcom/wika/wicaby/tv/Screen**->**(**)**
+# One * stays in its package: tv/ (Route, Nav, the activity) and tv/ui/ (Home's rows and tokens, Detail, the
+# first-run wizard), without the sub-packages listed on their own below. Measured: the four *Kt files alone left
+# Route, C, Nav, HomeLayoutKt and DetailKt interpreted on every start.
+HSPLcom/wika/wicaby/tv/*;->**(**)**
 HSPLcom/wika/wicaby/tv/data/**->**(**)**
-HSPLcom/wika/wicaby/tv/ui/MainKt**->**(**)**
-HSPLcom/wika/wicaby/tv/ui/ChromeKt**->**(**)**
-HSPLcom/wika/wicaby/tv/ui/ComponentsKt**->**(**)**
-HSPLcom/wika/wicaby/tv/ui/ThemeKt**->**(**)**
+HSPLcom/wika/wicaby/tv/ui/*;->**(**)**
 HSPLcom/wika/wicaby/core/Core**->**(**)**
 HSPLcom/wika/wicaby/core/data/**->**(**)**
 HSPLcom/wika/wicaby/core/net/**->**(**)**
-Lcom/wika/wicaby/tv/Wicaby**;
-Lcom/wika/wicaby/tv/MainActivity**;
-Lcom/wika/wicaby/tv/Screen**;
+Lcom/wika/wicaby/tv/*;
 Lcom/wika/wicaby/tv/data/**;
-Lcom/wika/wicaby/tv/ui/MainKt**;
-Lcom/wika/wicaby/tv/ui/ChromeKt**;
-Lcom/wika/wicaby/tv/ui/ComponentsKt**;
-Lcom/wika/wicaby/tv/ui/ThemeKt**;
+Lcom/wika/wicaby/tv/ui/*;
 Lcom/wika/wicaby/core/Core**;
 Lcom/wika/wicaby/core/data/**;
 Lcom/wika/wicaby/core/net/**;

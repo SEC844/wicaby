@@ -31,6 +31,10 @@ assert.ok(!redefines(':root {\n  color: var(--bg);\n}\nhtml.x {\n  --bg: red;\n}
 for (const [, name] of read(OUTPUTS.css).matchAll(/^\s*(--[\w-]+):/gm)) {
   assert.ok(!redefines(app, name), `app.css redefines ${name}; edit packages/tokens/tokens.json instead`);
 }
+// Reduce transparency also reaches media surfaces, whose light-theme block redeclares the translucent materials.
+if (/\.on-media \{[^}]*--material:/.test(read(OUTPUTS.css))) {
+  assert.match(app, /html\[data-reduce-transparency\] \.on-media[^{]*\{[^}]*--material:/, 'reduce transparency must override .on-media materials');
+}
 
 // The desktop settings list every theme in tokens.json, plus 'system' (follows the OS).
 const ids = Object.keys(JSON.parse(read('packages/tokens/tokens.json')).themes).filter((k) => !k.startsWith('$'));

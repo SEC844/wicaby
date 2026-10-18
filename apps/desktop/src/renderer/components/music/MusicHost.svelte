@@ -39,7 +39,8 @@
       gain = ctx.createGain();
       ctx.createMediaElementSource(audio).connect(gain).connect(ctx.destination);
     }
-    gain.gain.value = 10 ** (db / 20);
+    // Bounded here too: an unbounded gain is clipped noise at full scale, a non-finite one throws.
+    gain.gain.value = 10 ** ((Number.isFinite(db) ? Math.max(-30, Math.min(db, 24)) : 0) / 20);
   }
 
   function load(l: HtmlPlayerLoad): void {

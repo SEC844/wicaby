@@ -19,6 +19,7 @@
   import { initAppUpdate } from './lib/app-update.svelte';
   import { w } from './lib/bridge';
   import { initCast } from './lib/cast.svelte';
+  import { web } from './lib/platform';
   import { t } from './lib/i18n.svelte';
   import { navigate, router } from './lib/router.svelte';
   import { initSpatialNav } from './lib/spatial';
@@ -136,7 +137,8 @@
     if (status === 'no-server' && !onboarded) navigate('/welcome', { replace: true });
     else if (status === 'no-server' && name !== 'servers') navigate('/servers', { replace: true });
     else if (status === 'server-selected' && name !== 'login' && name !== 'servers') navigate('/login', { replace: true });
-    else if (status === 'offline' && !['downloads', 'settings', 'servers', 'read'].includes(name)) navigate('/downloads', { replace: true });
+    // The web TV app has no downloads: its offline place is the servers page (Retry, Wake).
+    else if (status === 'offline' && !['downloads', 'settings', 'servers', 'read'].includes(name)) navigate(web ? '/servers' : '/downloads', { replace: true });
     // Signed in, /servers and /login stay open: they add or sign in to another server.
     else if (status === 'signed-in' && name === '') navigate(startRoute(), { replace: true });
   });
@@ -275,6 +277,12 @@
     background-clip: text;
     color: transparent;
     animation: rise var(--t-slow) var(--ease-out) both;
+  }
+  /* Light canvas: the label colours (white on #f2f2f5 would not show). */
+  :global([data-theme='light']) .wordmark {
+    background: linear-gradient(180deg, var(--label) 30%, var(--label-2));
+    -webkit-background-clip: text;
+    background-clip: text;
   }
   .status {
     position: relative;

@@ -118,7 +118,12 @@ jobs:
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
             [ -n "${!v}" ] || missing+=("$v")
           done
-          if [ "${#missing[@]}" -eq 0 ]; then
+          if [ "${#missing[@]}" -eq 0 ] && [ "$dry" = true ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            # The release key signs main and tags only. A notice, not enforcement: a branch can edit its own copy of this
+            # file; only a GitHub Environment limited to main and v* tags holding the secrets enforces it (docs/release.md).
+            signed=false
+            echo "::notice::Dry run from $GITHUB_REF_NAME, not main: UNSIGNED Android APKs (*-UNSIGNED.apk) and no update.json"
+          elif [ "${#missing[@]}" -eq 0 ]; then
             signed=true
             [[ "${APK_CERT_SHA256//:/}" =~ ^[0-9A-Fa-f]{64}$ ]] \
               || err "repository variable APK_CERT_SHA256 is not the 64-hex SHA-256 of the signing certificate (docs/release.md#variables)"
@@ -214,12 +219,13 @@ jobs:
 
       # vendor/mpv from the shinchiro build pinned in fetch-mpv.ps1 (direct download, SHA-256
       # checked, no API call). System32 first so tar.exe is Windows' bsdtar (reads .7z), not
-      # Git's GNU tar.
+      # Git's GNU tar. -Generic: the baseline x86_64 build, so the release also plays on CPUs
+      # without AVX2 (Celeron/Pentium HTPCs, pre-Haswell); npm run fetch-mpv cannot pass it.
       - name: Fetch mpv
         shell: pwsh
         run: |
           $env:PATH = "$env:SystemRoot\System32;$env:PATH"
-          npm run fetch-mpv
+          ./apps/desktop/scripts/fetch-mpv.ps1 -Generic
 
       # vendor/vpn-helper/wicaby-mesh.exe + THIRD_PARTY_LICENSES.txt (runs the AGPL guard).
       - name: Build mesh helper
@@ -340,8 +346,10 @@ jobs:
           set -euo pipefail
           mkdir -p keystore
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/wicaby-release.jks
-          # java.util.Properties: backslashes must be escaped. storeFile is relative to apps/android.
-          esc() { printf '%s' "${1//\\/\\\\}"; }
+          # java.util.Properties reads ISO-8859-1 and drops leading whitespace: escape backslashes, line breaks, a
+          # leading blank, and non-ASCII as \uXXXX (UTF-16 pairs). storeFile is relative to apps/android.
+          # shellcheck disable=SC2016 # $1 and $_ are Perl's
+          esc() { printf '%s' "$1" | perl -CS -0777 -pe 's/\\/\\\\/g; s/\n/\\n/g; s/\r/\\r/g; s/^([ \t\f])/\\$1/; s/([^\x00-\x7f])/join "", map { sprintf "\\u%04x", $_ } (ord($1) > 0xffff ? (0xd800 + ((ord($1) - 0x10000) >> 10), 0xdc00 + ((ord($1) - 0x10000) & 0x3ff)) : ord($1))/ge'; }
           {
             echo "storeFile=keystore/wicaby-release.jks"
             echo "storePassword=$(esc "$KEYSTORE_PASSWORD")"

@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.pair.pairable
 import com.wika.wicaby.core.net.LocalNetwork
 import com.wika.wicaby.mobile.BuildConfig
 import com.wika.wicaby.mobile.cast.CastSettings
@@ -68,6 +69,8 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
 
     fun leave(pickServer: Boolean, revoke: Boolean) {
         scope.launch {
+            // No playback (music in the background) goes on reporting with the account being left.
+            com.wika.wicaby.mobile.player.PlayerHolder.release()
             if (revoke) runCatching { api.raw("POST", "/Sessions/Logout") }
             Cache.map.clear()
             SetupRequest.pickServer = pickServer
@@ -119,7 +122,8 @@ fun SettingsScreen(api: Api, onRemote: () -> Unit) {
                         GroupDivider()
                     }
                     // Plex: the TV links its own account (its servers need the account's connections, not this token).
-                    if (session.server.kind != "plex") {
+                    // Navidrome: the token is the password, never sent over the cleartext pair channel.
+                    if (pairable(session.server.kind)) {
                         PairTvRow(api, session.userName)
                         GroupDivider()
                     }

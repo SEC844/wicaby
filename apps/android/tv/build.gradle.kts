@@ -20,8 +20,8 @@ android {
         applicationId = "com.wika.wicaby.tv"
         minSdk = libs.versions.minSdkTv.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 33
-        versionName = "0.10.12"
+        versionCode = 34
+        versionName = "0.10.13"
         // Photos spec PH-05/PH-06/PH-07: Compose tests on an emulator against the mock (tools/checks/photos-android-check.mjs).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +35,12 @@ android {
                 keyPassword = keystoreProps.getProperty("keyPassword")
             }
         }
+    }
+
+    // French is the default (values), English in values-en (as mobile): library translations for other
+    // languages are dropped, so the app's own labels never mix with a third one.
+    androidResources {
+        localeFilters += listOf("fr", "en")
     }
 
     // One APK per CPU type: the embedded mesh library is ~45 MB of native code per ABI.

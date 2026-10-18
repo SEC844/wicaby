@@ -220,22 +220,27 @@ fun openDeepLink(activity: ComponentActivity) {
 }
 
 // "Play on Wicaby" from another app (the server socket): only with a session open (TP-10: none while locked).
-fun playRemote(context: Context, r: RemotePlay): Boolean {
+// [consented]: the notification's "Lire" was tapped.
+fun playRemote(context: Context, r: RemotePlay, consented: Boolean = false): Boolean {
     val api = Core.api ?: return false
     Core.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        val item = runCatching { api.item(r.itemId) }.getOrNull()
+        // In the background (Android 10+), music included: a notification offers it, from the sender's user when the
+        // server names it. Nothing starts playing over another app unasked.
+        if (!consented && !RemotePlays.canStart()) {
+            val who = r.controller?.let { id -> runCatching { api.get<JsonObject>("/Users/$id")["Name"]?.jsonPrimitive?.contentOrNull }.getOrNull() }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RemotePlays.notify(context, r, who ?: api.server.name, item?.name, music = item?.playsAsMusic == true)
+            return@launch
+        }
         // A music track (with the rest of the queue's tracks) plays in the music session (MU-09); anything else, or a
         // failed look-up, in the player as before.
-        val item = runCatching { api.item(r.itemId) }.getOrNull()
         if (item != null && item.playsAsMusic) {
             val tracks = runCatching { api.tracksOf(r.queue.ifEmpty { listOf(r.itemId) }) }.getOrNull()?.filter { it.isAudio }.orEmpty().ifEmpty { listOf(item) }
             RemoteControl.take(r.itemId)
             com.wika.wicaby.tv.music.Music.play(context, api, tracks, tracks.indexOfFirst { it.id == r.itemId }.coerceAtLeast(0), r.startMs ?: 0)
             return@launch
         }
-        if (RemotePlays.canStart()) return@launch RemotePlays.start(context, r)
-        // In the background (Android 10+): a notification offers it, from the sender's user when the server names it.
-        val who = r.controller?.let { id -> runCatching { api.get<JsonObject>("/Users/$id")["Name"]?.jsonPrimitive?.contentOrNull }.getOrNull() }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) RemotePlays.notify(context, r, who ?: api.server.name, item?.name)
+        RemotePlays.start(context, r)
     }
     return true
 }

@@ -41,7 +41,12 @@ const MEDIA_EXTS = new Set([
   'srt', 'ass', 'ssa', 'vtt', 'sub', 'idx', 'sup',
   // photo originals ("Enregistrer l'original"; no svg: it can carry script)
   'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif', 'tif', 'tiff', 'bmp', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'raf', 'orf', 'rw2',
+  'jxl', 'jpe', 'pef', 'srw', 'nrw', 'raw', 'rwl', '3fr', 'erf', 'x3f', 'mrw', 'srf', 'sr2', 'kdc', 'dcr', 'insp',
 ]);
+// Windows treats a file with this stream as downloaded from the internet
+// (SmartScreen, Office Protected View) instead of trusting it as local.
+export const ZONE_INTERNET = '[ZoneTransfer]\r\nZoneId=3\r\n';
+
 // Win32 device names stay devices with any extension, and with spaces before
 // it ("con .txt"); COM/LPT also take superscript digits; CONIN$, CONOUT$ and
 // CLOCK$ are devices too.

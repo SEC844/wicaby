@@ -5,6 +5,8 @@ import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Server
 import com.wika.wicaby.core.net.ServerTransport
+import com.wika.wicaby.core.net.cappedString
+import com.wika.wicaby.core.net.executeUse
 import com.wika.wicaby.core.plex.get
 import com.wika.wicaby.core.plex.num
 import com.wika.wicaby.core.plex.str
@@ -12,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -121,9 +125,9 @@ class SubsonicApi(
         val req = Request.Builder().url(signed(b.build())).header("Accept", "application/json").build()
         val c = http.newCall(req)
         c.timeout().timeout(timeoutMs, TimeUnit.MILLISECONDS)
-        c.execute().use { res ->
+        c.executeUse { res ->
             if (!res.isSuccessful) throw ApiException("HTTP ${res.code}", res.code)
-            val r = runCatching { Json.parseToJsonElement(res.body.string()).jsonObject["subsonic-response"] as? JsonObject }.getOrNull()
+            val r = runCatching { Json.parseToJsonElement(res.body.cappedString()).jsonObject["subsonic-response"] as? JsonObject }.getOrNull()
                 ?: throw ApiException("Not a Subsonic answer", 502)
             if (r["status"].str() != "ok") throw SubsonicException(r["error"]["code"].num()?.toInt() ?: 0, r["error"]["message"].str() ?: "Subsonic error")
             r
@@ -174,6 +178,8 @@ class SubsonicApi(
         return when ("$method $shape") {
             // Subsonic lists no users before sign-in: the name and password form.
             "GET /Users/Public" -> "[]"
+            // Servers.goOffline's recovery probe.
+            "GET /System/Info/Public" -> { call("ping"); buildJsonObject { put("Id", server.id); put("ServerName", server.name) }.toString() }
             "POST /Users/AuthenticateByName" -> signIn(q["Username"].orEmpty(), q["Pw"].orEmpty())
             "GET /Views" -> result(SubsonicMap.arr(call("getMusicFolders")["musicFolders"]["musicFolder"]).map(SubsonicMap::folder))
             "GET /Items/Resume", "GET /Shows/NextUp", "GET /Shows/Upcoming", "GET /Items/{id}/Similar", "GET /Years" -> result(emptyList())
@@ -279,7 +285,7 @@ class SubsonicApi(
         val start = q["StartIndex"]?.toIntOrNull() ?: 0
 
         q["Ids"]?.let { ids ->
-            val got = coroutineScope { ids.split(',').filter { it.isNotEmpty() }.map { x -> async { runCatching { mapped(x) }.getOrNull() } }.awaitAll() }
+            val got = ids.split(',').filter { it.isNotEmpty() }.bounded { x -> runCatching { mapped(x) }.getOrNull() }
             return result(got.filterNotNull())
         }
         q["SearchTerm"]?.let { term ->
@@ -292,14 +298,14 @@ class SubsonicApi(
         if (types.isNotEmpty() && types.none { it in setOf("MusicAlbum", "Audio", "MusicArtist") }) return result(emptyList())
 
         val albumIds = if (parent?.kind == "al") listOf(parent.raw) else q["AlbumIds"]?.split(',')?.mapNotNull { SubsonicMap.decodeId(it)?.raw }.orEmpty()
-        if (albumIds.isNotEmpty()) return page(albumIds.flatMap { SubsonicMap.arr(album(it)["song"]).map { s -> song2(s) } }, q)
+        if (albumIds.isNotEmpty()) return page(albumIds.bounded { SubsonicMap.arr(album(it)["song"]).map { s -> song2(s) } }.flatten(), q)
         val artistRef = if (parent?.kind == "ar") parent.raw else SubsonicMap.decodeId((q["AlbumArtistIds"] ?: q["ArtistIds"])?.substringBefore(','))?.raw
         if (artistRef != null || q["ContributingArtistIds"] != null) {
             // shortcut: Subsonic lists an artist's own albums only; "appears on" (ContributingArtistIds) answers none.
             if (artistRef == null) return result(emptyList())
             val albums = SubsonicMap.arr(call("getArtist", "id" to artistRef)["artist"]["album"])
             if (wants("MusicAlbum") && "Audio" !in types) return page(albums.map(::album2), q)
-            return page(albums.flatMap { a -> SubsonicMap.arr(album(a["id"].str().orEmpty())["song"]).map { song2(it) } }, q)
+            return page(albums.bounded { a -> SubsonicMap.arr(album(a["id"].str().orEmpty())["song"]).map { song2(it) } }.flatten(), q)
         }
         if (q["Filters"]?.contains("IsFavorite") == true || q["IsFavorite"] == "true") {
             val r = call("getStarred2", "musicFolderId" to folder)["starred2"]
@@ -338,6 +344,13 @@ class SubsonicApi(
         return page(all.map(::album2), q)
     }
 
+    // One call per element, a few at a time, in order: a 100-id page or a 40-album artist neither queues 40
+    // round trips nor fires 64 requests at once at a small home server.
+    private suspend fun <A, B> List<A>.bounded(f: suspend (A) -> B): List<B> = coroutineScope {
+        val gate = Semaphore(6)
+        map { async { gate.withPermit { f(it) } } }.awaitAll()
+    }
+
     private suspend fun entries(playlistId: String): String {
         val d = SubsonicMap.decodeId(playlistId)?.takeIf { it.kind == "pl" } ?: throw ApiException("Not found", 404)
         return result(SubsonicMap.arr(playlist(d.raw)["entry"]).mapIndexed { i, s -> song2(s, i) })
@@ -350,7 +363,7 @@ class SubsonicApi(
             "tr" -> listOf(d.raw)
             "al" -> SubsonicMap.arr(album(d.raw)["song"]).mapNotNull { it["id"].str() }
             "pl" -> SubsonicMap.arr(playlist(d.raw)["entry"]).mapNotNull { it["id"].str() }
-            "ar" -> SubsonicMap.arr(call("getArtist", "id" to d.raw)["artist"]["album"]).flatMap { a -> SubsonicMap.arr(album(a["id"].str().orEmpty())["song"]).mapNotNull { it["id"].str() } }
+            "ar" -> SubsonicMap.arr(call("getArtist", "id" to d.raw)["artist"]["album"]).bounded { a -> SubsonicMap.arr(album(a["id"].str().orEmpty())["song"]).mapNotNull { it["id"].str() } }.flatten()
             else -> throw ApiException("Not a track: $x", 400)
         }
     }
@@ -469,7 +482,10 @@ class SubsonicApi(
 
 // Signs Subsonic media hops (stream, download, cover art) on Core.http: a hop to a signed-in Navidrome server's own
 // origin (or its mesh forwarder) whose path is under /rest/ and carries no token gets u/t/s added, so the URLs Coil and
-// Media3 hold carry none. Nothing is added for any other host.
+// Media3 hold carry none. Nothing is added for any other host, for any other endpoint (every Subsonic action is a
+// GET: a hostile logo URL must not star, scrobble or delete as the user), or for a call that started elsewhere.
+private val SIGNED_MEDIA = Regex(".*/rest/(stream|download|getCoverArt)(\\.view)?$")
+
 class SubsonicInterceptor(
     private val transport: () -> ServerTransport,
     private val others: () -> List<Api> = { emptyList() },
@@ -477,10 +493,11 @@ class SubsonicInterceptor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val req = chain.request()
-        if (!req.url.encodedPath.contains("/rest/") || req.url.queryParameter("t") != null) return chain.proceed(req)
+        if (!SIGNED_MEDIA.matches(req.url.encodedPath) || req.url.queryParameter("t") != null) return chain.proceed(req)
         val t = transport()
+        val start = chain.call().request().url
         val api = (listOfNotNull(active()) + others()).filterIsInstance<SubsonicApi>()
-            .firstOrNull { a -> a.server.origin?.let { com.wika.wicaby.core.data.isServerUrl(req.url, it, t) } == true }
+            .firstOrNull { a -> a.server.origin?.let { com.wika.wicaby.core.data.isServerUrl(req.url, it, t) && com.wika.wicaby.core.data.isServerUrl(start, it, t) } == true }
             ?: return chain.proceed(req)
         return chain.proceed(req.newBuilder().url(api.signed(req.url)).build())
     }

@@ -96,7 +96,7 @@
       const res = await page(items.length);
       if (gen === generation) items = dedupe([...items, ...res.Items]);
     } catch (err) {
-      error = errorMessage(err);
+      if (gen === generation) error = errorMessage(err);
     } finally {
       if (gen === generation) loading = false;
     }
@@ -107,7 +107,8 @@
     void desc;
     void dataVersion.userData;
     void offline;
-    void reset();
+    // Untracked: page() reads the session store (api.items), and a session push must not reload page 1.
+    untrack(() => void reset());
   });
 
   $effect(() => {

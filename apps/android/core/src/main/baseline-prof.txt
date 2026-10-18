@@ -1,0 +1,13 @@
+# :core's own profile, shipped in its AAR and merged into both apps' release builds (as :livetv-ui's). Measured on
+# the TV emulator: after a speed-profile compile, a cold start to Home still ran ~3,500 methods interpreted, most
+# of them in the libraries below (no profile of their own) and in the core packages the start touches (file
+# sources, photos, mesh, updater, cast tokens, image fetchers).
+HSPLcom/wika/wicaby/core/**->**(**)**
+Lcom/wika/wicaby/core/**;
+# Every API call and image: OkHttp and Okio. Prefs and the stores: DataStore.
+HSPLokhttp3/**->**(**)**
+HSPLokio/**->**(**)**
+HSPLandroidx/datastore/**->**(**)**
+Lokhttp3/**;
+Lokio/**;
+Landroidx/datastore/**;

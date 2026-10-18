@@ -99,7 +99,7 @@ suspend fun resolveChannelWithRetry(
     return null
 }
 
-/** wicaby://live?channel=<id or number>&server=<id> → (channel, server?). The activity is exported and BROWSABLE: only plain ids get through. */
+/** wicaby://live?channel=<id or number>&server=<id> → (channel, server?). The activity is exported (not BROWSABLE): only plain ids get through. */
 fun liveLinkQuery(data: Uri): Pair<String, String?>? {
     if (data.scheme != "wicaby" || data.host != "live") return null
     val channel = data.getQueryParameter("channel")?.takeIf(SafeNames::isValidId) ?: return null

@@ -1,5 +1,6 @@
 // The main-process side of archive.ts: the job a worker thread runs, and how it is started and timed.
 // Kept apart so the main bundle does not carry libarchive (only archive-worker.cjs does).
+import fs from 'node:fs';
 import { Worker } from 'node:worker_threads';
 
 export interface ArchiveLimits {
@@ -25,16 +26,25 @@ export function runArchiveJob(script: string | URL, evaluate: boolean, job: Arch
   return new Promise((resolve, reject) => {
     const worker = new Worker(script, { eval: evaluate, workerData: job, resourceLimits: { maxOldGenerationSizeMb: 256 } });
     let done = false;
-    const finish = (fn: () => void) => {
+    // A failed extract: a terminated worker never runs its own cleanup, so its half-written folder (outside the
+    // cache cap until the next start) goes here, once the worker is gone and before a retry can start.
+    const finish = (fn: () => void, failed = true) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      void worker.terminate();
-      fn();
+      void worker
+        .terminate()
+        .catch(() => undefined)
+        .then(() => {
+          if (failed && job.mode === 'extract') fs.rmSync(`${job.dir}.part`, { recursive: true, force: true });
+        })
+        .catch(() => undefined)
+        .finally(fn);
     };
-    const timer = setTimeout(() => finish(() => reject(archiveError('corrupt', 'archive worker timed out'))), timeoutMs);
+    // A slow machine is not a corrupt book: told as too large (the message the user can act on).
+    const timer = setTimeout(() => finish(() => reject(archiveError('tooLarge', 'archive worker timed out'))), timeoutMs);
     worker.once('message', (m: { ok: ArchiveResult } | { error: string; code?: ArchiveErrorCode }) =>
-      finish(() => ('ok' in m ? resolve(m.ok) : reject(archiveError(m.code ?? 'corrupt', m.error)))),
+      'ok' in m ? finish(() => resolve(m.ok), false) : finish(() => reject(archiveError(m.code ?? 'corrupt', m.error))),
     );
     worker.once('error', (err) => finish(() => reject(archiveError('corrupt', err.message))));
     worker.once('exit', (code) => finish(() => reject(archiveError('corrupt', `archive worker exited (${code})`))));

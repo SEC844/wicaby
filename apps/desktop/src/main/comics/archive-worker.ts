@@ -22,6 +22,9 @@ async function run(job: ArchiveJob): Promise<ArchiveResult> {
   }
   const size = fs.statSync(job.file).size;
   if (size > job.maxArchive) throw archiveError('tooLarge', `${size} bytes`);
+  // Pages are mostly compressed images: a tiny archive that expands to gigabytes is a bomb. 16x leaves room for
+  // uncompressed BMP scans, which RAR/7z shrink 5 to 10 times.
+  const limits = { ...job.limits, maxTotal: Math.min(job.limits.maxTotal, Math.max(16 * size, 256 * 1024 * 1024)) };
   // Written beside the final folder, renamed once complete: a crash never leaves half a book behind.
   const part = `${job.dir}.part`;
   fs.rmSync(part, { recursive: true, force: true });
@@ -36,7 +39,7 @@ async function run(job: ArchiveJob): Promise<ArchiveResult> {
         fs.writeFileSync(path.join(part, flat), data);
         names.push(flat);
       },
-      job.limits,
+      limits,
       { wasmBinary: job.wasm },
     );
     fs.rmSync(job.dir, { recursive: true, force: true });

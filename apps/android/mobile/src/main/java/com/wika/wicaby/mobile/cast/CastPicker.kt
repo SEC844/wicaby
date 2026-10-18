@@ -23,6 +23,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.wika.wicaby.core.R
 import com.wika.wicaby.core.cast.CastController
 import com.wika.wicaby.core.cast.CastTarget
@@ -54,13 +57,17 @@ fun CastPicker(api: Api, item: Item, casting: Boolean, onPick: (CastTarget) -> U
     val context = LocalContext.current
     var targets by remember { mutableStateOf<List<CastTarget>?>(null) }
     var unavailable by remember { mutableStateOf(false) }
+    // Polling and the Cast scan stop while the app is in the background with the sheet still open.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(api, item.id) {
         val rt = RemoteTargets(api)
-        while (true) {
-            runCatching { rt.list(item) }
-                .onSuccess { targets = it }
-                .onFailure { if (targets == null) unavailable = true }
-            delay(2_000)
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                runCatching { rt.list(item) }
+                    .onSuccess { targets = it }
+                    .onFailure { if (targets == null) unavailable = true }
+                delay(2_000)
+            }
         }
     }
     // Direct DLNA: only with Réglages > Diffusion on, and never for a channel, a programme (a renderer cannot tune,
@@ -80,7 +87,7 @@ fun CastPicker(api: Api, item: Item, casting: Boolean, onPick: (CastTarget) -> U
     val media = item.mediaType ?: "Video"
     val chromecasts by produceState(emptyList<CastTarget>(), direct, granted) {
         value = emptyList()
-        if (direct && granted) google?.routes?.collect { list -> value = list.filter { media in it.mediaTypes } }
+        if (direct && granted) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { google?.routes?.collect { list -> value = list.filter { media in it.mediaTypes } } }
     }
     // Whether a renderer can fetch the server: a LAN address, not the mesh (§2.6.4). Otherwise its rows say why.
     var lan by remember { mutableStateOf(true) }

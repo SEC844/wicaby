@@ -69,6 +69,14 @@ class PairingTest {
     }
 
     @Test
+    fun navidromePasswordNeverGoesOverThePairChannel() {
+        assertTrue(pairable("emby"))
+        assertTrue(pairable("jellyfin"))
+        assertFalse(pairable("navidrome"))
+        assertFalse(pairable("plex"))
+    }
+
+    @Test
     fun parsesOnlyLanPairingUrls() {
         val tok = "0123456789abcdef0123456789abcdef"
         val ok = parsePairUrl(" http://192.168.1.20:41234/wicaby/pair?t=$tok ")

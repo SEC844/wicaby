@@ -77,16 +77,6 @@ func (v *meshView) allowed(host string) (string, bool) {
 	return "", false
 }
 
-// routedOnly reports whether host is allowed only as an address inside a routed network, not as a peer.
-func (v *meshView) routedOnly(host string) bool {
-	ip, err := netip.ParseAddr(strings.TrimSuffix(strings.ToLower(strings.Trim(host, "[]")), "."))
-	if err != nil || v.ips[ip.Unmap().String()] {
-		return false
-	}
-	_, ok := v.allowed(host)
-	return ok
-}
-
 // forwarder serves http://127.0.0.1:<port>/<token>/... and relays each token to the
 // one upstream it was opened for. The random token keeps other local processes
 // (and DNS-rebound web pages) from using it as a way into the mesh.

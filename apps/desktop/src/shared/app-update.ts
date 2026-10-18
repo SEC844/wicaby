@@ -35,10 +35,10 @@ export function installKind(platform: string, env: Record<string, string | undef
   return env.APPIMAGE ? 'appimage' : 'deb';
 }
 
-// x64 builds only: an arm64 Linux package must never be offered to this copy.
+// x64 builds only: an arm64 Linux package must never be offered to this copy. Names as electron-builder.yml writes them.
 const ASSET: Record<InstallKind, RegExp> = {
-  setup: /^Wicaby-\d+\.\d+\.\d+-x64-setup\.exe$/,
-  portable: /^Wicaby-\d+\.\d+\.\d+-x64-portable\.exe$/,
+  setup: /^Wicaby-\d+\.\d+\.\d+-x64\.exe$/,
+  portable: /^Wicaby-\d+\.\d+\.\d+-portable\.exe$/,
   appimage: /^Wicaby-(?!.*(?:arm64|aarch64)).*\.AppImage$/i,
   deb: /^Wicaby-(?!.*(?:arm64|aarch64)).*\.deb$/i,
 };

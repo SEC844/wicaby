@@ -482,6 +482,10 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
                         imeAction = androidx.compose.ui.text.input.ImeAction.Go,
                         onSubmit = { login(p?.name ?: name, password) },
                     )
+                    // Probe fell back to plain HTTP off the LAN: said before the password is typed (and sent in clear).
+                    if (insecure(server.address)) {
+                        Text(stringResource(com.wika.wicaby.core.R.string.server_insecure), style = Type.callout, color = C.label2)
+                    }
                     Row(
                         Modifier.padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -558,11 +562,13 @@ private fun UserBadge(user: User?, api: Api, label: String) {
     }
 }
 
-// http:// to a host that is not on the LAN (nor loopback): readable on the way.
+// http:// to a host that is not on the LAN, loopback nor the mesh (100.64/10, WireGuard-encrypted): readable on the way.
 internal fun insecure(address: String): Boolean {
     val uri = address.trim().toUri()
     val host = uri.host ?: return false
     if (!uri.scheme.equals("http", ignoreCase = true)) return false
+    val o = host.split('.').mapNotNull { it.toIntOrNull() }
+    if (o.size == 4 && o[0] == 100 && o[1] in 64..127) return false
     return !(LocalNetwork.isLanAddress(host) || '.' !in host || host.endsWith(".local", ignoreCase = true) || host == "localhost" || host.startsWith("127."))
 }
 

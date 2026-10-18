@@ -91,6 +91,8 @@ if (process.versions.electron) {
     const m = load.call(this, request, ...rest);
     if (!hooked && request === 'electron' && m && m.app) {
       hooked = true;
+      // A dead proxy: Chromium and net.fetch reach loopback only (the update check, map tiles…).
+      m.app.commandLine.appendSwitch('proxy-server', 'http://127.0.0.1:9');
       m.app.on('browser-window-created', (_e, win) => { win.show = () => win.showInactive(); win.setFocusable(false); win.setIgnoreMouseEvents(true); });
       m.Notification.prototype.show = function () { last = this; note(this.title + ' | ' + this.body + ' | ' + JSON.stringify((this.actions || []).map((a) => a.text))); };
       m.app.whenReady().then(() => setInterval(() => {
@@ -194,7 +196,7 @@ async function mpvGet(names) {
 function launch(guard, extra = []) {
   return start(process.execPath, [path.join(DESKTOP, 'scripts', 'dev.mjs'), `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${CDP_PORT}`, ...extra], {
     cwd: DESKTOP,
-    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), NODE_OPTIONS: `--require "${guard.replaceAll('\\', '/')}"` },
+    env: { ...process.env, WICABY_DEV_PORT: String(DEV_PORT), WICABY_TEST_SILENT: '1', NODE_OPTIONS: `--require "${guard.replaceAll('\\', '/')}"` },
   });
 }
 

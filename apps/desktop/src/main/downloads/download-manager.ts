@@ -18,17 +18,14 @@ import type { SettingsService } from '../core/settings';
 import { setTaskbarProgress } from '../features/taskbar';
 import { onLanguageChange, t } from '../i18n';
 import type { WindowManager } from '../windows/window-manager';
-import { assertInside, buildTargetPath, type FolderName, isInside, legacyRoot, safeExt } from './download-path';
+import { rangeBody } from '../comics/zip';
+import { assertInside, buildTargetPath, type FolderName, isInside, legacyRoot, safeExt, ZONE_INTERNET } from './download-path';
 
 const log = logger.scope('downloads');
 
 // Folder names in every language, to recognise records saved before `root` was.
 const FOLDERS_BY_LANG: Record<Lang, Record<string, string>> = { fr: frMain.downloads.folders, en: enMain.downloads.folders };
 const LEGACY_FOLDERS: FolderName[] = (['fr', 'en'] as const).map((lang) => (k, params) => formatMessage(FOLDERS_BY_LANG[lang][k] ?? k, params, lang));
-
-// Windows treats a file with this stream as downloaded from the internet
-// (SmartScreen, Office Protected View) instead of trusting it as local.
-const ZONE_INTERNET = '[ZoneTransfer]\r\nZoneId=3\r\n';
 
 function removeInside(root: string, file: string): void {
   // Never delete outside the downloads folder, whatever the stored record says.
@@ -47,6 +44,7 @@ export interface DownloadRecord extends DownloadEntry {
 // Errors Wicaby itself raises are stored as their catalogue key, so the list
 // follows a language switch; anything else (HTTP status, OS error) is kept as is.
 const FORBIDDEN = 'errors.downloads.forbidden';
+const POSTER_MAX_BYTES = 15 * 1024 * 1024;
 const LEGACY_ERRORS: Record<string, string> = { 'Téléchargement non autorisé pour cet utilisateur': FORBIDDEN }; // i18n-ignore
 const errorText = (e: string | undefined) => (e && (e === FORBIDDEN || LEGACY_ERRORS[e]) ? t(LEGACY_ERRORS[e] ?? e) : e);
 
@@ -300,11 +298,17 @@ export class DownloadManager extends EventEmitter {
     const api = this.connection.apiFor(rec.serverId);
     const it = rec.item;
     const imageId = it.Type === 'Episode' && it.SeriesId ? it.SeriesId : it.Id;
-    const res = await net.fetch(api.url(`/Items/${imageId}/Images/Primary`, { maxHeight: 600, quality: 90 }));
-    if (!res.ok) return undefined;
+    // An image, read under a cap: a broken or hostile server cannot make main buffer an endless body.
+    const res = await net.fetch(api.url(`/Items/${imageId}/Images/Primary`, { maxHeight: 600, quality: 90 }), { redirect: 'error', signal: AbortSignal.timeout(60_000) });
+    if (!res.ok || !/^image\//i.test(res.headers.get('content-type') ?? '')) {
+      void res.body?.cancel();
+      return undefined;
+    }
+    const data = await rangeBody(res, POSTER_MAX_BYTES + 1);
+    if (data.length > POSTER_MAX_BYTES) return undefined;
     const target = mediaPath.replace(/\.[^.]+$/, '.poster.jpg');
     assertInside(root, target);
-    fs.writeFileSync(target, Buffer.from(await res.arrayBuffer()));
+    fs.writeFileSync(target, data);
     return target;
   }
 

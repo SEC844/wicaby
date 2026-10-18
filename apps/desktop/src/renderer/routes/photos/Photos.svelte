@@ -18,7 +18,6 @@
   import MemoryCards from './MemoryCards.svelte';
   import People from './People.svelte';
   import PhotoGrid from './PhotoGrid.svelte';
-  import PhotoMap from './PhotoMap.svelte';
   import PhotoViewer from './PhotoViewer.svelte';
   import Slideshow from './Slideshow.svelte';
 
@@ -153,7 +152,10 @@
   {:else if tab === 'map' && immich && markerError}
     <div class="note"><Icon name="exclamation" size={16} /> {markerError}</div>
   {:else if tab === 'map' && view}
-    <PhotoMap assets={mapAssets} done={view.done && (!immich || markers !== null)} />
+    <!-- Leaflet loads with the map tab, not at app start. -->
+    {#await import('./PhotoMap.svelte') then { default: PhotoMap }}
+      <PhotoMap assets={mapAssets} done={view.done && (!immich || markers !== null)} />
+    {/await}
   {:else if view}
     {#if (immich || fileSource) && tab === 'timeline' && memories.length > 0}<MemoryCards groups={memories} />{/if}
     {#if view.error}

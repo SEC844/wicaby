@@ -18,7 +18,14 @@
 
   const ROW = 52;
   const s = $derived(playback.value);
-  const ids = $derived(s?.music?.queue.ids ?? []);
+  // The same array while the queue is unchanged: main publishes a fresh state on every position tick (4 a second),
+  // and a new array would re-run every derived value and row below it.
+  let lastIds: string[] = [];
+  const ids = $derived.by(() => {
+    const next = s?.music?.queue.ids ?? [];
+    if (next.length === lastIds.length && next.every((id, i) => id === lastIds[i])) return lastIds;
+    return (lastIds = next);
+  });
   const index = $derived(s?.music?.queue.index ?? 0);
   const serverId = $derived(s?.item?.serverId);
   // Keys: an id may be queued twice.
@@ -61,18 +68,26 @@
       // A synthetic pointer (tests) cannot be captured: the window listeners below still follow it.
     }
     const move = (ev: PointerEvent) => drag && (drag.dy = ev.clientY - drag.startY);
-    const up = () => {
+    const stop = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointercancel', cancel);
+    };
+    const up = () => {
+      stop();
       const d = drag;
       const to = dropAt;
       drag = null;
       if (d && to !== d.from) command({ type: 'queue-move', from: d.from, to });
     };
+    // A drag the system cancelled (an OS gesture, a pen out of range) moves nothing.
+    const cancel = () => {
+      stop();
+      drag = null;
+    };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+    window.addEventListener('pointercancel', cancel);
   }
 
   async function focusRow(i: number): Promise<void> {

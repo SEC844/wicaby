@@ -71,8 +71,10 @@
    (windows without one keep 140px). Windows keeps the fixed value above. */
 html.linux { --caption-buttons: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 140px))); }
 
-/* Reduce transparency: opaque materials, no backdrop blur (weak GPUs, accessibility). */
-html[data-reduce-transparency] {
+/* Reduce transparency: opaque materials, no backdrop blur (weak GPUs, accessibility). The .on-media arm
+   outranks tokens.css's [data-theme='light'] .on-media, which redeclares the translucent dark materials. */
+html[data-reduce-transparency],
+html[data-reduce-transparency] .on-media {
   --material-thin: var(--bg-elevated);
   --material: var(--bg-elevated);
   --material-thick: var(--bg-elevated-2);

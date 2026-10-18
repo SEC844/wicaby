@@ -78,6 +78,8 @@ Module._load = function (request, ...rest) {
   const m = load.call(this, request, ...rest);
   if (!hooked && request === 'electron' && m && m.app) {
     hooked = true;
+    // A dead proxy: Chromium and net.fetch reach loopback only (the update check, map tiles…).
+    m.app.commandLine.appendSwitch('proxy-server', 'http://127.0.0.1:9');
     m.app.on('browser-window-created', (_e, win) => { win.show = () => win.showInactive(); win.setFocusable(false); win.setIgnoreMouseEvents(true); });
     m.dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [${js(TREE.dir)}] });
     const handle = m.ipcMain.handle.bind(m.ipcMain);

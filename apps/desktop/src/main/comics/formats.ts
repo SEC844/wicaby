@@ -91,7 +91,8 @@ export function epubPackage(opf: string, opfPath: string): EpubPackage {
 // that is no image, or (in a reflowable book) more than a caption's worth of text beside it.
 export function epubPageImage(xhtml: string, docPath: string, fixedLayout: boolean): string | null {
   const body = /<body\b[\s\S]*$/i.exec(xhtml)?.[0] ?? xhtml;
-  if (!fixedLayout && body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length > 200) return null;
+  // [^<>]: linear on a hostile run of '<' with no '>' ([^>]* rescans to the end from each one).
+  if (!fixedLayout && body.replace(/<[^<>]*>/g, '').replace(/\s+/g, ' ').trim().length > 200) return null;
   const tag = /<(?:\w+:)?(?:img|image)\b[^>]*>/i.exec(xhtml)?.[0];
   const href = tag ? (/^<(?:\w+:)?img/i.test(tag) ? attr(tag, 'src') : (attr(tag, 'xlink:href') ?? attr(tag, 'href'))) : undefined;
   return href && !/^[a-z]+:/i.test(href) ? resolve(docPath, href) : null;

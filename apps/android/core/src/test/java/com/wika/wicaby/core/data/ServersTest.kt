@@ -196,4 +196,49 @@ class ServersTest {
         down = false
         assertEquals(listOf("p2:1", "w:1"), Servers.merged(a, fn = fn).map(Servers::key))
     }
+
+    // A merged load (a view, a pull-to-refresh) probes an offline server at once instead of after its backoff.
+    @Test
+    fun aMergedLoadWakesTheOfflineProbe() = runBlocking {
+        val probe = MockWebServer().apply {
+            enqueue(MockResponse.Builder().code(503).build())
+            enqueue(MockResponse.Builder().code(200).body("""{"Id":"v"}""").build())
+            start()
+            servers += this
+        }
+        val a = api("p3", "http://127.0.0.1:1")
+        val v = api("v", probe.url("/").toString().trimEnd('/'))
+        Core.api = a
+        Servers.extra = listOf(v)
+        val saved = Servers.retryMs
+        try {
+            Servers.retryMs = 600_000
+            val before = Servers.back.value
+            var down = true
+            val fn: suspend (Api) -> List<Item> = { s -> if (s === v && down) throw java.io.IOException("down") else listOf(item("1", null)) }
+            Servers.merged(a, fn = fn)
+            probe.takeRequest() // the first probe failed: the next one would be 10 minutes away
+            kotlinx.coroutines.delay(100)
+            assertTrue(Servers.isOffline("v"))
+            down = false
+            Servers.merged(a, fn = fn)
+            kotlinx.coroutines.withTimeout(5_000) { while (Servers.back.value == before) kotlinx.coroutines.delay(20) }
+            assertFalse(Servers.isOffline("v"))
+        } finally {
+            Servers.retryMs = saved
+        }
+    }
+
+    @Test
+    fun theOfflineProbeBacksOff() {
+        val saved = Servers.retryMs
+        try {
+            Servers.retryMs = 30_000
+            assertEquals(60_000L, Servers.nextRetry(30_000))
+            assertEquals(600_000L, Servers.nextRetry(480_000))
+            assertEquals(600_000L, Servers.nextRetry(600_000))
+        } finally {
+            Servers.retryMs = saved
+        }
+    }
 }

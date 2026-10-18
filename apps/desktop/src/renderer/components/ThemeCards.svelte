@@ -4,13 +4,14 @@
   // (tokens.css), whatever theme the app is in.
   import { THEMES } from '../../shared/contract';
   import { has, t } from '../lib/i18n.svelte';
-  import { linux } from '../lib/platform';
+  import { windows } from '../lib/platform';
   import { settings } from '../lib/stores.svelte';
   import { set } from '../routes/settings/shared.svelte';
 
   const current = $derived(settings.value?.ui.theme ?? 'graphite');
   const accent = $derived(settings.value?.ui.accent ?? 'blue');
-  const desc = (theme: string) => t(`settings.appearance.theme.${theme}Desc${linux && has(`settings.appearance.theme.${theme}DescLinux`) ? 'Linux' : ''}`);
+  // Mica and "Windows" only on Windows; Linux, macOS and the web TV get the neutral wording.
+  const desc = (theme: string) => t(`settings.appearance.theme.${theme}Desc${!windows && has(`settings.appearance.theme.${theme}DescNeutral`) ? 'Neutral' : ''}`);
 </script>
 
 {#snippet shot(theme: string)}

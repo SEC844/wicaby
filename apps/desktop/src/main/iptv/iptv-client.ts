@@ -28,6 +28,7 @@ interface LocalState {
 
 type J = Record<string, unknown>;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const LOGO_CACHE_BYTES = 32 * 1024 * 1024;
 const LOGO_TIMEOUT_MS = 10_000;
 const PROGRAM_ID = /^(.+)-p([0-9a-z]{1,12})$/;
 const iso = (ms: number): string => new Date(ms).toISOString();
@@ -49,7 +50,9 @@ function asked(q: Query): number | undefined {
 const list = (Items: unknown[], total = Items.length) => ({ Items, TotalRecordCount: total, StartIndex: 0 });
 
 export class IptvClient extends ApiClient {
-  private logos = new Map<string, Promise<{ type: string; data: Uint8Array } | null>>();
+  // Least recently used first (Map order); bounded by bytes, the renderer's HTTP cache keeps its own copy.
+  private logos = new Map<string, { p: Promise<{ type: string; data: Uint8Array } | null>; size: number }>();
+  private logoBytes = 0;
   private byId = new Map<string, IptvChannel>();
   private seenData: IptvData | null = null;
   readonly state: JsonStore<LocalState>;
@@ -327,15 +330,32 @@ export class IptvClient extends ApiClient {
     }
   }
 
-  // A logo: data: URIs decoded, http(s) fetched once (capped, images only), both cached for the session.
+  // A logo: data: URIs decoded, http(s) fetched once (capped, images only), both cached (LOGO_CACHE_BYTES, 2000 entries).
   private logo(src: string): Promise<{ type: string; data: Uint8Array } | null> {
-    let p = this.logos.get(src);
-    if (!p) {
-      p = fetchLogo(src, this.fetcher).catch(() => null);
-      if (this.logos.size > 2000) this.logos.clear();
-      this.logos.set(src, p);
+    const hit = this.logos.get(src);
+    if (hit) {
+      this.logos.delete(src);
+      this.logos.set(src, hit);
+      return hit.p;
     }
-    return p;
+    const e = { p: fetchLogo(src, this.fetcher).catch(() => null), size: 0 };
+    this.logos.set(src, e);
+    this.trimLogos();
+    void e.p.then((v) => {
+      if (this.logos.get(src) !== e) return;
+      e.size = v?.data.length ?? 0;
+      this.logoBytes += e.size;
+      this.trimLogos();
+    });
+    return e.p;
+  }
+
+  private trimLogos(): void {
+    for (const [k, old] of this.logos) {
+      if (this.logos.size <= 1 || (this.logoBytes <= LOGO_CACHE_BYTES && this.logos.size <= 2000)) break;
+      this.logos.delete(k);
+      this.logoBytes -= old.size;
+    }
   }
 }
 

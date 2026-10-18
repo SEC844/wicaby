@@ -278,10 +278,11 @@ for (let e = 1; e <= 2; e++) {
     SeriesPrimaryImageTag: 'p',
   });
 }
-// Browse-redesign additions: a bigger catalogue, logos and BlurHashes.
+// Browse-redesign additions: a bigger catalogue, logos and BlurHashes. MOCK_MOVIES=<n>: n generated films instead of
+// 48 (large-library scroll and memory measurements).
 const BLURHASHES = ['LEHV6nWB2yk8pyo0adR*.7kCMdnj', 'LGF5]+Yk^6#M@-5c,1J5@[or[Q6.', 'L6PZfSi_.AyE_3t7t7R**0o#DgR4', 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH'];
 const extraGenres = ['Science-fiction', 'Drame', 'Action', 'Thriller', 'Aventure', 'Comédie', 'Animation', 'Policier'];
-for (let i = 0; i < 48; i++) {
+for (let i = 0; i < Number(process.env.MOCK_MOVIES || 48); i++) {
   add({
     Id: `movie-x${i}`,
     Name: `${['Horizon', 'Lumière', 'Écho', 'Sillage', 'Orbite', 'Mirage', 'Vertige', 'Rivage'][i % 8]} ${Math.floor(i / 8) + 1}`,

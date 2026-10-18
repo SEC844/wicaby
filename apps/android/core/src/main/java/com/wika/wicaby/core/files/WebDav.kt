@@ -41,7 +41,8 @@ class BasicAuth(private val base: HttpUrl, private val creds: FileCredentials) :
 // source, a trust manager that accepts that one certificate. Never shared with other hosts (D8).
 fun davClient(shared: OkHttpClient, source: FileSource, creds: FileCredentials?): OkHttpClient {
     val b = shared.newBuilder().connectTimeout(5, TimeUnit.SECONDS)
-    if (creds != null) b.addInterceptor(BasicAuth(source.url.toHttpUrl(), creds))
+    // First in the chain: it must see the URL as the source stores it, before a mesh forwarder rewrites it.
+    if (creds != null) b.interceptors().add(0, BasicAuth(source.url.toHttpUrl(), creds))
     val tls = source.tls
     if (tls?.mode == TlsPolicy.PIN && tls.sha256 != null) {
         val tm = TlsPin.PinTrustManager(tls.sha256)

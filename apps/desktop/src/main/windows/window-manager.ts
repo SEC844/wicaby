@@ -99,8 +99,9 @@ export class WindowManager {
   }
 
   url(route: string, extra: Record<string, string> = {}): string {
-    // linux=1: the renderer sizes the title bar from the overlay's env() values (app.css).
-    const params = new URLSearchParams({ mica: this.mica ? '1' : '0', ...(process.platform === 'linux' ? { linux: '1' } : {}), ...extra }).toString();
+    // linux=1: the renderer sizes the title bar from the overlay's env() values (app.css). win=1: Windows wording.
+    const platform: Record<string, string> = process.platform === 'linux' ? { linux: '1' } : process.platform === 'win32' ? { win: '1' } : {};
+    const params = new URLSearchParams({ mica: this.mica ? '1' : '0', ...platform, ...extra }).toString();
     const base = this.opts.devUrl ? `${this.opts.devUrl}/index.html` : `${APP_SCHEME}://${APP_HOST}/index.html`;
     return `${base}?${params}#${route}`;
   }
@@ -193,7 +194,8 @@ export class WindowManager {
     const paintChrome = () => {
       if (win.isDestroyed()) return;
       const c = chromeColours(theme);
-      if (!this.mica) win.setBackgroundColor(c.bg);
+      // The mini player lives only while this window does, so it repaints from here too.
+      if (!this.mica) for (const w of [win, this.mini]) if (w && !w.isDestroyed()) w.setBackgroundColor(c.bg);
       if (process.platform !== 'darwin') win.setTitleBarOverlay({ color: '#00000000', symbolColor: c.symbol, height: 44 });
     };
     const onSettings = () => {
@@ -273,6 +275,11 @@ export class WindowManager {
     this.saveBounds(win);
     this.inTray = true;
     win.hide();
+  }
+
+  // Quit: the placement reaches settings before the final flush (the windows close after it).
+  saveState(): void {
+    if (this.main && !this.main.isDestroyed()) this.saveBounds(this.main);
   }
 
   // A hidden window keeps the bounds saved when it was hidden.

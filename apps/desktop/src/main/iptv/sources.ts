@@ -190,8 +190,13 @@ export class IptvSources {
     }
   }
 
+  // A source removed meanwhile (a refresh still in flight) is not brought back: no events, no cache file.
+  private gone(id: string, l: Live): boolean {
+    return this.live.get(id) !== l;
+  }
+
   private async writeCache(id: string, l: Live): Promise<void> {
-    if (!l.data || !l.playlist) return;
+    if (!l.data || !l.playlist || this.gone(id, l)) return;
     const doc: CacheDoc = { v: 1, updatedAt: l.data.updatedAt, guideAt: l.guideAt, guideEnd: l.data.guideEnd, playlist: l.playlist, guide: [...l.data.guide] };
     const blob = await this.vault.seal(JSON.stringify(doc));
     // Nothing can encrypt here: no cache on disk (the source reloads at the next start).
@@ -199,6 +204,8 @@ export class IptvSources {
     const tmp = `${this.cacheFile(id)}.tmp`;
     await fs.promises.writeFile(tmp, blob);
     await fs.promises.rename(tmp, this.cacheFile(id));
+    // Removed while it was written: the playlist's stream URLs carry the account, nothing stays behind.
+    if (this.gone(id, l)) await fs.promises.rm(this.cacheFile(id), { force: true });
   }
 
   // The playlist, then the guide (the channels show as soon as the playlist is parsed).
@@ -212,6 +219,7 @@ export class IptvSources {
       const started = Date.now();
       try {
         const pl = await loadPlaylist(sec.playlist, this.fetcher);
+        if (this.gone(id, l)) return;
         this.ready(l, pl);
         log.info(`source ${short(id)} (${s.display}): ${pl.channels.length} channels, ${pl.skipped} lines skipped, ${Date.now() - started} ms`);
         this.event(id, 'LibraryChanged');
@@ -234,6 +242,7 @@ export class IptvSources {
       const at = Date.now();
       try {
         const g = await loadGuide(guideSrc, l.playlist, this.fetcher);
+        if (this.gone(id, l)) return;
         l.data = { ...l.data, guide: g.programmes, guideEnd: g.end };
         l.guideAt = Date.now();
         l.guideError = false;

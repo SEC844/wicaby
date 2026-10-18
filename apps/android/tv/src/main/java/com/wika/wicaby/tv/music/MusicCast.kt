@@ -31,6 +31,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.cast.CastController
 import com.wika.wicaby.core.cast.CastRemote
@@ -130,12 +133,16 @@ fun CastSheet(session: MusicSession, onDismiss: () -> Unit) {
     val api = session.api
     val item = session.current ?: return onDismiss()
     var sessions by remember { mutableStateOf<List<CastTarget>?>(null) }
+    // Not while MusicActivity is stopped with the sheet open (the music plays on in the background).
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(api, item.id) {
         if (!api.server.caps.sessionsRemote) return@LaunchedEffect run { sessions = emptyList() }
         val rt = RemoteTargets(api)
-        while (true) {
-            runCatching { rt.list(item) }.onSuccess { sessions = it }.onFailure { if (sessions == null) sessions = emptyList() }
-            delay(2_000)
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                runCatching { rt.list(item) }.onSuccess { sessions = it }.onFailure { if (sessions == null) sessions = emptyList() }
+                delay(2_000)
+            }
         }
     }
     var renderers by remember { mutableStateOf(DlnaRenderers.recent()) }

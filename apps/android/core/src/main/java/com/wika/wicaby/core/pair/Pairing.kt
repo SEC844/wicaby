@@ -33,6 +33,10 @@ import java.security.SecureRandom
 const val PAIR_PATH = "/wicaby/pair"
 const val PAIR_TTL_MS = 5 * 60_000L
 
+// The pair POST is cleartext LAN HTTP: only kinds whose token is a revocable session may use it.
+// Navidrome's "token" is the account password itself; Plex links the TV's own account instead.
+fun pairable(kind: String): Boolean = kind != "plex" && kind != "navidrome"
+
 @Serializable
 data class PairRequest(val token: String, val server: String, val userId: String, val accessToken: String) {
     override fun toString() = "PairRequest(server=$server, userId=$userId, <secrets redacted>)"

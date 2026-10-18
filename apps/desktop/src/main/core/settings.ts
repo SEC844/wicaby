@@ -6,7 +6,7 @@ import { app } from 'electron';
 import { ACCENTS, THEMES, ASPECT_MODES, LIBRARY_SORTS, SUBTITLE_FONTS, type DeepPartial, type HwDec, type Settings } from '../../shared/contract';
 import { sanitizeEq } from '../../shared/equalizer';
 import { isMpvPathShape } from '../../shared/mpv-args';
-import { validateImport } from '../../shared/shortcuts';
+import { repairOverrides, validateImport } from '../../shared/shortcuts';
 import { t } from '../i18n';
 import { JsonStore } from './json-store';
 import { defaultSettings as sharedDefaults, merge, OSM_TILES, type LiveSettings, type StoredSettings } from '../../shared/default-settings';
@@ -75,7 +75,8 @@ export class SettingsService extends EventEmitter {
     const next = merge(defaultSettings(), stored);
     // merge() drops keys the defaults do not have: the learned servers are copied as they are (sanitized below).
     next.live.releaseFirst = (stored.live?.releaseFirst ?? {}) as LiveSettings['releaseFirst'];
-    next.ui.shortcuts = keepShortcuts(stored, next.ui.shortcuts);
+    // A binding a newer build made invalid (a new default key, a removed action) drops alone, not the whole map.
+    next.ui.shortcuts = repairOverrides(keepShortcuts(stored, next.ui.shortcuts));
     migrateDefaults(stored, next);
     // Onboarding spec 4: a file written before the wizard existed is an install that is already set up.
     if (stored.ui && typeof stored.ui === 'object' && !('onboarded' in stored.ui)) next.ui.onboarded = true;
@@ -296,6 +297,15 @@ function sanitize(s: StoredSettings, keep?: StoredSettings): StoredSettings {
     .filter((l) => l && short(l.category, 200) && short(l.serverId, 128) && short(l.libraryId, 128) && short(l.libraryName, 200))
     .slice(0, 64)
     .map(({ category, serverId, libraryId, libraryName }) => ({ category, serverId, libraryId, libraryName }));
+  // Window placement goes to screen APIs on the next start: only finite numbers are kept.
+  const w = (s.window ?? {}) as Settings['window'];
+  const nums = <K extends string>(o: unknown, keys: readonly K[]): Record<K, number> | undefined =>
+    o && typeof o === 'object' && keys.every((k) => Number.isFinite((o as Record<string, unknown>)[k]))
+      ? (Object.fromEntries(keys.map((k) => [k, (o as Record<string, number>)[k]])) as Record<K, number>)
+      : undefined;
+  const bounds = nums(w.bounds, ['x', 'y', 'width', 'height'] as const);
+  const mini = nums(w.mini, ['x', 'y'] as const);
+  s.window = { ...(bounds ? { bounds } : {}), ...(typeof w.maximized === 'boolean' ? { maximized: w.maximized } : {}), ...(mini ? { mini } : {}) };
   s.trakt = { offServers: ids(s.trakt?.offServers) };
   s.remote = { allowControl: s.remote?.allowControl !== false };
   // Files from before 0.10.6 have no section: merge() fills the default (on).

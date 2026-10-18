@@ -161,7 +161,8 @@ fun MainScreen() {
     val snap = LocalSnapshot.current
     val activity = checkNotNull(LocalActivity.current)
     // TP-07: Home's rows need every library (music, Live TV…); the tabs only the browsable ones.
-    val loadedLibs = rememberLoad("views-${com.wika.wicaby.core.music.MusicSource.version}") { allViews(api) }.value.value
+    // A music source change reloads them, keeping the tabs on screen meanwhile (and if the server does not answer).
+    val loadedLibs = rememberLoad("views", nonce = com.wika.wicaby.core.music.MusicSource.version) { allViews(api) }.value.value
     val libs = loadedLibs.orEmpty()
     val views = tabViews(libs)
     val user = rememberLoad("me-${api.userId}") { api.get<User>("/Users/${api.userId}") }.value.value
@@ -309,7 +310,7 @@ private fun ProfileMenu(api: Api, user: User?, session: Session, onDismiss: () -
     fun leave(route: Route, revoke: Boolean) {
         onDismiss()
         nav.reset(route)
-        Cache.map.clear()
+        com.wika.wicaby.tv.signOutCleanup() // Changer de serveur too: its music must not play on with this token
         com.wika.wicaby.core.Core.scope.launch {
             // A token shared by the phone (pairing) stays valid: revoking it would sign the phone out.
             if (revoke && !session.shared) runCatching { api.raw("POST", "/Sessions/Logout") }
@@ -898,7 +899,9 @@ fun LibraryGrid(
                         }
                     }
                 }
-                itemsIndexed(paged.items, key = { i, it -> it?.id ?: "slot-$i" }, contentType = { _, it -> if (it == null) 0 else 1 }) { i, item ->
+                // Keyed by slot too: a title that moved between two pages (renamed, same total) can sit in two slots
+                // for a while, and a repeated key would crash the grid.
+                itemsIndexed(paged.items, key = { i, it -> "$i:${it?.id}" }, contentType = { _, it -> if (it == null) 0 else 1 }) { i, item ->
                     if (item == null) {
                         // Not loaded yet: the card's shape, not focusable (its page is on its way).
                         Box(Modifier.fillMaxWidth().aspectRatio(if (music) 1f else 2f / 3f).clip(RoundedCornerShape(Radius.md)).background(C.fill2))

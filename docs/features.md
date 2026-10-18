@@ -19,7 +19,7 @@ The [README](../README.md) gives the short version. This page lists everything t
 - **Live TV.** A channel guide over several days with day and time-of-day filters, channel groups and favorites, zapping by number, a channel banner and a mini-guide in the player, reminders, and recordings, including series recordings.
 - **Trailers.** Local trailers play in the player without touching the film's progress. YouTube trailers play in a privacy-enhanced embed on desktop (youtube-nocookie.com) and open in YouTube or the browser on Android (as a QR code on TVs without either).
 - **Comics.** A CBZ reader with two-page spreads, manga (right-to-left) order, vertical webtoon scrolling and progress synced to the server.
-- **Welcome wizard.** On first launch, six short steps: language (System, Français or English), look (Dark or OLED and an accent color), where your server is (this network, an address, or remote access), sign-in, a few optional extras, and a summary. Every step can be skipped and each choice is saved at once. "Run Setup Again" in Settings (General on desktop, Interface on Android TV, About on phones) opens it again; existing installs skip it.
+- **Welcome wizard.** On first launch, six short steps: language (System, Français or English), look (a theme and an accent color), where your server is (this network, an address, or remote access), sign-in, a few optional extras, and a summary. Every step can be skipped and each choice is saved at once. "Run Setup Again" in Settings (General on desktop, Interface on Android TV, About on phones) opens it again; existing installs skip it.
 - **English and French** interfaces.
 
 ## Desktop (Windows)
@@ -42,7 +42,7 @@ The [README](../README.md) gives the short version. This page lists everything t
 - **Remote control:** other Emby/Jellyfin clients can "Play on…" Wicaby, and progress is reported to the server.
 
 **Windows integration**
-- **Look:** Mica (Windows 11 22H2 or later) and Snap Layouts (Windows 11), and Dark or OLED (pure black) themes with eight accent colors.
+- **Look:** Mica (Windows 11 22H2 or later, on the Graphite and Light themes) and Snap Layouts (Windows 11). Themes: Graphite, OLED (pure black), Slate (cool), Cinema (warm), High Contrast, Light (media pages and the player stay dark), and Automatic (follows the system light or dark mode), with eight accent colors.
 - **Taskbar:** thumbnail toolbar buttons, download progress, and a jump list.
 - **System:** media keys and system media controls (SMTC), even with mpv.
 - **Background:** close to the notification area, launch at sign-in, and notifications for finished downloads and new episodes.
@@ -67,7 +67,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 - Compose for TV interface with a floating tab bar, a hero carousel on the home screen (Settings > Interface > Home can keep watched titles out of it), and a backdrop screensaver.
 - **Customizable home:** in Settings > Interface > Home, show, hide and reorder the rows (Continue Watching, Up Next, Upcoming, Live TV on now, Recently Added for every library, Because You Watched), and show each Recently Added row as posters or thumbnails.
 - **Customizable tab bar:** in Settings > Interface > Tab Bar, reorder the tabs between Home and Search (libraries, Live TV, IPTV, Files, Torrents) and hide the ones you don't use.
-- **Look:** Dark or OLED (pure black) theme and eight accent colors, switched live in Settings > Interface > Appearance.
+- **Look:** Graphite, OLED (pure black), Slate, Cinema or High Contrast theme and eight accent colors, switched live in Settings > Interface > Appearance. Until a theme is chosen, Home suggests OLED or Cinema once.
 - Runs on Android TV and Google TV from Android 6.0. It also installs on Fire TV, phones and tablets (landscape, touch-enabled).
 - Media3 ExoPlayer with the FFmpeg audio extension and libass for styled subtitles. Image subtitles (PGS, VobSub, DVB) play in direct play.
 - **Subtitle style:** size, font, color, legibility and position in Settings; size and position also from the player's track panel. An "Apply to ASS subtitles" option scales ASS text too (libass exposes only the size); off, ASS is left as authored.
@@ -94,7 +94,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 
 ## Mobile (Android phones and tablets)
 
-- Material 3 in Graphite colors, with a Dark or OLED (pure black) theme and eight accent colors. Phones get a bottom bar; tablets, foldables and landscape phones get a navigation rail.
+- Material 3 with the same themes as the desktop (Graphite, OLED, Slate, Cinema, High Contrast, Light, Automatic; the player and the comic reader stay dark) and eight accent colors, plus the wallpaper's color (Material You) on Android 12 and later. Phones get a bottom bar; tablets, foldables and landscape phones get a navigation rail.
 - Predictive back, and posters that morph into the detail page.
 - **Player gestures:**
   - double-tap to seek ±10 s;
@@ -294,7 +294,7 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
 
 ## Screenshots and the demo
 
-Every image in the README comes from the mock servers in `tools/mock-server`: the demo dataset (Blender Foundation open movies, CC BY), an IPTV-scale Live TV, generated photos, invented music made of silence, and the Plex mock (a fake plex.tv and Plex Media Server). No real server was used, and nothing plays during the captures. Every shot shows the same moment, Friday 9 October at 20:30, so the clocks, the guide and the end times never tell when it was taken, and no image carries metadata (text chunks, EXIF, C2PA). To regenerate them:
+Every image in the README comes from the mock servers in `tools/mock-server`: the demo dataset (Blender Foundation open movies, CC BY), an IPTV-scale Live TV, generated photos, invented music made of silence, the Navidrome mock, and the Plex mock (a fake plex.tv and Plex Media Server). No real server was used, and nothing plays during the captures. Every shot shows the same moment, Friday 9 October at 20:30, so the clocks, the guide and the end times never tell when it was taken, and no image carries metadata (text chunks, EXIF, C2PA). To regenerate them:
 
 - `node tools/screenshots/desktop.mjs`: the desktop screenshots (`SHOTS_CLOCK` sets another moment);
 - `node tools/screenshots/desktop.mjs --frames`: the animated demo (`docs/screenshots/demo.webp`), assembled by the bundled mpv;

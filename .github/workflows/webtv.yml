@@ -13,6 +13,8 @@ on:
       - 'apps/webtv/**'
       - 'apps/desktop/src/renderer/**'
       - 'apps/desktop/src/shared/**'
+      - 'apps/desktop/svelte.config.js'
+      - 'tools/release/licenses.mjs'
       - 'tools/mock-server/**'
       - 'tools/checks/webtv-check.mjs'
       - 'brand/**'

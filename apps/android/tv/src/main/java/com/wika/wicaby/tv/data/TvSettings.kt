@@ -25,18 +25,6 @@ object TvSettings {
     // Declared first: the settings below read them while the object initializes.
     val PASS_CODECS = listOf("ac3", "eac3", "dts", "truehd")
 
-    // Builds before the theme list stored a boolean "oled": it becomes the theme id once (a chosen theme wins).
-    private fun migrateOled(): String {
-        if (sp.contains("oled")) {
-            val oled = sp.getBoolean("oled", false)
-            sp.edit {
-                if (!sp.contains("theme")) putString("theme", if (oled) "oled" else "graphite")
-                remove("oled")
-            }
-        }
-        return "graphite"
-    }
-
     private val sp by lazy { Wicaby.app.getSharedPreferences("wicaby_tv", Context.MODE_PRIVATE) }
 
     class IntSetting internal constructor(private val key: String, default: Int) {
@@ -108,7 +96,18 @@ object TvSettings {
     // Interface
     val clock = BoolSetting("clock", true)
     // Theme id, as the desktop's ui.theme (packages/tokens/tokens.json); never light on the TV.
-    val theme = StringSetting("theme", migrateOled())
+    // Builds before the theme list stored a boolean "oled": it becomes the theme id once (a chosen theme wins).
+    // Runs before `theme` below reads the key (an object initializes in declaration order).
+    init {
+        if (sp.contains("oled")) {
+            val oled = sp.getBoolean("oled", false)
+            sp.edit {
+                if (!sp.contains("theme")) putString("theme", if (oled) "oled" else "graphite")
+                remove("oled")
+            }
+        }
+    }
+    val theme = StringSetting("theme", "graphite")
     // The one-time living-room suggestion (OLED or Cinéma) on Home; also set once the setup's look step chose.
     val themeHintShown = BoolSetting("theme_hint_shown", false)
     val rowHero = BoolSetting("row_hero", true)

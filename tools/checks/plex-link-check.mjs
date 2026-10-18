@@ -70,6 +70,11 @@ try {
     ok(linked.servers.every((s) => !s.hasToken), 'a Home with several users: no server token before someone is picked');
     ok((await cm.plexPoll()).status === 'expired', 'the PIN is used once');
 
+    // D-3 also covers .lan / .home.arpa names (answered by the current network's DNS); a public http one is vouched.
+    const lanNames = { connections: [{ uri: 'http://nas.lan:32400' }, { uri: 'http://plex.home.arpa:32400' }, { uri: 'http://203.0.113.7:32400' }] };
+    ok(cm.plexOrigins(lanNames).join() === 'http://203.0.113.7:32400', `.lan and .home.arpa are not vouched (${cm.plexOrigins(lanNames)})`);
+    ok(cm.plexHttpLan({ plex: lanNames }, 'http://nas.lan:32400') === 'http://nas.lan:32400', 'a .lan address asks first');
+
     // ---- D-3, then who is watching ----
     let st = await cm.select(MACHINE_ID);
     const local = sessionOf(cm, MACHINE_ID);

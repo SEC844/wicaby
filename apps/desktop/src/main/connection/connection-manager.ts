@@ -7,10 +7,10 @@ import { logger } from '../core/log';
 import { t } from '../i18n';
 import type { CredentialVault, StoredCredential } from '../core/vault';
 import type { VpnService } from '../vpn';
-import { isLanAddress } from '../../shared/network';
 import { raceWaves, rankConnections, type PlexConnection } from '../../shared/plex/connections';
 import { accountSubtitles } from '../../shared/plex/map';
 import { isLocalSource } from '../../shared/server-caps';
+import { isLanAddress } from '../../shared/network';
 import { addressCandidates, ApiClient, ApiError, credentialOrigin, probeFirst, probePlexIdentity, routed, tokenAllowed, type ClientIdentity, type ProbeResult } from './api-client';
 import { PlexTv, type PlexHomeUser, type PlexResource } from './plex-account';
 import { PlexClient, type PlexWatchlist } from './plex-client';
@@ -105,6 +105,16 @@ const privateHost = (host: string): boolean =>
   host === 'localhost' ||
   host.endsWith('.local') ||
   !/[.:]/.test(host);
+// Plex D-3: an http origin there gets the token only once the user confirmed it (CGNAT 100.64/10 included:
+// on a carrier network that address is another subscriber's).
+// isLanAddress adds the .lan and .home.arpa names, answered by whatever DNS the current network has.
+const privateOrigin = (origin: string): boolean => {
+  try {
+    return isLanAddress(origin) || privateHost(new URL(origin).hostname);
+  } catch {
+    return true;
+  }
+};
 
 // Head start for the known addresses over VPN ones, so a server reachable on
 // both is used over the LAN (full speed, no WireGuard hop).
@@ -231,7 +241,8 @@ export class ConnectionManager extends EventEmitter {
   // Whether the token may go to this address of the server, which just answered there with verifiedId:
   // - an origin the credential is bound to;
   // - an overlay address of an online peer of a VPN network the user is connected to (the
-  //   overlay authenticates the peer): used for this connection, not bound;
+  //   overlay authenticates the peer) that carries a host of a bound origin (vpn candidatesFor trusted;
+  //   a peer matched by name only is anyone's machine): used for this connection, not bound;
   // - a vouched https origin (TLS validated: net.fetch rejects bad certificates), bound from now on.
   private admit(serverId: string, address: string, verifiedId: string, overlay = false): boolean {
     const cred = this.cred(serverId);
@@ -358,7 +369,10 @@ export class ConnectionManager extends EventEmitter {
     // A Plex server plex.tv listed races its connections; one added by address is probed like any other.
     if (server.plex) return { probe: await this.probePlex(server), overlay: false };
     const known = this.addressesOf(server);
-    const overlay: Promise<string[]> = this.vpn ? this.vpn.candidatesFor({ name: server.name, addresses: known }).catch(() => []) : Promise.resolve([]);
+    const found = this.vpn ? this.vpn.candidatesFor({ name: server.name, addresses: known, trusted: this.cred(server.id)?.origins ?? [] }).catch(() => []) : Promise.resolve([]);
+    // A peer matched by its name only is tried like any other unknown address: no token, a sign-in there.
+    const overlay = found.then((c) => c.filter((x) => x.trusted).map((x) => x.address));
+    const named = found.then((c) => c.filter((x) => !x.trusted).map((x) => x.address));
     const ok = (a: string) => this.eligible(server.id, a);
     const direct = known.filter(ok);
     try {
@@ -369,7 +383,7 @@ export class ConnectionManager extends EventEmitter {
       );
     } catch (err) {
       const peers = await overlay;
-      const rest = known.filter((a) => !ok(a) && !peers.includes(a));
+      const rest = [...new Set([...known.filter((a) => !ok(a)), ...(await named)])].filter((a) => !peers.includes(a));
       if (rest.length === 0) throw err;
       log.info(`${server.name}: no address bound to the stored token answered, trying the others without it`);
       return { probe: await probeFirst(rest), overlay: false };
@@ -693,7 +707,7 @@ export class ConnectionManager extends EventEmitter {
         if (!Array.isArray(infos) || infos.length === 0) return;
         this.store.update((doc) => {
           const s = doc.servers.find((x) => x.id === server.id);
-          if (s) s.wol = infos.map((i) => ({ mac: i.MacAddress, port: i.Port || 9, broadcast: i.BroadcastAddress }));
+          if (s) s.wol = infos.map((i) => ({ mac: i.MacAddress, port: Number.isInteger(i.Port) && i.Port > 0 && i.Port <= 65535 ? i.Port : 9, broadcast: i.BroadcastAddress }));
         });
       })
       .catch((err) => {
@@ -783,7 +797,8 @@ export class ConnectionManager extends EventEmitter {
     if (!conn || !server || conn.state.status === 'connecting' || conn.state.status === 'server-selected') return false;
     const stale = () => this.conns.get(serverId) !== conn;
     // Never signed in this run (unreachable, or failed, at startup): select() again once it answers.
-    if (!conn.client || !conn.socket) {
+    // Navidrome never has a socket: a signed-in one moves like the others.
+    if (!conn.client || (!conn.socket && server.kind !== 'navidrome')) {
       if (!(await this.probeServer(server).then(() => true, () => false)) || stale()) return false;
       await this.select(serverId).catch((err) => log.warn(`could not reconnect ${server.name}`, err));
       return this.isOnline(serverId);
@@ -799,7 +814,7 @@ export class ConnectionManager extends EventEmitter {
     }
     // Back where it was: after a network change a dropped socket reconnects now (otherwise its own backoff
     // runs: a socket the server keeps closing must not loop through here), and a server marked offline is up.
-    if (moved) conn.socket.reconnectNow();
+    if (moved) conn.socket?.reconnectNow();
     if (conn.state.status === 'offline') this.setConn(conn, { ...conn.state, status: 'signed-in' });
     return true;
   }
@@ -983,14 +998,14 @@ export class ConnectionManager extends EventEmitter {
   // Origins plex.tv vouched for over TLS (https, or http on a public address) plus the http LAN ones the user
   // confirmed (D-3): the only places this server's token goes.
   private plexOrigins(p: PlexStored): string[] {
-    const listed = p.connections.map((c) => credentialOrigin(c.uri)).filter((o): o is string => !!o && (isHttps(o) || !isLanAddress(o)));
+    const listed = p.connections.map((c) => credentialOrigin(c.uri)).filter((o): o is string => !!o && (isHttps(o) || !privateOrigin(o)));
     return union(listed, p.confirmed ?? []);
   }
 
   // A plain-http LAN connection plex.tv listed for the server: the token goes there once the user agrees (D-3).
   private plexHttpLan(server: StoredServer, address: string): string | null {
     const origin = credentialOrigin(address);
-    return origin && !isHttps(origin) && isLanAddress(origin) && server.plex?.connections.some((c) => credentialOrigin(c.uri) === origin) ? origin : null;
+    return origin && !isHttps(origin) && privateOrigin(origin) && server.plex?.connections.some((c) => credentialOrigin(c.uri) === origin) ? origin : null;
   }
 
   private plexNeedsConfirm(server: StoredServer, address: string): boolean {

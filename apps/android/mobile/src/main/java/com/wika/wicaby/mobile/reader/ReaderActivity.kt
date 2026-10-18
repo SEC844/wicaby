@@ -114,14 +114,21 @@ class ReaderActivity : AppCompatActivity() {
     }
 
     // A comic page is media: the reader stays dark in the light theme (G.media).
+    private val media = G.MediaHold()
+
     override fun onStart() {
         super.onStart()
-        G.mediaStarted++
+        media.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isFinishing) media.stop()
     }
 
     override fun onStop() {
         super.onStop()
-        G.mediaStarted = (G.mediaStarted - 1).coerceAtLeast(0)
+        media.stop()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,10 +163,11 @@ class ReaderActivity : AppCompatActivity() {
         if (hasFocus) immersive()
     }
 
-    // Back saves the last page (also when the system finishes us).
+    // Back saves the last page (also when the system finishes us, or recreates us on a locale or font change:
+    // onCreate opens a new reader, so this one's book and pending save must go now).
     override fun onDestroy() {
         awake.stop()
-        if (isFinishing) reader?.close()
+        reader?.close()
         super.onDestroy()
     }
 }

@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -92,6 +93,8 @@ fun WelcomeScreen(rerun: Boolean) {
     val session = snap.session
     val adding = session != null
     val isMain = stringResource(R.string.server_is_main)
+    // Back out of the wizard (to Réglages, or out of the app) drops a theme only previewed too, as finish() does.
+    DisposableEffect(Unit) { onDispose { C.theme = TvSettings.theme.value } }
 
     // Skip Setup and Start Watching: a rerun goes back to Réglages, a first run lands where the app would have.
     fun finish() {

@@ -22,6 +22,8 @@ type Params = Record<string, string | number | boolean | undefined | (string | n
 
 export const SUBSONIC_API_VERSION = '1.16.1';
 const ARTISTS_TTL_MS = 60_000;
+// Short: a play or a star changes the by-play-count and favourite orders.
+const LIST_TTL_MS = 30_000;
 // The page a "fetch everything" loop asks for (getAlbumList2 caps size at 500).
 const ALL_PAGE = 500;
 
@@ -75,6 +77,8 @@ const page = (all: BaseItem[], q: Record<string, string>): ItemsResult => {
 export class SubsonicClient extends ApiClient {
   // getArtists by music folder ('' all).
   private artistsCache = new Map<string, { at: number; list: Promise<Rec[]> }>();
+  // Whole lists paged here (a sorted or filtered album grid, an artist's songs): fetched once per scroll, not per page.
+  private listCache = new Map<string, { at: number; list: Promise<Rec[]> }>();
   private extensions: Promise<Set<string>> | null = null;
   // Plays already counted (submission=true), by PlaySessionId: one scrobble per play.
   private counted = new Set<string>();
@@ -97,10 +101,15 @@ export class SubsonicClient extends ApiClient {
     return [];
   }
 
-  // A URL to this server with fresh credentials appended. Only ever for this server's own origin.
-  sign(url: string): string {
+  // One salt per client for media URLs: the same cover keeps the same URL, so the HTTP cache can hit
+  // (t+s is a reusable pair whatever the salt).
+  private readonly mediaSalt = randomBytes(8).toString('hex');
+
+  // A URL to this server with credentials appended (a fresh salt, or the client's media one when stable).
+  // Only ever for this server's own origin.
+  sign(url: string, stable = false): string {
     if (!this.token || !this.userId) return url;
-    return `${url}${url.includes('?') ? '&' : '?'}${search(subsonicAuth(this.userId, this.token))}`;
+    return `${url}${url.includes('?') ? '&' : '?'}${search(subsonicAuth(this.userId, this.token, stable ? this.mediaSalt : undefined))}`;
   }
 
   // mpv's direct-play (and download) URL: the Subsonic media URL, signed, for this machine's player only.
@@ -178,6 +187,16 @@ export class SubsonicClient extends ApiClient {
     const l = this.call('getArtists', { musicFolderId: folder || undefined }).then((r) => list<Rec>((r.artists as Rec | undefined)?.index).flatMap((i) => list<Rec>(i.artist)));
     this.artistsCache.set(folder, { at: Date.now(), list: l });
     l.catch(() => this.artistsCache.delete(folder));
+    return l;
+  }
+
+  private cachedList(key: string, load: () => Promise<Rec[]>): Promise<Rec[]> {
+    const hit = this.listCache.get(key);
+    if (hit && Date.now() - hit.at < LIST_TTL_MS) return hit.list;
+    if (this.listCache.size >= 32) this.listCache.clear();
+    const l = load();
+    this.listCache.set(key, { at: Date.now(), list: l });
+    l.catch(() => this.listCache.delete(key));
     return l;
   }
 
@@ -355,8 +374,8 @@ export class SubsonicClient extends ApiClient {
       if (!artistRef) return result([]);
       const albums = list<Rec>(((await this.call('getArtist', { id: artistRef })).artist as Rec | undefined)?.album);
       if (wants('MusicAlbum') && !types.includes('Audio')) return page(albums.map(albumItem), q);
-      const full = await Promise.all(albums.map((a) => this.album(String(a.id))));
-      return page(full.flatMap((a) => list<Rec>(a.song).map((s) => songItem(s))), q);
+      const songs = await this.cachedList(`artist-songs:${artistRef}`, async () => (await Promise.all(albums.map((a) => this.album(String(a.id))))).flatMap((a) => list<Rec>(a.song)));
+      return page(songs.map((s) => songItem(s)), q);
     }
     const favorites = /IsFavorite/.test(q.Filters ?? '') || q.IsFavorite === 'true';
     if (favorites) {
@@ -382,7 +401,8 @@ export class SubsonicClient extends ApiClient {
       return result(albums.map(albumItem), Math.max(total, start + albums.length), start);
     }
     // Filtered or by play counts: the whole list, paged here (exact totals).
-    return page((await this.all(this.albumList(args, folder))).map(albumItem), q);
+    const all = await this.cachedList(`albums:${folder ?? ''}:${JSON.stringify(args)}`, () => this.all(this.albumList(args, folder)));
+    return page(all.map(albumItem), q);
   }
 
   private async entries(playlistId: string): Promise<ItemsResult> {
