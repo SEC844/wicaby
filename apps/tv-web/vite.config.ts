@@ -2,9 +2,10 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 
-// The oldest web engine this app supports: Samsung's 2020 sets (Tizen 5.5) and LG webOS 5 run Chromium 69.
-// The build lowers syntax to it; src/polyfills.ts fills in the missing APIs.
-export const ENGINE = 'chrome69';
+// The oldest web engine this app supports: TVs from 2018 on, LG webOS 4 (Chromium 53) and Samsung Tizen 4
+// (Chromium 56). The build lowers syntax to it; src/polyfills.ts fills in the missing APIs. CSS must stay within it
+// too: no grid, no flexbox `gap`, no backdrop-filter (see src/styles).
+export const ENGINE = 'chrome53';
 
 // `npm run dev` proxies the mock server (or a real one: WICABY_DEV_SERVER), so the browser build is same-origin and
 // needs no CORS preflight.

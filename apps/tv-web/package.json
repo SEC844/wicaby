@@ -11,7 +11,9 @@
     "dev": "vite",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "package:tizen": "npm run build && node scripts/package-wgt.mjs"
+    "package:tizen": "npm run build && node scripts/package-wgt.mjs",
+    "engines": "node scripts/fetch-engines.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
