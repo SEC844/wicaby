@@ -107,7 +107,7 @@
   }
 
   function image(u: UserDto): string | undefined {
-    return u.PrimaryImageTag ? api.url(`/Users/${u.Id}/Images/Primary`, { tag: u.PrimaryImageTag, maxWidth: 240 }) : undefined;
+    return api.userImage(u, 240);
   }
 
   const screen = getContext<number>(SCREEN);

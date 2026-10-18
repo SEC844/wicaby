@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "types": ["vite/client"],
-    "paths": { "$shared/*": ["../desktop/src/shared/*"] }
+    "paths": { "$shared/*": ["../desktop/src/shared/*"], "$desktop/*": ["../desktop/src/renderer/lib/*"] }
   },
   "include": ["src/**/*.ts", "src/**/*.svelte", "../desktop/src/shared/**/*.ts"]
 }

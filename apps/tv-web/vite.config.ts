@@ -31,6 +31,8 @@ export default defineConfig({
     // Platform-neutral code shared with the desktop app (models, markers, HDR, track selection…).
     alias: {
       $shared: fileURLToPath(new URL('../desktop/src/shared', import.meta.url)),
+      // Pure renderer helpers of the desktop app (items, continue watching): no IPC, no runes.
+      $desktop: fileURLToPath(new URL('../desktop/src/renderer/lib', import.meta.url)),
       // Assets shared with the Android TV app (the Geist fonts).
       $android: fileURLToPath(new URL('../android', import.meta.url)),
     },
