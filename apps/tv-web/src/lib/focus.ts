@@ -8,7 +8,7 @@
 // - A `data-focus-trap` element (dialogs, sheets) keeps the search inside it.
 // - Every change dispatches a bubbling `tvfocus` event on the newly focused element, so containers can scroll it
 //   into view (Row, Page).
-// Elements opt in with the `focusable` action; OK on the focused element dispatches a click.
+// Elements opt in with the `focusable` action; OK on the focused element dispatches a click (see pressDown/pressUp).
 
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
@@ -121,14 +121,50 @@ export function focusGroup(group: Element): boolean {
   return focusFirst(group);
 }
 
-export function select(): void {
-  focused()?.click();
+// OK follows Android tvFocus: the element shrinks while OK is down (`pressed`) and clicks on release. Held past
+// LONG_PRESS_MS it dispatches a bubbling `tvlongpress` instead (Continue Watching's menu), and the release no longer
+// clicks unless nobody handled it.
+const LONG_PRESS_MS = 500;
+let pressed: { el: HTMLElement; at: number; long: boolean; handled: boolean } | null = null;
+
+export function pressDown(repeat: boolean): void {
+  const el = focused();
+  if (!el) return;
+  if (!repeat || !pressed) {
+    pressed = { el, at: Date.now(), long: false, handled: false };
+    el.classList.add('pressed');
+    return;
+  }
+  if (!pressed.long && Date.now() - pressed.at >= LONG_PRESS_MS) {
+    pressed.long = true;
+    pressed.handled = !el.dispatchEvent(new CustomEvent('tvlongpress', { bubbles: true, cancelable: true }));
+    if (pressed.handled) el.classList.remove('pressed');
+  }
+}
+
+export function pressUp(): void {
+  const p = pressed;
+  pressed = null;
+  if (!p) return;
+  p.el.classList.remove('pressed');
+  if (!p.handled && p.el === focused()) p.el.click();
 }
 
 // Svelte action: <button use:focusable>. Clicking (OK) runs the element's click handlers.
+// `autofocus`: the default element (Compose remembered(default = true)). It takes the focus when it appears and the
+// top screen has none yet: content that loads after the screen opened (the home hero) still gets it, while a user
+// already browsing (the tab bar) keeps theirs.
 export function focusable(node: HTMLElement, autofocus = false) {
   node.setAttribute(ATTR, '');
-  if (autofocus) node.setAttribute('data-autofocus', '');
+  if (autofocus) {
+    node.setAttribute('data-autofocus', '');
+    requestAnimationFrame(() => {
+      const top = document.querySelector('[data-screen-top]');
+      const cur = focused();
+      const free = !cur || !visible(cur) || (top !== null && !top.contains(cur) && !cur.closest('[data-focus-trap]'));
+      if (free && node.isConnected && visible(node) && (!top || top.contains(node))) setFocus(node);
+    });
+  }
   return {
     destroy() {
       if (current === node) current = null;

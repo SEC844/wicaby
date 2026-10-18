@@ -24,11 +24,14 @@ function leaveTop(): void {
   if (top) top.lastFocus = focused();
 }
 
-// Focus the new top screen once it has rendered.
+// Focus the new top screen once it has rendered: what it had before (Back), else its default element. A default
+// that loads later (the home hero) takes the focus itself when it appears (lib/focus.ts focusable), so nothing
+// else (the tab bar) is focused in the meantime; the first arrow press covers a screen without any default.
 function settle(restore: HTMLElement | null): void {
   requestAnimationFrame(() => {
-    if (restore && restore.isConnected) setFocus(restore);
-    else focusFirst(document.querySelector('[data-screen-top]') ?? document);
+    if (restore && restore.isConnected) return setFocus(restore);
+    const top = document.querySelector('[data-screen-top]');
+    if (top?.querySelector('[data-autofocus]')) focusFirst(top);
   });
 }
 

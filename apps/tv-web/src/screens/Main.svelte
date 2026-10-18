@@ -1,35 +1,123 @@
 <script lang="ts">
-  // Android TV MainScreen (ui/Main.kt): the tab bar and the selected tab. Being built: for now it confirms the
-  // session and offers the account actions.
-  import Pill from '../components/Pill.svelte';
+  // Android TV MainScreen (ui/Main.kt): the floating tab bar over the selected tab. Home first, then the libraries,
+  // then Search and Settings pinned as icons. Tabs visited stay mounted (hidden) so coming back keeps their scroll
+  // and focus; Back from the content goes up to the bar, from the bar the app shell asks to quit.
+  import type { BaseItem } from '$shared/models';
+  import { getContext, onMount } from 'svelte';
+  import TopBar from '../components/TopBar.svelte';
+  import { focused, setFocus } from '../lib/focus';
   import { t } from '../lib/i18n.svelte';
-  import { nav } from '../lib/nav.svelte';
-  import { prefs, signOut } from '../lib/session.svelte';
+  import { clearCache, useLoad } from '../lib/load.svelte';
+  import { nav, onBack, SCREEN } from '../lib/nav.svelte';
+  import { showAlert } from '../lib/overlay.svelte';
+  import { api, prefs, signOut } from '../lib/session.svelte';
+  import { settings } from '../lib/settings.svelte';
+  import { browsable, type TopTab } from '../lib/tabs';
+  import HomeTab from '../tabs/HomeTab.svelte';
+
+  const client = api()!;
+  const session = prefs.session!;
+  const views = useLoad(() => 'views', () => client.views(), { persist: true });
+  const tabViews = $derived((views.value ?? []).filter((v) => browsable(v.CollectionType)));
+
+  const tabs = $derived<TopTab[]>([
+    { key: 'home', label: t('tab_home') },
+    ...tabViews.map((v) => ({ key: `lib:${v.Id}`, label: v.Name })),
+    { key: 'search', label: t('tab_search'), icon: 'Search' },
+    { key: 'settings', label: t('tab_settings'), icon: 'Gear' },
+  ]);
+
+  let tab = $state('home');
+  // Tabs mounted so far, kept alive while hidden.
+  let visited = $state<string[]>(['home']);
+  let scrolled = $state(false);
+  let barFocused = $state(false);
+
+  function select(key: string): void {
+    if (tab === key) return;
+    tab = key;
+    scrolled = false;
+    if (!visited.includes(key)) visited = [...visited, key];
+  }
+
+  function view(key: string): BaseItem | undefined {
+    return tabViews.find((v) => `lib:${v.Id}` === key);
+  }
+
+  function selectedTab(): HTMLElement | null {
+    return document.querySelector<HTMLElement>(`[data-screen-top] [data-tab="${tab}"]`);
+  }
+
+  function leave(forget: boolean): void {
+    signOut(forget);
+    clearCache();
+    nav.reset({ name: 'login', server: session.server });
+  }
+
+  function openProfile(): void {
+    showAlert({
+      title: session.userName,
+      message: session.server.name,
+      actions: [
+        { label: t('switch_user'), run: () => leave(false) },
+        { label: t('switch_server'), run: () => nav.reset({ name: 'servers' }) },
+        { label: t('tab_settings'), run: () => { select('settings'); requestAnimationFrame(() => setFocus(selectedTab())); } },
+        { label: t('sign_out'), destructive: true, run: () => leave(true) },
+      ],
+    });
+  }
+
+  const screen = getContext<number>(SCREEN);
+  onMount(() => {
+    const track = (e: Event) => {
+      barFocused = !!(e.target as HTMLElement).closest('.topbar');
+    };
+    document.addEventListener('tvfocus', track);
+    // Back: from the content, up to the bar (tvOS); from the bar, false lets the shell ask to quit.
+    const stop = onBack(screen, () => {
+      if (focused()?.closest('.topbar')) return false;
+      setFocus(selectedTab());
+      return true;
+    });
+    return () => {
+      document.removeEventListener('tvfocus', track);
+      stop();
+    };
+  });
 </script>
 
-<div class="screen">
-  <h1 class="t-large-title">{t('tab_home')}</h1>
-  <p class="t-body label-2">{prefs.session?.userName} · {prefs.session?.server.name}</p>
-  <div class="actions">
-    <Pill text={t('switch_user')} autofocus onclick={() => { signOut(false); nav.reset({ name: 'login', server: prefs.server! }); }} />
-    <span class="gap"></span>
-    <Pill text={t('sign_out')} onclick={() => { signOut(true); nav.reset({ name: 'login', server: prefs.server! }); }} />
-  </div>
+<div class="main">
+  {#each visited as key (key)}
+    <div class="tab" class:hidden={key !== tab} data-focus-group>
+      {#if key === 'home'}
+        <HomeTab api={client} views={views.value ?? []} onscrolled={(s) => (scrolled = s)} />
+      {:else if view(key)}
+        <!-- Library tabs: LibraryTab (grid, music, photos, Live TV) lands next. -->
+      {/if}
+    </div>
+  {/each}
+  <TopBar
+    {tabs}
+    selected={tab}
+    visible={barFocused || !scrolled}
+    showClock={settings.clock.value}
+    userName={session.userName}
+    userImage={client.userImage({ Id: session.userId }, 160)}
+    onselect={select}
+    onavatar={openProfile}
+  />
 </div>
 
 <style>
-  .screen {
-    padding: 100rem 64rem;
+  .main,
+  .tab {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
-  h1,
-  p {
-    margin: 0 0 10rem;
-  }
-  .actions {
-    display: flex;
-    margin-top: 24rem;
-  }
-  .gap {
-    width: 12rem;
+  .hidden {
+    display: none;
   }
 </style>

@@ -16,13 +16,13 @@ for (const major of wanted.length ? wanted : Object.keys(ENGINES).map(Number)) {
     console.log(`Chromium ${major}: present`);
     continue;
   }
-  const meta = await fetch(BUCKET + encodeURIComponent(`Win_x64/${engine.position}/chrome-win32.zip`)).then((r) => r.json());
+  const meta = await fetch(BUCKET + encodeURIComponent(`Win_x64/${engine.position}/${engine.dir}.zip`)).then((r) => r.json());
   if (!meta.md5Hash) throw new Error(`Chromium ${major}: snapshot ${engine.position} not found`);
   const zip = Buffer.from(await fetch(meta.mediaLink).then((r) => r.arrayBuffer()));
   const md5 = crypto.createHash('md5').update(zip).digest('base64');
   if (md5 !== meta.md5Hash) throw new Error(`Chromium ${major}: MD5 mismatch (${md5}, expected ${meta.md5Hash})`);
   fs.mkdirSync(engineDir(major), { recursive: true });
-  const file = path.join(engineDir(major), 'chrome-win32.zip');
+  const file = path.join(engineDir(major), `${engine.dir}.zip`);
   fs.writeFileSync(file, zip);
   // Windows' own bsdtar reads ZIP; Git's GNU tar (often first in PATH) takes "C:" for a remote host.
   const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';

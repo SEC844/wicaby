@@ -197,6 +197,18 @@ export class Api {
     return (await this.get<ItemsResult>(`/Items/${id}/Similar`, { UserId: this.userId, Limit: limit, Fields: this.listFields })).Items;
   }
 
+  // Last played date per series, one batched call (Continue Watching's next-up order).
+  async seriesUserData(ids: string[]): Promise<Map<string, string>> {
+    if (!ids.length) return new Map();
+    const r = await this.get<ItemsResult>(`/Users/${this.userId}/Items`, { Ids: ids.slice(0, 24).join(','), Fields: 'UserData', EnableImages: false });
+    return new Map(r.Items.filter((i) => i.UserData?.LastPlayedDate).map((i) => [i.Id, i.UserData!.LastPlayedDate!]));
+  }
+
+  // "Retirer de Continuer à regarder": Emby only (Jellyfin has no equivalent; a 404 means unsupported).
+  hideFromResume(id: string, hide: boolean): Promise<void> {
+    return this.request('POST', `/Users/${this.userId}/Items/${id}/HideFromResume`, { Hide: hide }, {});
+  }
+
   // --- Images (core data/Images.kt: the fallbacks Emby web uses) ---
 
   image(id: string, type: string, tag: string | undefined, size: { maxWidth?: number; maxHeight?: number }): string | undefined {

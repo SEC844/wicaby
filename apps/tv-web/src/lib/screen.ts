@@ -22,3 +22,8 @@ export function initScreen(): void {
   window.addEventListener('resize', applyScale);
   if (lite) document.documentElement.setAttribute('data-lite', '');
 }
+
+// CSS pixels for a length in dp (1rem), for layout maths (scroll offsets).
+export function dp(n: number): number {
+  return n * (parseFloat(document.documentElement.style.fontSize) || 2);
+}

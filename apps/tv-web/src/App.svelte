@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import AlertDialog from './components/AlertDialog.svelte';
   import Screen from './components/Screen.svelte';
-  import { move, select } from './lib/focus';
+  import { move, pressDown, pressUp } from './lib/focus';
   import { t } from './lib/i18n.svelte';
   import { handleBack, nav, stack } from './lib/nav.svelte';
   import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
@@ -39,6 +39,8 @@
   }
 
   onMount(() => {
+    // A held arrow repeats faster than slow sets paint: one move per frame, so focus never runs ahead of the screen.
+    let moved = false;
     const onKey = (e: KeyboardEvent) => {
       const key = keyOf(e);
       if (!key) return;
@@ -46,15 +48,26 @@
       // Backspace edits text; only Escape and the remote's Back key go back from a field.
       if (key === 'back' && e.keyCode === 8 && e.target instanceof HTMLInputElement) return;
       e.preventDefault();
-      if (key === 'up' || key === 'down' || key === 'left' || key === 'right') move(key);
-      else if (key === 'ok') select();
-      else if (key === 'back') {
+      if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
+        if (moved) return;
+        moved = true;
+        requestAnimationFrame(() => (moved = false));
+        move(key);
+      } else if (key === 'ok') pressDown(e.repeat);
+      else if (key === 'back' && !e.repeat) {
         if (overlay.alert) closeAlert();
         else if (!handleBack()) confirmQuit();
       }
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (keyOf(e) === 'ok') pressUp();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   });
 </script>
 

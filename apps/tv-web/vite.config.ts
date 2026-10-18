@@ -22,11 +22,28 @@ const classicScript: Plugin = {
   transformIndexHtml: (html) => html.replace(/<script type="module" crossorigin/g, '<script defer').replace(/ crossorigin/g, ''),
 };
 
+// Svelte 5 wraps some scoping classes in :where() to keep specificity flat, but :where() arrived in Chromium 88:
+// older engines drop every rule that contains it. The plain class scopes the same element; the only change is one
+// more class of specificity, which never crosses component boundaries since scoping classes are per component.
+const plainScoping: Plugin = {
+  name: 'wicaby-plain-scoping',
+  apply: 'build',
+  enforce: 'post',
+  generateBundle(_, bundle) {
+    for (const file of Object.values(bundle)) {
+      if (file.type === 'asset' && file.fileName.endsWith('.css') && typeof file.source === 'string') {
+        file.source = file.source.replace(/:where\((\.svelte-[a-z0-9]+)\)/g, '$1');
+        if (file.source.includes(':where(')) this.error(`${file.fileName}: :where() left that Chromium < 88 cannot parse`);
+      }
+    }
+  },
+};
+
 export default defineConfig({
   root: 'src',
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: './',
-  plugins: [svelte(), androidStrings(), androidIcons(), classicScript],
+  plugins: [svelte(), androidStrings(), androidIcons(), classicScript, plainScoping],
   resolve: {
     // Platform-neutral code shared with the desktop app (models, markers, HDR, track selection…).
     alias: {

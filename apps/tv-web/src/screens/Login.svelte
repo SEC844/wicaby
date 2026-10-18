@@ -16,6 +16,8 @@
 
   let { server, add = false }: { server: Server; add?: boolean } = $props();
 
+  // A login screen is pushed for one server and never re-targeted: the initial value is the value.
+  // svelte-ignore state_referenced_locally
   const api = apiFor(server);
   let users = $state<UserDto[] | null>(null);
   let loadError = $state(false);
