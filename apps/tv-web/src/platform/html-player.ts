@@ -1,6 +1,6 @@
 import { Emitter, type Track, type VideoPlayer } from './player';
 
-// <video>-based player: webOS (its media pipeline decodes HEVC/HDR in hardware) and the browser build.
+// <video>-based player: webOS (its media pipeline decodes HEVC/HDR in hardware) and the dev build.
 export class HtmlPlayer extends Emitter implements VideoPlayer {
   constructor(private readonly video: HTMLVideoElement) {
     super();

@@ -1,4 +1,4 @@
-// Remote keys, normalized across Tizen, webOS and a desktop browser (arrows, Enter, Backspace/Escape for Back).
+// Remote keys, normalized across Tizen, webOS and a dev keyboard (arrows, Enter, Backspace/Escape for Back).
 export type Key =
   | 'up' | 'down' | 'left' | 'right' | 'ok' | 'back'
   | 'play' | 'pause' | 'playPause' | 'stop' | 'ff' | 'rw' | 'next' | 'prev'

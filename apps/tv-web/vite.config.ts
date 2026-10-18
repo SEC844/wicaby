@@ -10,7 +10,7 @@ import pkg from './package.json' with { type: 'json' };
 // too: no grid, no flexbox `gap`, no backdrop-filter (see src/styles).
 export const ENGINE = 'chrome53';
 
-// `npm run dev` proxies the mock server (or a real one: WICABY_DEV_SERVER), so the browser build is same-origin and
+// `npm run dev` proxies the mock server (or a real one: WICABY_DEV_SERVER), so the dev build is same-origin and
 // needs no CORS preflight.
 const devServer = process.env.WICABY_DEV_SERVER ?? 'http://127.0.0.1:8096';
 

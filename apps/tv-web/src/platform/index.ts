@@ -2,7 +2,8 @@ import { AvPlayer, avplayAvailable } from './avplay';
 import { HtmlPlayer } from './html-player';
 import type { VideoPlayer } from './player';
 
-export type PlatformName = 'tizen' | 'webos' | 'browser';
+// The shipped targets are Tizen and webOS. 'dev' is a desktop Chromium: npm run dev and the smoke tests only.
+export type PlatformName = 'tizen' | 'webos' | 'dev';
 
 declare const tizen:
   | {
@@ -12,7 +13,7 @@ declare const tizen:
   | undefined;
 
 export const platform: PlatformName =
-  typeof tizen !== 'undefined' ? 'tizen' : /Web0S|webOS/i.test(navigator.userAgent) ? 'webos' : 'browser';
+  typeof tizen !== 'undefined' ? 'tizen' : /Web0S|webOS/i.test(navigator.userAgent) ? 'webos' : 'dev';
 
 // Keys Tizen only delivers once registered (arrows, OK and Back always arrive).
 const TIZEN_KEYS = [

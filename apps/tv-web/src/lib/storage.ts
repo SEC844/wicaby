@@ -1,5 +1,5 @@
-// Persistent key/value storage (localStorage). TVs can refuse or wipe it (low storage, a browser build in private
-// mode): every access is guarded and the app keeps working with defaults.
+// Persistent key/value storage (localStorage). TVs can refuse or wipe it (low storage, a factory reset): every access
+// is guarded and the app keeps working with defaults.
 const PREFIX = 'wicaby.';
 
 export function load<T>(key: string, fallback: T): T {

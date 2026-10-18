@@ -1,5 +1,5 @@
 // The video player the platform provides: AVPlay on Tizen (hardware pipeline, HDR10/HDR10+), a <video> element on
-// webOS and in a browser. Times are in milliseconds.
+// webOS and in dev. Times are in milliseconds.
 export interface Track {
   index: number;
   language: string;
