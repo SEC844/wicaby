@@ -146,7 +146,7 @@
         const viewId = latestViewId(id);
         const view = latestViews.find((v) => viewRef(v) === viewId);
         const items = viewId ? latests.value?.[viewId] : undefined;
-        // Another server's library names its server: "Films · Salon".
+        // Another server's library names its server: "Films · <server name>".
         const name = view && view.ServerId && view.ServerId !== serverId ? `${view.Name} · ${serverName(view.ServerId) ?? ''}` : view?.Name;
         if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items, wide: pref.thumb.includes(id), playable: false });
       }

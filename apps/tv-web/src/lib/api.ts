@@ -442,10 +442,8 @@ export class Api {
   // subtitle stream of the audio item (that Emby shape is unverified: any failure reads as "no lyrics").
   async lyricsText(item: BaseItem): Promise<{ jellyfin: unknown } | { lrc: string } | null> {
     try {
-      if (!this.isEmby) {
-        if ((item as BaseItem & { HasLyrics?: boolean }).HasLyrics === false) return null;
-        return { jellyfin: await this.get(`/Audio/${item.Id}/Lyrics`) };
-      }
+      const has = (item as BaseItem & { HasLyrics?: boolean }).HasLyrics !== false;
+      if (!this.isEmby) return has ? { jellyfin: await this.get(`/Audio/${item.Id}/Lyrics`) } : null;
       const source = item.MediaSources?.[0];
       const stream = (source?.MediaStreams ?? item.MediaStreams ?? []).find((s) => s.Type === 'Subtitle' && ['lrc', 'text', 'txt'].includes((s.Codec ?? '').toLowerCase()));
       if (!stream) return null;
