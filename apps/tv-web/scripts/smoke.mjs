@@ -1,7 +1,8 @@
 ﻿// Smoke test of the built app (dist/) on each pinned engine (scripts/engines.mjs), through the DevTools protocol.
 // Loads dist/index.html from file://, like a packaged TV app, sends remote keys, saves screenshots to
 // .dev/smoke/<major>/ and fails on any console error or uncaught exception.
-// Usage: npm run smoke [-- --engine 53 --steps 39,38,13,text:wicaby,wait:2000 --wait 1500]
+// Usage: npm run smoke [-- --engine 53 --steps 39,38,13,text:wicaby,wait:2000 --wait 1500 --port 9300]
+// --port: the first DevTools port (one per engine from there), so parallel runs do not collide.
 // --probe <js>: an expression evaluated at the end, printed (debugging).
 // Steps: a keyCode (sends the key), text:<chars> (types into the focused field; no commas), wait:<ms>.
 import { spawn } from 'node:child_process';
@@ -13,7 +14,7 @@ import { pathToFileURL } from 'node:url';
 import { ENGINES, engineExe } from './engines.mjs';
 
 const { values: opts } = parseArgs({
-  options: { engine: { type: 'string', multiple: true }, steps: { type: 'string', default: '' }, probe: { type: 'string' }, wait: { type: 'string', default: '1500' } },
+  options: { engine: { type: 'string', multiple: true }, steps: { type: 'string', default: '' }, probe: { type: 'string' }, wait: { type: 'string', default: '1500' }, port: { type: 'string', default: '9300' } },
 });
 const app = path.resolve(import.meta.dirname, '..');
 const index = path.join(app, 'dist', 'index.html');
@@ -39,7 +40,8 @@ async function run(major, port) {
   ], { stdio: 'ignore' });
   try {
     let target;
-    for (let i = 0; i < 50 && !target; i++) {
+    // Up to 30 s: a fresh profile on an old engine sometimes takes over 10 s (first run, antivirus scan).
+    for (let i = 0; i < 150 && !target; i++) {
       await sleep(200);
       target = await fetch(`http://127.0.0.1:${port}/json`).then((r) => r.json()).then((l) => l.find((t) => t.type === 'page')).catch(() => null);
     }
@@ -74,6 +76,14 @@ async function run(major, port) {
     // The reference engine only parses the CSS (below), on its blank page: current Chromium neither navigates to
     // file:// through DevTools nor answers it reliably once an app runs.
     const reference = ENGINES[major].reference === true;
+    // Chromium 53 reports neither Runtime.exceptionThrown nor console errors over DevTools: the page also collects
+    // them itself (uncaught errors, rejections, console.error), read back at the end. The script is added before the
+    // app loads (addScriptToEvaluateOnLoad on engines older than addScriptToEvaluateOnNewDocument).
+    const collector = `window.__smokeErrors = [];
+      window.addEventListener('error', function (e) { __smokeErrors.push(String((e.error && e.error.stack) || e.message)); });
+      window.addEventListener('unhandledrejection', function (e) { __smokeErrors.push(String((e.reason && e.reason.stack) || e.reason)); });
+      var ce = console.error; console.error = function () { __smokeErrors.push([].join.call(arguments, ' ')); return ce.apply(console, arguments); };`;
+    if (!reference && !(await send('Page.addScriptToEvaluateOnNewDocument', { source: collector }))) await send('Page.addScriptToEvaluateOnLoad', { scriptSource: collector });
     if (!reference) void send('Page.navigate', { url: pathToFileURL(index).href });
     if (!reference) await sleep(Number(opts.wait));
     const shot = async (name) => fs.writeFileSync(path.join(out, `${name}.png`), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
@@ -96,6 +106,13 @@ async function run(major, port) {
         (await send('Runtime.evaluate', { expression: opts.probe, returnByValue: true, awaitPromise: true })) ??
         (await send('Runtime.evaluate', { expression: opts.probe, returnByValue: true }));
       console.log(`Chromium ${major} probe: ${JSON.stringify(r?.result?.value ?? r?.exceptionDetails?.text)}`);
+    }
+    if (!reference) {
+      const page = await send('Runtime.evaluate', { expression: 'JSON.stringify(window.__smokeErrors || [])', returnByValue: true });
+      // An error both channels saw counts once (compared on its first line).
+      const first = (e) => String(e).split('\n')[0];
+      const seen = new Set(errors.map(first));
+      for (const e of JSON.parse(page?.result?.value ?? '[]')) if (!seen.has(first(e))) errors.push(e);
     }
     // The selectors this engine kept from the built CSS: a rule it cannot parse is dropped silently (see the CSS check
     // below). The text goes through an inline <style>: a file:// stylesheet's rules are unreadable on current engines.
@@ -123,7 +140,7 @@ let failed = false;
 const majors = opts.engine?.map(Number) ?? Object.keys(ENGINES).map(Number);
 const kept = new Map();
 for (const [i, major] of majors.entries()) {
-  const { errors, rules } = await run(major, 9300 + i);
+  const { errors, rules } = await run(major, Number(opts.port) + i);
   kept.set(major, rules);
   failed ||= errors.length > 0;
   console.log(`Chromium ${major} (${ENGINES[major].why}, ${rules.length} CSS rules): ${errors.length ? `FAIL\n  ${errors.join('\n  ')}` : 'ok'}`);
