@@ -1,5 +1,5 @@
 // Vite plugin: the TV web app speaks with the Android TV app's own words. `virtual:strings` is built from the
-// strings.xml of the Android modules the TV app uses (:tv, :core, :livetv-ui), French from values/ and English from
+// values/*.xml of the Android modules the TV app uses (:tv, :core, :livetv-ui), French from values/ and English from
 // values-en/, so both apps share one set of translations and the Android translation checks cover this app too.
 // Strings keep Android's printf placeholders (%1$s, %d, %2$02d, %%); src/lib/i18n.svelte.ts formats them.
 import fs from 'node:fs';
@@ -35,11 +35,17 @@ export function parse(xml) {
   return { strings, plurals };
 }
 
+// Every XML file of a values folder: modules split their strings (plurals.xml, strings_iptv.xml, livetv_guide.xml…).
+function resourceFiles(folder) {
+  return MODULES.flatMap((m) => {
+    const dir = path.join(ANDROID, m, 'src', 'main', 'res', folder);
+    return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.xml')).map((f) => path.join(dir, f)) : [];
+  });
+}
+
 function load(folder) {
   const out = { strings: {}, plurals: {} };
-  for (const m of MODULES) {
-    const file = path.join(ANDROID, m, 'src', 'main', 'res', folder, 'strings.xml');
-    if (!fs.existsSync(file)) continue;
+  for (const file of resourceFiles(folder)) {
     const { strings, plurals } = parse(fs.readFileSync(file, 'utf8'));
     Object.assign(out.strings, strings);
     Object.assign(out.plurals, plurals);
@@ -48,7 +54,7 @@ function load(folder) {
 }
 
 export default function androidStrings() {
-  const files = MODULES.flatMap((m) => ['values', 'values-en'].map((f) => path.join(ANDROID, m, 'src', 'main', 'res', f, 'strings.xml')));
+  const files = [...resourceFiles('values'), ...resourceFiles('values-en')];
   return {
     name: 'wicaby-android-strings',
     resolveId: (id) => (id === ID ? '\0' + ID : null),
