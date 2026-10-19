@@ -42,7 +42,8 @@ services in [LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md), which the Android `gpl
 wicaby/
 ├─ apps/
 │  ├─ desktop/        Electron + Svelte 5 app for Windows (src/main, src/preload, src/renderer, src/shared)
-│  └─ android/        Gradle root: :core (shared, no UI), :mesh-ui, :livetv-ui, :tv (Android TV), :mobile
+│  ├─ android/        Gradle root: :core (shared, no UI), :mesh-ui, :livetv-ui, :tv (Android TV), :mobile
+│  └─ tv-web/         Svelte 5 app for Samsung Tizen and LG webOS TVs (docs/tv-web.md)
 ├─ packages/
 │  └─ mesh/           Go mesh helper: Tailscale tsnet + NetBird client/embed; scripts/build-*.ps1
 ├─ tools/
@@ -188,8 +189,9 @@ Run these before opening a pull request.
 
 | Command | What it checks |
 |---|---|
-| `npm run check` | `svelte-check` on the renderer and `tsc` on the main process (`apps/desktop`). |
-| `npm run checks` | Every self-check in `tools/checks` (`run-all.mjs`): `i18n-check --strict`, HDR, track selection, ZIP, BIF, mesh, VPN and torrents. |
+| `npm run check` | `svelte-check` on the renderer and `tsc` on the main process (`apps/desktop`), and on the TV web app with its strings check (`apps/tv-web`). |
+| `npm run checks` | Every self-check in `tools/checks` (`run-all.mjs`): `i18n-check --strict`, HDR, track selection, ZIP, BIF, mesh, VPN, torrents and the TV web app. |
+| `npm run build:tv`, then `node apps/tv-web/scripts/smoke.mjs --engine 53` | The TV web app's build, run on the oldest TV engine (see [docs/tv-web.md](docs/tv-web.md)). |
 | `npm run build` | The desktop renderer, main process and preload build. |
 | `.\gradlew.bat :core:testDebugUnitTest :mobile:testFossDebugUnitTest :mobile:testGplayDebugUnitTest lint` (in `apps/android`) | Android unit tests (including the translation-parity tests) and lint. |
 | `go test ./...` (in `packages/mesh`) | Mesh helper tests, including the forwarder allow-list. |
@@ -211,6 +213,8 @@ style guide and the FR → EN glossary.
 - **Android:** French is the default (`res/values`) and English is `res/values-en`, in `:core`,
   `:mesh-ui`, `:livetv-ui`, `:tv` and `:mobile`. Lint treats `MissingTranslation` as an error, and the
   translation-parity unit tests must pass.
+- **TV web app:** it has no catalogue of its own; it reads the Android TV app's (`:tv`, `:core`, `:livetv-ui`) at
+  build time. A new string goes into those Android files, and `npm run check:tv` fails on a key they lack.
 - Server data (titles, overviews, genres, names) is never translated.
 - A new term goes into the glossary in `docs/i18n.md` in the same change.
 

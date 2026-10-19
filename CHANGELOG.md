@@ -18,6 +18,17 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Added
+
+- TV web app (`apps/tv-web`) for Samsung Tizen 4+ and LG webOS 4+ TVs, from 2018 models on: the Android TV app
+  rebuilt for TVs that only run web apps, with its screens, its D-pad model and its strings. Home, search,
+  libraries, details, settings; the player plays through AVPlay on Tizen and the TV's own decoders on webOS, with a
+  device profile built from what the TV reports, tracks, its own subtitles, quality presets, chapters, trickplay,
+  skip intro and credits, up next, speed, sleep timer and playback info; music with synced lyrics; Live TV with the
+  guide, zapping, number entry and recordings; photos; a comic reader for CBZ and image EPUB; several servers at
+  once; Trakt scrobbling. It installs under the web TV app's ids and is meant to replace `apps/webtv`. Test builds
+  only: the unsigned `.wgt` and the `.ipk` are workflow artifacts. See docs/tv-web.md.
+
 ## [0.11.2] - 2026-10-20
 
 Android TV 0.11.2 (versionCode 39), Android mobile 0.11.2 (versionCode 36); no Android change.

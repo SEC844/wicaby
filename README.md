@@ -269,7 +269,7 @@ Linux environment variables: `WICABY_OZONE=x11` runs Wicaby under XWayland in a 
 
 Installing on a TV and turning on automatic updates: see [Install on a TV](apps/android/README.md#install-on-a-tv) and [Updates for sideloaded APKs](apps/android/README.md#updates-for-sideloaded-apks).
 
-**LG and Samsung TVs (test builds)**: a web TV app for LG webOS 6+ and Samsung Tizen 6.5+, with Emby and Jellyfin. It is a preview, never tested on a real TV and not part of any release: the `.ipk` and unsigned `.wgt` packages are workflow artifacts, and a browser demo runs on GitHub Pages. See [docs/webtv.md](docs/webtv.md).
+**LG and Samsung TVs (test builds)**: the TV web app, the Android TV app rebuilt for Samsung Tizen 4+ and LG webOS 4+ (sets from 2018 on), with Emby and Jellyfin: the player (AVPlay on Tizen), Live TV, music, photos, comics, several servers and Trakt. It is not part of any release yet: the unsigned `.wgt` and the `.ipk` are workflow artifacts. See [docs/tv-web.md](docs/tv-web.md).
 
 ## Getting started
 
@@ -293,7 +293,7 @@ cd apps/android; ./gradlew :tv:assembleDebug :mobile:assembleDebug
 
 No server at hand? `node tools/mock-server/mock-emby.mjs 8104` starts a mock (user `Wika`, password `wicaby`).
 
-Everything else lives in [docs/](docs/): [features](docs/features.md), [desktop](docs/desktop.md), [Android](docs/android.md), [web TV preview (LG, Samsung)](docs/webtv.md), [remote access](docs/remote-access.md), [design](docs/design.md), [translations](docs/i18n.md), [releases](docs/release.md) and [architecture](docs/architecture.md) (in French). To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability, [SECURITY.md](SECURITY.md).
+Everything else lives in [docs/](docs/): [features](docs/features.md), [desktop](docs/desktop.md), [Android](docs/android.md), [TV web app (Samsung, LG)](docs/tv-web.md), [remote access](docs/remote-access.md), [design](docs/design.md), [translations](docs/i18n.md), [releases](docs/release.md) and [architecture](docs/architecture.md) (in French). To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability, [SECURITY.md](SECURITY.md).
 
 ## License
 
