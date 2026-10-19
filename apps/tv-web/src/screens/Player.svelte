@@ -37,7 +37,7 @@
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '../lib/segments';
   import { apiOf } from '../lib/session.svelte';
   import { SKIP_AUTO, SKIP_OFF, settings } from '../lib/settings.svelte';
-  import { createPlayer, platform } from '../platform';
+  import { createPlayer, keepAwake, platform } from '../platform';
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
 
@@ -453,6 +453,7 @@
   onMount(() => {
     // A video ends the music session, as on Android (one audio output, one session).
     stopMusic();
+    keepAwake(true);
     document.documentElement.classList.toggle('avplay', avplay);
     const player = createPlayer(video);
     const p = new Playback(client, player, id, { fromStart, trailer, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
@@ -482,6 +483,7 @@
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('keyup', onKeyUp, true);
       p.stop();
+      keepAwake(false);
       document.documentElement.classList.remove('avplay');
     };
   });

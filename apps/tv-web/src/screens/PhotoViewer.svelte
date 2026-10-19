@@ -17,6 +17,7 @@
   import { play } from '../lib/playback';
   import { api } from '../lib/session.svelte';
   import { load, save } from '../lib/storage';
+  import { keepAwake } from '../platform';
   import { keyOf } from '../platform/keys';
 
   let { key, index: start }: { key: string; index: number } = $props();
@@ -71,7 +72,12 @@
     if (r) layers = layers.map((l, j) => (j === k ? { ...l, turn: r } : l));
   }
 
-  // --- Slideshow: the next still every few seconds, round the list ---
+  // --- Slideshow: the next still every few seconds, round the list; the screen stays on meanwhile ---
+  $effect(() => {
+    if (!slideshow) return;
+    keepAwake(true);
+    return () => keepAwake(false);
+  });
   let slideTimer = 0;
   $effect(() => {
     void index;

@@ -76,13 +76,35 @@ export function openUrl(url: string): Promise<boolean> {
   });
 }
 
+declare const webapis:
+  | {
+      network?: { getActiveConnectionType?(): number };
+      appcommon?: { setScreenSaver(state: number): void; AppCommonScreenSaverState?: { SCREEN_SAVER_OFF: number; SCREEN_SAVER_ON: number } };
+    }
+  | undefined;
+
+// The TV's screensaver stays off while [on] (a video, Live TV, a slideshow; Android keepScreenOn). Tizen asks for
+// it through appcommon; webOS keeps the screen on by itself while a <video> plays.
+let awake = 0;
+export function keepAwake(on: boolean): void {
+  awake = Math.max(0, awake + (on ? 1 : -1));
+  if (platform !== 'tizen') return;
+  try {
+    const ac = webapis?.appcommon;
+    const states = ac?.AppCommonScreenSaverState;
+    if (ac && states) ac.setScreenSaver(awake > 0 ? states.SCREEN_SAVER_OFF : states.SCREEN_SAVER_ON);
+  } catch {
+    // An older firmware without appcommon: the TV's own timer applies.
+  }
+}
+
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {
   return platform === 'tizen' && avplayAvailable() ? new AvPlayer() : new HtmlPlayer(video);
 }
 
 // The connection playback starts on (Settings > Playback caps each one). Tizen tells; webOS and a browser do not
 // expose it to a web app, so they count as Ethernet, the higher cap.
-declare const webapis: { network?: { getActiveConnectionType?(): number } } | undefined;
+
 
 export function onWifi(): boolean {
   try {

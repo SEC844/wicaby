@@ -20,7 +20,7 @@
   import { overlay } from '../lib/overlay.svelte';
   import { api } from '../lib/session.svelte';
   import { showToast } from '../lib/toast.svelte';
-  import { createPlayer, platform } from '../platform';
+  import { createPlayer, keepAwake, platform } from '../platform';
   import { keyOf } from '../platform/keys';
 
   let { id, list: listIds }: { id: string; list?: string[] } = $props();
@@ -185,6 +185,7 @@
   const screen = getContext<number>(SCREEN);
   onMount(() => {
     stopMusic();
+    keepAwake(true);
     document.documentElement.classList.toggle('avplay', avplay);
     const player = createPlayer(video);
     let rows = repo.channels;
@@ -216,6 +217,7 @@
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('keyup', onKeyUp, true);
       s.stop();
+      keepAwake(false);
       document.documentElement.classList.remove('avplay');
     };
   });
