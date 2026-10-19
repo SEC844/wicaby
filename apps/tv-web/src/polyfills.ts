@@ -20,6 +20,12 @@ define(Object, 'fromEntries', <T>(entries: Iterable<readonly [PropertyKey, T]>) 
   return out;
 });
 define(Object, 'hasOwn', (o: object, k: PropertyKey) => Object.prototype.hasOwnProperty.call(o, k)); // 93
+// Svelte reads an element's setters with it whenever an attribute gets a non-string value (data-cell={i}).
+define(Object, 'getOwnPropertyDescriptors', (o: object) => { // 54
+  const out: PropertyDescriptorMap = {};
+  for (const k of Reflect.ownKeys(o)) out[k as string] = Object.getOwnPropertyDescriptor(o, k)!;
+  return out;
+});
 
 function pad(this: string, start: boolean, length: number, fill = ' '): string {
   const s = String(this);
