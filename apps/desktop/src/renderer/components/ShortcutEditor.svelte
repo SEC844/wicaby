@@ -100,8 +100,6 @@
 
 <svelte:window onkeydowncapture={onKeyCapture} />
 
-<div class="sr" role="status" aria-live="polite">{status}</div>
-
 {#snippet editRow(r: (typeof rows)[number])}
   {@const label = t(r.labelKey)}
   <div class="row compact">
@@ -128,6 +126,8 @@
   </div>
 {/snippet}
 
+<!-- Settings › Keyboard. Each heading sits right before its group, which the settings search relies on. -->
+<h3 class="gh">{t('settings.general.shortcuts.player')}</h3>
 <div class="group">
   {#each editRows as r (r.id)}{@render editRow(r)}{/each}
   <div class="row compact">
@@ -155,6 +155,8 @@
     </div>
   {/each}
 </div>
+
+<div class="sr" role="status" aria-live="polite">{status}</div>
 
 <style>
   .gh {

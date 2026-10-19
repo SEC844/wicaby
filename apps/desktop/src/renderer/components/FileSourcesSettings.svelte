@@ -1,15 +1,14 @@
 <script lang="ts">
-  // Settings › Library and Home: the file sources (file-sources-spec §9.1), their name and credentials, and
-  // "Show file sources on Home" (D10, off by default). Credentials are written, never read back.
+  // Settings › Sources: the file sources (file-sources-spec §9.1), their name and credentials.
+  // "Show file sources on Home" (D10) lives in Settings › Home & libraries. Credentials are written, never read back.
   import type { FileSourceInfo, FileTestResult } from '../../shared/contract';
   import { w } from '../lib/bridge';
   import { t } from '../lib/i18n.svelte';
-  import { errorMessage, session, settings, toast, updateSettings } from '../lib/stores.svelte';
+  import { errorMessage, session, toast } from '../lib/stores.svelte';
   import FileCertCard from './FileCertCard.svelte';
   import FileSourceSheet from './FileSourceSheet.svelte';
   import Icon, { type IconName } from './Icon.svelte';
   import Sheet from './Sheet.svelte';
-  import Toggle from './Toggle.svelte';
 
   let sources = $state<FileSourceInfo[]>([]);
   let adding = $state(false);
@@ -96,13 +95,6 @@
 
 <h3 class="gh">{t('files.sources')}</h3>
 <div class="group" data-files-settings>
-  <div class="row">
-    <div class="txt">
-      <div class="lbl">{t('files.home.label')}</div>
-      <div class="desc">{t('files.home.desc')}</div>
-    </div>
-    <Toggle label={t('files.home.label')} checked={settings.value?.ui.filesOnHome === true} onchange={(v) => updateSettings({ ui: { filesOnHome: v } })} />
-  </div>
   {#each sources as s (s.id)}
     <div class="row">
       <span class="ic"><Icon name={icon(s.protocol)} size={17} /></span>

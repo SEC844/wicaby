@@ -115,7 +115,7 @@
       <span class="sub tabular">↓ {speed(tor.transfer.dlSpeed)} · ↑ {speed(tor.transfer.upSpeed)}</span>
     {/if}
   {/snippet}
-  {@render row(torLevel, '/settings?pane=torrents', false, body)}
+  {@render row(torLevel, '/settings?pane=downloads', false, body)}
 {/if}
 
 <!-- The Remote access page stays reachable with the VPN off. -->

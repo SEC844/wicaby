@@ -1,4 +1,4 @@
-// Online lyrics from lrclib.net (music-spec MU-13): off by default (Settings > Audio), asked only when the server has
+// Online lyrics from lrclib.net (music-spec MU-13): off by default (Settings > Music), asked only when the server has
 // none, from main so the renderer's CSP stays closed. It sends the artist, title, album and duration to a third party
 // (docs/features.md). Answers, "not found" included, are cached per track id for 30 days; a failure is not cached.
 import type { LrclibTrack } from '../../shared/contract';

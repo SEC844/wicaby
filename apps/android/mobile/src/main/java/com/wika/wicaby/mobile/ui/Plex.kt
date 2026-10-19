@@ -413,45 +413,49 @@ fun PlexSettings(snap: Snapshot) {
     var unlinking by remember { mutableStateOf<PlexAccount?>(null) }
     var connections by remember { mutableStateOf<PlexServer?>(null) }
 
-    Eyebrow(stringResource(R.string.plex_title))
-    Group {
-        linked.forEach { a ->
-            GroupRow(stringResource(R.string.plex_linked_as, a.name), null, subtitle = stringResource(if (a.pass) R.string.plex_pass_on else R.string.plex_pass_off_short), icon = Ic.User)
-            servers.filter { it.account == a.id }.forEach { s ->
-                GroupDivider()
-                val at = sessions.firstOrNull { it.server.id == s.id }?.server?.address
-                val owner = when {
-                    s.owned -> stringResource(R.string.plex_owned)
-                    s.source != null -> stringResource(R.string.plex_shared_by, s.source!!)
-                    else -> stringResource(R.string.plex_shared)
-                }
-                val show = stringResource(R.string.plex_show, s.name)
-                GroupRow(s.name, { connections = s }, subtitle = listOfNotNull(owner, at?.let { routeLabel(s, it) }).joinToString(" · "), icon = Ic.Server, chevron = false) {
-                    // The primary server stays shown: it is what the app opens on.
-                    Switch(
-                        !s.hidden, { v ->
-                            accounts.setHidden(s.id, !v)
-                            Cache.map.clear()
-                            PlexUi.hidden++
-                            version++
-                        },
-                        enabled = s.id != snap.session?.server?.id,
-                        modifier = Modifier.semantics { contentDescription = show },
-                        colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
-                    )
-                }
-            }
-            GroupDivider()
-            GroupRow(stringResource(R.string.plex_switch_user), { switching = a }, icon = Ic.Users)
-            GroupDivider()
-            GroupRow(stringResource(R.string.plex_unlink), { unlinking = a }, icon = Ic.LogOut, titleColor = G.red, chevron = false)
-            GroupDivider()
-        }
+    // No linked account: only the link row, right under Autres serveurs.
+    if (linked.isEmpty()) Group(Modifier.padding(top = 12.dp)) {
         GroupRow(stringResource(R.string.plex_link_row), { linking = true }, subtitle = stringResource(R.string.plex_link_row_sub), icon = Ic.Plus)
+    } else {
+        Eyebrow(stringResource(R.string.plex_title))
+        Group {
+            linked.forEach { a ->
+                GroupRow(stringResource(R.string.plex_linked_as, a.name), null, subtitle = stringResource(if (a.pass) R.string.plex_pass_on else R.string.plex_pass_off_short), icon = Ic.User)
+                servers.filter { it.account == a.id }.forEach { s ->
+                    GroupDivider()
+                    val at = sessions.firstOrNull { it.server.id == s.id }?.server?.address
+                    val owner = when {
+                        s.owned -> stringResource(R.string.plex_owned)
+                        s.source != null -> stringResource(R.string.plex_shared_by, s.source!!)
+                        else -> stringResource(R.string.plex_shared)
+                    }
+                    val show = stringResource(R.string.plex_show, s.name)
+                    GroupRow(s.name, { connections = s }, subtitle = listOfNotNull(owner, at?.let { routeLabel(s, it) }).joinToString(" · "), icon = Ic.Server, chevron = false) {
+                        // The primary server stays shown: it is what the app opens on.
+                        Switch(
+                            !s.hidden, { v ->
+                                accounts.setHidden(s.id, !v)
+                                Cache.map.clear()
+                                PlexUi.hidden++
+                                version++
+                            },
+                            enabled = s.id != snap.session?.server?.id,
+                            modifier = Modifier.semantics { contentDescription = show },
+                            colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
+                        )
+                    }
+                }
+                GroupDivider()
+                GroupRow(stringResource(R.string.plex_switch_user), { switching = a }, icon = Ic.Users)
+                GroupDivider()
+                GroupRow(stringResource(R.string.plex_unlink), { unlinking = a }, icon = Ic.LogOut, titleColor = G.red, chevron = false)
+                GroupDivider()
+            }
+            GroupRow(stringResource(R.string.plex_link_other), { linking = true }, subtitle = stringResource(R.string.plex_link_row_sub), icon = Ic.Plus)
+        }
+        // Plex Pass gates are explained, never worked around (plex spec §1.3). The "unofficial client" notice is in À propos.
+        if (linked.any { !it.pass }) Text(stringResource(R.string.plex_pass_off), style = Type.footnote, color = G.label2, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
     }
-    // Plex Pass gates are explained, never worked around (plex spec §1.3).
-    val notes = listOfNotNull(stringResource(R.string.plex_pass_off).takeIf { linked.any { !it.pass } }, stringResource(R.string.plex_unofficial))
-    Text(notes.joinToString(" "), style = Type.footnote, color = G.label2, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
 
     if (linking) PlexLinkDialog(add = snap.session != null, onDismiss = { linking = false }, onLinked = { linking = false; version++ })
     switching?.let { a ->

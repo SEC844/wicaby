@@ -113,7 +113,7 @@
 </div>
 <FileSourceSheet open={adding !== null} photos initial={adding ?? 'local'} onclose={() => ((adding = null), void loadFolders())} />
 
-<h3 class="gh">Immich</h3>
+<h3 class="gh">{t('photos.sources.immich')}</h3>
 <div class="group">
   {#each immich.sources as s (s.id)}
     <div class="row">

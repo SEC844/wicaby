@@ -1,36 +1,17 @@
 <script lang="ts">
-  import { ASPECT_MODES, type ResumeMode, type Settings, type SkipMode, type TypePlayer } from '../../../shared/contract';
+  import type { ResumeMode, Settings, SkipMode, TypePlayer } from '../../../shared/contract';
   import { isLanAddress } from '../../../shared/network';
-  import Icon from '../../components/Icon.svelte';
   import Picker from '../../components/Picker.svelte';
   import Segmented from '../../components/Segmented.svelte';
   import Toggle from '../../components/Toggle.svelte';
   import { w } from '../../lib/bridge';
-  import { fmt, t, tParts } from '../../lib/i18n.svelte';
+  import { fmt, t } from '../../lib/i18n.svelte';
+  import { web } from '../../lib/platform';
   import { errorMessage, session, settings, toast } from '../../lib/stores.svelte';
-  import { copy, set, step, type SettingsData } from './shared.svelte';
+  import { set, step } from './shared.svelte';
 
-  let { data }: { data: SettingsData } = $props();
-
+  // Picture, decoding and mpv rows live in VideoPane, casting in CastPane.
   // Option lists are $derived so their labels follow a language switch.
-  // AppInfo.platform is os.type() + arch: "Linux x64", "Windows_NT x64".
-  const linux = $derived(data.info?.platform.startsWith('Linux') ?? false);
-  // DisplayModeSwitcher.available(): always on Windows; on Linux only where xrandr or kscreen-doctor can switch.
-  const refreshOk = $derived(data.info?.refreshRateMatch ?? true);
-  const HWDEC = $derived<{ value: Settings['playback']['hwdec']; label: string }[]>([
-    { value: 'auto-safe', label: t('common.status.auto') },
-    ...(linux
-      ? [
-          { value: 'vaapi' as const, label: 'VA-API' },
-          { value: 'nvdec' as const, label: 'NVDEC' },
-          { value: 'vulkan' as const, label: 'Vulkan' },
-        ]
-      : [
-          { value: 'd3d11va' as const, label: 'D3D11VA' },
-          { value: 'nvdec' as const, label: 'NVDEC' },
-        ]),
-    { value: 'no', label: t('settings.playback.hwdec.off') },
-  ]);
   const BITRATES = [4, 8, 20, 40, 80, 120, 200];
   const RESOLUTIONS = $derived([
     { value: 0, label: t('settings.playback.maxResolution.unlimited') },
@@ -76,10 +57,8 @@
   const REMINDER_LEADS = $derived(
     ([0, 1, 2, 5, 10] as const).map((v) => ({ value: v as Settings['live']['reminderLeadMin'], label: v ? t('settings.units.minutes', { count: v }) : t('settings.livetv.reminderLead.atStart') })),
   );
-  const ASPECTS = $derived(ASPECT_MODES.map((v) => ({ value: v, label: t(`player.aspect.modes.${v}`) })));
 
   const s = $derived(settings.value);
-  const info = $derived(data.info);
   const onLan = $derived(isLanAddress(session.value.address));
 
   async function forgetPlayerSettings(): Promise<void> {
@@ -90,60 +69,72 @@
       toast('error', errorMessage(err));
     }
   }
-
-  async function pickMpv(): Promise<void> {
-    // Main validates the file and saves the path itself.
-    const path = await w.settings.pickMpv().catch((err: unknown) => {
-      toast('error', errorMessage(err));
-      return null;
-    });
-    if (!path) return;
-    await data.refreshInfo();
-    data.devices = null;
-    if (data.info?.mpvVersion) toast('success', t('settings.playback.mpv.detected', { version: data.info.mpvVersion }));
-  }
-
-  async function resetMpv(): Promise<void> {
-    await set({ playback: { mpvPath: '' } });
-    await data.refreshInfo();
-  }
 </script>
 
 {#if s}
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.player.label')}</div>
-        <div class="desc">{t('settings.playback.player.desc')}</div>
-      </div>
-      <Segmented
-        label={t('settings.playback.player.label')}
-        value={s.playback.player}
-        options={[
-          { value: 'auto', label: t('settings.playback.player.auto') },
-          { value: 'mpv', label: 'mpv' },
-          { value: 'html', label: t('settings.playback.player.builtIn') },
-        ]}
-        onchange={(v) => set({ playback: { player: v } })}
-      />
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.playback.byType.title')}</h3>
-  <div class="group">
-    {#each CONTENT_TYPES as type (type)}
-      {@const typeLabel = t(`settings.playback.byType.${type}`)}
+  <!-- The web TV app (lib/platform.ts) has a single built-in player and no desktop window. -->
+  {#if !web}
+    <h3 class="gh">{t('settings.playback.player.title')}</h3>
+    <div class="group">
       <div class="row">
-        <div class="txt"><div class="lbl">{typeLabel}</div></div>
-        <Picker
-          label={t('settings.playback.byType.aria', { type: typeLabel })}
-          value={s.playback.playerByType[type]}
-          options={TYPE_PLAYERS}
-          onchange={(v) => set({ playback: { playerByType: { [type]: v } as Partial<Settings['playback']['playerByType']> } })}
+        <div class="txt">
+          <div class="lbl">{t('settings.playback.player.label')}</div>
+          <div class="desc">{t('settings.playback.player.desc')}</div>
+        </div>
+        <Segmented
+          label={t('settings.playback.player.label')}
+          value={s.playback.player}
+          options={[
+            { value: 'auto', label: t('settings.playback.player.auto') },
+            { value: 'mpv', label: 'mpv' },
+            { value: 'html', label: t('settings.playback.player.builtIn') },
+          ]}
+          onchange={(v) => set({ playback: { player: v } })}
         />
       </div>
-    {/each}
-  </div>
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.general.startFullscreen.label')}</div>
+          <div class="desc">{t('settings.general.startFullscreen.desc')}</div>
+        </div>
+        <Toggle label={t('settings.general.startFullscreen.label')} checked={s.playback.startFullscreen} onchange={(v) => set({ playback: { startFullscreen: v } })} />
+      </div>
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.playback.pauseOnMinimize.label')}</div>
+          <div class="desc">{t('settings.playback.pauseOnMinimize.desc')}</div>
+        </div>
+        <Toggle label={t('settings.playback.pauseOnMinimize.label')} checked={s.playback.pauseOnMinimize} onchange={(v) => set({ playback: { pauseOnMinimize: v } })} />
+      </div>
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.general.confirmQuit.label')}</div>
+          <div class="desc">{t('settings.general.confirmQuit.desc')}</div>
+        </div>
+        <Toggle
+          label={t('settings.general.confirmQuit.label')}
+          checked={s.ui.confirmQuitDuringPlayback}
+          onchange={(v) => set({ ui: { confirmQuitDuringPlayback: v } })}
+        />
+      </div>
+    </div>
+
+    <h3 class="gh">{t('settings.playback.byType.title')}</h3>
+    <div class="group">
+      {#each CONTENT_TYPES as type (type)}
+        {@const typeLabel = t(`settings.playback.byType.${type}`)}
+        <div class="row">
+          <div class="txt"><div class="lbl">{typeLabel}</div></div>
+          <Picker
+            label={t('settings.playback.byType.aria', { type: typeLabel })}
+            value={s.playback.playerByType[type]}
+            options={TYPE_PLAYERS}
+            onchange={(v) => set({ playback: { playerByType: { [type]: v } as Partial<Settings['playback']['playerByType']> } })}
+          />
+        </div>
+      {/each}
+    </div>
+  {/if}
 
   <h3 class="gh">{t('settings.playback.quality')}</h3>
   <div class="group">
@@ -190,7 +181,7 @@
     <p class="foot">{t('settings.playback.connection', { kind: onLan ? 'lan' : 'remote', address: session.value.address })}</p>
   {/if}
 
-  <h3 class="gh">{t('settings.playback.resumeNav')}</h3>
+  <h3 class="gh">{t('settings.playback.resumeNext')}</h3>
   <div class="group">
     <div class="row">
       <div class="txt">
@@ -199,107 +190,6 @@
       </div>
       <Picker label={t('settings.playback.resume.label')} value={s.playback.resume} options={RESUME} onchange={(v) => set({ playback: { resume: v } })} />
     </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.speed.label')}</div>
-        <div class="desc">{t('settings.playback.speed.desc')}</div>
-      </div>
-      <Picker label={t('settings.playback.speed.label')} value={s.playback.defaultSpeed} options={SPEEDS} onchange={(v) => set({ playback: { defaultSpeed: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.seekShort.label')}</div>
-        <div class="desc">{t('settings.playback.seekShort.desc')}</div>
-      </div>
-      <Picker label={t('settings.playback.seekShort.label')} value={s.playback.seekShortS} options={SHORT_STEPS} onchange={(v) => set({ playback: { seekShortS: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.seekLong.label')}</div>
-        <div class="desc">{t('settings.playback.seekLong.desc')}</div>
-      </div>
-      <Picker label={t('settings.playback.seekLong.label')} value={s.playback.seekLongS} options={LONG_STEPS} onchange={(v) => set({ playback: { seekLongS: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.pauseOnMinimize.label')}</div>
-        <div class="desc">{t('settings.playback.pauseOnMinimize.desc')}</div>
-      </div>
-      <Toggle label={t('settings.playback.pauseOnMinimize.label')} checked={s.playback.pauseOnMinimize} onchange={(v) => set({ playback: { pauseOnMinimize: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.aspect.label')}</div>
-        <div class="desc">{t('settings.playback.aspect.desc')}</div>
-      </div>
-      <Picker label={t('settings.playback.aspect.label')} value={s.playback.aspect} options={ASPECTS} onchange={(v) => set({ playback: { aspect: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.cinemaMode.label')}</div>
-        <div class="desc">{t('settings.playback.cinemaMode.desc')}</div>
-      </div>
-      <Toggle label={t('settings.playback.cinemaMode.label')} checked={s.playback.cinemaMode} onchange={(v) => set({ playback: { cinemaMode: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.remoteControl')}</div>
-        <div class="desc">{t('settings.playback.remoteControlHint')}</div>
-      </div>
-      <Toggle label={t('settings.playback.remoteControl')} checked={s.remote.allowControl} onchange={(v) => set({ remote: { allowControl: v } })} />
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.cast.title')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.cast.discovery')}</div>
-      </div>
-      <Toggle label={t('settings.cast.discovery')} checked={s.cast.discovery} onchange={(v) => set({ cast: { discovery: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.cast.relay')}</div>
-        <div class="desc">{t('settings.cast.relayHint')}</div>
-      </div>
-      <Toggle label={t('settings.cast.relay')} checked={s.cast.relay} onchange={(v) => set({ cast: { relay: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.cast.allowHevc')}</div>
-        <div class="desc">{t('settings.cast.allowHevcHint')}</div>
-      </div>
-      <Toggle label={t('settings.cast.allowHevc')} checked={s.cast.allowHevc} onchange={(v) => set({ cast: { allowHevc: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.cast.dolby')}</div>
-      </div>
-      <Toggle label={t('settings.cast.dolby')} checked={s.cast.dolby} onchange={(v) => set({ cast: { dolby: v } })} />
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.playback.remember.title')}</h3>
-  <div class="group">
-    {#each REMEMBER as r (r.prop)}
-      <div class="row">
-        <div class="txt">
-          <div class="lbl">{r.label}</div>
-        </div>
-        <Picker label={r.label} value={s.playback.rememberScopes[r.prop]} options={SCOPES} onchange={(v) => set({ playback: { rememberScopes: { [r.prop]: v } } })} />
-      </div>
-    {/each}
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.remember.clear')}</div>
-      </div>
-      <button type="button" class="push" onclick={forgetPlayerSettings}>{t('settings.privacy.clear')}</button>
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.playback.episodes')}</h3>
-  <div class="group">
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.playback.autoPlayNext.label')}</div>
@@ -314,6 +204,17 @@
       </div>
       <Picker label={t('settings.playback.countdown.label')} value={s.playback.upNextSeconds} options={COUNTDOWNS} onchange={(v) => set({ playback: { upNextSeconds: v } })} />
     </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.cinemaMode.label')}</div>
+        <div class="desc">{t('settings.playback.cinemaMode.desc')}</div>
+      </div>
+      <Toggle label={t('settings.playback.cinemaMode.label')} checked={s.playback.cinemaMode} onchange={(v) => set({ playback: { cinemaMode: v } })} />
+    </div>
+  </div>
+
+  <h3 class="gh">{t('settings.playback.skip.title')}</h3>
+  <div class="group">
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.playback.skipIntro.label')}</div>
@@ -339,6 +240,49 @@
     {/each}
   </div>
 
+  <h3 class="gh">{t('settings.playback.speedSeek')}</h3>
+  <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.speed.label')}</div>
+        <div class="desc">{t('settings.playback.speed.desc')}</div>
+      </div>
+      <Picker label={t('settings.playback.speed.label')} value={s.playback.defaultSpeed} options={SPEEDS} onchange={(v) => set({ playback: { defaultSpeed: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.seekShort.label')}</div>
+        <div class="desc">{t('settings.playback.seekShort.desc')}</div>
+      </div>
+      <Picker label={t('settings.playback.seekShort.label')} value={s.playback.seekShortS} options={SHORT_STEPS} onchange={(v) => set({ playback: { seekShortS: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.seekLong.label')}</div>
+        <div class="desc">{t('settings.playback.seekLong.desc')}</div>
+      </div>
+      <Picker label={t('settings.playback.seekLong.label')} value={s.playback.seekLongS} options={LONG_STEPS} onchange={(v) => set({ playback: { seekLongS: v } })} />
+    </div>
+  </div>
+
+  <h3 class="gh">{t('settings.playback.remember.title')}</h3>
+  <div class="group">
+    {#each REMEMBER as r (r.prop)}
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{r.label}</div>
+        </div>
+        <Picker label={r.label} value={s.playback.rememberScopes[r.prop]} options={SCOPES} onchange={(v) => set({ playback: { rememberScopes: { [r.prop]: v } } })} />
+      </div>
+    {/each}
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.remember.clear')}</div>
+      </div>
+      <button type="button" class="push" onclick={forgetPlayerSettings}>{t('settings.playback.remember.clearButton')}</button>
+    </div>
+  </div>
+
   <h3 class="gh">{t('settings.livetv.title')}</h3>
   <div class="group">
     <div class="row">
@@ -356,106 +300,9 @@
       <Toggle label={t('settings.livetv.reminderAutoTune.label')} checked={s.live.reminderAutoTune} onchange={(v) => set({ live: { reminderAutoTune: v } })} />
     </div>
   </div>
-
-  <h3 class="gh">{t('settings.playback.mpv.title')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">
-          mpv
-          {#if info}
-            {#if info.mpvPath}
-              <span class="meta-val">{info.mpvVersion ?? t('settings.playback.mpv.unknownVersion')}</span>
-            {:else}
-              <span class="meta-val warn">{t('settings.playback.mpv.notFound')}</span>
-            {/if}
-          {/if}
-        </div>
-        {#if info?.mpvPath}
-          <button type="button" class="path mono" title={t('settings.playback.mpv.copyPath')} onclick={() => copy(info!.mpvPath!)}>{info.mpvPath}</button>
-        {:else}
-          <div class="desc">
-            {#if linux}{t('settings.playback.mpv.missingLinux')}{:else}{#each tParts('settings.playback.mpv.missing') as part, i (i)}{#if part.slot === 'command'}<span class="mono">npm run fetch-mpv</span>{:else}{part.text}{/if}{/each}{/if}
-          </div>
-        {/if}
-      </div>
-      <div class="actions">
-        {#if s.playback.mpvPath}
-          <button type="button" class="push ghost" onclick={resetMpv}>{t('settings.playback.mpv.autoDetect')}</button>
-        {/if}
-        <button type="button" class="push" onclick={pickMpv}>{t('settings.playback.mpv.choose')}</button>
-      </div>
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.mpvConf.label')}</div>
-        <div class="desc">{t('settings.playback.mpvConf.desc')}</div>
-      </div>
-      <div class="actions">
-        <button type="button" class="push ghost" onclick={() => w.app.openPath('mpv-config')}>{t('settings.playback.mpvConf.openFolder')}</button>
-        <Toggle label={t('settings.playback.mpvConf.label')} checked={s.playback.useMpvConfig} onchange={(v) => set({ playback: { useMpvConfig: v } })} />
-      </div>
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.playback.video')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.hwdec.label')}</div>
-        <div class="desc">{t(linux ? 'settings.playback.hwdec.descLinux' : 'settings.playback.hwdec.desc')}</div>
-      </div>
-      <Picker label={t('settings.playback.hwdec.label')} value={s.playback.hwdec} options={HWDEC} onchange={(v) => set({ playback: { hwdec: v } })} />
-    </div>
-    <!-- Linux plays SDR only (X11 has no HDR output), so both HDR switches are Windows-only. -->
-    {#if !linux}
-      <div class="row">
-        <div class="txt">
-          <div class="lbl">{t('settings.playback.hdrPassthrough.label')}</div>
-          <div class="desc">{t('settings.playback.hdrPassthrough.desc')}</div>
-        </div>
-        <Toggle label={t('settings.playback.hdrPassthrough.label')} checked={s.playback.hdrPassthrough} onchange={(v) => set({ playback: { hdrPassthrough: v } })} />
-      </div>
-      <div class="row">
-        <div class="txt">
-          <div class="lbl">{t('settings.playback.hdrAuto.label')}</div>
-          <div class="desc">{t('settings.playback.hdrAuto.desc')}</div>
-        </div>
-        <Toggle label={t('settings.playback.hdrAuto.label')} checked={s.playback.hdrAutoSwitch} onchange={(v) => set({ playback: { hdrAutoSwitch: v } })} />
-      </div>
-    {/if}
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">
-          {t('settings.playback.smooth.label')}
-          <button type="button" class="why" aria-label={t('settings.playback.smooth.why')} title={t('settings.playback.smooth.why')}><Icon name="info" size={13} /></button>
-        </div>
-        <div class="desc">{t('settings.playback.smooth.desc')}</div>
-      </div>
-      <Toggle label={t('settings.playback.smooth.label')} checked={s.playback.smoothMotion} onchange={(v) => set({ playback: { smoothMotion: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.playback.matchRefresh.label')}</div>
-        <div class="desc">{t(refreshOk ? 'settings.playback.matchRefresh.desc' : 'settings.playback.matchRefresh.unavailable')}</div>
-      </div>
-      <Toggle label={t('settings.playback.matchRefresh.label')} checked={refreshOk && s.playback.matchRefreshRate} disabled={!refreshOk} onchange={(v) => set({ playback: { matchRefreshRate: v } })} />
-    </div>
-  </div>
 {/if}
 
 <style>
-  .why {
-    display: inline-grid;
-    place-items: center;
-    vertical-align: -2px;
-    margin-left: 4px;
-    color: var(--label-3);
-    cursor: help;
-  }
-  .why:is(:hover, :focus-visible) {
-    color: var(--label);
-  }
   .gh {
     margin: 30px 0 8px 2px;
     font-size: var(--fs-footnote);
@@ -513,21 +360,6 @@
     color: var(--label-3);
     line-height: 1.45;
   }
-  .meta-val {
-    font-size: var(--fs-footnote);
-    font-weight: 400;
-    color: var(--label-3);
-    font-variant-numeric: tabular-nums;
-  }
-  .meta-val.warn {
-    color: var(--warning);
-  }
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: none;
-  }
 
   /* Push button: small, neutral. */
   .push {
@@ -545,30 +377,6 @@
   .push:focus-visible {
     background: var(--fill-3);
   }
-  .push.ghost {
-    background: transparent;
-    color: var(--label-2);
-  }
-  .push.ghost:hover,
-  .push.ghost:focus-visible {
-    background: var(--fill-2);
-    color: var(--label);
-  }
-  .path {
-    display: block;
-    max-width: 100%;
-    margin-top: 3px;
-    font-size: var(--fs-caption);
-    color: var(--label-3);
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    user-select: text;
-  }
-  button.path:hover {
-    color: var(--label-2);
-  }
   :global(.searching) .foot {
     display: none;
   }
@@ -578,16 +386,6 @@
   }
   :global(.searching) .row:not([hidden]) ~ .row:not([hidden])::before {
     display: block;
-  }
-  .push:disabled {
-    color: var(--label-4);
-    pointer-events: none;
-  }
-  .actions .push.ghost:has(:global(svg)) {
-    width: 28px;
-    padding: 0;
-    display: grid;
-    place-items: center;
   }
 
   /* Compact density tightens these rows as well. */

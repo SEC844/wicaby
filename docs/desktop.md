@@ -272,11 +272,13 @@ French is the reference language and the fallback; English is the other one. `ui
 
 `core/settings.ts` holds the typed `Settings` (see `contract.ts`) with its defaults. Every update is deep-merged and then sanitised: numbers are clamped and unknown enum values fall back to the default. The result is persisted through `JsonStore`, which coalesces writes and writes to a temp file before renaming it, so a crash never leaves half a file. The settings page (`routes/Settings.svelte`) has these sections:
 
-- General and Appearance;
-- Playback, Audio and Subtitles;
-- Library, Downloads, Torrents, Server and Accounts (Trakt);
-- Windows, Privacy and Advanced;
+- General (language, window, notifications, setup assistant), Appearance, and Home & libraries;
+- Playback, Video, Audio, Subtitles, Music and Casting;
+- Accounts (servers and Trakt), Sources (files, photos, Immich, photo map), Remote access, and Downloads (with torrents);
+- Keyboard and System (storage, logs, performance, settings backup);
 - About.
+
+Old pane ids still open through `/settings?pane=`: `torrents` → downloads, `windows` → general, `accounts` → server, `advanced` → privacy (System).
 
 Settings can be exported, imported and reset. `system.hardwareAcceleration` is read straight from `settings.json` before `ready`, because Chromium's GPU switches must be set before startup.
 

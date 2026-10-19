@@ -283,7 +283,7 @@ async function bootstrap(): Promise<void> {
   settings.on('change', (s: { photos: { map: { enabled: boolean } } }) => {
     if (!s.photos.map.enabled) fs.rmSync(tilesDir, { recursive: true, force: true });
   });
-  // Online lyrics (MU-13): nothing leaves the app unless Settings > Audio turned it on.
+  // Online lyrics (MU-13): nothing leaves the app unless Settings > Music turned it on.
   const lrclibOptions = {
     base: lrclibBase(process.env.LRCLIB_BASE, app.isPackaged),
     userAgent: `Wicaby/${app.getVersion()} (+https://github.com/WicaebethTheo/wicaby-releases)`,

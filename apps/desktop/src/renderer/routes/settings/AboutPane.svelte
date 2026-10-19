@@ -60,22 +60,8 @@
         <div class="lbl soft">{t('settings.about.deviceId')}</div>
         <button type="button" class="val mono copy" title={t('common.actions.copy')} onclick={() => copy(info!.deviceId)}>{info.deviceId}</button>
       </div>
-      <div class="row compact">
-        <div class="lbl soft">{t('settings.about.data')}</div>
-        <span class="val mono" title={info.userDataPath}>{info.userDataPath}</span>
-      </div>
     </div>
   {/if}
-  <h3 class="gh">{t('settings.about.support')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.about.logs.label')}</div>
-        <div class="desc">{t('settings.about.logs.desc')}</div>
-      </div>
-      <button type="button" class="push" onclick={() => w.app.openPath('logs')}>{t('common.actions.open')}</button>
-    </div>
-  </div>
   <p class="desc legal">{t('settings.about.trademarks')}</p>
   <!-- plex-spec §1.2 / D-8: the unofficial-client line, whether or not a Plex server is added. -->
   <p class="desc legal">{t('plex.about.notAffiliated')}</p>

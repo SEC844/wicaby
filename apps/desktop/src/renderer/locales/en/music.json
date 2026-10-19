@@ -145,7 +145,7 @@
       "treble": "Treble",
       "custom": "Custom"
     },
-    "preamp": "Preamp",
+    "preamp": "Equalizer Preamp",
     "reset": "Reset",
     "band": "{freq} band",
     "value": "{db} dB",

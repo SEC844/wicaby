@@ -71,7 +71,6 @@
     <!-- Settings -->
     <string name="settings_accent">Accent Color</string>
     <string name="settings_theme">Theme</string>
-    <string name="settings_bitrate">Maximum Bitrate</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="switch_user">Switch User</string>
     <string name="switch_server">Switch Server</string>
@@ -112,17 +111,26 @@
 
     <!-- Settings: sections -->
     <string name="section_playback">Playback</string>
-    <string name="section_interface">Interface</string>
     <string name="section_accounts">Accounts</string>
     <string name="section_remote">Remote Access</string>
     <string name="section_about">About</string>
+    <string name="section_general">General</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="section_home">Home &amp; Libraries</string>
+    <string name="section_audio">Audio</string>
+    <string name="section_subtitles">Subtitles</string>
+    <string name="sources_title">Sources</string>
 
     <!-- Settings: Playback -->
     <string name="net_ethernet">Ethernet</string>
     <string name="net_wifi">Wi‑Fi</string>
-    <string name="net_remote">Remote</string>
-    <string name="bitrate_hint">Wicaby uses the limit for the connection in use when playback starts. “Remote” applies outside your local network.</string>
-    <string name="group_episodes">Episodes</string>
+    <string name="net_remote">Over Remote Access</string>
+    <string name="bitrate_hint">Wicaby uses the limit for the connection in use when playback starts. “Over Remote Access” applies outside your local network.</string>
+    <string name="group_quality">Quality</string>
+    <string name="group_resume">Resume &amp; Up Next</string>
+    <string name="group_skip">Skip Segments</string>
+    <string name="group_picture">Picture</string>
+    <string name="group_live">Live TV</string>
     <string name="autoplay_next">Autoplay Next Episode</string>
     <string name="countdown">Countdown</string>
     <string name="seconds">%1$d s</string>
@@ -135,13 +143,13 @@
     <string name="resume_ask">Ask</string>
     <string name="resume_start">Always Start Over</string>
     <string name="group_display">Display</string>
-    <string name="group_audio">Audio</string>
     <string name="audio_language">Preferred Audio Language</string>
     <string name="passthrough_hint">HDMI passthrough: “Auto” follows the connected TV or receiver. “Off” lets Wicaby decode the sound.</string>
+    <string name="group_passthrough">HDMI Output (Passthrough)</string>
+    <string name="server_pref_hint">Saved on your server, for all your devices.</string>
     <string name="pass_auto">Auto</string>
     <string name="pass_on">Always</string>
     <string name="pass_off">Off</string>
-    <string name="group_subtitles">Subtitles</string>
     <string name="subtitle_language">Subtitle Language</string>
     <string name="subtitle_mode">Subtitle Display</string>
     <string name="sub_mode_default">Default</string>
@@ -170,8 +178,10 @@
     <string name="sub_pos_slightly_raised">Slightly Raised</string>
     <string name="sub_pos_raised">Raised</string>
     <string name="subtitle_override_ass">Apply to ASS Subtitles</string>
-    <string name="subtitle_hint">Languages and display are saved to your server account. The style applies to text subtitles; ASS subtitles keep their own style unless “Apply to ASS Subtitles” is on.</string>
+    <string name="subtitle_hint">The style applies to text subtitles; ASS subtitles keep their own style unless “Apply to ASS Subtitles” is on.</string>
     <string name="server_pref_failed">The server didn’t accept the change.</string>
+    <string name="group_sub_language">Language &amp; Display</string>
+    <string name="group_style">Style</string>
     <string name="lang_auto">Automatic</string>
     <string name="lang_fre">French</string>
     <string name="lang_eng">English</string>
@@ -186,10 +196,15 @@
 
     <!-- Settings: Interface -->
     <string name="language">Language / Langue</string>
+    <string name="group_language">Language</string>
+    <string name="group_tv_home">TV Home Screen</string>
+    <string name="tv_home_hint">Wicaby rows in the Android TV launcher, not the app’s Home.</string>
+    <string name="group_other_devices">Other Devices</string>
+    <string name="group_setup">Setup Assistant</string>
     <string name="language_system">System Language</string>
-    <string name="group_appearance">Appearance</string>
     <string name="show_clock">Clock</string>
     <string name="group_home">Home</string>
+    <string name="group_home_rows">Home Rows</string>
     <string name="row_hero">Featured</string>
     <string name="hero_hide_watched">Hide Watched Titles in Featured</string>
     <string name="row_latest">Recently Added</string>
@@ -226,7 +241,7 @@
     <string name="codec_fps">%1$d fps</string>
     <string name="codec_10bit">10-bit</string>
     <string name="group_licences">Licenses</string>
-    <string name="group_device">This Device</string>
+    <string name="group_device">Device Capabilities</string>
     <string name="device_model">Model</string>
     <string name="android_version">Android</string>
     <string name="video_decoders">Video</string>
@@ -278,7 +293,7 @@
     <string name="reader_webtoon">Vertical Scroll</string>
     <string name="pair_with_phone">Use My Phone</string>
     <string name="pair_title">Sign In with Your Phone</string>
-    <string name="pair_body">In Wicaby on your phone, open Settings > Connect a TV and scan this code. The phone must be on the same network.</string>
+    <string name="pair_body">In Wicaby on your phone, open Settings > Accounts > Connect a TV and scan this code. The phone must be on the same network.</string>
     <string name="pair_no_lan">This TV isn’t connected to a local network.</string>
     <string name="pair_failed">The server refused the sign-in. Scan the new code.</string>
     <!-- Live TV (spec livetv §13.3) -->
@@ -362,6 +377,10 @@
     <string name="other_servers">Other Servers</string>
     <string name="other_servers_hint">Titles from all your servers show up in Home and Search, each one once.</string>
     <string name="add_server">Add Server</string>
+    <string name="group_user">User</string>
+    <string name="group_music">Music</string>
+    <string name="confirm_clear">Clear</string>
+    <string name="confirm_reset">Reset</string>
     <string name="remove_server">Remove Server</string>
     <string name="server_is_main">This server is already your main server.</string>
     <!-- TP-10: profiles and PIN -->
@@ -414,7 +433,7 @@
     <string name="welcome_media_servers">Media Servers</string>
     <!-- Photos (photos spec PH-06/PH-07). -->
     <string name="photos_month_jump_hint">Page or channel +/−, or hold Down, to change month</string>
-    <string name="screensaver_source">Show</string>
+    <string name="screensaver_source">Content</string>
     <string name="screensaver_source_backdrops">Movie and Show Artwork</string>
     <string name="screensaver_source_photos">Photos</string>
     <string name="screensaver_source_memories">On This Day</string>

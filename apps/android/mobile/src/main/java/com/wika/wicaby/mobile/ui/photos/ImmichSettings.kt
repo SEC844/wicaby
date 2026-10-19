@@ -53,7 +53,7 @@ import com.wika.wicaby.mobile.ui.Type
 import com.wika.wicaby.mobile.ui.WicabyField
 import kotlinx.coroutines.launch
 
-// Réglages > "Sources de photos" (photos spec PH-13): connect an Immich server with an API key. The key is sealed by
+// Réglages > Sources > "Dossiers de photos" and "Immich" (photos spec PH-13): connect an Immich server with an API key. The key is sealed by
 // the Keystore and never shown again; Test checks the version (2.0 or later) and which permissions the key lacks.
 @Composable
 fun ImmichSettings() {
@@ -80,9 +80,14 @@ fun ImmichSettings() {
             busy = false
         }
     }
-    Eyebrow(stringResource(CoreR.string.photos_sources_title))
+    // The form shows while no Immich server is connected; then behind "Connecter un autre serveur Immich".
+    var another by rememberSaveable { mutableStateOf(false) }
+    Eyebrow(stringResource(CoreR.string.photos_folders_title))
     Group {
         PhotoSourceRows()
+    }
+    Eyebrow(stringResource(CoreR.string.photos_immich_title))
+    Group {
         source?.let { s ->
             GroupRow(s.name, {
                 scope.launch {
@@ -94,6 +99,10 @@ fun ImmichSettings() {
                 Icon(Ic.Trash, stringResource(CoreR.string.photos_sources_remove), tint = G.label2, modifier = Modifier.size(20.dp))
             })
             GroupDivider()
+        }
+        if (source != null && !another && result == null) {
+            GroupRow(stringResource(CoreR.string.photos_immich_connect_other), { another = true }, icon = Ic.Plus)
+            return@Group
         }
         Column(Modifier.padding(16.dp)) {
             Text(stringResource(CoreR.string.photos_sources_url), style = Type.body, color = G.label, modifier = Modifier.padding(bottom = 8.dp))
@@ -118,7 +127,7 @@ fun ImmichSettings() {
         GroupDivider()
         GroupRow(stringResource(CoreR.string.photos_sources_test), { run(false) }, chevron = false)
         GroupDivider()
-        GroupRow(stringResource(CoreR.string.photos_sources_add), { run(true) }, icon = Ic.Plus, chevron = false)
+        GroupRow(stringResource(CoreR.string.photos_immich_connect), { run(true) }, icon = Ic.Plus, chevron = false)
     }
     Text(stringResource(CoreR.string.photos_sources_foot), style = Type.footnote, color = G.label2, modifier = Modifier.padding(start = 16.dp, top = 8.dp))
 }
@@ -153,11 +162,13 @@ private fun PhotoSourceRows() {
         (CoreR.string.files_add_local to FileSource.LOCAL).takeIf { LocalFolders.available(context) },
         CoreR.string.files_add_smb to FileSource.SMB,
         CoreR.string.files_add_webdav to FileSource.WEBDAV,
-    ).forEach { (label, protocol) ->
-        GroupRow(stringResource(CoreR.string.photos_sources_add_with, stringResource(label)), {
-            if (protocol == FileSource.LOCAL) runCatching { pick.launch(null) } else adding = protocol
-        }, icon = Ic.Plus, chevron = false)
-        GroupDivider()
+    ).let { choices ->
+        choices.forEachIndexed { i, (label, protocol) ->
+            if (i > 0) GroupDivider()
+            GroupRow(stringResource(CoreR.string.photos_sources_add_with, stringResource(label)), {
+                if (protocol == FileSource.LOCAL) runCatching { pick.launch(null) } else adding = protocol
+            }, icon = Ic.Plus, chevron = false)
+        }
     }
     adding?.let { p -> AddFileSourceSheet(onDismiss = { adding = null; Cache.map.clear() }, photos = true, protocol = p) }
     signIn?.let { s -> SignInSheet(s) { signIn = null } }

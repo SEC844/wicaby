@@ -42,6 +42,7 @@
 
 {#if s}
   {@const st = s.playback.subtitleStyle}
+  <h3 class="gh">{t('settings.subtitles.languageDisplay')}</h3>
   <div class="group">
     <div class="row">
       <div class="txt">

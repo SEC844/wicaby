@@ -6,9 +6,11 @@
   import { linux } from '../lib/platform';
   import { errorMessage, onlineSessions, settings, toast, updateSettings } from '../lib/stores.svelte';
 
-  // "Windows" pane of the settings: tray, startup and notifications.
-  // Self-contained (no props); reads and writes settings.windows.
+  // Settings › General: tray, startup and notifications. Reads and writes settings.windows;
+  // torrents adds the torrent-finished notification (settings.torrents) to the same group.
+  let { torrents = false }: { torrents?: boolean } = $props();
   const win = $derived(settings.value?.windows);
+  const tor = $derived(settings.value?.torrents);
   // Admin alerts only concern servers where this user is an administrator.
   const admin = $derived(onlineSessions().some((s) => s.user?.isAdmin && caps(s.server.kind).admin));
 
@@ -63,6 +65,15 @@
           <div class="desc">{t('settings.windows.notifyAdmin.desc')}</div>
         </div>
         <Toggle label={t('settings.windows.notifyAdmin.label')} checked={win.notifyAdmin} onchange={(v) => set({ notifyAdmin: v })} />
+      </div>
+    {/if}
+    {#if torrents && tor}
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.torrents.notify.label')}</div>
+          <div class="desc">{t(linux ? 'settings.torrents.notify.descLinux' : 'settings.torrents.notify.desc')}</div>
+        </div>
+        <Toggle label={t('settings.torrents.notify.label')} checked={tor.notifyOnComplete} onchange={(v) => updateSettings({ torrents: { notifyOnComplete: v } })} />
       </div>
     {/if}
   </div>

@@ -145,7 +145,7 @@
       "treble": "Aigus",
       "custom": "Personnalisé"
     },
-    "preamp": "Préamplification",
+    "preamp": "Préamplification de l’égaliseur",
     "reset": "Réinitialiser",
     "band": "Bande {freq}",
     "value": "{db} dB",

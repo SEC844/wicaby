@@ -191,7 +191,7 @@
     <string name="chapter_position">Chapter %1$d of %2$d, %3$s</string>
     <string name="speed">Playback Speed</string>
     <string name="remote_message">Message received</string>
-    <string name="settings_remote_control">Allow Remote Control</string>
+    <string name="settings_remote_control">Control from Other Devices</string>
     <string name="settings_remote_control_summary">Wicaby shows up in the Emby and Jellyfin apps’ “Play on” list, which can start, pause, seek or stop playback.</string>
     <!-- X-01: merged Continue Watching -->
     <string name="continue_watching_merged">Continue Watching</string>
@@ -387,6 +387,7 @@
     <string name="onboarding_not_now">Not Now</string>
     <string name="onboarding_progress">Step %1$d of %2$d</string>
     <string name="onboarding_rerun">Run Setup Again</string>
+    <string name="settings_updates">Updates</string>
     <string name="onboarding_look_title">Make It Yours</string>
     <string name="onboarding_look_body">Choose a theme and a color. You can change them in Settings.</string>
     <string name="onboarding_look_preview">Preview</string>
@@ -486,6 +487,9 @@
     <string name="photos_sources_test">Test</string>
     <string name="photos_sources_add">Connect</string>
     <string name="photos_sources_remove">Remove</string>
+    <string name="photos_folders_title">Photo Folders</string>
+    <string name="photos_immich_connect">Connect an Immich Server</string>
+    <string name="photos_immich_connect_other">Connect Another Immich Server</string>
     <string name="photos_sources_ok">Immich %1$s: connected.</string>
     <string name="photos_sources_version_too_old">Immich %1$s is too old: Wicaby needs version 2.0 or later.</string>
     <string name="photos_sources_scopes_missing">Permissions the key lacks: %1$s. Those features are hidden.</string>

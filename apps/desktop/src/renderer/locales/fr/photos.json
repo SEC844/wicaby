@@ -115,7 +115,7 @@
     "back": "Toutes les personnes"
   },
   "sources": {
-    "title": "Sources de photos",
+    "title": "Dossiers de photos",
     "url": "Serveur Immich",
     "key": "Clé d’API",
     "keyHint": "Créez une clé dans Immich (Paramètres du compte, Clés d’API) avec au moins asset.read et asset.view. album.read, person.read, map.read et memory.read ajoutent les albums, les personnes, la carte et les souvenirs.",
@@ -127,7 +127,7 @@
     "versionTooOld": "Immich {version} est trop ancien : Wicaby demande la version 2.0 ou plus récente.",
     "scopesMissing": "Permissions absentes de la clé : {scopes}. Les fonctions concernées sont masquées.",
     "scopeMissing": "La clé d’API n’a pas la permission {scope} ; ajoutez-la dans Immich pour voir cette partie.",
-    "keyRefused": "Le serveur Immich refuse la clé d’API. Reconnectez-le dans Réglages, Bibliothèque.",
+    "keyRefused": "Le serveur Immich refuse la clé d’API. Reconnectez-le dans Paramètres, Sources.",
     "failed": "Le serveur Immich a répondu une erreur ({status}).",
     "foot": "La clé reste chiffrée sur cet ordinateur et ne part que vers ce serveur. Les photos Immich forment leur propre bibliothèque, à côté de celles d’Emby ou de Jellyfin.",
     "error": {
@@ -146,6 +146,7 @@
     "indexing": "Indexation… {count, plural, one {# élément trouvé} other {# éléments trouvés}}",
     "indexed": "{count, plural, one {# élément} other {# éléments}} · dernière analyse le {date}",
     "scanFailed": "Analyse impossible : le dossier ne répond pas.",
-    "rescan": "Réanalyser"
+    "rescan": "Réanalyser",
+    "immich": "Immich"
   }
 }

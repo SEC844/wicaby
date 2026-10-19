@@ -69,7 +69,7 @@
   let hubs = $state<Hub[]>(last?.hubs ?? []);
   const hubId = (h: Hub) => `hub:${h.sid}:${h.key}`;
   let loading = $state(last === null);
-  // Settings > Bibliothèque et accueil opens the sheet through /home?customize=1.
+  // Settings > Accueil et bibliothèques opens the sheet through /home?customize=1.
   let customizing = $state(router.route.query.get('customize') === '1');
 
   onMount(scrollMemory);

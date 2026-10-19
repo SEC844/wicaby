@@ -258,7 +258,7 @@ async function run() {
   ok('the stop reports exactly one scrobble', subs.length === 1, js(nd.state.scrobbles));
 
   // ---- Settings > Audio: the same choice ----
-  await ev(`location.hash = '#/settings?pane=audio'`);
+  await ev(`location.hash = '#/settings?pane=music'`);
   await until('music source row', () => ev(`[...document.querySelectorAll('.lbl')].some((l) => /musique|music/i.test(l.textContent))`), 10000).catch(() => null);
   await ev(`[...document.querySelectorAll('h3.gh')].find((h) => /Musique|Music/.test(h.textContent))?.scrollIntoView({ block: 'start' })`);
   await shot(main, 'nd-08-settings-audio.png');

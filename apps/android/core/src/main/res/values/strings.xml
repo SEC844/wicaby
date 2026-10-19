@@ -194,7 +194,7 @@
     <string name="speed">Vitesse de lecture</string>
     <string name="speed_value" translatable="false">%1$s×</string>
     <string name="remote_message">Message reçu</string>
-    <string name="settings_remote_control">Autoriser le contrôle à distance</string>
+    <string name="settings_remote_control">Contrôle depuis un autre appareil</string>
     <string name="settings_remote_control_summary">Wicaby apparaît dans « Lire sur » des applis Emby et Jellyfin, qui peuvent lancer, mettre en pause, avancer ou arrêter la lecture.</string>
     <!-- X-01: merged Continue Watching -->
     <string name="continue_watching_merged">Continuer à regarder</string>
@@ -392,6 +392,7 @@
     <string name="onboarding_not_now">Plus tard</string>
     <string name="onboarding_progress">Étape %1$d sur %2$d</string>
     <string name="onboarding_rerun">Relancer la configuration</string>
+    <string name="settings_updates">Mises à jour</string>
     <string name="onboarding_look_title">Personnalisez</string>
     <string name="onboarding_look_body">Choisissez un thème et une couleur. Vous pourrez les changer dans les Réglages.</string>
     <string name="onboarding_look_preview">Aperçu</string>
@@ -494,6 +495,10 @@
     <string name="photos_sources_test">Tester</string>
     <string name="photos_sources_add">Connecter</string>
     <string name="photos_sources_remove">Retirer</string>
+    <string name="photos_folders_title">Dossiers de photos</string>
+    <string name="photos_immich_title" translatable="false">Immich</string>
+    <string name="photos_immich_connect">Connecter un serveur Immich</string>
+    <string name="photos_immich_connect_other">Connecter un autre serveur Immich</string>
     <string name="photos_sources_ok">Immich %1$s : connexion réussie.</string>
     <string name="photos_sources_version_too_old">Immich %1$s est trop ancien : Wicaby demande la version 2.0 ou plus récente.</string>
     <string name="photos_sources_scopes_missing">Permissions absentes de la clé : %1$s. Les fonctions concernées sont masquées.</string>

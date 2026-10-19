@@ -279,6 +279,7 @@ private fun TabHost(tab: Tab, api: Api, reselect: Int, openTab: (Tab) -> Unit) {
         if (reselect != seen) {
             seen = reselect
             nav.popBackStack(nav.graph.startDestinationId, inclusive = false)
+            if (tab == Tab.Settings) SettingsNav.last = null
         }
     }
     SharedTransitionLayout {

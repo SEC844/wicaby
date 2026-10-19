@@ -1,7 +1,7 @@
 {
   "kind": "Fichiers",
   "section": "Fichiers",
-  "sources": "Sources de fichiers",
+  "sources": "Fichiers",
   "add": {
     "title": "Ajouter une source de fichiers",
     "open": "Ajouter une source de fichiers",

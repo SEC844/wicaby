@@ -156,11 +156,22 @@
     <string name="settings_bitrate">Débit maximal</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="mbps">%1$d Mb/s</string>
-    <string name="settings_downloads">Téléchargements</string>
-    <string name="wifi_only">Uniquement en Wi-Fi</string>
+    <string name="wifi_only">Télécharger uniquement en Wi-Fi</string>
     <string name="wifi_only_sub">Attendre un réseau non facturé à l’usage.</string>
     <string name="open_in_browser">Ouvrir dans le navigateur</string>
     <string name="about">À propos</string>
+    <string name="settings_general">Général</string>
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_accounts">Comptes</string>
+    <string name="settings_sources">Sources</string>
+    <string name="settings_not_signed_in">Non connecté</string>
+    <string name="settings_setup">Assistant</string>
+    <string name="settings_home">Accueil</string>
+    <string name="settings_quality">Qualité et données</string>
+    <string name="settings_skip">Passer les séquences</string>
+    <string name="settings_music_source">Source</string>
+    <string name="settings_other_devices">Autres appareils</string>
+    <string name="settings_licences">Licences</string>
     <string name="about_line">Wicaby %1$s · Police Geist (SIL OFL 1.1) · FFmpeg (GPL v3) · libass (ISC)</string>
 
     <!-- Lecteur -->
@@ -374,6 +385,8 @@
     <string name="remote_play_dismiss">Ignorer</string>
     <string name="remote_channel_name">Contrôle à distance</string>
     <string name="settings_cast_title">Diffusion</string>
+    <string name="settings_cast_to_tv">Diffuser vers un téléviseur</string>
+    <string name="settings_debug">Débogage</string>
     <string name="settings_cast_discovery">Rechercher les téléviseurs et lecteurs sur le réseau local</string>
     <string name="settings_cast_seed">Adresse du lecteur (debug)</string>
     <string name="settings_cast_allow_hevc">Autoriser HEVC sur les Chromecast</string>
@@ -401,6 +414,7 @@
     <string name="plex_link_expired">Ce code a expiré.</string>
     <string name="plex_link_new_code">Nouveau code</string>
     <string name="plex_link_row">Lier un compte Plex</string>
+    <string name="plex_link_other">Lier un autre compte Plex</string>
     <string name="plex_link_row_sub">Vos serveurs Plex, et ceux partagés avec vous</string>
     <string name="plex_users_lead">Choisissez le profil Plex Home qui regarde.</string>
     <string name="plex_pin_for">Code PIN de %1$s</string>

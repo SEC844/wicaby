@@ -41,7 +41,7 @@
   const STORE_KEY = 'wicaby.library.prefs';
 
   function loadPrefs(): { sort: string; desc: boolean } {
-    // Settings > Bibliothèque et accueil: the sort a library starts with until you change it there.
+    // Settings > Accueil et bibliothèques: the sort a library starts with until you change it there.
     const fallback = { sort: settings.value?.ui.librarySort ?? 'SortName', desc: settings.value?.ui.librarySortDesc ?? false };
     try {
       const all = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, { sort: string; desc: boolean }>;

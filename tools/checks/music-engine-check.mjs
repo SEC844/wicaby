@@ -362,7 +362,7 @@ async function pass(kind) {
   }
 
   if (SHOTS) {
-    await main.evaluate(`location.hash = '#/settings?pane=audio'`);
+    await main.evaluate(`location.hash = '#/settings?pane=music'`);
     await sleep(1500);
     await main.evaluate(`(() => { const h = [...document.querySelectorAll('h3')].find((x) => /Musique|Music/.test(x.textContent)); h?.scrollIntoView(); return true; })()`);
     await sleep(500);

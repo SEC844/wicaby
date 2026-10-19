@@ -34,7 +34,6 @@
       "player.aspect.zoomPercent": "Zoom {percent} %",
       "player.notice.delay": "{kind, select, audio {Décalage audio} other {Décalage des sous-titres}} : {value} ms",
       "player.upNext.stillWatching": "Toujours là ?",
-      "settings.advanced.hwAccel.desc": "Désactivée, l’interface est dessinée sans le GPU : à essayer en cas d’écran noir ou de scintillement. La vidéo mpv n’est pas concernée.",
       "settings.advanced.mpvArgs.desc": "Options mpv séparées par des espaces, appliquées au prochain lancement de mpv. Exemple : {example}",
       "settings.advanced.mpvArgs.rejected": "Ignoré : {args}. Écrivez chaque option sous la forme --nom=valeur (ou --no-nom). Seules les options d’image, de mise à l’échelle, de shaders, de sous-titres, de synchronisation, de debanding, de dithering, d’interpolation, de tone mapping et d’audio sont acceptées ; les scripts, fichiers de configuration et journaux sont refusés. Les chemins de fichiers (sous-titres, shaders) doivent être complets, sur un disque local (C:\\…) ou dans le dossier de mpv (~~/…), jamais sur un partage réseau.",
       "settings.appearance.cardTitles.desc": "Désactivé, seules les images restent ; les vignettes larges gardent leur titre.",

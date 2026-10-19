@@ -40,6 +40,7 @@ import com.wika.wicaby.tv.ui.C
 import com.wika.wicaby.tv.ui.SignInSheet
 import com.wika.wicaby.tv.ui.TvAlert
 import com.wika.wicaby.tv.ui.Cache
+import com.wika.wicaby.tv.ui.ConfirmRow
 import com.wika.wicaby.tv.ui.Group
 import com.wika.wicaby.tv.ui.LocalOverlay
 import com.wika.wicaby.tv.ui.SettingRow
@@ -49,7 +50,7 @@ import com.wika.wicaby.tv.ui.TvTextField
 import com.wika.wicaby.tv.ui.Type
 import kotlinx.coroutines.launch
 
-// Réglages > Sources de fichiers > "Sources de photos" (photos spec PH-13): connect an Immich server with an API key,
+// Réglages > Sources > "Dossiers de photos" and "Immich" (photos spec PH-13): connect an Immich server with an API key,
 // sealed by the Keystore; Test checks the version (2.0 or later) and which permissions the key lacks.
 @Composable
 internal fun ImmichGroup() {
@@ -58,18 +59,21 @@ internal fun ImmichGroup() {
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf(Immich.source) }
     val add = remember { FocusRequester() }
-    Group(stringResource(CoreR.string.photos_sources_title), stringResource(CoreR.string.photos_sources_foot)) {
+    Group(stringResource(CoreR.string.photos_folders_title)) {
         PhotoSourceRows()
+    }
+    Group(stringResource(CoreR.string.photos_immich_title), stringResource(CoreR.string.photos_sources_foot)) {
         source?.let { s ->
-            SettingRow(s.name, stringResource(CoreR.string.photos_sources_remove), onClick = {
+            val remove = stringResource(CoreR.string.photos_sources_remove)
+            ConfirmRow(s.name, remove, value = remove) {
                 scope.launch {
                     Immich.remove(context)
                     source = null
                     Cache.changed()
                 }
-            })
+            }
         }
-        SettingRow(stringResource(CoreR.string.photos_sources_add), modifier = Modifier.focusRequester(add), chevron = true, onClick = {
+        SettingRow(stringResource(CoreR.string.photos_immich_connect), modifier = Modifier.focusRequester(add), chevron = true, onClick = {
             overlay.show(add) {
                 ImmichSheet { added ->
                     if (added) {

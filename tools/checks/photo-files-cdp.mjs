@@ -146,7 +146,7 @@ async function run() {
   // ---- Settings > Library > Photo sources: "Folder on this computer", the file sources' sheet ----
   await ev(`location.hash = '#/settings'`);
   await until('settings', () => ev(`!!document.querySelector('nav.cats')`), 15000);
-  await ev(`[...document.querySelectorAll('nav.cats button')].find((b) => /biblioth/i.test(b.textContent)).click()`);
+  await ev(`[...document.querySelectorAll('nav.cats button')].find((b) => /sources/i.test(b.textContent)).click()`);
   await until('photo sources', () => ev(`!!document.querySelector('[data-photo-sources] [data-add="local"]')`), 10000);
   const adds = await ev(`[...document.querySelectorAll('[data-photo-sources] [data-add]')].map((b) => b.textContent.trim())`);
   ok('Photo sources offers a folder, an SMB share and WebDAV', adds.length === 3, adds.join(' | '));

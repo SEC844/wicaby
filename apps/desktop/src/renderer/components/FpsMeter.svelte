@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { t } from '../lib/i18n.svelte';
 
-  // Settings > Avancé > "Compteur d'images par seconde": frames counted with rAF over 500 ms.
+  // Settings > Système > "Compteur d'images par seconde": frames counted with rAF over 500 ms.
   let fps = $state(0);
   let worst = $state(0);
 

@@ -32,7 +32,7 @@ import com.wika.wicaby.tv.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// TP-09: Réglages > Trakt, as the desktop's TraktSettings.svelte: the user's own Trakt application
+// TP-09: Réglages > Comptes > Trakt, as the desktop's TraktSettings.svelte: the user's own Trakt application
 // (client id and secret), authorized with a device code shown with a QR code, then one switch per
 // signed-in server.
 @Composable
@@ -43,9 +43,10 @@ internal fun TraktSection() {
     // The Connect row, then the account row once authorized: where focus lands when the code sheet closes.
     val anchor = remember { FocusRequester() }
     if (st.user != null) {
-        Group(null, stringResource(CoreR.string.trakt_connected_desc)) {
+        Group(stringResource(CoreR.string.trakt_title), stringResource(CoreR.string.trakt_connected_desc)) {
             SettingRow(st.user?.takeIf { it.isNotEmpty() }?.let { stringResource(CoreR.string.trakt_connected_as, it) } ?: stringResource(CoreR.string.trakt_connected), modifier = Modifier.focusRequester(anchor))
-            SettingRow(stringResource(CoreR.string.trakt_disconnect), onClick = { Core.scope.launch { svc.disconnect() } })
+            val disconnect = stringResource(CoreR.string.trakt_disconnect)
+            ConfirmRow(disconnect, disconnect) { Core.scope.launch { svc.disconnect() } }
         }
         Group(stringResource(CoreR.string.trakt_servers), stringResource(CoreR.string.trakt_servers_hint)) {
             val servers = Servers.all
@@ -90,7 +91,7 @@ private fun ConnectForm(storedId: String, connect: FocusRequester) {
             if (TraktService.shared.state.value.pending != null) overlay.show(connect) { TraktCodeSheet(overlay::close) }
         }
     }
-    Group(null, stringResource(CoreR.string.trakt_hint)) {
+    Group(stringResource(CoreR.string.trakt_title), stringResource(CoreR.string.trakt_hint)) {
         TvTextField(clientId, { clientId = it }, stringResource(CoreR.string.trakt_client_id), Modifier.fillMaxWidth(), imeAction = ImeAction.Next)
         TvTextField(
             secret, { secret = it },

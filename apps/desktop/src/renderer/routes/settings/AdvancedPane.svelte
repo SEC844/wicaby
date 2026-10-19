@@ -1,24 +1,15 @@
 <script lang="ts">
-  import { parseMpvArgs } from '../../../shared/mpv-args';
   import Toggle from '../../components/Toggle.svelte';
   import { w } from '../../lib/bridge';
-  import { t, tParts } from '../../lib/i18n.svelte';
+  import { t } from '../../lib/i18n.svelte';
   import { errorMessage, settings, toast } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
 
+  // The end of Settings › System (after PrivacyPane): performance and the settings backup.
   // Hardware acceleration as this run started with it (Settings.svelte): it only changes at the next launch.
   let { hwStart }: { hwStart: boolean | null } = $props();
 
   const s = $derived(settings.value);
-
-  // ---- mpv arguments: edited as a draft, saved on blur or Entrée ----
-  let mpvArgsDraft = $state<string | null>(null);
-  const mpvArgsText = $derived(mpvArgsDraft ?? s?.playback.mpvArgs ?? '');
-  const mpvArgsRejected = $derived(parseMpvArgs(mpvArgsText).rejected);
-  function saveMpvArgs(): void {
-    if (mpvArgsDraft === null || mpvArgsDraft === s?.playback.mpvArgs) return;
-    void set({ playback: { mpvArgs: mpvArgsDraft } }).then(() => (mpvArgsDraft = null));
-  }
 
   // ---- Export, import, reset ----
   let confirmReset = $state(false);
@@ -53,6 +44,7 @@
 </script>
 
 {#if s}
+  <h3 class="gh">{t('settings.advanced.performance')}</h3>
   <div class="group">
     <div class="row">
       <div class="txt">
@@ -74,34 +66,6 @@
         <div class="desc">{t('settings.advanced.fps.desc')}</div>
       </div>
       <Toggle label={t('settings.advanced.fps.label')} checked={s.ui.fpsMeter} onchange={(v) => set({ ui: { fpsMeter: v } })} />
-    </div>
-  </div>
-
-  <h3 class="gh">mpv</h3>
-  <div class="group">
-    <div class="row stack">
-      <div class="txt">
-        <div class="lbl">{t('settings.advanced.mpvArgs.label')}</div>
-        <div class="desc">
-          {#each tParts('settings.advanced.mpvArgs.desc') as part, i (i)}{#if part.slot === 'example'}<span class="mono">--deband=yes</span>{:else}{part.text}{/if}{/each}
-        </div>
-      </div>
-      <input
-        class="field mono"
-        type="text"
-        spellcheck="false"
-        placeholder={t('settings.advanced.mpvArgs.placeholder')}
-        aria-label={t('settings.advanced.mpvArgs.aria')}
-        value={mpvArgsText}
-        oninput={(e) => (mpvArgsDraft = e.currentTarget.value)}
-        onblur={saveMpvArgs}
-        onkeydown={(e) => {
-          if (e.key === 'Enter') saveMpvArgs();
-        }}
-      />
-      {#if mpvArgsRejected.length > 0}
-        <div class="desc warn">{t('settings.advanced.mpvArgs.rejected', { args: mpvArgsRejected.join(' ') })}</div>
-      {/if}
     </div>
   </div>
 
@@ -218,29 +182,6 @@
     font-size: var(--fs-caption);
     font-weight: 500;
     color: var(--label-2);
-  }
-  .row.stack {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  .field {
-    width: 100%;
-    height: 32px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--r-xs);
-    background: var(--fill-1);
-    box-shadow: inset 0 0 0 1px var(--separator);
-    font-size: var(--fs-footnote);
-    color: var(--label);
-    outline: none;
-  }
-  .field:focus {
-    background: var(--fill-2);
-  }
-  .desc.warn {
-    color: var(--warning);
   }
   .push:disabled {
     color: var(--label-4);

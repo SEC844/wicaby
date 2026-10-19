@@ -59,7 +59,7 @@ The same app as on Windows (x64 `.deb`, AppImage or `.tar.gz`). What differs:
 - **Display:** refresh-rate matching through `xrandr` in an X11 session and `kscreen-doctor` on KDE Plasma (Wayland). Elsewhere the setting is disabled and says why.
 - **Desktop integration:** media keys and desktop media controls through MPRIS, a system-tray icon (on GNOME, with the AppIndicator extension), launch at login through `~/.config/autostart`, and notifications. Notification servers show no buttons, so a click opens the item instead (a Live TV reminder tunes in).
 - **Launcher:** Home, Search, Downloads and Settings actions in the desktop entry; `wicaby://` and `magnet:` links.
-- **Credentials:** encrypted by the system keyring (GNOME Keyring, KWallet) through Chromium. Without one, sign-ins stay in memory until Wicaby closes, unless you choose in Settings › Privacy & Storage to keep them on disk unencrypted.
+- **Credentials:** encrypted by the system keyring (GNOME Keyring, KWallet) through Chromium. Without one, sign-ins stay in memory until Wicaby closes, unless you choose in Settings › System to keep them on disk unencrypted.
 - **Not on Linux:** Mica, the taskbar toolbar and jump list, Windows HDR switching, automatic updates (install the new package).
 
 ## Android TV
@@ -123,7 +123,7 @@ Emby and Jellyfin photo libraries, and home-video libraries, open in a Photos ti
   - a justified timeline that stays fast with tens of thousands of photos, three thumbnail sizes (`Ctrl` + wheel, `Ctrl` `+`/`-`) and a date scrubber on the right edge;
   - keyboard: arrows to move, `Enter` to open, `F` for favourite, `S` for a slideshow from the focused photo, `I` for info;
   - a slideshow in date order or shuffled, and "Save original" to the Downloads folder;
-  - **a photo map, off by default.** Turn it on in Settings > Privacy & Storage. Photos with a position are grouped on OpenStreetMap tiles, fetched and cached by the app with the attribution always shown; the tile address can be changed to another service or your own tile server. Places are never looked up by name.
+  - **a photo map, off by default.** Turn it on in Settings > Sources. Photos with a position are grouped on OpenStreetMap tiles, fetched and cached by the app with the attribution always shown; the tile address can be changed to another service or your own tile server. Places are never looked up by name.
 - **Android mobile:** pinch between three thumbnail sizes, a fast scroller with the month, swipe between photos, swipe down to close, and long-press to select photos for a slideshow or to add them to favourites.
 - **Immich:** add an Immich server (2.0 or later) with its address and an API key: in Settings > Library on desktop, in Settings on Android. Its photos form their own library with the timeline, albums, People, memories and, on desktop, the map. A permission the key lacks hides that part and names it. The key stays encrypted on the device and goes only to that server, in a header.
 - **Android TV:** a grid built for the remote (Page or Channel +/−, or hold Down, to jump a month), a ×2 zoom, and the slideshow on the Play/Pause key. The screensaver can show your photos, one album or "On This Day" (Settings > Screen Saver); film and show artwork stays the default.
@@ -290,7 +290,7 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
   - Android: tokens are encrypted with an Android Keystore key.
 - **Casting to a Chromecast (desktop):** Wicaby cannot check that a device on your network really is a Chromecast (only Google's own SDK authenticates devices). A device pretending to be one would receive what a Chromecast receives: a stream address through this computer's relay, which carries no token, or, for the Jellyfin receiver app, your server's address and an access token, as Jellyfin's own web app sends.
 - **Casting from a phone:** a DLNA TV or a Chromecast fetches the stream from your server itself, so its address carries a token: a disposable one on Jellyfin with Quick Connect enabled, otherwise your access token. On Windows, the relay keeps the token on the computer.
-- **Local data:** logs stay on your device (the last 7 daily log files on Windows) and can be cleared from Settings › Privacy & Storage.
+- **Local data:** logs stay on your device (the last 7 daily log files on Windows) and can be cleared from Settings › System.
 
 ## Screenshots and the demo
 

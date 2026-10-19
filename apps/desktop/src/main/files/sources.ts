@@ -88,7 +88,7 @@ export class FileSources {
     private readonly identity: ClientIdentity,
     private readonly host: SessionHost,
     private readonly platform: NodeJS.Platform = process.platform,
-    // The photo map is on (Settings > Privacy): only then do photo sources hand coordinates to the page.
+    // The photo map is on (Settings > Sources): only then do photo sources hand coordinates to the page.
     private readonly photoMap: () => boolean = () => false,
   ) {
     this.thumbs = new PhotoThumbs(path.join(dir, 'photo-thumbs'));

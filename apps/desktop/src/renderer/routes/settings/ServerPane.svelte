@@ -61,6 +61,7 @@
       {/if}
     </div>
   {/each}
+  <h3 class="gh">{t('settings.server.addTitle')}</h3>
   <div class="group">
     <div class="row">
       <div class="txt">
@@ -68,13 +69,6 @@
         <div class="desc">{t('settings.server.add.desc')}</div>
       </div>
       <button type="button" class="push" onclick={() => navigate('/servers')}>{t('settings.server.add.button')}</button>
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.panes.remote.label')}</div>
-        <div class="desc">{t('settings.panes.remote.blurb')}</div>
-      </div>
-      <button type="button" class="push" onclick={() => navigate('/settings?pane=remote')}>{t('common.actions.open')}</button>
     </div>
     {#if !multiServer()}
       <div class="row">
@@ -90,6 +84,12 @@
 {/if}
 
 <style>
+  .gh {
+    margin: 30px 0 8px 2px;
+    font-size: var(--fs-footnote);
+    font-weight: 500;
+    color: var(--label-3);
+  }
   .foot {
     margin: 10px 2px 0;
     font-size: var(--fs-footnote);

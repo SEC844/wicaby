@@ -13,7 +13,9 @@
   import { initTorrents, torrents } from '../lib/torrents.svelte';
 
   // qBittorrent connection, category → library mapping and options. Used in
-  // the Settings "Torrents" pane and in the sheet on the Torrents tab.
+  // Settings › Downloads and in the sheet on the Torrents tab. notify: false when Settings › General
+  // shows the torrent notification with the other notifications.
+  let { notify = true }: { notify?: boolean } = $props();
   const cfg = $derived(settings.value?.torrents);
   const st = $derived(torrents.value);
   const configured = $derived(Boolean(cfg?.url));
@@ -189,15 +191,17 @@
     </div>
   </div>
 
-  <h3 class="gh">{t('settings.torrents.options')}</h3>
+  <h3 class="gh">{t(notify ? 'settings.torrents.options' : 'settings.torrents.magnetTitle')}</h3>
   <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.torrents.notify.label')}</div>
-        <div class="desc">{t(linux ? 'settings.torrents.notify.descLinux' : 'settings.torrents.notify.desc')}</div>
+    {#if notify}
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.torrents.notify.label')}</div>
+          <div class="desc">{t(linux ? 'settings.torrents.notify.descLinux' : 'settings.torrents.notify.desc')}</div>
+        </div>
+        <Toggle label={t('settings.torrents.notify.label')} checked={cfg.notifyOnComplete} onchange={(v) => updateSettings({ torrents: { notifyOnComplete: v } })} />
       </div>
-      <Toggle label={t('settings.torrents.notify.label')} checked={cfg.notifyOnComplete} onchange={(v) => updateSettings({ torrents: { notifyOnComplete: v } })} />
-    </div>
+    {/if}
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.torrents.magnet.label')}</div>

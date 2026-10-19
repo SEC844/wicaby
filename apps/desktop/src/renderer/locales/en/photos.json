@@ -115,7 +115,7 @@
     "back": "All people"
   },
   "sources": {
-    "title": "Photo sources",
+    "title": "Photo Folders",
     "url": "Immich server",
     "key": "API key",
     "keyHint": "Create a key in Immich (Account Settings, API Keys) with at least asset.read and asset.view. album.read, person.read, map.read and memory.read add albums, people, the map and memories.",
@@ -127,7 +127,7 @@
     "versionTooOld": "Immich {version} is too old: Wicaby needs version 2.0 or later.",
     "scopesMissing": "Permissions the key lacks: {scopes}. Those features are hidden.",
     "scopeMissing": "The API key lacks the {scope} permission; add it in Immich to see this part.",
-    "keyRefused": "The Immich server refuses the API key. Connect it again in Settings, Library.",
+    "keyRefused": "The Immich server refuses the API key. Connect it again in Settings, Sources.",
     "failed": "The Immich server answered with an error ({status}).",
     "foot": "The key stays encrypted on this computer and is only sent to that server. Immich photos form their own library, next to those from Emby or Jellyfin.",
     "error": {
@@ -146,6 +146,7 @@
     "indexing": "Indexing… {count, plural, one {# item found} other {# items found}}",
     "indexed": "{count, plural, one {# item} other {# items}} · last scan {date}",
     "scanFailed": "Scan failed: the folder does not answer.",
-    "rescan": "Rescan"
+    "rescan": "Rescan",
+    "immich": "Immich"
   }
 }

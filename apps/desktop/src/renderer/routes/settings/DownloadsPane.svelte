@@ -19,6 +19,7 @@
 </script>
 
 {#if s}
+  <h3 class="gh">{t('settings.downloads.folderQueue')}</h3>
   <div class="group">
     <div class="row">
       <div class="txt">
@@ -47,7 +48,7 @@
     </div>
   </div>
 
-  <h3 class="gh">{t('settings.downloads.storage')}</h3>
+  <h3 class="gh">{t('settings.downloads.offlineTitle')}</h3>
   <div class="group">
     <button type="button" class="row link-row" onclick={() => navigate('/downloads')}>
       <div class="txt">

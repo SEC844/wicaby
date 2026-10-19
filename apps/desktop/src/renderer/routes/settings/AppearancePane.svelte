@@ -29,6 +29,10 @@
       </div>
       <AccentSwatches />
     </div>
+  </div>
+
+  <h3 class="gh">{t('settings.appearance.layout')}</h3>
+  <div class="group">
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.appearance.compactSidebar.label')}</div>
@@ -36,10 +40,6 @@
       </div>
       <Toggle label={t('settings.appearance.compactSidebar.label')} checked={s.ui.sidebarCollapsed} onchange={(v) => set({ ui: { sidebarCollapsed: v } })} />
     </div>
-  </div>
-
-  <h3 class="gh">{t('settings.appearance.layout')}</h3>
-  <div class="group">
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.appearance.density.label')}</div>
@@ -126,24 +126,6 @@
         <div class="desc">{t('settings.appearance.cardQuality.desc')}</div>
       </div>
       <Toggle label={t('settings.appearance.cardQuality.label')} checked={s.ui.cardQuality} onchange={(v) => set({ ui: { cardQuality: v } })} />
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.appearance.home')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.appearance.hero.label')}</div>
-        <div class="desc">{t('settings.appearance.hero.desc')}</div>
-      </div>
-      <Toggle label={t('settings.appearance.hero.label')} checked={s.ui.heroEnabled} onchange={(v) => set({ ui: { heroEnabled: v } })} />
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.appearance.heroAutoplay.label')}</div>
-        <div class="desc">{t('settings.appearance.heroAutoplay.desc')}</div>
-      </div>
-      <Toggle label={t('settings.appearance.heroAutoplay.label')} checked={s.ui.heroAutoplay} disabled={!s.ui.heroEnabled} onchange={(v) => set({ ui: { heroAutoplay: v } })} />
     </div>
   </div>
 

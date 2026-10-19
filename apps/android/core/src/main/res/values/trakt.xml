@@ -17,8 +17,8 @@
     <string name="trakt_connected">Connecté à Trakt</string>
     <string name="trakt_connected_as">Connecté en tant que %1$s</string>
     <string name="trakt_connected_desc">Les films et épisodes lus dans Wicaby sont scrobblés sur Trakt (début, pause, fin), et « Vu » met à jour l’historique Trakt.</string>
-    <string name="trakt_disconnect">Se déconnecter</string>
-    <string name="trakt_servers">Serveurs</string>
+    <string name="trakt_disconnect">Déconnecter Trakt</string>
+    <string name="trakt_servers">Scrobbler sur Trakt</string>
     <string name="trakt_no_server">Aucun serveur connecté.</string>
     <string name="trakt_server_plugin">Plugin Trakt du serveur</string>
     <string name="trakt_servers_hint">Le plugin Trakt d’un serveur scrobble déjà : Wicaby ne le fait pas en double. Sans droits d’administrateur, Wicaby ne peut pas vérifier les plugins : désactivez un serveur qui a déjà le plugin Trakt.</string>

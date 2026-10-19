@@ -358,12 +358,19 @@ fun AddFileSourceSheet(onDismiss: () -> Unit, photos: Boolean = false, protocol:
     )
 }
 
-// Réglages: the sources of this device, Add, and their place on Home (off by default, spec D10).
+// Réglages > Apparence > Accueil: the file sources on Home (off by default, spec D10).
+@Composable
+fun FilesOnHomeRow() {
+    val showOnHome by FileSources.showOnHome.collectAsState()
+    GroupRow(stringResource(CoreR.string.files_home_setting), { FileSources.setShowOnHome(!showOnHome); Cache.map.clear() }, chevron = false) {
+        SettingSwitch(showOnHome, { FileSources.setShowOnHome(it); Cache.map.clear() })
+    }
+}
+
+// Réglages > Sources: the sources of this device and Add.
 @Composable
 fun FilesSettings() {
     val sources by FileSources.list.collectAsState()
-    val showOnHome by FileSources.showOnHome.collectAsState()
-    val accent = LocalAccent.current
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<FileSource?>(null) }
     var signIn by remember { mutableStateOf<FileSource?>(null) }
@@ -377,13 +384,6 @@ fun FilesSettings() {
             GroupDivider()
         }
         GroupRow(stringResource(CoreR.string.files_add), { adding = true }, icon = Ic.Plus, chevron = false)
-        GroupDivider()
-        GroupRow(stringResource(CoreR.string.files_home_setting), { FileSources.setShowOnHome(!showOnHome); Cache.map.clear() }, chevron = false) {
-            Switch(
-                showOnHome, { FileSources.setShowOnHome(it); Cache.map.clear() },
-                colors = SwitchDefaults.colors(checkedTrackColor = accent, checkedThumbColor = onAccent(accent), uncheckedTrackColor = G.control, uncheckedThumbColor = G.controlKnob, uncheckedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
-            )
-        }
     }
     if (adding) AddFileSourceSheet(onDismiss = { adding = false })
     removing?.let { s ->

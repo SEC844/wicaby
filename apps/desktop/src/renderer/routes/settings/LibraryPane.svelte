@@ -3,18 +3,58 @@
   import Icon from '../../components/Icon.svelte';
   import Picker from '../../components/Picker.svelte';
   import Segmented from '../../components/Segmented.svelte';
+  import Toggle from '../../components/Toggle.svelte';
+  import { libraryRef } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import { navigate } from '../../lib/router.svelte';
-  import { settings } from '../../lib/stores.svelte';
+  import { libraries, multiServer, serverName, settings } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
-  import FileSourcesSettings from '../../components/FileSourcesSettings.svelte';
-  import ImmichSettings from '../../components/ImmichSettings.svelte';
 
   const s = $derived(settings.value);
+
+  const browsable = $derived(libraries.list.filter((l) => !['playlists', 'livetv', 'folders'].includes(l.CollectionType ?? '')));
+  const startPages = $derived([
+    { value: 'home', label: t('settings.general.startPage.home') },
+    { value: 'favorites', label: t('settings.general.startPage.favorites') },
+    ...browsable.map((l) => ({ value: `library:${libraryRef(l)}`, label: multiServer() ? `${l.Name} · ${serverName(l.ServerId)}` : l.Name })),
+    // A library this account no longer sees keeps a readable entry until it is changed.
+    ...(s && s.ui.startPage.startsWith('library:') && !browsable.some((l) => `library:${libraryRef(l)}` === s.ui.startPage)
+      ? [{ value: s.ui.startPage, label: t('settings.general.startPage.missing') }]
+      : []),
+  ]);
 </script>
 
 {#if s}
+  <h3 class="gh">{t('settings.library.home')}</h3>
   <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.general.startPage.label')}</div>
+        <div class="desc">{t('settings.general.startPage.desc')}</div>
+      </div>
+      <Picker label={t('settings.general.startPage.label')} value={s.ui.startPage} options={startPages} onchange={(v) => set({ ui: { startPage: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.appearance.hero.label')}</div>
+        <div class="desc">{t('settings.appearance.hero.desc')}</div>
+      </div>
+      <Toggle label={t('settings.appearance.hero.label')} checked={s.ui.heroEnabled} onchange={(v) => set({ ui: { heroEnabled: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.appearance.heroAutoplay.label')}</div>
+        <div class="desc">{t('settings.appearance.heroAutoplay.desc')}</div>
+      </div>
+      <Toggle label={t('settings.appearance.heroAutoplay.label')} checked={s.ui.heroAutoplay} disabled={!s.ui.heroEnabled} onchange={(v) => set({ ui: { heroAutoplay: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('files.home.label')}</div>
+        <div class="desc">{t('files.home.desc')}</div>
+      </div>
+      <Toggle label={t('files.home.label')} checked={s.ui.filesOnHome === true} onchange={(v) => set({ ui: { filesOnHome: v } })} />
+    </div>
     <button type="button" class="row link-row" onclick={() => navigate('/home?customize=1')}>
       <div class="txt">
         <div class="lbl">{t('settings.library.customizeHome.label')}</div>
@@ -65,8 +105,6 @@
     </div>
   </div>
   <p class="foot">{t('settings.library.foot')}</p>
-  <FileSourcesSettings />
-  <ImmichSettings />
 {/if}
 
 <style>

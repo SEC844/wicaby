@@ -92,12 +92,16 @@ object SettingsLink {
     var remote by mutableStateOf(false)
 }
 
+// The shared category order (desktop, TV, phone); TV folds Video into Playback, Music into Sources, Casting into General.
 private enum class Section(val label: Int) {
+    General(R.string.section_general),
+    Appearance(R.string.section_appearance),
+    Home(R.string.section_home),
     Playback(R.string.section_playback),
-    Interface(R.string.section_interface),
-    Accounts(R.string.section_accounts),
-    Files(CoreR.string.files_title), // FS-10: file sources
-    Trakt(CoreR.string.trakt_title), // TP-09
+    Audio(R.string.section_audio),
+    Subtitles(R.string.section_subtitles),
+    Accounts(R.string.section_accounts), // with Trakt (TP-09)
+    Files(R.string.sources_title), // FS-10 file sources, photo sources, music source
     Remote(R.string.section_remote),
     About(R.string.section_about),
 }
@@ -105,7 +109,7 @@ private enum class Section(val label: Int) {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SettingsTab(api: Api, user: User?, tabs: List<TopTab>, onScrolled: (Boolean) -> Unit) {
-    val initial = remember { if (SettingsLink.remote) Section.Remote else Section.Playback }
+    val initial = remember { if (SettingsLink.remote) Section.Remote else Section.General }
     var section by rememberSaveable { mutableStateOf(initial) }
     LaunchedEffect(SettingsLink.remote) {
         if (SettingsLink.remote) section = Section.Remote
@@ -115,7 +119,8 @@ fun SettingsTab(api: Api, user: User?, tabs: List<TopTab>, onScrolled: (Boolean)
     val first = remember { FocusRequester() }
     Row(Modifier.fillMaxSize().padding(start = 64.dp, end = 64.dp, top = 100.dp)) {
         Column(
-            Modifier.width(240.dp).focusRestorer(first).focusGroup(),
+            // Ten sections do not fit a 540 dp screen: the list scrolls to keep the focused one in view.
+            Modifier.width(240.dp).fillMaxHeight().verticalScroll(rememberScrollState()).padding(bottom = 48.dp).focusRestorer(first).focusGroup(),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(stringResource(R.string.tab_settings), style = Type.largeTitle, color = C.label, modifier = Modifier.padding(start = 16.dp, bottom = 18.dp))
@@ -140,11 +145,14 @@ fun SettingsTab(api: Api, user: User?, tabs: List<TopTab>, onScrolled: (Boolean)
             CompositionLocalProvider(LocalSectionFocus provides first) {
             Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(top = 66.dp, bottom = 64.dp)) {
                 when (s) {
+                    Section.General -> GeneralSection(api)
+                    Section.Appearance -> AppearanceSection(api)
+                    Section.Home -> HomeSection(api, tabs)
                     Section.Playback -> PlaybackSection(api)
-                    Section.Interface -> InterfaceSection(api, tabs)
+                    Section.Audio -> AudioSection(api)
+                    Section.Subtitles -> SubtitlesSection(api)
                     Section.Accounts -> AccountsSection(api, user)
                     Section.Files -> FilesSection()
-                    Section.Trakt -> TraktSection()
                     Section.Remote -> RemoteSection()
                     Section.About -> AboutSection()
                 }
@@ -238,6 +246,56 @@ internal fun ToggleRow(label: String, value: Boolean, onChange: (Boolean) -> Uni
     SettingRow(label, stringResource(if (value) R.string.on else R.string.off), onClick = { onChange(!value) })
 }
 
+// A destructive row: OK asks first (the TvAlert of Délier le compte Plex), Annuler has the focus.
+@Composable
+internal fun ConfirmRow(label: String, confirm: String, value: String? = null, onConfirm: () -> Unit) {
+    val overlay = LocalOverlay.current
+    val me = remember { FocusRequester() }
+    val cancel = stringResource(R.string.cancel)
+    SettingRow(label, value, Modifier.focusRequester(me), onClick = {
+        overlay.show(me) {
+            TvAlert(
+                label, null,
+                listOf(
+                    AlertAction(confirm, destructive = true) { overlay.close(); onConfirm() },
+                    AlertAction(cancel) { overlay.close() },
+                ),
+                focusIndex = 1, onDismiss = overlay::close,
+            )
+        }
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Général.
+
+@Composable
+private fun GeneralSection(api: Api) {
+    val activity = LocalActivity.current ?: return
+    val nav = LocalNav.current
+    Group(stringResource(R.string.group_language)) {
+        // The language names stay in their own language, so either reader can find theirs.
+        ChoiceRow(
+            stringResource(R.string.language),
+            listOf(stringResource(R.string.language_system), stringResource(R.string.language_fr), stringResource(R.string.language_en)),
+            AppLanguage.TAGS.indexOf(remember { AppLanguage.current(activity) }).coerceAtLeast(0),
+            { AppLanguage.set(activity, AppLanguage.TAGS[it]) },
+        )
+    }
+    // OB-X: the launcher's Wicaby rows.
+    Group(stringResource(R.string.group_tv_home), stringResource(R.string.tv_home_hint)) {
+        HomeChannelsRow()
+    }
+    // "Play on Wicaby" comes through the server: none on a plex server (caps.castReceiver, plex-spec §8).
+    if (api.server.caps.castReceiver) Group(stringResource(R.string.group_other_devices), stringResource(CoreR.string.settings_remote_control_summary)) {
+        ToggleRow(stringResource(CoreR.string.settings_remote_control), TvSettings.remoteControl.value) { TvSettings.remoteControl.value = it }
+    }
+    // OB-T1: the first-run wizard again (Done comes back here).
+    Group(stringResource(R.string.group_setup)) {
+        SettingRow(stringResource(CoreR.string.onboarding_rerun), chevron = true, onClick = { nav.push(Route.Welcome(rerun = true)) })
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Lecture.
 
@@ -276,22 +334,27 @@ private fun PlaybackSection(api: Api) {
     val scope = rememberCoroutineScope()
     val snap = LocalSnapshot.current
     val prefs = Wicaby.app.prefs
-    val server = remember(api) { ServerConfig(api) }
-    LaunchedEffect(server) { if (api.server.kind != "plex") server.load() }
     val mbpsLabels = MBPS.map { if (it == 0) stringResource(R.string.settings_bitrate_auto) else stringResource(R.string.mbps, it) }
     fun mbpsIndex(v: Int) = MBPS.indexOf(v).coerceAtLeast(0)
 
-    Group(stringResource(R.string.settings_bitrate), stringResource(R.string.bitrate_hint)) {
+    Group(stringResource(R.string.group_quality), stringResource(R.string.bitrate_hint)) {
         ChoiceRow(stringResource(R.string.net_ethernet), mbpsLabels, mbpsIndex(TvSettings.mbpsEthernet.value), { TvSettings.mbpsEthernet.value = MBPS[it] })
         ChoiceRow(stringResource(R.string.net_wifi), mbpsLabels, mbpsIndex(TvSettings.mbpsWifi.value), { TvSettings.mbpsWifi.value = MBPS[it] })
         ChoiceRow(stringResource(R.string.net_remote), mbpsLabels, mbpsIndex(TvSettings.mbpsRemote.value), { TvSettings.mbpsRemote.value = MBPS[it] })
     }
-    Group(stringResource(R.string.group_episodes)) {
+    Group(stringResource(R.string.group_resume)) {
+        ChoiceRow(
+            stringResource(R.string.resume_mode),
+            listOf(stringResource(R.string.resume_auto), stringResource(R.string.resume_ask), stringResource(R.string.resume_start)),
+            TvSettings.resume.value, { TvSettings.resume.value = it },
+        )
         ToggleRow(stringResource(R.string.autoplay_next), TvSettings.autoplayNext.value) { TvSettings.autoplayNext.value = it }
         if (TvSettings.autoplayNext.value) {
             val secs = listOf(5, 10, 15, 20, 30)
             ChoiceRow(stringResource(R.string.countdown), secs.map { stringResource(R.string.seconds, it) }, secs.indexOf(TvSettings.countdown.value).coerceAtLeast(0), { TvSettings.countdown.value = secs[it] })
         }
+    }
+    Group(stringResource(R.string.group_skip)) {
         ChoiceRow(
             stringResource(R.string.skip_intro_mode),
             listOf(stringResource(R.string.skip_ask), stringResource(R.string.skip_auto), stringResource(R.string.skip_off)),
@@ -306,37 +369,58 @@ private fun PlaybackSection(api: Api) {
                 com.wika.wicaby.core.R.string.segment_commercial to TvSettings.skipCommercial,
             ).forEach { (label, s) -> ChoiceRow(stringResource(label), skipOptions, s.value, { s.value = it }) }
         }
-        ChoiceRow(
-            stringResource(R.string.resume_mode),
-            listOf(stringResource(R.string.resume_auto), stringResource(R.string.resume_ask), stringResource(R.string.resume_start)),
-            TvSettings.resume.value, { TvSettings.resume.value = it },
-        )
     }
-    Group(stringResource(R.string.group_display), stringResource(R.string.display_mode_hint)) {
+    Group(stringResource(R.string.group_picture), stringResource(R.string.display_mode_hint)) {
         ChoiceRow(
             stringResource(R.string.settings_display_mode),
             listOf(stringResource(R.string.display_mode_off), stringResource(R.string.display_mode_rate), stringResource(R.string.display_mode_rate_res)),
             snap.displayMode, { scope.launch { prefs.setDisplayMode(it) } },
         )
+    }
+    Group(stringResource(R.string.group_live)) {
         ToggleRow(stringResource(R.string.settings_livetv_match_frame_rate), TvSettings.liveMatchFrameRate.value) { TvSettings.liveMatchFrameRate.value = it }
         // live.pip (§8.7): only where the system offers PiP (not every Android TV build does).
         if (LocalContext.current.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
             ToggleRow(stringResource(R.string.settings_livetv_pip), TvSettings.livePip.value) { TvSettings.livePip.value = it }
         }
     }
-    val langLabels = LANGS.map { stringResource(it.second) }
-    val loading = stringResource(R.string.loading)
-    // The Emby/Jellyfin user configuration (languages, subtitle mode); Plex keeps them in the account (plex-spec §6.4).
-    val userConfig = api.server.kind != "plex"
-    Group(stringResource(R.string.group_audio), stringResource(R.string.passthrough_hint)) {
-        when {
-            !userConfig -> Unit
-            server.config == null -> SettingRow(stringResource(R.string.audio_language), loading)
-            else -> ChoiceRow(
-                stringResource(R.string.audio_language), langLabels, LANGS.indexOfFirst { it.first == server.str("AudioLanguagePreference").orEmpty() }.coerceAtLeast(0),
-                { i -> scope.launch { server.set("AudioLanguagePreference", LANGS[i].first) } },
-            )
+    // X-05: where speed and aspect are remembered.
+    val context = LocalContext.current
+    val scopes = listOf(CoreR.string.scope_off, CoreR.string.scope_global, CoreR.string.scope_library, CoreR.string.scope_title).map { stringResource(it) }
+    Group(stringResource(CoreR.string.remember_title)) {
+        ChoiceRow(stringResource(CoreR.string.remember_speed), scopes, TvSettings.rememberSpeed.value, { TvSettings.rememberSpeed.value = it })
+        ChoiceRow(stringResource(CoreR.string.remember_aspect), scopes, TvSettings.rememberAspect.value, { TvSettings.rememberAspect.value = it })
+        ConfirmRow(stringResource(CoreR.string.remember_clear), stringResource(R.string.confirm_clear)) {
+            ScopedPrefs.clear()
+            Toast.makeText(context, CoreR.string.remember_cleared, Toast.LENGTH_SHORT).show()
         }
+    }
+}
+
+// The Emby/Jellyfin user configuration (languages, subtitle mode); Plex keeps them in the account (plex-spec §6.4).
+@Composable
+private fun rememberServerConfig(api: Api): ServerConfig? {
+    val server = remember(api) { ServerConfig(api) }
+    if (api.server.kind == "plex") return null
+    LaunchedEffect(server) { server.load() }
+    return server
+}
+
+// ---------------------------------------------------------------------------
+// Audio.
+
+@Composable
+private fun AudioSection(api: Api) {
+    val scope = rememberCoroutineScope()
+    val server = rememberServerConfig(api)
+    if (server != null) Group(stringResource(R.string.group_language), stringResource(if (server.failed) R.string.server_pref_failed else R.string.server_pref_hint)) {
+        if (server.config == null) SettingRow(stringResource(R.string.audio_language), stringResource(R.string.loading))
+        else ChoiceRow(
+            stringResource(R.string.audio_language), LANGS.map { stringResource(it.second) }, LANGS.indexOfFirst { it.first == server.str("AudioLanguagePreference").orEmpty() }.coerceAtLeast(0),
+            { i -> scope.launch { server.set("AudioLanguagePreference", LANGS[i].first) } },
+        )
+    }
+    Group(stringResource(R.string.group_passthrough), stringResource(R.string.passthrough_hint)) {
         val passOptions = listOf(stringResource(R.string.pass_auto), stringResource(R.string.pass_on), stringResource(R.string.pass_off))
         TvSettings.PASS_CODECS.forEach { codec ->
             val s = TvSettings.passthrough.getValue(codec)
@@ -347,13 +431,21 @@ private fun PlaybackSection(api: Api) {
     Group(stringResource(CoreR.string.audio_fx), stringResource(CoreR.string.audio_fx_hint)) {
         TvSettings.audioFx.forEach { (label, s) -> ToggleRow(stringResource(label), s.value) { s.value = it } }
     }
-    Group(stringResource(R.string.group_subtitles), if (server.failed) stringResource(R.string.server_pref_failed) else stringResource(R.string.subtitle_hint)) {
-        if (!userConfig) Unit
-        else if (server.config == null) {
-            SettingRow(stringResource(R.string.subtitle_language), loading)
+}
+
+// ---------------------------------------------------------------------------
+// Sous-titres.
+
+@Composable
+private fun SubtitlesSection(api: Api) {
+    val scope = rememberCoroutineScope()
+    val server = rememberServerConfig(api)
+    if (server != null) Group(stringResource(R.string.group_sub_language), stringResource(if (server.failed) R.string.server_pref_failed else R.string.server_pref_hint)) {
+        if (server.config == null) {
+            SettingRow(stringResource(R.string.subtitle_language), stringResource(R.string.loading))
         } else {
             ChoiceRow(
-                stringResource(R.string.subtitle_language), langLabels, LANGS.indexOfFirst { it.first == server.str("SubtitleLanguagePreference").orEmpty() }.coerceAtLeast(0),
+                stringResource(R.string.subtitle_language), LANGS.map { stringResource(it.second) }, LANGS.indexOfFirst { it.first == server.str("SubtitleLanguagePreference").orEmpty() }.coerceAtLeast(0),
                 { i -> scope.launch { server.set("SubtitleLanguagePreference", LANGS[i].first) } },
             )
             ChoiceRow(
@@ -362,6 +454,8 @@ private fun PlaybackSection(api: Api) {
                 { i -> scope.launch { server.set("SubtitleMode", SUB_MODES[i].first) } },
             )
         }
+    }
+    Group(stringResource(R.string.group_style), stringResource(R.string.subtitle_hint)) {
         ChoiceRow(
             stringResource(R.string.subtitle_size),
             listOf(stringResource(R.string.size_small), stringResource(R.string.size_normal), stringResource(R.string.size_large), stringResource(R.string.size_xlarge)),
@@ -388,85 +482,60 @@ private fun PlaybackSection(api: Api) {
         )
         ToggleRow(stringResource(R.string.subtitle_override_ass), TvSettings.subtitleOverrideAss.value) { TvSettings.subtitleOverrideAss.value = it }
     }
-    // X-05: where speed and aspect are remembered.
-    val context = LocalContext.current
-    val scopes = listOf(CoreR.string.scope_off, CoreR.string.scope_global, CoreR.string.scope_library, CoreR.string.scope_title).map { stringResource(it) }
-    Group(stringResource(CoreR.string.remember_title)) {
-        ChoiceRow(stringResource(CoreR.string.remember_speed), scopes, TvSettings.rememberSpeed.value, { TvSettings.rememberSpeed.value = it })
-        ChoiceRow(stringResource(CoreR.string.remember_aspect), scopes, TvSettings.rememberAspect.value, { TvSettings.rememberAspect.value = it })
-        SettingRow(stringResource(CoreR.string.remember_clear), onClick = {
-            ScopedPrefs.clear()
-            Toast.makeText(context, CoreR.string.remember_cleared, Toast.LENGTH_SHORT).show()
-        })
-    }
-    // "Play on Wicaby" comes through the server: none on a plex server (caps.castReceiver, plex-spec §8).
-    if (api.server.caps.castReceiver) Group(null, stringResource(CoreR.string.settings_remote_control_summary)) {
-        ToggleRow(stringResource(CoreR.string.settings_remote_control), TvSettings.remoteControl.value) { TvSettings.remoteControl.value = it }
-    }
-    // "Source de la musique": which signed-in server the Music tab shows (core MusicSource).
-    val sources = com.wika.wicaby.core.music.MusicSource.choices(stringResource(CoreR.string.music_source_auto))
-    val chosen = remember(com.wika.wicaby.core.music.MusicSource.version) { com.wika.wicaby.core.music.MusicSource.current() }
-    Group(null, stringResource(CoreR.string.music_source_hint)) {
-        ChoiceRow(stringResource(CoreR.string.music_source), sources.map { it.second }, sources.indexOfFirst { it.first == chosen }.coerceAtLeast(0), { com.wika.wicaby.core.music.MusicSource.set(sources[it].first) })
-    }
 }
 
 // ---------------------------------------------------------------------------
-// Interface.
+// Apparence.
 
 @Composable
-private fun InterfaceSection(api: Api, tabs: List<TopTab>) {
+private fun AppearanceSection(api: Api) {
     val snap = LocalSnapshot.current
     val scope = rememberCoroutineScope()
     val prefs = Wicaby.app.prefs
-    val activity = LocalActivity.current ?: return
-    Group(null) {
-        // The language names stay in their own language, so either reader can find theirs.
-        ChoiceRow(
-            stringResource(R.string.language),
-            listOf(stringResource(R.string.language_system), stringResource(R.string.language_fr), stringResource(R.string.language_en)),
-            AppLanguage.TAGS.indexOf(remember { AppLanguage.current(activity) }).coerceAtLeast(0),
-            { AppLanguage.set(activity, AppLanguage.TAGS[it]) },
-        )
-    }
-    Group(stringResource(R.string.group_appearance)) {
+    // Theme cards and accent circles are not SettingRows: Left from their first item goes back to the section too.
+    val section = LocalSectionFocus.current
+    val edge = if (section != null) Modifier.focusProperties { left = section } else Modifier
+    val firstTheme = TvThemes.first().id
+    Group(stringResource(R.string.settings_theme)) {
         // Each card is drawn in its own theme; a click applies it to the whole screen at once.
-        Text(stringResource(R.string.settings_theme), style = Type.headline, color = C.label, modifier = Modifier.padding(start = 18.dp, top = 4.dp))
         ThemeCardRow(C.palette.id, onPick = {
             TvSettings.theme.value = it
             TvSettings.themeHintShown.value = true
-        })
+        }, cardModifier = { if (it == firstTheme) edge else Modifier })
         Row(
             Modifier.fillMaxWidth().background(C.fill1, RoundedCornerShape(Radius.md)).padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(stringResource(R.string.settings_accent), style = Type.headline, color = C.label, modifier = Modifier.weight(1f))
-            AccentRow(snap.accent, onPick = { scope.launch { prefs.setAccent(it) } })
+            AccentRow(snap.accent, onPick = { scope.launch { prefs.setAccent(it) } }, firstModifier = edge)
         }
+    }
+    Group(stringResource(R.string.group_display)) {
         ToggleRow(stringResource(R.string.show_clock), TvSettings.clock.value) { TvSettings.clock.value = it }
     }
-    HomeGroup(api)
-    TabBarGroup(api, tabs)
     Group(stringResource(R.string.group_screensaver), stringResource(R.string.screensaver_hint)) {
         ScreensaverRow()
         ScreensaverSourceRows(api)
     }
-    // OB-X: the launcher's Wicaby rows; OB-T1: the first-run wizard again (Done comes back here).
-    val nav = LocalNav.current
-    Group(null) {
-        HomeChannelsRow()
-        SettingRow(stringResource(CoreR.string.onboarding_rerun), chevron = true, onClick = { nav.push(Route.Welcome(rerun = true)) })
-    }
+}
+
+// ---------------------------------------------------------------------------
+// Accueil et bibliothèques.
+
+@Composable
+private fun HomeSection(api: Api, tabs: List<TopTab>) {
+    HomeGroup(api)
+    TabBarGroup(api, tabs)
 }
 
 // The 8 accent circles, shared with the wizard's Look step. [onFocus]: the wizard applies a colour as soon as it is
-// focused (a live preview); OK picks it either way.
+// focused (a live preview); OK picks it either way. [firstModifier]: on the first circle (Réglages: Left to the section).
 @Composable
-internal fun AccentRow(selected: Int, onPick: (Int) -> Unit, modifier: Modifier = Modifier, onFocus: ((Int) -> Unit)? = null) {
+internal fun AccentRow(selected: Int, onPick: (Int) -> Unit, modifier: Modifier = Modifier, onFocus: ((Int) -> Unit)? = null, firstModifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Accents.forEachIndexed { i, c ->
             Box(
-                Modifier
+                (if (i == 0) firstModifier else Modifier)
                     .size(28.dp)
                     .tvFocus(CircleShape, focusedScale = 1.3f, elevation = 10.dp, onFocusChange = { if (it) onFocus?.invoke(i) }, onClick = { onPick(i) })
                     .background(c),
@@ -536,12 +605,20 @@ private fun HomeGroup(api: Api) {
     val pref = TvSettings.homeRows(user, defaults)
     val rows = HomeRows.arrange(defaults, pref)
     fun save(p: HomeRows.Pref) = TvSettings.setHomeRows(user, p)
-    Group(stringResource(R.string.group_home), stringResource(R.string.home_rows_hint)) {
+    val showOnHome by com.wika.wicaby.core.files.FileSources.showOnHome.collectAsState()
+    Group(stringResource(R.string.group_home)) {
         ToggleRow(stringResource(R.string.row_hero), TvSettings.rowHero.value) { TvSettings.rowHero.value = it }
         if (TvSettings.rowHero.value) {
             ToggleRow(stringResource(R.string.hero_hide_watched), TvSettings.heroHideWatched.value) { TvSettings.heroHideWatched.value = it }
         }
         ToggleRow(stringResource(R.string.settings_merge_continue), TvSettings.mergeContinue.value) { TvSettings.mergeContinue.value = it }
+        // File sources on Home (FS-10, off by default, spec D10).
+        ToggleRow(stringResource(CoreR.string.files_home_setting), showOnHome) {
+            com.wika.wicaby.core.files.FileSources.setShowOnHome(it)
+            Cache.changed()
+        }
+    }
+    Group(stringResource(R.string.group_home_rows), stringResource(R.string.home_rows_hint)) {
         rows.forEachIndexed { i, id ->
             key(id) {
                 // Keyed by row: after a move, focus comes back to the row that moved.
@@ -583,7 +660,7 @@ private fun HomeGroup(api: Api) {
                 )
             }
         }
-        SettingRow(stringResource(R.string.home_rows_reset), onClick = { TvSettings.setHomeRows(user, HomeRows.Pref(order = defaults)) })
+        ConfirmRow(stringResource(R.string.home_rows_reset), stringResource(R.string.confirm_reset)) { TvSettings.setHomeRows(user, HomeRows.Pref(order = defaults)) }
     }
 }
 
@@ -631,7 +708,7 @@ private fun TabBarGroup(api: Api, tabs: List<TopTab>) {
                 )
             }
         }
-        SettingRow(stringResource(R.string.tab_bar_reset), onClick = { TvSettings.setTabBar(user, HomeRows.Pref()) })
+        ConfirmRow(stringResource(R.string.tab_bar_reset), stringResource(R.string.confirm_reset)) { TvSettings.setTabBar(user, HomeRows.Pref()) }
     }
 }
 
@@ -662,15 +739,17 @@ private fun AccountsSection(api: Api, user: User?) {
             Text("${session.server.name} · ${session.server.address}", style = Type.footnote, color = C.label3)
         }
     }
-    Group(null) {
+    Group(stringResource(R.string.group_user)) {
         SettingRow(stringResource(R.string.switch_user), chevron = true, onClick = { nav.push(Route.Login(session.server)) })
         SettingRow(stringResource(R.string.switch_server), chevron = true, onClick = { leave(Route.Servers, false) })
-        SettingRow(stringResource(R.string.sign_out), onClick = { leave(Route.Login(session.server), true) })
+        val signOut = stringResource(R.string.sign_out)
+        ConfirmRow(signOut, signOut) { leave(Route.Login(session.server), true) }
     }
+    ProfileGroup(session)
     // Plex: its addresses come from plex.tv (PlexAccounts.connect), not from this list.
     if (session.server.kind == "plex") PlexAccountGroup(session.server) { leave(Route.Servers, false) } else AddressesGroup(session.server)
-    ProfileGroup(session)
     OtherServers()
+    TraktSection()
 }
 
 // B09: the server's local and remote addresses; requests go to whichever answers (Core.addresses).
@@ -799,6 +878,8 @@ private fun AboutSection() {
     val res = LocalResources.current
     Group(null) {
         SettingRow(stringResource(R.string.app_name), stringResource(R.string.version_full, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
+    }
+    Group(stringResource(CoreR.string.settings_updates)) {
         UpdateRows()
     }
     Group(stringResource(R.string.group_licences), stringResource(R.string.plex_tv_not_affiliated)) {
@@ -867,13 +948,12 @@ private fun UpdateRows() {
 }
 
 // ---------------------------------------------------------------------------
-// Sources de fichiers (FS-10): the sources of this TV, Add, and their place on Home (off by default, spec D10).
+// Sources: the file sources of this TV and Add (FS-10), the photo sources, the music source.
 
 @Composable
 private fun FilesSection() {
     val overlay = LocalOverlay.current
     val sources by com.wika.wicaby.core.files.FileSources.list.collectAsState()
-    val showOnHome by com.wika.wicaby.core.files.FileSources.showOnHome.collectAsState()
     val add = remember { FocusRequester() }
     Group(stringResource(CoreR.string.files_title)) {
         sources.forEach { s ->
@@ -890,12 +970,12 @@ private fun FilesSection() {
             overlay.show(add) { AddFileSourceSheet(onDismiss = overlay::close) }
         })
     }
-    Group(null) {
-        ToggleRow(stringResource(CoreR.string.files_home_setting), showOnHome) {
-            com.wika.wicaby.core.files.FileSources.setShowOnHome(it)
-            Cache.changed()
-        }
-    }
-    // Immich photo source (photos spec PH-13).
+    // Photo folders and the Immich photo source (photos spec PH-13).
     com.wika.wicaby.tv.ui.photos.ImmichGroup()
+    // "Source de la musique": which signed-in server the Music tab shows (core MusicSource).
+    val music = com.wika.wicaby.core.music.MusicSource.choices(stringResource(CoreR.string.music_source_auto))
+    val chosen = remember(com.wika.wicaby.core.music.MusicSource.version) { com.wika.wicaby.core.music.MusicSource.current() }
+    Group(stringResource(R.string.group_music), stringResource(CoreR.string.music_source_hint)) {
+        ChoiceRow(stringResource(CoreR.string.music_source), music.map { it.second }, music.indexOfFirst { it.first == chosen }.coerceAtLeast(0), { com.wika.wicaby.core.music.MusicSource.set(music[it].first) })
+    }
 }

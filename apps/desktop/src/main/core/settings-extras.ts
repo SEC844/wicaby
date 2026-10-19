@@ -10,7 +10,7 @@ import { isSafeMpvPath } from './settings';
 
 const log = logger.scope('settings');
 
-// Backs the Audio and "Confidentialité et stockage" panes.
+// Backs the Audio and "Système" panes.
 export interface SettingsExtras {
   audioDevices(): Promise<AudioDevice[]>;
   storage(): Promise<StorageUsage>;

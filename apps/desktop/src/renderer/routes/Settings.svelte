@@ -10,25 +10,30 @@
   import { onMount, untrack, type Component } from 'svelte';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import LogoLoader from '../components/LogoLoader.svelte';
+  import ShortcutEditor from '../components/ShortcutEditor.svelte';
   import { locale, t } from '../lib/i18n.svelte';
-  import { linux, web } from '../lib/platform';
+  import { web } from '../lib/platform';
   import { navigate, router } from '../lib/router.svelte';
   import { settings } from '../lib/stores.svelte';
   import AboutPane from './settings/AboutPane.svelte';
   import AdvancedPane from './settings/AdvancedPane.svelte';
   import AppearancePane from './settings/AppearancePane.svelte';
   import AudioPane from './settings/AudioPane.svelte';
+  import CastPane from './settings/CastPane.svelte';
   import DownloadsPane from './settings/DownloadsPane.svelte';
   import GeneralPane from './settings/GeneralPane.svelte';
   import LibraryPane from './settings/LibraryPane.svelte';
+  import MusicPane from './settings/MusicPane.svelte';
   import PlaybackPane from './settings/PlaybackPane.svelte';
   import PrivacyPane from './settings/PrivacyPane.svelte';
   import RemotePane from './settings/RemotePane.svelte';
   import ServerPane from './settings/ServerPane.svelte';
+  import SourcesPane from './settings/SourcesPane.svelte';
   import SubtitlesPane from './settings/SubtitlesPane.svelte';
+  import VideoPane from './settings/VideoPane.svelte';
   import { previewAccent, SettingsData } from './settings/shared.svelte';
 
-  // Panes provided by other features; each shows up once its component exists.
+  // Parts provided by other features; each shows up inside its pane once its component exists.
   const optional = import.meta.glob<{ default: Component }>(['../components/TorrentSettings.svelte', '../components/WindowsSettings.svelte', '../components/TraktSettings.svelte', '../components/Logo.svelte'], {
     eager: true,
   });
@@ -41,18 +46,19 @@
   type Pane =
     | 'general'
     | 'appearance'
+    | 'library'
     | 'playback'
+    | 'video'
     | 'audio'
     | 'subtitles'
-    | 'library'
-    | 'downloads'
-    | 'torrents'
+    | 'music'
+    | 'cast'
     | 'server'
+    | 'sources'
     | 'remote'
-    | 'accounts'
-    | 'windows'
+    | 'downloads'
+    | 'shortcuts'
     | 'privacy'
-    | 'advanced'
     | 'about';
 
   // `group` splits the list into quiet clusters separated by space, not lines.
@@ -60,33 +66,36 @@
   const ALL_PANES: { id: Pane; icon: IconName; group: number }[] = [
     { id: 'general', icon: 'settings', group: 0 },
     { id: 'appearance', icon: 'palette', group: 0 },
+    { id: 'library', icon: 'home', group: 0 },
     { id: 'playback', icon: 'play', group: 1 },
+    { id: 'video', icon: 'monitorPlay', group: 1 },
     { id: 'audio', icon: 'volume', group: 1 },
     { id: 'subtitles', icon: 'subtitles', group: 1 },
-    { id: 'library', icon: 'grid', group: 2 },
+    { id: 'music', icon: 'music', group: 1 },
+    { id: 'cast', icon: 'cast', group: 1 },
+    { id: 'server', icon: 'user', group: 2 },
+    { id: 'sources', icon: 'folder', group: 2 },
+    { id: 'remote', icon: 'globe', group: 2 },
     { id: 'downloads', icon: 'download', group: 2 },
-    { id: 'torrents', icon: 'network', group: 2 },
-    { id: 'server', icon: 'server', group: 2 },
-    { id: 'remote', icon: 'network', group: 2 },
-    { id: 'accounts', icon: 'user', group: 2 },
-    { id: 'windows', icon: 'bell', group: 3 },
+    { id: 'shortcuts', icon: 'key', group: 3 },
     { id: 'privacy', icon: 'hardDrive', group: 3 },
-    { id: 'advanced', icon: 'gauge', group: 3 },
     { id: 'about', icon: 'info', group: 4 },
   ];
+  // Pane ids from before the reorganisation, still used by old links and the remembered pane.
+  const ALIASES: Record<string, Pane> = { torrents: 'downloads', windows: 'general', accounts: 'server', advanced: 'privacy' };
+  const resolve = (id: string | null) => (id && ALIASES[id]) || id;
   // The web TV app (lib/platform.ts) keeps the panes that do not need the desktop's main process.
-  const WEB_PANES: Pane[] = ['general', 'appearance', 'playback', 'subtitles', 'library', 'server', 'about'];
-  const PANES = ALL_PANES.filter((p) => (p.id !== 'torrents' || TorrentSettings) && (p.id !== 'windows' || WindowsSettings) && (p.id !== 'accounts' || TraktSettings) && (!web || WEB_PANES.includes(p.id)));
-  // The "Windows" pane (tray, startup, notifications) is "Desktop" on Linux.
-  const paneLabel = (id: Pane) => (linux && id === 'windows' ? t('settings.panes.windows.labelLinux') : t(`settings.panes.${id}.label`));
-  const paneBlurb = (id: Pane) => (linux && id === 'windows' ? t('settings.panes.windows.blurbLinux') : t(`settings.panes.${id}.blurb`));
+  const WEB_PANES: Pane[] = ['general', 'appearance', 'library', 'playback', 'video', 'subtitles', 'cast', 'server', 'sources', 'about'];
+  const PANES = ALL_PANES.filter((p) => !web || WEB_PANES.includes(p.id));
+  const paneLabel = (id: Pane) => t(`settings.panes.${id}.label`);
+  const paneBlurb = (id: Pane) => t(`settings.panes.${id}.blurb`);
 
   const s = $derived(settings.value);
   if (hwAtLaunch === null && settings.value) hwAtLaunch = settings.value.system.hardwareAcceleration;
   const hwStart = hwAtLaunch;
   // App info, audio devices and storage, shared with the panes that show them.
   const data = new SettingsData();
-  let pane = $state<Pane>(PANES.some((p) => p.id === lastPane) ? (lastPane as Pane) : 'general');
+  let pane = $state<Pane>(PANES.find((p) => p.id === resolve(lastPane))?.id ?? 'general');
   let query = $state('');
   let paneEl = $state<HTMLDivElement>();
   let noResults = $state(false);
@@ -107,7 +116,7 @@
   // /settings?pane=<id> opens that pane (the sidebar status popover links here), then drops the query so
   // the same link works again after the user moved to another pane.
   $effect(() => {
-    const id = router.route.query.get('pane');
+    const id = resolve(router.route.query.get('pane'));
     if (!PANES.some((p) => p.id === id)) return;
     untrack(() => open(id as Pane));
     navigate('/settings', { replace: true });
@@ -223,32 +232,38 @@
 {#snippet body(id: Pane)}
   {#if s}
     {#if id === 'general'}
-      <GeneralPane {open} />
+      <GeneralPane {open} {WindowsSettings} hasTorrents={!!TorrentSettings} />
     {:else if id === 'appearance'}
       <AppearancePane />
+    {:else if id === 'library'}
+      <LibraryPane />
     {:else if id === 'playback'}
-      <PlaybackPane {data} />
+      <PlaybackPane />
+    {:else if id === 'video'}
+      <VideoPane {data} />
     {:else if id === 'audio'}
       <AudioPane {data} />
     {:else if id === 'subtitles'}
       <SubtitlesPane />
-    {:else if id === 'library'}
-      <LibraryPane />
-    {:else if id === 'downloads'}
-      <DownloadsPane />
-    {:else if id === 'torrents' && TorrentSettings}
-      <TorrentSettings />
+    {:else if id === 'music'}
+      <MusicPane />
+    {:else if id === 'cast'}
+      <CastPane />
     {:else if id === 'server'}
       <ServerPane />
+      {#if TraktSettings && !web}<TraktSettings />{/if}
+    {:else if id === 'sources'}
+      <SourcesPane />
     {:else if id === 'remote'}
       <RemotePane />
-    {:else if id === 'accounts' && TraktSettings}
-      <TraktSettings />
-    {:else if id === 'windows' && WindowsSettings}
-      <WindowsSettings />
+    {:else if id === 'downloads'}
+      <DownloadsPane />
+      {#if TorrentSettings}<TorrentSettings notify={false} />{/if}
+    {:else if id === 'shortcuts'}
+      <!-- X-04: the editor (VOD and music actions) and the read-only "TV en direct" list (shared/shortcuts.ts). -->
+      <ShortcutEditor />
     {:else if id === 'privacy'}
       <PrivacyPane {data} />
-    {:else if id === 'advanced'}
       <AdvancedPane {hwStart} />
     {:else if id === 'about'}
       <AboutPane {data} {Logo} />
@@ -368,6 +383,13 @@
     margin: 4px 0 0;
     font-size: var(--fs-callout);
     color: var(--label-2);
+  }
+  /* Panes stack shared components: a heading sits tight only right under the pane header. */
+  .pane > :global(.gh.first) {
+    margin-top: 30px;
+  }
+  .pane > .pane-head + :global(.gh) {
+    margin-top: 0;
   }
 
   /* ---- Title and search ---- */

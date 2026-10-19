@@ -1,30 +1,18 @@
 <script lang="ts">
+  import type { Component } from 'svelte';
   import { UI_LANGUAGES } from '../../../shared/i18n-core';
   import Icon from '../../components/Icon.svelte';
   import Picker from '../../components/Picker.svelte';
-  import ShortcutEditor from '../../components/ShortcutEditor.svelte';
-  import Toggle from '../../components/Toggle.svelte';
-  import { libraryRef } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import { linux, web } from '../../lib/platform';
   import { navigate } from '../../lib/router.svelte';
-  import { libraries, multiServer, serverName, session, settings } from '../../lib/stores.svelte';
+  import { session, settings } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
 
-  let { open }: { open: (pane: 'server') => void } = $props();
+  // WindowsSettings: optional, from the Settings shell's glob; hasTorrents adds the torrent notification to its group.
+  let { open, WindowsSettings, hasTorrents }: { open: (pane: 'server') => void; WindowsSettings?: Component<{ torrents?: boolean }>; hasTorrents: boolean } = $props();
 
   const s = $derived(settings.value);
-
-  const browsable = $derived(libraries.list.filter((l) => !['playlists', 'livetv', 'folders'].includes(l.CollectionType ?? '')));
-  const startPages = $derived([
-    { value: 'home', label: t('settings.general.startPage.home') },
-    { value: 'favorites', label: t('settings.general.startPage.favorites') },
-    ...browsable.map((l) => ({ value: `library:${libraryRef(l)}`, label: multiServer() ? `${l.Name} · ${serverName(l.ServerId)}` : l.Name })),
-    // A library this account no longer sees keeps a readable entry until it is changed.
-    ...(s && s.ui.startPage.startsWith('library:') && !browsable.some((l) => `library:${libraryRef(l)}` === s.ui.startPage)
-      ? [{ value: s.ui.startPage, label: t('settings.general.startPage.missing') }]
-      : []),
-  ]);
 </script>
 
 {#if s}
@@ -42,15 +30,8 @@
     </div>
   {/if}
 
-  <h3 class="gh">{t('settings.general.startup')}</h3>
+  <h3 class="gh">{t('settings.general.language.title')}</h3>
   <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.general.startPage.label')}</div>
-        <div class="desc">{t('settings.general.startPage.desc')}</div>
-      </div>
-      <Picker label={t('settings.general.startPage.label')} value={s.ui.startPage} options={startPages} onchange={(v) => set({ ui: { startPage: v } })} />
-    </div>
     <div class="row">
       <div class="txt">
         <div class="lbl">{t('settings.general.language.label')}</div>
@@ -63,52 +44,22 @@
         onchange={(v) => set({ ui: { language: v } })}
       />
     </div>
-    <!-- The web TV app (lib/platform.ts): no setup wizard, no updater, no desktop player windows or shortcuts. -->
-    {#if !web}
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.general.setup.label')}</div>
-        <div class="desc">{t('settings.general.setup.desc')}</div>
-      </div>
-      <button type="button" class="push" data-action="rerun-setup" onclick={() => navigate('/welcome?rerun=1')}>{t('settings.general.setup.button')}</button>
-    </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.about.updates.auto')}</div>
-        <div class="desc">{t('settings.about.updates.autoDesc')}</div>
-      </div>
-      <Toggle label={t('settings.about.updates.auto')} checked={s.updates.autoCheck} onchange={(v) => set({ updates: { autoCheck: v } })} />
-    </div>
-    {/if}
   </div>
 
+  <!-- The web TV app (lib/platform.ts): no desktop window, notifications or setup wizard. -->
   {#if !web}
+    {#if WindowsSettings}<WindowsSettings torrents={hasTorrents} />{/if}
 
-  <h3 class="gh">{t('settings.general.player')}</h3>
-  <div class="group">
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.general.startFullscreen.label')}</div>
-        <div class="desc">{t('settings.general.startFullscreen.desc')}</div>
+    <h3 class="gh">{t('settings.general.setup.title')}</h3>
+    <div class="group">
+      <div class="row">
+        <div class="txt">
+          <div class="lbl">{t('settings.general.setup.label')}</div>
+          <div class="desc">{t('settings.general.setup.desc')}</div>
+        </div>
+        <button type="button" class="push" data-action="rerun-setup" onclick={() => navigate('/welcome?rerun=1')}>{t('settings.general.setup.button')}</button>
       </div>
-      <Toggle label={t('settings.general.startFullscreen.label')} checked={s.playback.startFullscreen} onchange={(v) => set({ playback: { startFullscreen: v } })} />
     </div>
-    <div class="row">
-      <div class="txt">
-        <div class="lbl">{t('settings.general.confirmQuit.label')}</div>
-        <div class="desc">{t('settings.general.confirmQuit.desc')}</div>
-      </div>
-      <Toggle
-        label={t('settings.general.confirmQuit.label')}
-        checked={s.ui.confirmQuitDuringPlayback}
-        onchange={(v) => set({ ui: { confirmQuitDuringPlayback: v } })}
-      />
-    </div>
-  </div>
-
-  <h3 class="gh">{t('settings.general.shortcuts.title')}</h3>
-  <!-- X-04: the editor (VOD actions) and the read-only "TV en direct" list (shared/shortcuts.ts). -->
-  <ShortcutEditor />
   {/if}
 {/if}
 
@@ -132,16 +83,6 @@
     gap: 16px;
     min-height: 58px;
     padding: 12px 18px;
-  }
-  /* Hairline between rows, inset to the text edge. */
-  .row + .row::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 18px;
-    right: 0;
-    height: 1px;
-    background: var(--separator);
   }
   .txt {
     min-width: 0;
@@ -192,14 +133,6 @@
     color: var(--label);
     background: var(--fill-3);
   }
-  /* Hairlines only between rows that are still shown. */
-  :global(.searching) .row::before {
-    display: none;
-  }
-  :global(.searching) .row:not([hidden]) ~ .row:not([hidden])::before {
-    display: block;
-  }
-
   /* Compact density tightens these rows as well. */
   :global(html[data-density='compact']) .row {
     min-height: 50px;

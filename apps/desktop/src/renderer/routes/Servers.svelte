@@ -470,7 +470,7 @@
       dot: f.status === 'offline' ? 'bad' : f.status === 'pending' ? 'warn' : 'ok',
       trail: 'chevron',
       // A photo source is its own photo library; a pending one connects from Settings › Library.
-      open: leave(key, f.status === 'pending' ? '/settings?pane=library' : f.photos ? `/library/${f.id}/p.` : `/files/${f.id}/p.`),
+      open: leave(key, f.status === 'pending' ? '/settings?pane=sources' : f.photos ? `/library/${f.id}/p.` : `/files/${f.id}/p.`),
       menu: [{ label: t('common.actions.remove'), danger: true, run: () => removeFiles(f) }],
     };
   }
@@ -512,7 +512,7 @@
         kind: named ? 'Immich' : t('photos.sources.section'),
         dot: 'idle',
         trail: 'chevron',
-        open: leave(key, '/settings?pane=library'),
+        open: leave(key, '/settings?pane=sources'),
         menu: [{ label: t('common.actions.remove'), danger: true, run: () => immichRemove(s) }],
       };
     }),
@@ -1012,7 +1012,7 @@
               <!-- Immich connects in Settings, which opens once a server is signed in (App.svelte's guard). -->
               {#if signedIn}
                 <li>
-                  <button class="row type" onclick={() => (closeAdd(), navigate('/settings?pane=library'))}>
+                  <button class="row type" onclick={() => (closeAdd(), navigate('/settings?pane=sources'))}>
                     <span class="meta"><span class="name">Immich</span><span class="sub">{t('sources.add.photos.immich.body')}</span></span>
                     <span class="go"><Icon name="chevronRight" size={16} /></span>
                   </button>

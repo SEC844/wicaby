@@ -260,7 +260,7 @@ async function run() {
   // ---- Settings › Library: the sources, the setting, and the Add sheet with an untrusted certificate ----
   await ev(`location.hash = '#/settings'`);
   await until('settings', () => ev(`!!document.querySelector('nav.cats')`), 10000);
-  await ev(`[...document.querySelectorAll('nav.cats button')].find((b) => /library/i.test(b.textContent)).click()`);
+  await ev(`[...document.querySelectorAll('nav.cats button')].find((b) => /sources/i.test(b.textContent)).click()`);
   await until('file sources settings', () => ev(`!!document.querySelector('[data-files-settings]')`), 10000);
   await ev(`document.querySelector('[data-files-settings]').scrollIntoView({ block: 'center' })`);
   await shot(main, 'files-settings.png');

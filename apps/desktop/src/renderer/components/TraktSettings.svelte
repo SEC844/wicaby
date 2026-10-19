@@ -44,7 +44,7 @@
 </script>
 
 {#if st}
-  <h3 class="gh first">Trakt</h3>
+  <h3 class="gh first">{t('settings.trakt.title')}</h3>
   <div class="group">
     {#if st.user !== null}
       <div class="row">

@@ -140,11 +140,22 @@
     <string name="settings_bitrate">Maximum Bitrate</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="mbps">%1$d Mbps</string>
-    <string name="settings_downloads">Downloads</string>
-    <string name="wifi_only">Wi-Fi Only</string>
+    <string name="wifi_only">Download over Wi-Fi Only</string>
     <string name="wifi_only_sub">Wait for an unmetered network.</string>
     <string name="open_in_browser">Open in Browser</string>
     <string name="about">About</string>
+    <string name="settings_general">General</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_accounts">Accounts</string>
+    <string name="settings_sources">Sources</string>
+    <string name="settings_not_signed_in">Not signed in</string>
+    <string name="settings_setup">Setup Assistant</string>
+    <string name="settings_home">Home</string>
+    <string name="settings_quality">Quality &amp; Data</string>
+    <string name="settings_skip">Skip Segments</string>
+    <string name="settings_music_source">Source</string>
+    <string name="settings_other_devices">Other Devices</string>
+    <string name="settings_licences">Licenses</string>
     <string name="about_line">Wicaby %1$s · Geist font (SIL OFL 1.1) · FFmpeg (GPL v3) · libass (ISC)</string>
 
     <!-- Player -->
@@ -356,6 +367,8 @@
     <string name="remote_play_dismiss">Dismiss</string>
     <string name="remote_channel_name">Remote Control</string>
     <string name="settings_cast_title">Casting</string>
+    <string name="settings_cast_to_tv">Cast to a TV</string>
+    <string name="settings_debug">Debug</string>
     <string name="settings_cast_discovery">Search for TVs and players on the local network</string>
     <string name="settings_cast_seed">Renderer address (debug)</string>
     <string name="settings_cast_allow_hevc">Allow HEVC on Chromecast</string>
@@ -383,6 +396,7 @@
     <string name="plex_link_expired">This code expired.</string>
     <string name="plex_link_new_code">New code</string>
     <string name="plex_link_row">Link a Plex account</string>
+    <string name="plex_link_other">Link another Plex account</string>
     <string name="plex_link_row_sub">Your Plex servers, and the ones shared with you</string>
     <string name="plex_users_lead">Pick the Plex Home profile who is watching.</string>
     <string name="plex_pin_for">PIN for %1$s</string>

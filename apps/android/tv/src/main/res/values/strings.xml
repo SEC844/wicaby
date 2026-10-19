@@ -74,7 +74,6 @@
     <!-- Réglages -->
     <string name="settings_accent">Couleur d’accentuation</string>
     <string name="settings_theme">Thème</string>
-    <string name="settings_bitrate">Débit maximal</string>
     <string name="settings_bitrate_auto">Auto</string>
     <string name="switch_user">Changer d’utilisateur</string>
     <string name="switch_server">Changer de serveur</string>
@@ -115,17 +114,26 @@
 
     <!-- Réglages : sections -->
     <string name="section_playback">Lecture</string>
-    <string name="section_interface">Interface</string>
     <string name="section_accounts">Comptes</string>
     <string name="section_remote">Accès à distance</string>
     <string name="section_about">À propos</string>
+    <string name="section_general">Général</string>
+    <string name="section_appearance">Apparence</string>
+    <string name="section_home">Accueil et bibliothèques</string>
+    <string name="section_audio">Audio</string>
+    <string name="section_subtitles">Sous-titres</string>
+    <string name="sources_title">Sources</string>
 
     <!-- Réglages : Lecture -->
     <string name="net_ethernet">Ethernet</string>
     <string name="net_wifi">Wi‑Fi</string>
-    <string name="net_remote">À distance</string>
-    <string name="bitrate_hint">Wicaby applique la limite de débit de la connexion utilisée au lancement de la lecture. « À distance » concerne les connexions hors de votre réseau local.</string>
-    <string name="group_episodes">Épisodes</string>
+    <string name="net_remote">Via l’accès à distance</string>
+    <string name="bitrate_hint">Wicaby applique la limite de débit de la connexion utilisée au lancement de la lecture. « Via l’accès à distance » concerne les connexions hors de votre réseau local.</string>
+    <string name="group_quality">Qualité</string>
+    <string name="group_resume">Reprise et enchaînement</string>
+    <string name="group_skip">Passer les séquences</string>
+    <string name="group_picture">Image</string>
+    <string name="group_live">TV en direct</string>
     <string name="autoplay_next">Enchaîner l’épisode suivant</string>
     <string name="countdown">Compte à rebours</string>
     <string name="seconds">%1$d s</string>
@@ -138,13 +146,13 @@
     <string name="resume_ask">Demander</string>
     <string name="resume_start">Toujours depuis le début</string>
     <string name="group_display">Affichage</string>
-    <string name="group_audio">Audio</string>
     <string name="audio_language">Langue audio préférée</string>
     <string name="passthrough_hint">Passthrough HDMI : « Auto » suit le téléviseur ou l’ampli branché. « Désactivé » fait décoder le son par Wicaby.</string>
+    <string name="group_passthrough">Sortie HDMI (passthrough)</string>
+    <string name="server_pref_hint">Enregistrée sur votre serveur, pour tous vos appareils.</string>
     <string name="pass_auto">Auto</string>
     <string name="pass_on">Toujours</string>
     <string name="pass_off">Désactivé</string>
-    <string name="group_subtitles">Sous-titres</string>
     <string name="subtitle_language">Langue des sous-titres</string>
     <string name="subtitle_mode">Affichage des sous-titres</string>
     <string name="sub_mode_default">Par défaut</string>
@@ -173,8 +181,10 @@
     <string name="sub_pos_slightly_raised">Légèrement relevés</string>
     <string name="sub_pos_raised">Relevés</string>
     <string name="subtitle_override_ass">Appliquer aux sous-titres ASS</string>
-    <string name="subtitle_hint">Les langues et l’affichage sont enregistrés sur votre compte du serveur. Le style s’applique aux sous-titres texte ; les sous-titres ASS gardent leur propre style, sauf si « Appliquer aux sous-titres ASS » est activé.</string>
+    <string name="subtitle_hint">Le style s’applique aux sous-titres texte ; les sous-titres ASS gardent leur propre style, sauf si « Appliquer aux sous-titres ASS » est activé.</string>
     <string name="server_pref_failed">Le serveur n’a pas accepté la modification.</string>
+    <string name="group_sub_language">Langue et affichage</string>
+    <string name="group_style">Style</string>
     <string name="lang_auto">Automatique</string>
     <string name="lang_fre">Français</string>
     <string name="lang_eng">Anglais</string>
@@ -189,12 +199,17 @@
 
     <!-- Réglages : Interface -->
     <string name="language">Langue / Language</string>
+    <string name="group_language">Langue</string>
+    <string name="group_tv_home">Écran d’accueil de la TV</string>
+    <string name="tv_home_hint">Rangées de Wicaby dans le lanceur Android TV, pas l’accueil de l’app.</string>
+    <string name="group_other_devices">Autres appareils</string>
+    <string name="group_setup">Assistant</string>
     <string name="language_system">Langue du système</string>
     <string name="language_fr" translatable="false">Français</string>
     <string name="language_en" translatable="false">English</string>
-    <string name="group_appearance">Apparence</string>
     <string name="show_clock">Horloge</string>
     <string name="group_home">Accueil</string>
+    <string name="group_home_rows">Rangées de l’accueil</string>
     <string name="row_hero">À la une</string>
     <string name="hero_hide_watched">Masquer les titres vus dans « À la une »</string>
     <string name="row_latest">Ajouts récents</string>
@@ -235,7 +250,7 @@
     <string name="codec_fps">%1$d i/s</string>
     <string name="codec_10bit">10 bits</string>
     <string name="group_licences">Licences</string>
-    <string name="group_device">Cet appareil</string>
+    <string name="group_device">Capacités de l’appareil</string>
     <string name="device_model">Modèle</string>
     <string name="android_version">Android</string>
     <string name="video_decoders">Vidéo</string>
@@ -287,7 +302,7 @@
     <string name="reader_webtoon">Défilement vertical</string>
     <string name="pair_with_phone">Utiliser mon téléphone</string>
     <string name="pair_title">Connexion avec le téléphone</string>
-    <string name="pair_body">Dans Wicaby sur votre téléphone, ouvrez Réglages > Connecter une TV et scannez ce code. Le téléphone doit être sur le même réseau.</string>
+    <string name="pair_body">Dans Wicaby sur votre téléphone, ouvrez Réglages > Comptes > Connecter une TV et scannez ce code. Le téléphone doit être sur le même réseau.</string>
     <string name="pair_no_lan">Ce téléviseur n’est pas connecté à un réseau local.</string>
     <string name="pair_failed">Le serveur a refusé la connexion. Scannez le nouveau code.</string>
     <!-- TV en direct (spec livetv §13.3) -->
@@ -373,6 +388,10 @@
     <string name="other_servers">Autres serveurs</string>
     <string name="other_servers_hint">Les titres de tous vos serveurs se retrouvent dans l’accueil et la recherche, une seule fois chacun.</string>
     <string name="add_server">Ajouter un serveur</string>
+    <string name="group_user">Utilisateur</string>
+    <string name="group_music">Musique</string>
+    <string name="confirm_clear">Effacer</string>
+    <string name="confirm_reset">Rétablir</string>
     <string name="remove_server">Retirer ce serveur</string>
     <string name="server_is_main">Ce serveur est déjà votre serveur principal.</string>
     <!-- TP-10: profiles and PIN -->
@@ -425,7 +444,7 @@
     <string name="welcome_media_servers">Serveurs multimédias</string>
     <!-- Photos (photos spec PH-06/PH-07). -->
     <string name="photos_month_jump_hint">Page ou chaîne +/−, ou Bas maintenu, pour changer de mois</string>
-    <string name="screensaver_source">Afficher</string>
+    <string name="screensaver_source">Contenu</string>
     <string name="screensaver_source_backdrops">Images des films et séries</string>
     <string name="screensaver_source_photos">Photos</string>
     <string name="screensaver_source_memories">Ce jour-là</string>

@@ -228,7 +228,7 @@ async function run() {
   await sleep(500);
 
   // ---------------- PH-09: the setting ----------------
-  await ev(`location.hash = '#/settings?pane=privacy'`);
+  await ev(`location.hash = '#/settings?pane=sources'`);
   await until('privacy pane', () => ev(`!!document.querySelector('.group.map')`), 15000, 200);
   await ev(`(document.querySelector('.group.map').scrollIntoView({ block: 'center' }), true)`);
   await sleep(400);
