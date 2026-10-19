@@ -17,11 +17,12 @@
   import { music, playMusic } from '../lib/music.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
   import { edgeDelta } from '../lib/scroll';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
   import { showToast } from '../lib/toast.svelte';
 
-  let { id, title }: { id: string; title: string } = $props();
-  const client = api()!;
+  let { id, title, serverId }: { id: string; title: string; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
 
   const album = useLoad(
     () => `music-album-${id}`,

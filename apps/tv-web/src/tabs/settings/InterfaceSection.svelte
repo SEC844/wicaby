@@ -9,7 +9,9 @@
   import { defaults, latestViewId, move, NEXT_UP, RESUME, UPCOMING, BECAUSE, LIVE_NOW, MEMORIES } from '../../lib/home-rows';
   import { setLanguage, t } from '../../lib/i18n.svelte';
   import { showAlert } from '../../lib/overlay.svelte';
-  import { prefs } from '../../lib/session.svelte';
+  import { isMulti, prefs, serverName } from '../../lib/session.svelte';
+  import { extraViews, libraryRef } from '../../lib/servers';
+  import { useLoad } from '../../lib/load.svelte';
   import { arrange, homeRows, setHomeRows, setTabBarPref, settings, tabBarPref } from '../../lib/settings.svelte';
   import type { TopTab } from '../../lib/tabs';
   import { palette } from '../../lib/theme';
@@ -23,10 +25,16 @@
   // --- Home rows (TP-07) ---
   const user = $derived(`${prefs.session!.server.id}/${prefs.session!.userId}`);
   const merged = $derived(settings.mergeContinue.value);
-  const latestViews = $derived(views.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? '')));
+  const latestOf = (list: BaseItem[]) => list.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? ''));
+  // TP-06: the other servers' libraries have their rows too (HomeTab).
+  const extras = useLoad(
+    () => (isMulti() ? `extra-views-${(prefs.extras ?? []).map((e) => e.server.id).join(',')}` : 'extra-views-off'),
+    () => (isMulti() ? extraViews() : Promise.resolve([])),
+  );
+  const latestViews = $derived([...latestOf(views), ...latestOf(extras.value ?? [])]);
   const homeDefaults = $derived(
     defaults(
-      latestViews.map((v) => v.Id),
+      latestViews.map((v) => libraryRef(v, prefs.session!.server.id)),
       merged,
       views.some((v) => v.CollectionType === 'livetv'),
       views.some((v) => v.CollectionType === 'photos'),
@@ -42,7 +50,9 @@
     if (id === BECAUSE) return t('row_because_any');
     if (id === LIVE_NOW) return t('row_live_now');
     if (id === MEMORIES) return t('photos_memories_title');
-    return t('latest_in', latestViews.find((v) => v.Id === latestViewId(id))?.Name ?? '');
+    const v = latestViews.find((x) => libraryRef(x, prefs.session!.server.id) === latestViewId(id));
+    const name = v?.ServerId && v.ServerId !== prefs.session!.server.id ? `${v.Name} · ${serverName(v.ServerId) ?? ''}` : (v?.Name ?? '');
+    return t('latest_in', name);
   }
 
   function rowMenu(id: string, i: number): void {

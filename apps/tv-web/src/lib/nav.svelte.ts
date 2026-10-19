@@ -13,24 +13,24 @@ export type Route =
   // The player: [queue] for a shuffle (ids in play order, [id] first), [trailer] plays and reports nothing.
   | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[] }
   // Music: an album or audio playlist, an artist, a music library's whole grid, and the now-playing screen.
-  | { name: 'musicAlbum'; id: string; title: string }
-  | { name: 'musicArtist'; id: string; title: string }
-  | { name: 'musicLibrary'; id: string; title: string; mode: 'albums' | 'artists' | 'songs' }
+  | { name: 'musicAlbum'; id: string; title: string; serverId?: string }
+  | { name: 'musicArtist'; id: string; title: string; serverId?: string }
+  | { name: 'musicLibrary'; id: string; title: string; mode: 'albums' | 'artists' | 'songs'; serverId?: string }
   | { name: 'nowPlaying' }
   // A Live TV channel full screen; [list] the zap order (channel ids) it was opened from, else the whole lineup.
   | { name: 'live'; id: string; list?: string[] }
   // Photos: an album's own timeline, and the viewer over a loaded timeline (lib/photos.svelte.ts timelineByKey).
-  | { name: 'photoAlbum'; id: string; title: string }
+  | { name: 'photoAlbum'; id: string; title: string; serverId?: string }
   | { name: 'photoView'; key: string; index: number }
-  | { name: 'reader'; id: string; fromStart?: boolean };
+  | { name: 'reader'; id: string; fromStart?: boolean; serverId?: string };
 
 // Android Item.route(): an album or audio playlist opens its page, an artist theirs, a folder (collection, plain
 // folder) its grid, a channel plays live, a photo album opens its timeline, everything else its details page.
 export function itemRoute(item: BaseItem): Route {
-  if (item.Type === 'MusicAlbum' || (item.Type === 'Playlist' && item.MediaType === 'Audio')) return { name: 'musicAlbum', id: item.Id, title: item.Name };
-  if (item.Type === 'MusicArtist') return { name: 'musicArtist', id: item.Id, title: item.Name };
+  if (item.Type === 'MusicAlbum' || (item.Type === 'Playlist' && item.MediaType === 'Audio')) return { name: 'musicAlbum', id: item.Id, title: item.Name, serverId: item.ServerId };
+  if (item.Type === 'MusicArtist') return { name: 'musicArtist', id: item.Id, title: item.Name, serverId: item.ServerId };
   if (item.Type === 'TvChannel') return { name: 'live', id: item.Id };
-  if (item.Type === 'PhotoAlbum') return { name: 'photoAlbum', id: item.Id, title: item.Name };
+  if (item.Type === 'PhotoAlbum') return { name: 'photoAlbum', id: item.Id, title: item.Name, serverId: item.ServerId };
   return item.IsFolder && item.Type !== 'Series' && item.Type !== 'Season'
     ? { name: 'folder', id: item.Id, title: item.Name, serverId: item.ServerId }
     : { name: 'detail', id: item.Id, serverId: item.ServerId };

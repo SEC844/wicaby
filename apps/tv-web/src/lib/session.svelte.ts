@@ -21,6 +21,8 @@ interface Persisted {
   session: Session | null; // the signed-in account
   profiles: Session[]; // accounts this TV remembers, for "Who's watching?" (TP-10)
   onboarded: boolean;
+  // TP-06: the other servers signed in at once (one account each), merged into Home and Search.
+  extras?: Session[];
 }
 
 export const prefs = $state<Persisted>(load<Persisted>('session', { server: null, session: null, profiles: [], onboarded: false }));
@@ -41,6 +43,17 @@ export function signIn(session: Session): void {
   persist();
 }
 
+export function addExtra(session: Session): void {
+  prefs.extras = [...(prefs.extras ?? []).filter((e) => e.server.id !== session.server.id), session];
+  persist();
+}
+
+// Not revoked on the server: the token may serve elsewhere (Android removeAccount).
+export function removeExtra(serverId: string): void {
+  prefs.extras = (prefs.extras ?? []).filter((e) => e.server.id !== serverId);
+  persist();
+}
+
 // Switch user keeps the profile (and its token) for the picker; sign out forgets it.
 export function signOut(forget: boolean): void {
   const s = prefs.session;
@@ -50,7 +63,9 @@ export function signOut(forget: boolean): void {
 }
 
 export function apiFor(server: Server, session?: Session | null): Api {
-  return new Api(server.address, server.kind, session?.token, session?.userId);
+  const a = new Api(server.address, server.kind, session?.token, session?.userId);
+  a.serverId = server.id;
+  return a;
 }
 
 // The signed-in account's client; null while signed out.
@@ -61,4 +76,37 @@ export function api(): Api | null {
   const key = `${s.server.id}/${s.userId}/${s.token}`;
   if (cached?.key !== key) cached = { key, api: apiFor(s.server, s) };
   return cached.api;
+}
+
+// Every signed-in server's client, the primary first (extras that duplicate it left out).
+const extraCache = new Map<string, Api>();
+export function apis(): Api[] {
+  const main = api();
+  if (!main) return [];
+  const out = [main];
+  for (const e of prefs.extras ?? []) {
+    if (e.server.id === prefs.session?.server.id) continue;
+    const key = `${e.server.id}/${e.userId}/${e.token}`;
+    let a = extraCache.get(key);
+    if (!a) extraCache.set(key, (a = apiFor(e.server, e)));
+    out.push(a);
+  }
+  return out;
+}
+
+// The client of the server an item or route names; the primary when it names none (or one no longer signed in).
+export function apiOf(serverId?: string | null): Api | null {
+  const main = api();
+  if (!serverId || serverId === prefs.session?.server.id) return main;
+  const e = (prefs.extras ?? []).find((x) => x.server.id === serverId);
+  return e ? (apis().find((a) => a.address === e.server.address && a.userId === e.userId) ?? main) : main;
+}
+
+export const isMulti = (): boolean => (prefs.extras ?? []).some((e) => e.server.id !== prefs.session?.server.id);
+
+// A server's name by id, for the server badge on merged rows.
+export function serverName(serverId?: string): string | undefined {
+  if (!serverId) return undefined;
+  if (serverId === prefs.session?.server.id) return prefs.session.server.name;
+  return (prefs.extras ?? []).find((e) => e.server.id === serverId)?.server.name;
 }

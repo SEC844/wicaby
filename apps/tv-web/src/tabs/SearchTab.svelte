@@ -11,6 +11,7 @@
   import type { Api } from '../lib/api';
   import { t } from '../lib/i18n.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
+  import { merged } from '../lib/servers';
   import { dp } from '../lib/screen';
   import { clamp, edgeDelta } from '../lib/scroll';
 
@@ -32,8 +33,9 @@
     }
     let stale = false;
     const timer = setTimeout(() => {
-      api.items({ SearchTerm: term, IncludeItemTypes: 'Movie,Series,Episode', Recursive: true, Limit: 60 }).then(
-        (r) => !stale && (results = r.Items),
+      // Every signed-in server (TP-06), one copy of a title found on several.
+      merged((a) => a.items({ SearchTerm: term, IncludeItemTypes: 'Movie,Series,Episode', Recursive: true, Limit: 60 }).then((r) => r.Items)).then(
+        (r) => !stale && (results = r),
         () => !stale && (results = []),
       );
     }, 350);

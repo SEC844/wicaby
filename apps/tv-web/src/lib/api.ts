@@ -47,6 +47,9 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 }
 
 export class Api {
+  // The server's id (System/Info Id), once known: what items carry as ServerId.
+  serverId?: string;
+
   constructor(
     readonly address: string,
     readonly kind: ServerKind,

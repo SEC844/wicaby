@@ -21,11 +21,12 @@
   import { openRemoteTrailer, play, playTrailer, read, shuffle } from '../lib/playback';
   import { dp } from '../lib/screen';
   import { clamp, heroDelta } from '../lib/scroll';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
   import * as Versions from '../lib/versions';
 
-  let { id }: { id: string } = $props();
-  const client = api()!;
+  let { id, serverId }: { id: string; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
 
   let reload = $state(0);
   const loaded = useLoad(() => `item-${id}-${reload}`, () => client.item(id));

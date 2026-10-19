@@ -1,10 +1,11 @@
 <script lang="ts">
   // Android TV FolderScreen (Main.kt): a pushed folder or collection, as a library grid with its first title focused.
   import LibraryGrid from '../components/LibraryGrid.svelte';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
 
-  let { id, title }: { id: string; title: string } = $props();
-  const client = api()!;
+  let { id, title, serverId }: { id: string; title: string; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
 </script>
 
 <div class="folder">

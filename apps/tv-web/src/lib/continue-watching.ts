@@ -3,7 +3,10 @@
 // The merge and the hidden-card rules are the desktop's pure renderer/lib/continue.ts.
 import type { BaseItem } from '$shared/models';
 import { hiddenKey, isHidden, mergeContinue, recency, type HiddenEntry, type SeriesDates, withHidden, withoutHidden } from '$desktop/continue';
+import { dedupe } from '$desktop/items';
 import type { Api } from './api';
+import { fanOut } from './servers';
+import { apis } from './session.svelte';
 import { runtimeText } from './format';
 import { t } from './i18n.svelte';
 import { load, save } from './storage';
@@ -56,4 +59,18 @@ export async function removeFromContinue(api: Api, item: BaseItem, series: Serie
 export async function undoRemove(api: Api, item: BaseItem): Promise<void> {
   if (api.isEmby && inProgress(item)) await api.hideFromResume(item.Id, false).catch(() => {});
   save('continue_hidden', withoutHidden(hidden(), hiddenKey(item, api.userId!)));
+}
+
+// Every signed-in server's row in one (TP-06): their cards by how recently they were watched, one copy of a title
+// found on several servers. Alone, the primary's row as is.
+export async function loadContinueAll(api: Api, serverId: string): Promise<ContinueRow> {
+  const others = apis().filter((a) => a !== api);
+  if (!others.length) return loadContinue(api, serverId);
+  const rows = await fanOut((a) => loadContinue(a, a.serverId ?? serverId));
+  const series: SeriesDates = new Map();
+  for (const r of rows) r?.series.forEach((d, k) => series.set(k, d));
+  const items = rows.flatMap((r) => r?.items ?? []);
+  const time = (i: BaseItem) => Date.parse(recency(i, series)) || 0;
+  items.sort((a, b) => time(b) - time(a));
+  return { items: dedupe(items), series };
 }

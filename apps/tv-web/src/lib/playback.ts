@@ -6,7 +6,7 @@ import { t } from './i18n.svelte';
 import { nav } from './nav.svelte';
 import { showAlert } from './overlay.svelte';
 import { resumeFrom } from './segments';
-import { api } from './session.svelte';
+import { apiOf } from './session.svelte';
 import { RESUME_ASK, RESUME_START, settings } from './settings.svelte';
 import { showToast } from './toast.svelte';
 
@@ -42,7 +42,7 @@ export function play(item: BaseItem, opts: PlayOptions = {}): void {
 
 // TP-04: every episode or title under [item] in random order, as a queue, each from its start.
 export async function shuffle(item: BaseItem): Promise<void> {
-  const client = api();
+  const client = apiOf(item.ServerId);
   if (!client) return;
   let ids: string[];
   try {
@@ -58,7 +58,7 @@ export async function shuffle(item: BaseItem): Promise<void> {
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
-  nav.push({ name: 'player', id: ids[0], fromStart: true, queue: ids });
+  nav.push({ name: 'player', id: ids[0], fromStart: true, queue: ids, serverId: item.ServerId });
 }
 
 // A trailer or bonus: from the start, nothing reported, no next episode.
@@ -68,7 +68,7 @@ export function playTrailer(item: BaseItem): void {
 
 // A book or comic: the reader, at the saved page unless fromStart.
 export function read(item: BaseItem, opts: PlayOptions = {}): void {
-  nav.push({ name: 'reader', id: item.Id, fromStart: opts.fromStart });
+  nav.push({ name: 'reader', id: item.Id, fromStart: opts.fromStart, serverId: item.ServerId });
 }
 
 // A remote trailer (core Trailers.remoteUrl): the TV's YouTube app, else its link as a QR code (Android TrailerQr).

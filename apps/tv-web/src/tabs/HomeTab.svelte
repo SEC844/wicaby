@@ -22,7 +22,9 @@
   import { play } from '../lib/playback';
   import { clamp, pivotDelta } from '../lib/scroll';
   import { arrange, homeRows, settings } from '../lib/settings.svelte';
-  import { prefs } from '../lib/session.svelte';
+  import { apiOf, isMulti, prefs, serverName } from '../lib/session.svelte';
+  import { extraViews as loadExtraViews, libraryRef, merged as mergedAll } from '../lib/servers';
+  import { loadContinueAll } from '../lib/continue-watching';
 
   let { api, views, onscrolled }: { api: Api; views: BaseItem[]; onscrolled: (scrolled: boolean) => void } = $props();
 
@@ -30,10 +32,18 @@
   const user = $derived(`${serverId}/${prefs.session!.userId}`);
   const merged = $derived(settings.mergeContinue.value);
   // The libraries with a "Recently Added" row: all but playlists, Live TV and folders (HomeLayout.kt latestViews).
-  const latestViews = $derived(views.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? '')));
+  const latestOf = (list: BaseItem[]) => list.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? ''));
+  // TP-06: the other signed-in servers' libraries get their own Recently Added rows ("<serverId>/<viewId>").
+  const multi = $derived(isMulti());
+  const extraViews = useLoad(
+    () => (multi ? `extra-views-${(prefs.extras ?? []).map((e) => e.server.id).join(',')}` : 'extra-views-off'),
+    () => (multi ? loadExtraViews() : Promise.resolve([])),
+  );
+  const latestViews = $derived([...latestOf(views), ...latestOf(extraViews.value ?? [])]);
+  const viewRef = (v: BaseItem) => libraryRef(v, serverId);
   const hasLive = $derived(views.some((v) => v.CollectionType === 'livetv'));
   const hasPhotos = $derived(views.some((v) => v.CollectionType === 'photos'));
-  const homeDefaults = $derived(defaults(latestViews.map((v) => v.Id), merged, hasLive, hasPhotos));
+  const homeDefaults = $derived(defaults(latestViews.map(viewRef), merged, hasLive, hasPhotos));
   const pref = $derived(homeRows(user, homeDefaults));
   const shown = $derived(arrange(homeDefaults, pref).filter((id) => !pref.hidden.includes(id)));
 
@@ -56,14 +66,25 @@
     // A new draw per launch, stable for the session (Android: refresh = false, no disk cache).
     { refresh: false },
   );
-  const cont = useLoad(() => (merged ? 'continue' : 'continue-off'), () => (merged ? loadContinue(api, serverId) : Promise.resolve(null)), { persist: true });
-  const resume = useLoad(() => (merged ? 'resume-off' : 'resume'), () => (merged ? Promise.resolve([]) : api.resume()), { persist: true });
-  const nextUp = useLoad(() => (merged ? 'nextup-off' : 'nextup'), () => (merged ? Promise.resolve([]) : api.nextUp()), { persist: true });
-  const upcoming = useLoad(() => 'upcoming', () => api.upcoming(), { persist: true });
+  const cont = useLoad(() => (merged ? 'continue' : 'continue-off'), () => (merged ? loadContinueAll(api, serverId) : Promise.resolve(null)), { persist: true });
+  const resume = useLoad(() => (merged ? 'resume-off' : 'resume'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.resume(), true)), { persist: true });
+  const nextUp = useLoad(() => (merged ? 'nextup-off' : 'nextup'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.nextUp())), { persist: true });
+  // Merged rows sorted by air date again (each server sorts only its own).
+  const airDate = (i: BaseItem) => Date.parse(i.PremiereDate ?? '') || 0;
+  const upcoming = useLoad(() => 'upcoming', async () => (await mergedAll((a) => a.upcoming())).sort((x, y) => airDate(x) - airDate(y)), { persist: true });
   // One load for every Recently Added row: their order and visibility change without refetching.
   const latests = useLoad(
-    () => `latest:${latestViews.map((v) => v.Id).join(',')}`,
-    async () => Object.fromEntries(await Promise.all(latestViews.map(async (v) => [v.Id, await api.latest(v.Id).catch(() => [])] as const))),
+    () => `latest:${latestViews.map(viewRef).join(',')}`,
+    async () =>
+      Object.fromEntries(
+        await Promise.all(
+          latestViews.map(async (v) => {
+            const a = apiOf(v.ServerId) ?? api;
+            const items = await a.latest(v.Id).catch(() => [] as BaseItem[]);
+            return [viewRef(v), items.map((i) => (i.ServerId ? i : { ...i, ServerId: a.serverId }))] as const;
+          }),
+        ),
+      ),
     { persist: true },
   );
   // "Because you watched": titles similar to the two latest played, minus what the rows above show.
@@ -123,10 +144,11 @@
         }
       } else {
         const viewId = latestViewId(id);
-        const view = latestViews.find((v) => v.Id === viewId);
+        const view = latestViews.find((v) => viewRef(v) === viewId);
         const items = viewId ? latests.value?.[viewId] : undefined;
-        if (view && items?.length)
-          out.push({ key: id, title: t('latest_in', view.Name), items, wide: pref.thumb.includes(id), playable: false });
+        // Another server's library names its server: "Films · Salon".
+        const name = view && view.ServerId && view.ServerId !== serverId ? `${view.Name} · ${serverName(view.ServerId) ?? ''}` : view?.Name;
+        if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items, wide: pref.thumb.includes(id), playable: false });
       }
     }
     return out;
@@ -230,6 +252,7 @@
           onclick={(i) => open(i, row.playable)}
           onfocusitem={(i) => (focusedItem = i)}
           card={row.kind === 'live' ? liveCard : row.kind === 'memory' ? memoryCard : undefined}
+          showServer={multi ? (i) => serverName(i.ServerId) : undefined}
         />
       </div>
     {/each}

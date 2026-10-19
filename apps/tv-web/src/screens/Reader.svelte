@@ -15,12 +15,13 @@
   import { changed } from '../lib/load.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { overlay } from '../lib/overlay.svelte';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
   import { load, save } from '../lib/storage';
   import { keyOf } from '../platform/keys';
 
-  let { id, fromStart = false }: { id: string; fromStart?: boolean } = $props();
-  const client = api()!;
+  let { id, fromStart = false, serverId }: { id: string; fromStart?: boolean; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
 
   const FAILURE: Record<ComicFailure, string> = {
     unsupported: 'reader_unsupported',

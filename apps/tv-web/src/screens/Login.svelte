@@ -12,7 +12,8 @@
   import { focusFirst } from '../lib/focus';
   import { t } from '../lib/i18n.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
-  import { apiFor, prefs, signIn, type Server, type Session } from '../lib/session.svelte';
+  import { addExtra, apiFor, prefs, signIn, type Server, type Session } from '../lib/session.svelte';
+  import { clearCache } from '../lib/load.svelte';
 
   let { server, add = false }: { server: Server; add?: boolean } = $props();
 
@@ -56,6 +57,14 @@
   }
 
   function done(session: Session): void {
+    // TP-06: another server joins the primary one; back to Settings, whose rows reload with it.
+    if (add) {
+      addExtra(session);
+      clearCache();
+      nav.back();
+      nav.back();
+      return;
+    }
     signIn(session);
     nav.reset({ name: 'main' });
   }

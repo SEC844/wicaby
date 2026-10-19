@@ -103,27 +103,27 @@
     {:else if entry.route.name === 'main'}
       <Main />
     {:else if entry.route.name === 'detail'}
-      <Detail id={entry.route.id} />
+      <Detail id={entry.route.id} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'player'}
-      <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} />
+      <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'musicAlbum'}
-      <MusicAlbum id={entry.route.id} title={entry.route.title} />
+      <MusicAlbum id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'musicArtist'}
-      <MusicArtist id={entry.route.id} title={entry.route.title} />
+      <MusicArtist id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'musicLibrary'}
-      <MusicLibrary id={entry.route.id} title={entry.route.title} mode={entry.route.mode} />
+      <MusicLibrary id={entry.route.id} title={entry.route.title} mode={entry.route.mode} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'live'}
       <LivePlayer id={entry.route.id} list={entry.route.list} />
     {:else if entry.route.name === 'photoAlbum'}
-      <PhotoAlbum id={entry.route.id} title={entry.route.title} />
+      <PhotoAlbum id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'photoView'}
       <PhotoViewer key={entry.route.key} index={entry.route.index} />
     {:else if entry.route.name === 'reader'}
-      <Reader id={entry.route.id} fromStart={entry.route.fromStart} />
+      <Reader id={entry.route.id} fromStart={entry.route.fromStart} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'nowPlaying'}
       <NowPlaying />
     {:else if entry.route.name === 'folder'}
-      <Folder id={entry.route.id} title={entry.route.title} />
+      <Folder id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {/if}
   </Screen>
 {/each}

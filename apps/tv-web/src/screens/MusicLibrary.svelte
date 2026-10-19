@@ -7,11 +7,12 @@
   import { t } from '../lib/i18n.svelte';
   import { playMusic, playMusicItem } from '../lib/music.svelte';
   import { nav } from '../lib/nav.svelte';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
   import { showToast } from '../lib/toast.svelte';
 
-  let { id, title, mode: initial }: { id: string; title: string; mode: 'albums' | 'artists' | 'songs' } = $props();
-  const client = api()!;
+  let { id, title, mode: initial, serverId }: { id: string; title: string; mode: 'albums' | 'artists' | 'songs'; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
   // svelte-ignore state_referenced_locally
   let mode = $state(initial);
   const MODES = [

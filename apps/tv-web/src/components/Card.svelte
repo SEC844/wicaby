@@ -3,6 +3,7 @@
   // one line below. `poster` 2:3 (120 dp), `square` 1:1 (music), `thumb` 16:9 (232 dp) with the progress line.
   import type { BaseItem } from '$shared/models';
   import type { Api } from '../lib/api';
+  import { apiOf } from '../lib/session.svelte';
   import { focusable } from '../lib/focus';
   import { episodeLine, progress, runtimeText } from '../lib/format';
   import { t } from '../lib/i18n.svelte';
@@ -32,7 +33,9 @@
 
   const thumb = $derived(variant === 'thumb');
   const ratio = $derived(variant === 'poster' ? 1.5 : variant === 'square' ? 1 : 9 / 16);
-  const url = $derived(thumb ? api.thumb(item, dpPx(width)) : api.poster(item, dpPx(width * ratio)));
+  // An item of another signed-in server takes its images from there (TP-06).
+  const client = $derived(apiOf(item.ServerId) ?? api);
+  const url = $derived(thumb ? client.thumb(item, dpPx(width)) : client.poster(item, dpPx(width * ratio)));
   const tint = $derived(placeholder(item, thumb ? 'Thumb' : 'Primary'));
   const played = $derived(progress(item));
   const unplayed = $derived(item.Type === 'Series' ? (item.UserData?.UnplayedItemCount ?? 0) : 0);

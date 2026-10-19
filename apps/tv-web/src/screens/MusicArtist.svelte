@@ -14,10 +14,11 @@
   import { itemRoute, nav } from '../lib/nav.svelte';
   import { dp } from '../lib/screen';
   import { clamp, edgeDelta } from '../lib/scroll';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
 
-  let { id, title }: { id: string; title: string } = $props();
-  const client = api()!;
+  let { id, title, serverId }: { id: string; title: string; serverId?: string } = $props();
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
 
   // A single or EP is an album of 1 to 3 tracks (ChildCount); an album credited to others is "appears on".
   const artist = useLoad(

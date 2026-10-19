@@ -35,13 +35,19 @@
   import { cancelSleep, checkSleep, endOfVideo, extendSleep, restartSleep, sleep, sleepAtEnd, SLEEP_MINUTES, startSleep } from '../lib/sleep.svelte';
   import { ORIGINAL_BITRATE } from '$shared/quality-presets';
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '../lib/segments';
-  import { api } from '../lib/session.svelte';
+  import { apiOf } from '../lib/session.svelte';
   import { SKIP_AUTO, SKIP_OFF, settings } from '../lib/settings.svelte';
   import { createPlayer, platform } from '../platform';
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
 
-  let { id, fromStart = false, trailer = false, queue }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[] } = $props();
+  let {
+    id,
+    fromStart = false,
+    trailer = false,
+    queue,
+    serverId,
+  }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string } = $props();
 
   // Android's own glyph for the chapters button (PlayerActivity.kt ChaptersIcon).
   const CHAPTERS_ICON = 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z';
@@ -50,7 +56,8 @@
   const SPEED_ICON =
     'M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z';
 
-  const client = api()!;
+  // svelte-ignore state_referenced_locally
+  const client = apiOf(serverId)!;
   const screen = getContext<number>(SCREEN);
   let video: HTMLVideoElement;
   let sink: HTMLButtonElement;
