@@ -23,6 +23,8 @@ const checks = [
   ['webtv-check.mjs'],
   // Web TV Jellyfin SyncPlay: server clock offset, command scheduling, 2 s drift.
   ['syncplay-webtv-check.mjs'],
+  // TV web app (docs/tv-web.md): its inflate, the comic ZIP reader over Range requests, page order, the bundle syntax.
+  ['tv-web-check.mjs'],
   ['parity-check.mjs'],
   ['skip-check.mjs'],
   // AniSkip fallback: response parsing and the MAL id + episode a season resolves to (fixtures/aniskip.json).

@@ -1,0 +1,79 @@
+name: TV web app
+
+# The TV web app (apps/tv-web, docs/tv-web.md): type and string checks, the build, its self-check (inflate, the
+# comic ZIP reader, and the bundle parsed as ES2016 for the Chromium 53 floor), then the unsigned Samsung Tizen .wgt
+# and the LG webOS .ipk as workflow artifacts (never attached to a GitHub Release).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/tv-web/**'
+      - 'apps/desktop/src/shared/**'
+      - 'apps/desktop/src/renderer/lib/**'
+      - 'apps/android/*/src/main/res/values*/**'
+      - 'packages/tokens/**'
+      - 'tools/checks/tv-web-check.mjs'
+      - 'tools/mock-server/cbz-fixture.mjs'
+      - 'tools/release/licenses.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/tv-web.yml'
+  pull_request:
+    paths:
+      - 'apps/tv-web/**'
+      - 'apps/desktop/src/shared/**'
+      - 'apps/desktop/src/renderer/lib/**'
+      - 'apps/android/*/src/main/res/values*/**'
+      - 'packages/tokens/**'
+      - 'tools/checks/tv-web-check.mjs'
+      - 'tools/mock-server/cbz-fixture.mjs'
+      - 'tools/release/licenses.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/tv-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tv-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Check, build and pack (Tizen .wgt, webOS .ipk)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # svelte-check, and every string the app asks for exists in the Android catalogues.
+      - name: Check
+        run: npm run check:tv
+
+      - name: Build and self-check
+        run: |
+          npm run build:tv
+          node tools/checks/tv-web-check.mjs
+
+      - name: Pack
+        run: npm run package:tv
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wicaby-tv-web-${{ github.sha }}
+          path: |
+            release/tv-web/*.wgt
+            release/tv-web/*.ipk
+          if-no-files-found: error
+          retention-days: 30
