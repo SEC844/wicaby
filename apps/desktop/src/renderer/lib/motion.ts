@@ -132,9 +132,15 @@ export function scrollMemory(): () => void {
   if (!el) return () => undefined;
   const key = location.hash.split('?')[0];
   const saved = document.documentElement.dataset.nav === 'back' ? (offsets.get(key) ?? 0) : 0;
+  // A remounted page has no remembered content-visibility sizes: lay out real heights for the restore.
+  if (saved) el.classList.add('restoring');
   el.scrollTo({ top: saved, behavior: 'instant' });
   // Async content (images, a late shelf) can still grow the page by the next frame.
-  if (saved) requestAnimationFrame(() => el.scrollTo({ top: saved, behavior: 'instant' }));
+  if (saved)
+    requestAnimationFrame(() => {
+      el.scrollTo({ top: saved, behavior: 'instant' });
+      el.classList.remove('restoring');
+    });
   const save = () => offsets.set(key, el.scrollTop);
   el.addEventListener('scroll', save, { passive: true });
   return () => el.removeEventListener('scroll', save);

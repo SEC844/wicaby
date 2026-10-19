@@ -69,13 +69,40 @@ export interface ToastItem extends Toast {
 }
 export const toasts = $state<{ list: ToastItem[] }>({ list: [] });
 let toastId = 0;
+// Expiry timers by toast id; undefined while held under the pointer or focus (progress toasts have none).
+const toastTimers = new Map<number, ReturnType<typeof setTimeout> | undefined>();
+
+function expire(id: number, ms: number): void {
+  toastTimers.set(
+    id,
+    setTimeout(() => {
+      toastTimers.delete(id);
+      toasts.list = toasts.list.filter((t) => t.id !== id);
+    }, ms),
+  );
+}
 
 export function toast(kind: Toast['kind'], message: string, action?: ToastItem['action'], ms?: number): void {
   const id = ++toastId;
   toasts.list.push({ id, kind, message, action });
-  setTimeout(() => {
-    toasts.list = toasts.list.filter((t) => t.id !== id);
-  }, ms ?? (kind === 'error' ? 6000 : 3500));
+  expire(id, ms ?? (kind === 'error' ? 6000 : 3500));
+}
+
+// A toast under the pointer or focus stays up (reaching for Undo), then leaves shortly after it is let go.
+export function holdToast(id: number): void {
+  if (!toastTimers.has(id)) return;
+  clearTimeout(toastTimers.get(id));
+  toastTimers.set(id, undefined);
+}
+
+export function dropToast(id: number): void {
+  clearTimeout(toastTimers.get(id));
+  toastTimers.delete(id);
+  toasts.list = toasts.list.filter((t) => t.id !== id);
+}
+
+export function releaseToast(id: number): void {
+  if (toastTimers.has(id) && toastTimers.get(id) === undefined) expire(id, 2000);
 }
 
 // A toast that stays up while a long task runs: update() rewrites it, done() swaps it for a normal toast.

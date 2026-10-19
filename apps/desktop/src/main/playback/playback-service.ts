@@ -1471,8 +1471,8 @@ export class PlaybackService extends EventEmitter {
         this.publish(true);
         break;
       case 'volume': {
-        // mpv can amplify up to 150 % when the boost is on; <video> stops at 100 %.
-        const max = p instanceof MpvPlayer && this.deps.settings.value.playback.volumeBoost ? 150 : 100;
+        // mpv (video or music) can amplify up to 150 % when the boost is on; <video> stops at 100 %.
+        const max = p.kind === 'mpv' && this.deps.settings.value.playback.volumeBoost ? 150 : 100;
         p.setVolume(Math.max(0, Math.min(max, cmd.value)));
         this.state.volume = Math.max(0, Math.min(max, cmd.value));
         this.publish();

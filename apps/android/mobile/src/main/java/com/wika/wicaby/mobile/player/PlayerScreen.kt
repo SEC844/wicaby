@@ -179,6 +179,8 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
     val buffered = remember { mutableLongStateOf(0L) }
     // Where a drag (screen swipe or scrub bar) would land, shown big in the middle.
     var preview by remember { mutableStateOf<Long?>(null) }
+    // A scrub-bar drag keeps the OSD up (the bar is under the finger); only screen swipes hide it.
+    var scrubbing by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<Sheet?>(null) }
     var hud by remember { mutableStateOf<Hud?>(null) }
     var hudNonce by remember { mutableIntStateOf(0) }
@@ -306,7 +308,12 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
         if (pb.next != null && !pb.upNextDismissed) autoAdvance() else onExit()
     }
 
-    fun seekTo(ms: Long) = player.seekTo(ms.coerceIn(0, duration.longValue.coerceAtLeast(0)))
+    // Sets position at once so the knob and time do not flick back until the next poll.
+    fun seekTo(ms: Long) {
+        val t = ms.coerceIn(0, duration.longValue.coerceAtLeast(0))
+        player.seekTo(t)
+        position.longValue = t
+    }
 
     LaunchedEffect(sleep != null, controls) {
         while (true) {
@@ -546,7 +553,7 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
         if (PlaybackStats.visible && preview == null) StatsOverlay(pb, Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout).padding(start = 16.dp, top = 72.dp))
 
         // Not over an error: its own message and Back button sit where the transport controls are.
-        AnimatedVisibility(controls && item != null && preview == null && pb.error == null || sheet != null || castSheet, enter = fadeIn(tween(200)), exit = fadeOut(tween(320))) {
+        AnimatedVisibility(controls && item != null && (preview == null || scrubbing) && pb.error == null || sheet != null || castSheet, enter = fadeIn(tween(200)), exit = fadeOut(tween(320))) {
             if (item != null) {
                 Osd(
                     item, playing, { position.longValue }, { duration.longValue }, { buffered.longValue },
@@ -562,10 +569,11 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
                         poke()
                     },
                     onNext = pb.next?.let { { pb.advance(auto = false) } },
-                    onScrub = { preview = it },
+                    onScrub = { scrubbing = true; preview = it },
                     onScrubEnd = {
                         preview?.let { seekTo(it) }
                         preview = null
+                        scrubbing = false
                         poke()
                     },
                     offline = pb.offline,
@@ -733,7 +741,7 @@ private fun RoundIcon(icon: ImageVector, description: String?, onClick: () -> Un
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, description, tint = Color.White, modifier = Modifier.size(iconSize.dp))
-        if (label != null) Text(label, style = Type.caption.copy(fontSize = 9.sp), color = Color.White, modifier = Modifier.offset(y = 1.dp))
+        if (label != null) Text(label, style = Type.mono.copy(fontSize = 9.sp), color = Color.White, modifier = Modifier.offset(y = 1.dp))
     }
 }
 

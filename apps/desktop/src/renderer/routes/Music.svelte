@@ -490,7 +490,8 @@
     contain-intrinsic-size: auto 260px;
   }
   .cell:hover,
-  .cell:focus-within {
+  .cell:focus-within,
+  :global(#main-scroller.restoring) .cell {
     content-visibility: visible;
     position: relative;
     z-index: 1;

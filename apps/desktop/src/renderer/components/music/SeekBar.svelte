@@ -8,7 +8,13 @@
   let { positionMs, durationMs }: { positionMs: number; durationMs: number } = $props();
 
   let dragging = $state<number | null>(null);
-  const shown = $derived(dragging ?? positionMs);
+  // The released point stays shown until main reports it (or 3 s), so the knob does not snap back (as Osd).
+  let landing = $state<number | null>(null);
+  let landingTimer: ReturnType<typeof setTimeout> | null = null;
+  const shown = $derived(dragging ?? landing ?? positionMs);
+  $effect(() => {
+    if (landing !== null && Math.abs(positionMs - landing) < 1500) landing = null;
+  });
   const pct = $derived(durationMs > 0 ? Math.min(100, (shown / durationMs) * 100) : 0);
 
   // A click on the duration shows the time left instead (music spec C8), remembered on this device.
@@ -44,7 +50,10 @@
     aria-valuetext={`${formatDuration(shown)} / ${formatDuration(durationMs)}`}
     oninput={(e) => (dragging = Number(e.currentTarget.value))}
     onchange={(e) => {
-      command({ type: 'seek', positionMs: Number(e.currentTarget.value) });
+      landing = Number(e.currentTarget.value);
+      if (landingTimer) clearTimeout(landingTimer);
+      landingTimer = setTimeout(() => (landing = null), 3000);
+      command({ type: 'seek', positionMs: landing });
       dragging = null;
     }}
   />

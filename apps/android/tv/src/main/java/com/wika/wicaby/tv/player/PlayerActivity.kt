@@ -617,6 +617,8 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
         scrubJob = scope.launch {
             delay(650)
             if (!pb.preview) player.seekTo(target)
+            // Hold the target until the next poll, or the knob snaps back to the old position.
+            position = target
             scrub = null
         }
     }
@@ -628,6 +630,7 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
         pending = null
         held = false
         if (!pb.preview) player.seekTo(p.target)
+        position = p.target
         scrub = null
     }
 
@@ -662,6 +665,7 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
     fun commitScrub() {
         val t = scrub ?: return
         if (!pb.preview) player.seekTo(t)
+        position = t
         scrub = null
     }
 
@@ -1147,7 +1151,8 @@ private fun OsdButton(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
-        Text(text, style = Type.caption, color = fg, maxLines = 1)
+        // Tabular digits: the sleep countdown would otherwise shift the centred button group every second.
+        Text(text, style = Type.caption.copy(fontFeatureSettings = "tnum"), color = fg, maxLines = 1)
         // The setting's current value, dimmer: "Qualité · Originale".
         if (value != null) Text("· $value", style = Type.caption, color = if (focused) Color.Black.copy(alpha = 0.55f) else C.label3, maxLines = 1)
     }
@@ -1364,7 +1369,8 @@ private fun ScrubBar(
             }
             // A taller touch target than the 8 dp bar.
             .padding(vertical = 12.dp)
-            .height(if (scrubbing) 44.dp else 8.dp),
+            // Fixed height: growing while scrubbing would push the title and clocks up on every seek.
+            .height(44.dp),
         contentAlignment = Alignment.BottomStart,
     ) {
         val w = maxWidth

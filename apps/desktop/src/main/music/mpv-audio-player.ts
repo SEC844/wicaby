@@ -210,7 +210,11 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
         break;
       case 'pause':
         this.paused = Boolean(value);
-        break;
+        // At once: toggle-pause and the play/pause icon read this, a 200 ms lag loses a quick second press.
+        if (this.timer) clearTimeout(this.timer);
+        this.timer = null;
+        this.emitTime();
+        return;
       case 'paused-for-cache':
       case 'seeking':
         this.buffering = Boolean(value);
@@ -225,9 +229,13 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
     if (!this.timer) {
       this.timer = setTimeout(() => {
         this.timer = null;
-        this.emit('time', { positionMs: this.position, durationMs: this.duration, paused: this.paused, buffering: this.buffering || this.loading } satisfies TimeUpdate);
+        this.emitTime();
       }, 200);
     }
+  }
+
+  private emitTime(): void {
+    this.emit('time', { positionMs: this.position, durationMs: this.duration, paused: this.paused, buffering: this.buffering || this.loading } satisfies TimeUpdate);
   }
 
   // A track now: whatever was playing or queued goes.
@@ -284,6 +292,8 @@ export class MpvAudioPlayer extends EventEmitter implements ActivePlayer {
   }
 
   seek(positionMs: number): void {
+    // A tick pending before mpv reports the new time-pos carries the target, not the old time.
+    this.position = Math.max(0, positionMs);
     void this.ctl.command('seek', Math.max(0, positionMs / 1000), 'absolute+exact').catch(() => undefined);
   }
 

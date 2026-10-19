@@ -22,6 +22,13 @@
   const duration = $derived(s?.item?.runTimeTicks ?? 0);
   const na = t('cast.remote.unavailable');
   let drag = $state<number | null>(null);
+  // The released point stays shown until the device reports it (or 3 s): a seek is a LAN round trip.
+  let landing = $state<number | null>(null);
+  let landingTimer: ReturnType<typeof setTimeout> | null = null;
+  const shown = $derived(drag ?? landing ?? s?.positionTicks ?? 0);
+  $effect(() => {
+    if (landing !== null && Math.abs((s?.positionTicks ?? 0) - landing) < 1500 * TICKS_PER_MS) landing = null;
+  });
   let rate = $state(1);
   let streams = $state<MediaStream[]>([]);
 
@@ -55,20 +62,23 @@
       <p class="sub">{t('cast.bar.castingTo', { device: s.target.name })}</p>
 
       <div class="seek">
-        <span class="time tabular">{clock((drag ?? s.positionTicks) / TICKS_PER_MS)}</span>
+        <span class="time tabular">{clock(shown / TICKS_PER_MS)}</span>
         <input
           type="range"
           class="cast-slider"
           min="0"
           max={duration || 1}
           step={TICKS_PER_MS * 1000}
-          value={drag ?? s.positionTicks}
+          value={shown}
           disabled={!duration}
           aria-label={t('player.osd.position')}
-          aria-valuetext={clock((drag ?? s.positionTicks) / TICKS_PER_MS)}
+          aria-valuetext={clock(shown / TICKS_PER_MS)}
           oninput={(e) => (drag = +e.currentTarget.value)}
           onchange={(e) => {
-            send({ type: 'seek', positionTicks: +e.currentTarget.value });
+            landing = +e.currentTarget.value;
+            if (landingTimer) clearTimeout(landingTimer);
+            landingTimer = setTimeout(() => (landing = null), 3000);
+            send({ type: 'seek', positionTicks: landing });
             drag = null;
           }}
         />

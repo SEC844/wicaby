@@ -682,6 +682,8 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
   }
 
   seek(positionMs: number): void {
+    // A coalesced emit pending from before the seek must carry the target, not the old time-pos.
+    this.position = Math.max(0, positionMs);
     void this.ctl.command('seek', Math.max(0, positionMs / 1000), 'absolute+exact').catch(() => undefined);
   }
 

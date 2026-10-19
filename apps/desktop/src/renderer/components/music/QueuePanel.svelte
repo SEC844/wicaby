@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { TICKS_PER_MS } from '../../../shared/contract';
   import { formatDuration } from '../../../shared/music';
   import { fmt, t } from '../../lib/i18n.svelte';
@@ -21,11 +21,19 @@
   // The same array while the queue is unchanged: main publishes a fresh state on every position tick (4 a second),
   // and a new array would re-run every derived value and row below it.
   let lastIds: string[] = [];
-  const ids = $derived.by(() => {
+  const published = $derived.by(() => {
     const next = s?.music?.queue.ids ?? [];
     if (next.length === lastIds.length && next.every((id, i) => id === lastIds[i])) return lastIds;
     return (lastIds = next);
   });
+  // A dropped row is drawn in its new slot until main publishes the new order (or 1.5 s), not back at its origin.
+  let moved = $state<string[] | null>(null);
+  let movedTimer: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => {
+    void published;
+    untrack(() => (moved = null));
+  });
+  const ids = $derived(moved ?? published);
   const index = $derived(s?.music?.queue.index ?? 0);
   const serverId = $derived(s?.item?.serverId);
   // Keys: an id may be queued twice.
@@ -78,7 +86,14 @@
       const d = drag;
       const to = dropAt;
       drag = null;
-      if (d && to !== d.from) command({ type: 'queue-move', from: d.from, to });
+      if (d && to !== d.from) {
+        const next = [...ids];
+        next.splice(to, 0, ...next.splice(d.from, 1));
+        moved = next;
+        if (movedTimer) clearTimeout(movedTimer);
+        movedTimer = setTimeout(() => (moved = null), 1500);
+        command({ type: 'queue-move', from: d.from, to });
+      }
     };
     // A drag the system cancelled (an OS gesture, a pen out of range) moves nothing.
     const cancel = () => {
@@ -107,9 +122,14 @@
     } else if (e.key === 'Delete') {
       e.preventDefault();
       e.stopPropagation();
-      command({ type: 'queue-remove', index: i });
-      void focusRow(Math.min(i, ids.length - 2));
+      remove(i);
     }
+  }
+  // Focus the row that takes its place once main has removed it: focusing earlier lands on the row being removed.
+  function remove(i: number): void {
+    const n = ids.length;
+    command({ type: 'queue-remove', index: i });
+    void waitFor(() => ids.length < n).then(() => focusRow(Math.min(i, ids.length - 1)));
   }
   const waitFor = (ok: () => boolean) =>
     new Promise<void>((resolve) => {
@@ -197,7 +217,7 @@
       <span class="rt mono">{it?.RunTimeTicks ? formatDuration(it.RunTimeTicks / TICKS_PER_MS) : ''}</span>
     </button>
     {#if i !== index}
-      <button class="x" title={t('music.queue.remove')} aria-label={t('music.queue.removeNamed', { name: it?.Name ?? '' })} onclick={() => command({ type: 'queue-remove', index: i })}><Icon name="close" size={14} /></button>
+      <button class="x" title={t('music.queue.remove')} aria-label={t('music.queue.removeNamed', { name: it?.Name ?? '' })} onclick={() => remove(i)}><Icon name="close" size={14} /></button>
     {/if}
   </div>
 {/snippet}

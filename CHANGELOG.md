@@ -18,6 +18,37 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.15] - 2026-10-19
+
+Android TV 0.10.15 (versionCode 36), Android mobile 0.10.15 (versionCode 33).
+
+### Fixed
+
+- Desktop player: the volume slider follows the pointer live and no longer bounces on release; arrow keys and
+  the wheel add up their steps and unmute. The seek knob no longer snaps back to the old position after a drag,
+  a key, chapter or digit seek. Controls hide again after a menu closes or a long scrub. The skip flash shows the
+  real step, the bar no longer changes width at one hour, the skip-intro pill fades out, and the live timeshift
+  bar can be dragged.
+- Desktop music and casting: no snap-back on the music and cast seek bars; the music volume no longer bounces,
+  respects mute and the 150 % boost; the equalizer shows its value while dragging and no longer drops audio on
+  each arrow step; queue rows keep focus after a removal and no longer jump back after a drag; lyrics stay
+  centred after a resize.
+- Desktop browsing: going back to Search, a library or Home returns to where you were; switching seasons starts
+  at episode 1; the watched check reacts at once; the Home banner no longer switches title on reload; changing
+  the sort or filter scrolls to the top; Undo toasts stay up under the pointer; recent searches no longer fill up
+  with half-typed terms; the title-bar search follows the search page.
+- Desktop settings: dropdown menus are no longer cut off by their group; leaving search scrolls to the top;
+  shortcut recording stops when clicking elsewhere; the reset confirmation no longer disarms under the cursor.
+- Android TV: the seek bar no longer pushes the title and clock up on every press nor snaps back; libraries keep
+  their scroll position on Back; favourite and watched react at once; series open on the season of the next
+  episode; the episode row no longer blinks while moving across seasons; the sleep countdown no longer jiggles
+  the buttons.
+- Phones: the player controls no longer fade out under the finger while scrubbing; no snap-back on the video,
+  music and cast seek bars; the music play/pause icon is right while buffering; favourite and watched react at
+  once; pull to refresh shows that it refreshes.
+- Web TV (test): remote fast-forward and rewind add up, use the seek step setting and show on screen; holding
+  Back no longer exits the app; changing the audio track keeps the speed and no longer replays the last second.
+
 ## [0.10.14] - 2026-10-19
 
 Android TV 0.10.14 (versionCode 35), Android mobile 0.10.14 (versionCode 32).

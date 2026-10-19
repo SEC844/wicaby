@@ -68,10 +68,15 @@
 
   async function run(add: boolean): Promise<void> {
     busy = true;
+    const u = url;
+    const k = key;
     try {
-      const r = add ? await w.photos.immich.add(url, key) : await w.photos.immich.test(url, key);
+      const r = add ? await w.photos.immich.add(u, k) : await w.photos.immich.test(u, k);
+      // Fields edited during the request: this answer is about the old values.
+      if (url !== u || key !== k) return;
       result = r;
       if (add && r.ok) {
+        result = null;
         key = '';
         url = '';
         toast('success', t('photos.sources.added'));
@@ -126,11 +131,11 @@
   {/each}
   <label class="row field-row">
     <span class="lbl">{t('photos.sources.url')}</span>
-    <input class="field" type="url" spellcheck="false" autocomplete="off" placeholder="http://photos.local:2283" bind:value={url} />
+    <input class="field" type="url" spellcheck="false" autocomplete="off" placeholder="http://photos.local:2283" bind:value={url} oninput={() => (result = null)} />
   </label>
   <label class="row field-row">
     <span class="lbl">{t('photos.sources.key')}</span>
-    <input class="field" type="password" autocomplete="off" bind:value={key} />
+    <input class="field" type="password" autocomplete="off" bind:value={key} oninput={() => (result = null)} />
   </label>
   <div class="row">
     <div class="txt"><div class="desc">{t('photos.sources.keyHint')}</div></div>

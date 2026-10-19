@@ -120,6 +120,10 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
     val pos by rememberPosition(s)
     val dur = s.durationMs()
     var seeking by remember { mutableStateOf<Float?>(null) }
+    // After release the thumb holds the target until the 250 ms poll reaches it (or 1 s passes), so it does not flick back.
+    var settling by remember { mutableStateOf(false) }
+    LaunchedEffect(pos, settling) { if (settling && seeking?.let { kotlin.math.abs(pos - it * dur) < 1_000 } != false) { seeking = null; settling = false } }
+    LaunchedEffect(settling) { if (settling) { kotlinx.coroutines.delay(1_000); seeking = null; settling = false } }
     Box(Modifier.fillMaxSize().background(G.bg)) {
         // Content first (docs/design.md): the art is the only colour. blur() needs API 31; below, the scrim alone.
         if (item != null) {
@@ -150,15 +154,15 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
                     var fav by remember(item.id) { mutableStateOf(item.userData?.isFavorite == true) }
                     IconBtn(
                         if (fav) Ic.HeartFilled else Ic.Heart, stringResource(if (fav) R.string.music_favorite_remove else R.string.music_favorite_add),
-                        { scope.launch { runCatching { api.setFavorite(item.id, !fav) }.onSuccess { fav = !fav } } },
+                        { val v = !fav; fav = v; scope.launch { runCatching { api.setFavorite(item.id, v) }.onFailure { fav = !v } } },
                     )
                 }
             }
             val label = stringResource(R.string.music_seek)
             Slider(
                 value = seeking ?: if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
-                onValueChange = { seeking = it },
-                onValueChangeFinished = { seeking?.let { s.seekTo((it * dur).toLong()) }; seeking = null },
+                onValueChange = { seeking = it; settling = false },
+                onValueChangeFinished = { seeking?.let { s.seekTo((it * dur).toLong()) }; settling = true },
                 colors = SliderDefaults.colors(thumbColor = G.label, activeTrackColor = G.label, inactiveTrackColor = G.fill3),
                 modifier = Modifier.padding(top = 8.dp).semantics { contentDescription = label },
             )
@@ -171,7 +175,7 @@ fun NowPlayingScreen(s: MusicSession, onClose: () -> Unit) {
                 val shuffled = s.queue.unshuffled != null
                 IconBtn(Ic.Shuffle, stringResource(if (shuffled) R.string.music_shuffle_on else R.string.music_shuffle_off), s::toggleShuffle, fill = if (shuffled) G.fill3 else Color.Transparent)
                 IconBtn(Ic.Previous, stringResource(R.string.music_previous), s::previous, size = 52.dp)
-                IconBtn(if (s.isPlaying) Ic.Pause else Ic.Play, stringResource(if (s.isPlaying) R.string.music_pause else R.string.music_play), s::playPause, size = 72.dp, tint = onAccent(accent), fill = accent)
+                IconBtn(if (s.playOn) Ic.Pause else Ic.Play, stringResource(if (s.playOn) R.string.music_pause else R.string.music_play), s::playPause, size = 72.dp, tint = onAccent(accent), fill = accent)
                 IconBtn(Ic.Next, stringResource(R.string.music_next), s::next, size = 52.dp)
                 val r = s.queue.repeat
                 IconBtn(

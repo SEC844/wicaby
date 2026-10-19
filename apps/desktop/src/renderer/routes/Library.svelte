@@ -211,12 +211,18 @@
     return () => io.disconnect();
   });
 
+  // The toolbar is sticky: a new sort or filter starts at the top, not deep in the new list.
+  // Not in reset(), which also runs when the library changes underneath (dataVersion.library).
+  const toTop = () => document.getElementById('main-scroller')?.scrollTo({ top: 0 });
+
   function setFilter(key: (typeof FILTERS)[number]['key']): void {
+    toTop();
     unplayed = key === 'unplayed';
     favorites = key === 'favorites';
   }
 
   function onSort(v: string): void {
+    toTop();
     if (v === 'asc' || v === 'desc') desc = v === 'desc';
     else sort = v;
     savePrefs();
@@ -254,7 +260,7 @@
         active={Boolean(genre)}
         align="end"
         options={[{ value: '', label: t('browse.library.allGenres'), checked: !genre }, ...genres.map((g, i) => ({ value: g, label: g, checked: genre === g, section: i === 0 ? (true as const) : undefined }))]}
-        onselect={(v) => (genre = v)}
+        onselect={(v) => (toTop(), (genre = v))}
       />
     {/if}
     <BrowseMenu
@@ -417,7 +423,8 @@
     contain-intrinsic-size: auto 220px;
   }
   .cell:hover,
-  .cell:focus-within {
+  .cell:focus-within,
+  :global(#main-scroller.restoring) .cell {
     content-visibility: visible;
     position: relative;
     z-index: 1;

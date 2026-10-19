@@ -53,9 +53,10 @@
     {#each queueModes(m.item) as mode (mode)}
       <button
         role="menuitem"
-        onclick={() => {
+        onclick={(e) => {
           const item = m.item;
-          close();
+          // Only keyboard picks (detail 0) refocus the card: a focused card stays lifted after the mouse leaves.
+          close(e.detail === 0);
           void queue(item, mode);
         }}
       >

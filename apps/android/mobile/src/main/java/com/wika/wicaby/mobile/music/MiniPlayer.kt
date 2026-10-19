@@ -85,7 +85,7 @@ fun MiniPlayer(s: MusicSession, onOpen: () -> Unit) {
                 Text(item.name, style = Type.headline, color = G.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (item.artistLine.isNotEmpty()) Text(item.artistLine, style = Type.footnote, color = G.label2, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconBtn(if (s.isPlaying) Ic.Pause else Ic.Play, stringResource(if (s.isPlaying) R.string.music_pause else R.string.music_play), s::playPause)
+            IconBtn(if (s.playOn) Ic.Pause else Ic.Play, stringResource(if (s.playOn) R.string.music_pause else R.string.music_play), s::playPause)
             IconBtn(Ic.Next, stringResource(R.string.music_next), s::next)
         }
     }

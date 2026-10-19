@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  // Last answer, so "back" to this page has its height at mount and the scroll restore can land.
+  let memo: { q: string; results: import('../../shared/models').BaseItem[]; live: (import('../lib/livetv.svelte').Program | import('../lib/livetv.svelte').Channel)[] } | null = null;
+</script>
+
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import type { BaseItem } from '../../shared/models';
@@ -38,7 +43,10 @@
   }
 
   function pushRecent(term: string): void {
-    recent = [term, ...recent.filter((r) => r.toLowerCase() !== term.toLowerCase())].slice(0, 8);
+    // A term that extends the latest entry replaces it: half-typed terms (debounced mid-typing) stay out of the list.
+    const head = recent[0];
+    const rest = head && term.toLowerCase().startsWith(head.toLowerCase()) ? recent.slice(1) : recent;
+    recent = [term, ...rest.filter((r) => r.toLowerCase() !== term.toLowerCase())].slice(0, 8);
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     } catch {
@@ -56,8 +64,9 @@
   }
 
   let term = $state(router.route.query.get('q') ?? '');
-  let results = $state<BaseItem[]>([]);
-  let live = $state<(Program | Channel)[]>([]);
+  const cached = untrack(() => (memo?.q === term.trim() ? memo : null));
+  let results = $state<BaseItem[]>(cached?.results ?? []);
+  let live = $state<(Program | Channel)[]>(cached?.live ?? []);
   let searching = $state(false);
   let error = $state('');
   let recent = $state<string[]>(readRecent());
@@ -121,8 +130,10 @@
         // Ended programmes lead nowhere in the guide.
         live = (merge(liveFound.map((r) => r?.Items)) as (Program | Channel)[]).filter((x) => x.Type !== 'Program' || !(Date.parse(x.EndDate ?? '') <= Date.now()));
         error = '';
+        memo = { q, results, live };
         if (results.length > 0) pushRecent(q);
-        history.replaceState(null, '', `#/search?q=${encodeURIComponent(q)}`);
+        // Through the router so the title-bar field follows the page's own field.
+        navigate(`/search?q=${encodeURIComponent(q)}`, { replace: true });
       } catch (err) {
         if (mine === seq) error = errorMessage(err);
       } finally {

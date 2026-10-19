@@ -118,17 +118,23 @@ fun DetailScreen(id: String) {
         }
 
         val seasons = if (item.isSeries) rememberLoad("seasons-$id") { api.seasons(id) }.value.value.orEmpty() else emptyList()
-        val nextUp = if (item.isSeries) rememberLoad("nextup-$id") { api.nextUp(id, 1) }.value.value?.firstOrNull() else null
+        val nextUpLoad = if (item.isSeries) rememberLoad("nextup-$id") { api.nextUp(id, 1) }.value else null
+        val nextUp = nextUpLoad?.value?.firstOrNull()
         var seasonIndex by rememberSaveable { mutableIntStateOf(-1) }
-        if (seasonIndex < 0 && seasons.isNotEmpty()) {
+        // Wait for next-up too, or a seasons reply that lands first pins Season 1.
+        if (seasonIndex < 0 && seasons.isNotEmpty() && (nextUpLoad?.value != null || nextUpLoad?.error != null)) {
             seasonIndex = seasons.indexOfFirst { it.id == nextUp?.seasonId }.coerceAtLeast(0)
         }
         val season = seasons.getOrNull(seasonIndex)
-        val episodes = season?.let { s -> rememberLoad("episodes-$id-${s.id}") { api.episodes(id, s.id) }.value.value }.orEmpty()
+        val episodesLoad = season?.let { s -> rememberLoad("episodes-$id-${s.id}") { api.episodes(id, s.id) }.value }
+        val loadedEpisodes = episodesLoad?.value
+        // Keep the last season's episodes while the next loads, so the row does not collapse and shift the page.
+        var episodes by remember { mutableStateOf(emptyList<Item>()) }
+        if (loadedEpisodes != null) episodes = loadedEpisodes else if (episodesLoad?.error != null) episodes = emptyList()
 
         var favorite by remember(item) { mutableStateOf(item.userData?.isFavorite == true) }
         var watched by remember(item) { mutableStateOf(item.userData?.played == true) }
-        val target = if (item.isSeries) nextUp ?: episodes.firstOrNull() else item
+        val target = if (item.isSeries) nextUp ?: loadedEpisodes?.firstOrNull() else item
         val resumeMs = target?.resumeMs ?: 0
         // Books open the comic reader; the saved page replaces the resume time.
         // Plex has no books (caps.comics, plex-spec §8): never the comic reader there.
@@ -191,18 +197,20 @@ fun DetailScreen(id: String) {
                         // No heart for a source without favorites (a file source, caps §2.2).
                         if (api.server.caps.favorites) Pill(
                             null, icon = if (favorite) Ic.Heart else Ic.HeartOutline, description = stringResource(R.string.favorite), modifier = Modifier.remembered(memory, "fav"),
-                            onClick = { scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite; Cache.changed() } } },
+                            onClick = { val v = !favorite; favorite = v; scope.launch { runCatching { api.setFavorite(item.id, v) }.onFailure { favorite = !v }.onSuccess { Cache.changed() } } },
                         )
                         Pill(
                             // The icon carries the state, like the heart: a focused pill is white whatever `selected` says.
                             null, icon = if (watched) Ic.CheckCircle else Ic.Check, selected = watched, description = stringResource(R.string.watched),
                             modifier = Modifier.remembered(memory, "played"),
                             onClick = {
+                                // Flip at once: a second press before the reply then sends the right value.
+                                val v = !watched
+                                watched = v
                                 scope.launch {
-                                    runCatching { api.setPlayed(item.id, !watched) }.onSuccess {
-                                        watched = !watched
+                                    runCatching { api.setPlayed(item.id, v) }.onFailure { watched = !v }.onSuccess {
                                         Cache.changed()
-                                        com.wika.wicaby.core.trakt.TraktService.shared.history(api, item, watched) // TP-09
+                                        com.wika.wicaby.core.trakt.TraktService.shared.history(api, item, v) // TP-09
                                     }
                                 }
                             },

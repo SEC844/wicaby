@@ -91,7 +91,7 @@
   function run(id: string): void {
     const st = playback.value;
     if (!st?.music) return;
-    const vol = (d: number) => command({ type: 'volume', value: Math.max(0, Math.min(100, st.volume + d)) });
+    const vol = (d: number) => setVolume(level + d);
     switch (id) {
       case 'music.playPause':
         return command({ type: 'toggle-pause' });
@@ -164,10 +164,25 @@
 
   // Mouse wheel on the volume (C8): ±5 per notch.
   function wheelVolume(e: WheelEvent): void {
-    const st = playback.value;
-    if (!st || !e.deltaY) return;
+    if (!playback.value || !e.deltaY) return;
     e.preventDefault();
-    command({ type: 'volume', value: Math.max(0, Math.min(100, st.volume + (e.deltaY < 0 ? 5 : -5))) });
+    setVolume(level + (e.deltaY < 0 ? 5 : -5));
+  }
+
+  // The volume set here is shown (and stepped from) until main's coalesced state catches up, so a drag, fast
+  // wheel notches or held keys neither bounce nor collapse into one step. mpv can boost to 150 % (as Osd).
+  let volDraft = $state<number | null>(null);
+  let volTimer: ReturnType<typeof setTimeout> | null = null;
+  const volMax = $derived(s?.player === 'mpv' && settings.value?.playback.volumeBoost ? 150 : 100);
+  const level = $derived(volDraft ?? s?.volume ?? 100);
+  const volume = $derived(volDraft ?? (s?.muted ? 0 : level));
+  function setVolume(v: number): void {
+    v = Math.round(Math.min(volMax, Math.max(0, v)));
+    volDraft = v;
+    if (volTimer) clearTimeout(volTimer);
+    volTimer = setTimeout(() => (volDraft = null), 600);
+    command({ type: 'volume', value: v });
+    if (s?.muted && v > 0) command({ type: 'mute', value: false });
   }
 </script>
 
@@ -209,7 +224,7 @@
       <button class="icon-btn" title={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} aria-label={t(s.muted ? 'music.bar.unmute' : 'music.bar.mute')} onclick={() => command({ type: 'mute', value: !s.muted })} onwheel={wheelVolume}>
         <Icon name={s.muted || s.volume === 0 ? 'mute' : 'volume'} size={17} />
       </button>
-      <input class="volume" type="range" min="0" max="100" step="1" value={s.volume} style:--pct="{s.muted ? 0 : s.volume}%" aria-label={t('music.bar.volume')} oninput={(e) => command({ type: 'volume', value: Number(e.currentTarget.value) })} onwheel={wheelVolume} />
+      <input class="volume" type="range" min="0" max={volMax} step="1" value={volume} style:--pct="{(volume / volMax) * 100}%" aria-label={t('music.bar.volume')} oninput={(e) => setVolume(Number(e.currentTarget.value))} onwheel={wheelVolume} />
       <BrowseMenu label={t('music.bar.output')} icon="speaker" compact up align="end" options={outputs} onselect={(v) => v !== device && void setSettings({ playback: { audioDevice: v } })} />
       <button class="icon-btn" data-cast aria-haspopup="dialog" title={t('cast.button')} aria-label={t('cast.button')} onclick={() => openCastPicker({ itemId: it.id, serverId: it.serverId })}><Icon name="cast" size={16} /></button>
       <button class="icon-btn" data-open-mini title={t('music.mini.open')} aria-label={t('music.mini.open')} onclick={() => w.window.mini('open')}><Icon name="pip" size={16} /></button>

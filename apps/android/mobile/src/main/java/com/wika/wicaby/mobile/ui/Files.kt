@@ -159,7 +159,10 @@ fun FilesScreen(route: FilesRoute, nav: NavController) {
                 }
             }
         }
-        PullToRefreshBox(isRefreshing = false, onRefresh = { api?.refresh(); nonce++ }, modifier = Modifier.fillMaxSize()) {
+        // As Home: the indicator stays while a pulled reload runs.
+        var pulled by remember { mutableStateOf(false) }
+        LaunchedEffect(load.loading) { if (!load.loading) pulled = false }
+        PullToRefreshBox(isRefreshing = pulled && load.loading, onRefresh = { pulled = true; api?.refresh(); nonce++ }, modifier = Modifier.fillMaxSize()) {
             val result = load.value
             when {
                 result == null && load.error != null -> Centered {

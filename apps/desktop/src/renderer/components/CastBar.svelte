@@ -15,8 +15,15 @@
 
   let remoteOpen = $state(false);
   let drag = $state<number | null>(null);
+  // The released point stays shown until the device reports it (or 3 s): a seek is a LAN round trip.
+  let landing = $state<number | null>(null);
+  let landingTimer: ReturnType<typeof setTimeout> | null = null;
   const s = $derived(cast.state);
   const duration = $derived(s?.item?.runTimeTicks ?? 0);
+  const shown = $derived(drag ?? landing ?? s?.positionTicks ?? 0);
+  $effect(() => {
+    if (landing !== null && Math.abs((s?.positionTicks ?? 0) - landing) < 1500 * TICKS_PER_MS) landing = null;
+  });
   const playing = $derived(s?.status === 'playing');
   // A song shows its cover (its album's), its artists and where the device is in the queue.
   const poster = $derived(s?.item ? imageUrl(s.item.imageItemId ?? s.item.id, 'Primary', { tag: s.item.imageTag, server: s.serverId, maxHeight: 44 }) : '');
@@ -53,20 +60,23 @@
         <Icon name={s.paused ? 'play' : 'pause'} size={18} fill />
       </button>
       {#if s.controls.nextPrev}<button class="btn icon ghost" data-cast-next disabled={!playing} aria-label={t('player.osd.next')} title={t('player.osd.next')} onclick={() => send({ type: 'next' })}><Icon name="next" size={16} fill /></button>{/if}
-      <span class="time tabular">{clock((drag ?? s.positionTicks) / TICKS_PER_MS)}</span>
+      <span class="time tabular">{clock(shown / TICKS_PER_MS)}</span>
       <input
         type="range"
         class="cast-slider seek"
         min="0"
         max={duration || 1}
         step={TICKS_PER_MS * 1000}
-        value={drag ?? s.positionTicks}
+        value={shown}
         disabled={!playing || !duration}
         aria-label={t('player.osd.position')}
-        aria-valuetext={clock((drag ?? s.positionTicks) / TICKS_PER_MS)}
+        aria-valuetext={clock(shown / TICKS_PER_MS)}
         oninput={(e) => (drag = +e.currentTarget.value)}
         onchange={(e) => {
-          send({ type: 'seek', positionTicks: +e.currentTarget.value });
+          landing = +e.currentTarget.value;
+          if (landingTimer) clearTimeout(landingTimer);
+          landingTimer = setTimeout(() => (landing = null), 3000);
+          send({ type: 'seek', positionTicks: landing });
           drag = null;
         }}
       />

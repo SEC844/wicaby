@@ -18,15 +18,21 @@
   const SLIDE_MS = 8000;
 
   const slides = $derived(items.slice(0, 6));
-  let current = $state(0);
+  // The shown slide is kept by key: Home reloads reorder `items`, and an index would jump to another title.
+  let current = $state<string | undefined>();
   let paused = $state(false);
   let offscreen = $state(false);
   let busy = $state(false);
   let root: HTMLElement | undefined = $state();
   const auto = $derived(slides.length > 1 && !reducedMotion() && settings.value?.ui.heroAutoplay !== false);
 
-  const idx = $derived(Math.min(current, Math.max(0, slides.length - 1)));
+  const idx = $derived(Math.max(0, slides.findIndex((s) => itemKey(s) === current)));
   const item = $derived(slides[idx]);
+  // Pin the slide on screen before the first change, so a reload in the meantime does not swap it either.
+  $effect(() => {
+    const k = item && itemKey(item);
+    if (k && untrack(() => current) !== k) current = k;
+  });
   // Backdrops load for the slide shown and the next one (ready for the crossfade), then stay: not all six at
   // start for slides that may never come (autoplay off, reduced motion).
   let warm = $state<string[]>([]);
@@ -40,7 +46,7 @@
   // Hover, focus or scrolling the hero away holds the slide; the full delay restarts afterwards.
   $effect(() => {
     if (!auto || paused || offscreen) return;
-    const next = current + 1;
+    const next = idx + 1;
     const id = setTimeout(() => go(next), SLIDE_MS);
     return () => clearTimeout(id);
   });
@@ -53,7 +59,7 @@
   });
 
   function go(i: number): void {
-    current = (i + slides.length) % slides.length;
+    current = itemKey(slides[(i + slides.length) % slides.length]);
   }
 
   function titleOf(it: BaseItem): string {
@@ -106,7 +112,7 @@
     if (buttons.length === 0 || el !== (e.key === 'ArrowLeft' ? buttons[0] : buttons[buttons.length - 1])) return;
     e.preventDefault();
     e.stopPropagation();
-    go(current + (e.key === 'ArrowRight' ? 1 : -1));
+    go(idx + (e.key === 'ArrowRight' ? 1 : -1));
     requestAnimationFrame(() => root?.querySelector<HTMLElement>('.slide.active .actions button')?.focus({ preventScroll: true }));
   }
 </script>
@@ -154,7 +160,7 @@
         </div>
         {#if s.Overview}<p class="overview">{s.Overview}</p>{/if}
         <div class="actions">
-          <button class="btn light lg" onclick={() => play(s)} disabled={busy}>
+          <button class="btn light lg" onclick={() => play(s)} aria-disabled={busy}>
             <Icon name="play" size={17} fill stroke={0} />
             {s.Type === 'Book' ? (resumable(s) ? t('browse.hero.resumeReading') : t('browse.hero.read')) : resumable(s) ? t('browse.hero.resume') : t('browse.hero.play')}
           </button>

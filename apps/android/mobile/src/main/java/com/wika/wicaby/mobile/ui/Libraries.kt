@@ -71,7 +71,10 @@ fun LibrariesScreen(api: Api, nav: NavController) {
     // Both counters only grow: a music source change reloads, the list staying on screen meanwhile.
     val views = rememberLoad("views", nonce + com.wika.wicaby.core.music.MusicSource.version) { allViews(api).filter { it.collectionType in BROWSABLE } }
     val photoSources by com.wika.wicaby.core.files.FileSources.photos.collectAsState()
-    PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
+    // As Home: the indicator stays while a pulled reload runs.
+    var pulled by remember { mutableStateOf(false) }
+    LaunchedEffect(views.loading) { if (!views.loading) pulled = false }
+    PullToRefreshBox(isRefreshing = pulled && views.loading, onRefresh = { pulled = true; nonce++ }, modifier = Modifier.fillMaxSize()) {
         val list = views.value
         when {
             list == null && views.error != null -> Centered { ErrorState({ nonce++ }) }

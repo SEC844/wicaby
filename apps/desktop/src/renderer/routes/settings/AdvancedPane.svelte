@@ -13,6 +13,7 @@
 
   // ---- Export, import, reset ----
   let confirmReset = $state(false);
+  let resetTimer: ReturnType<typeof setTimeout> | undefined;
   async function exportSettings(): Promise<void> {
     try {
       if (await w.settings.exportFile()) toast('success', t('settings.advanced.exportImport.exported'));
@@ -30,9 +31,12 @@
   async function resetSettings(): Promise<void> {
     if (!confirmReset) {
       confirmReset = true;
-      setTimeout(() => (confirmReset = false), 4000);
+      // An older timer must not disarm a later arm.
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => (confirmReset = false), 4000);
       return;
     }
+    clearTimeout(resetTimer);
     confirmReset = false;
     try {
       await w.settings.reset();

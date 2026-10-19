@@ -105,6 +105,14 @@
     if ((pane === 'privacy' || query) && data.storage === null) void data.loadStorage();
   });
 
+  // Leaving search (Escape, cleared text or a result heading) swaps the long result list back for the pane.
+  let wasSearching = false;
+  $effect(() => {
+    const searching = query.trim() !== '';
+    if (wasSearching && !searching) document.getElementById('main-scroller')?.scrollTo({ top: 0 });
+    wasSearching = searching;
+  });
+
   function open(id: Pane): void {
     query = '';
     if (id === pane) return;
@@ -135,23 +143,30 @@
     void data.info;
     const root = paneEl;
     if (!root || !q) return;
-    let shown = 0;
-    for (const sec of root.querySelectorAll<HTMLElement>('.result')) {
-      const paneHit = fold(sec.dataset.label ?? '').includes(q);
-      for (const row of sec.querySelectorAll<HTMLElement>('.row')) {
-        const parts = [...row.querySelectorAll('.lbl, .desc')].map((e) => e.textContent ?? '');
-        row.hidden = !paneHit && !fold(parts.length ? parts.join(' ') : (row.textContent ?? '')).includes(q);
+    const filter = () => {
+      let shown = 0;
+      for (const sec of root.querySelectorAll<HTMLElement>('.result')) {
+        const paneHit = fold(sec.dataset.label ?? '').includes(q);
+        for (const row of sec.querySelectorAll<HTMLElement>('.row')) {
+          const parts = [...row.querySelectorAll('.lbl, .desc')].map((e) => e.textContent ?? '');
+          row.hidden = !paneHit && !fold(parts.length ? parts.join(' ') : (row.textContent ?? '')).includes(q);
+        }
+        for (const g of sec.querySelectorAll<HTMLElement>('.group')) {
+          const visible = g.querySelector('.row:not([hidden])') !== null || (paneHit && !g.querySelector('.row'));
+          g.hidden = !visible;
+          const head = g.previousElementSibling as HTMLElement | null;
+          if (head?.classList.contains('gh')) head.hidden = !visible;
+        }
+        sec.hidden = !sec.querySelector('.group:not([hidden])');
+        if (!sec.hidden) shown++;
       }
-      for (const g of sec.querySelectorAll<HTMLElement>('.group')) {
-        const visible = g.querySelector('.row:not([hidden])') !== null || (paneHit && !g.querySelector('.row'));
-        g.hidden = !visible;
-        const head = g.previousElementSibling as HTMLElement | null;
-        if (head?.classList.contains('gh')) head.hidden = !visible;
-      }
-      sec.hidden = !sec.querySelector('.group:not([hidden])');
-      if (!sec.hidden) shown++;
-    }
-    noResults = shown === 0;
+      noResults = shown === 0;
+    };
+    filter();
+    // Rows loaded after the query was typed (sources, Immich folders) must be filtered too.
+    const mo = new MutationObserver(filter);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
   });
 
   onMount(() => {

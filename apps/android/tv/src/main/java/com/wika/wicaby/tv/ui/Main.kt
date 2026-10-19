@@ -815,7 +815,8 @@ fun LibraryGrid(
             if (artists) LetterIndex.load { b -> api.albumArtists("ParentId" to parentId, *LetterIndex.countOnly(b)).totalRecordCount } else LetterIndex.load(api, *filters)
         }.getOrNull()
     }
-    val grid = remember(mode) { androidx.compose.foundation.lazy.grid.LazyGridState() }
+    // Saveable: a pushed title disposes this route, and Back must land on the same row.
+    val grid = rememberSaveable(mode, saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) { androidx.compose.foundation.lazy.grid.LazyGridState() }
     LaunchedEffect(grid) { snapshotFlow { grid.firstVisibleItemIndex > 0 || grid.firstVisibleItemScrollOffset > 60 }.collect(onScrolled) }
     // The pages on screen, and the next one (grid index 0 is the header).
     LaunchedEffect(grid) {

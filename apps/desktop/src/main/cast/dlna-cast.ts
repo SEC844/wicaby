@@ -136,6 +136,7 @@ export class DlnaCast {
   private sink?: string;
   private positionTicks = 0;
   private at = Date.now();
+  private seekAt = 0;
   private paused = false;
   private volume?: number;
   private muted?: boolean;
@@ -382,6 +383,7 @@ export class DlnaCast {
     if (this.polling || this.restarting || this.done) return;
     this.polling = true;
     const dev = this.d.device;
+    const started = Date.now();
     try {
       const tr = await soap(dev, 'avt', 'GetTransportInfo');
       const pos = await soap(dev, 'avt', 'GetPositionInfo');
@@ -405,8 +407,11 @@ export class DlnaCast {
         const wasPaused = this.paused;
         this.paused = st === 'PAUSED_PLAYBACK';
         const rel = parseHms(pos.RelTime);
-        if (Number.isFinite(rel)) this.positionTicks = (this.stream?.startTicks ?? 0) + Math.round(rel * TICKS_PER_S);
-        this.at = Date.now();
+        // A poll sent before the last seek reports the old time: keep the seek's target.
+        if (started > this.seekAt) {
+          if (Number.isFinite(rel)) this.positionTicks = (this.stream?.startTicks ?? 0) + Math.round(rel * TICKS_PER_S);
+          this.at = Date.now();
+        }
         if (wasPaused !== this.paused) void this.report('Progress', this.paused ? 'Pause' : 'Unpause');
       }
       this.d.publish();
@@ -444,9 +449,13 @@ export class DlnaCast {
         // A direct stream seeks in place; a transcode restarts from there (the DLNA plugin does the same).
         if (this.stream?.transcode) await this.restart(ticks);
         else {
-          await soap(dev, 'avt', 'Seek', { Unit: 'REL_TIME', Target: hms(ticks / TICKS_PER_S) });
+          // Set before the round trip, so a quick second ←/→ builds on this target.
           this.positionTicks = ticks;
-          this.at = Date.now();
+          this.at = this.seekAt = Date.now();
+          await soap(dev, 'avt', 'Seek', { Unit: 'REL_TIME', Target: hms(ticks / TICKS_PER_S) });
+          // Again once acknowledged: a poll sent while Seek was in flight still reports the old time.
+          this.positionTicks = ticks;
+          this.at = this.seekAt = Date.now();
         }
         void this.report('Progress', 'TimeUpdate');
         break;

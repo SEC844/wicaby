@@ -74,6 +74,10 @@
 </div>
 
 <style>
+  /* Settings groups clip their rounded corners; let an open menu out of them. */
+  :global(.group:has(.picker .menu)) {
+    overflow: visible;
+  }
   .picker {
     position: relative;
     flex: none;

@@ -21,6 +21,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +61,9 @@ import com.wika.wicaby.mobile.ui.SelectorRow
 import com.wika.wicaby.mobile.ui.Type
 import com.wika.wicaby.mobile.ui.trackName
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import com.wika.wicaby.core.R as CoreR
 
 private val TICKS_10S = 10_000 * TICKS_PER_MS
@@ -141,6 +144,12 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
     val positionTicks = state?.positionTicks ?: 0
     val unavailable = stringResource(CoreR.string.cast_unavailable)
     var drag by remember { mutableStateOf<Float?>(null) }
+    // The last Seek sent, shown (and used as the -10/+30 base) until the mirror reports near it or 3 s pass.
+    var sentTicks by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(positionTicks) { if (sentTicks?.let { abs(positionTicks - it) < 2_000 * TICKS_PER_MS } == true) sentTicks = null }
+    LaunchedEffect(sentTicks) { if (sentTicks != null) { delay(3_000); sentTicks = null } }
+    val shownTicks = sentTicks ?: positionTicks
+    fun seek(ticks: Long) { sentTicks = ticks; send { rt.transport(t, "Seek", ticks) } }
 
     Text(stringResource(CoreR.string.cast_casting_to, t.name).uppercase(), style = Type.eyebrow, color = G.label3)
     Text(
@@ -148,10 +157,10 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
         modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
     )
     Slider(
-        value = drag ?: (positionTicks / TICKS_PER_MS).toFloat(),
+        value = drag ?: (shownTicks / TICKS_PER_MS).toFloat(),
         onValueChange = { drag = it },
         onValueChangeFinished = {
-            drag?.let { ms -> send { rt.transport(t, "Seek", ms.toLong() * TICKS_PER_MS) } }
+            drag?.let { ms -> seek(ms.toLong() * TICKS_PER_MS) }
             drag = null
         },
         valueRange = 0f..(durationTicks / TICKS_PER_MS).coerceAtLeast(1).toFloat(),
@@ -159,7 +168,7 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
         colors = SliderDefaults.colors(thumbColor = G.label, activeTrackColor = G.label, inactiveTrackColor = G.fill3, disabledThumbColor = G.label3, disabledActiveTrackColor = G.label3),
     )
     Row(Modifier.fillMaxWidth()) {
-        Text(clock(drag?.toLong() ?: (positionTicks / TICKS_PER_MS)), style = Type.mono, color = G.label2, modifier = Modifier.weight(1f))
+        Text(clock(drag?.toLong() ?: (shownTicks / TICKS_PER_MS)), style = Type.mono, color = G.label2, modifier = Modifier.weight(1f))
         Text(clock(durationTicks / TICKS_PER_MS), style = Type.mono, color = G.label2)
     }
     val on = playing != null
@@ -167,10 +176,10 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
     val paused = state?.paused ?: true
     Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         RemoteButton(Ic.Next, stringResource(CoreR.string.cast_previous), queue, unavailable.takeIf { on }, mirrored = true) { send { rt.transport(t, "PreviousTrack") } }
-        RemoteButton(Ic.Back10, stringResource(R.string.play_on_back), on) { send { rt.transport(t, "Seek", (positionTicks - TICKS_10S).coerceAtLeast(0)) } }
+        RemoteButton(Ic.Back10, stringResource(R.string.play_on_back), on) { seek((shownTicks - TICKS_10S).coerceAtLeast(0)) }
         RemoteButton(if (paused) Ic.Play else Ic.Pause, stringResource(if (paused) R.string.play else R.string.pause), on, primary = true) { send { rt.transport(t, "PlayPause") } }
         RemoteButton(Ic.Fwd10, stringResource(R.string.play_on_forward), on) {
-            send { rt.transport(t, "Seek", (positionTicks + TICKS_30S).let { if (durationTicks > 0) it.coerceAtMost(durationTicks) else it }) }
+            seek((shownTicks + TICKS_30S).let { if (durationTicks > 0) it.coerceAtMost(durationTicks) else it })
         }
         RemoteButton(Ic.Next, stringResource(R.string.play_on_next), queue, unavailable.takeIf { on }) { send { rt.transport(t, "NextTrack") } }
     }
@@ -180,6 +189,10 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
     val canMute = t.supports(if (muted) "Unmute" else "Mute") || t.supports("ToggleMute")
     val canVolume = t.supports("SetVolume")
     var volume by remember { mutableStateOf<Float?>(null) }
+    // Same for the volume: the value sent stays until the mirror echoes it.
+    var sentVolume by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(ps?.volumeLevel) { if (sentVolume?.let { abs((ps?.volumeLevel ?: -10) - it) <= 2 } == true) sentVolume = null }
+    LaunchedEffect(sentVolume) { if (sentVolume != null) { delay(3_000); sentVolume = null } }
     Row(Modifier.fillMaxWidth().padding(top = 20.dp), verticalAlignment = Alignment.CenterVertically) {
         RemoteButton(Ic.Volume, stringResource(if (muted) CoreR.string.cast_unmute else CoreR.string.cast_mute), canMute, unavailable, dim = muted) {
             val name = if (t.supports(if (muted) "Unmute" else "Mute")) (if (muted) "Unmute" else "Mute") else "ToggleMute"
@@ -188,10 +201,10 @@ private fun Remote(api: Api, t: CastTarget, rt: CastRemote, state: SessionState?
         Spacer(Modifier.width(12.dp))
         val label = stringResource(R.string.volume)
         Slider(
-            value = volume ?: (ps?.volumeLevel ?: 100).toFloat(),
+            value = volume ?: (sentVolume ?: ps?.volumeLevel ?: 100).toFloat(),
             onValueChange = { volume = it },
             onValueChangeFinished = {
-                volume?.let { v -> send { rt.command(t, "SetVolume", mapOf("Volume" to v.toInt().coerceIn(0, 100).toString())) } }
+                volume?.let { v -> val n = v.toInt().coerceIn(0, 100); sentVolume = n; send { rt.command(t, "SetVolume", mapOf("Volume" to n.toString())) } }
                 volume = null
             },
             valueRange = 0f..100f,

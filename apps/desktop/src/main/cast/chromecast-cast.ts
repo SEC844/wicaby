@@ -465,6 +465,9 @@ export class ChromecastCast {
         if (!Number.isFinite(to)) return;
         const ticks = Math.min(Math.max(0, Math.round(to)), this.item?.RunTimeTicks ?? Infinity);
         // A progressive transcode restarts from there; direct streams and HLS seek in place.
+        // Set before the round trip, so a quick second ←/→ builds on this target.
+        this.positionTicks = ticks;
+        this.at = Date.now();
         if (!receiver && this.stream?.transcode && !this.stream.hls) await this.restart(ticks);
         else await this.mediaRequest('SEEK', { currentTime: (ticks - (this.stream?.startTicks ?? 0)) / TICKS_PER_S });
         this.positionTicks = ticks;

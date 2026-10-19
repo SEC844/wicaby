@@ -11,11 +11,11 @@ export const MEDIA_KEYS: Record<number, PlaybackCommand> = {
   19: { type: 'pause' }, // Pause
   10252: { type: 'toggle-pause' }, // Samsung Play/Pause
   413: { type: 'stop' }, // Stop
-  417: { type: 'seek-relative', deltaMs: 30_000 }, // Fast forward
-  412: { type: 'seek-relative', deltaMs: -10_000 }, // Rewind
   10233: { type: 'next' }, // Samsung track next
   10232: { type: 'previous' }, // Samsung track previous
 };
+// FF/RW go to the OSD's own shortcut rows: its flash, wake-up, "Sauts" step and merged presses.
+const OSD_KEYS: Record<number, string> = { 417: 'MediaFastForward', 412: 'MediaRewind' };
 const BACK = new Set([461, 10009]);
 // Tizen sends media keys to the page only once registered (tvinputdevice); webOS sends them anyway.
 const TIZEN_KEYS = ['MediaPlay', 'MediaPause', 'MediaPlayPause', 'MediaStop', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious'];
@@ -64,11 +64,20 @@ export function initTv(opts: { playing: () => boolean; command: (c: PlaybackComm
         // Pages, sheets and menus listen for BrowserBack; the player's OSD for Escape (close a panel, else stop).
         e.preventDefault();
         e.stopImmediatePropagation();
+        // A held Back would otherwise close the panel, stop the film, pop every page and exit the app.
+        if (e.repeat) return;
         const key = opts.playing() ? 'Escape' : 'BrowserBack';
         // Back on Home with nothing open leaves the app, as the TV makers' guidelines ask.
         const root = !opts.playing() && /^#?\/?(home)?$/.test(location.hash) && !document.activeElement?.closest('[role="dialog"], [role="menu"]');
         if (root && onTv) return exitApp();
         (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key, code: key, bubbles: true, cancelable: true }));
+        return;
+      }
+      const osdKey = OSD_KEYS[e.keyCode];
+      if (osdKey && e.key !== osdKey && opts.playing()) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: osdKey, code: osdKey, repeat: e.repeat, bubbles: true, cancelable: true }));
         return;
       }
       const cmd = MEDIA_KEYS[e.keyCode];

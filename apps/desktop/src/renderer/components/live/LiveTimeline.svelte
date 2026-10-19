@@ -20,23 +20,53 @@
 
   const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
   const span = $derived(ts ? Math.max(1, ts.endWall - ts.startWall) : 0);
-  const fraction = $derived(ts ? clamp01((ts.posWall - ts.startWall) / span) : lv.now ? clamp01((clock - lv.now.start) / Math.max(1, lv.now.end - lv.now.start)) : 0);
+  // Wall time under the pointer while dragging, then the seek target until posWall reaches it (no snap-back).
+  let draft = $state<number | null>(null);
+  let dragging = false;
+  let draftTimer: ReturnType<typeof setTimeout> | null = null;
+  const fraction = $derived(ts ? clamp01(((draft ?? ts.posWall) - ts.startWall) / span) : lv.now ? clamp01((clock - lv.now.start) / Math.max(1, lv.now.end - lv.now.start)) : 0);
   const behind = $derived(ts ? Math.max(0, ts.endWall - ts.posWall) : 0);
+  $effect(() => {
+    if (draft !== null && !dragging && ts && Math.abs(ts.posWall - draft) < 2000) draft = null;
+  });
 
   function cmd(c: PlaybackCommand): void {
     void w.playback.command(c).catch(() => undefined);
   }
 
+  function wallAt(e: PointerEvent): number {
+    const r = bar!.getBoundingClientRect();
+    return ts!.startWall + clamp01((e.clientX - r.left) / Math.max(1, r.width)) * span;
+  }
   function onDown(e: PointerEvent): void {
     if (!ts || !bar) return;
-    const r = bar.getBoundingClientRect();
-    const f = clamp01((e.clientX - r.left) / Math.max(1, r.width));
-    cmd({ type: 'seek-relative', deltaMs: Math.round(ts.startWall + f * span - ts.posWall) });
+    bar.setPointerCapture(e.pointerId);
+    dragging = true;
+    draft = wallAt(e);
+  }
+  function onMove(e: PointerEvent): void {
+    if (dragging && ts && bar) draft = wallAt(e);
+  }
+  function onUp(e: PointerEvent): void {
+    if (!dragging) return;
+    dragging = false;
+    if (!ts || !bar) return void (draft = null);
+    draft = wallAt(e);
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => (draft = null), 3000);
+    cmd({ type: 'seek-relative', deltaMs: Math.round(draft - ts.posWall) });
+  }
+  function onCancel(): void {
+    dragging = false;
+    draft = null;
   }
 
   onMount(() => {
     const timer = setInterval(() => (clock = Date.now()), 1_000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (draftTimer) clearTimeout(draftTimer);
+    };
   });
 </script>
 
@@ -54,6 +84,9 @@
       aria-valuenow={Math.round((ts.posWall - ts.startWall) / 1000)}
       aria-valuetext={fmt.time(ts.posWall)}
       onpointerdown={onDown}
+      onpointermove={onMove}
+      onpointerup={onUp}
+      onpointercancel={onCancel}
     >
       <div class="track"><span class="fill" style:transform="scaleX({fraction})"></span></div>
       <span class="knob" style:left="{fraction * 100}%"></span>

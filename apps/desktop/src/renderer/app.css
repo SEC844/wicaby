@@ -275,6 +275,7 @@ img[data-ink] {
 .btn:is(:hover, :focus-visible) { background: var(--fill-3); }
 .btn:active { transform: scale(0.96); transition-duration: calc(var(--t-fast) / 2); }
 .btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn[aria-disabled='true'] { opacity: 0.4; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); }
 .btn.primary:hover { background: color-mix(in srgb, var(--accent) 86%, #fff); }
 .btn.light { background: var(--label); color: #000; }

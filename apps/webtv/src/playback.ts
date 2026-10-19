@@ -111,7 +111,7 @@ export class WebPlayback {
     }
   }
 
-  private async start(o: { startMs: number; mediaSourceId?: string; audio?: number; subtitle?: number }): Promise<void> {
+  private async start(o: { startMs: number; mediaSourceId?: string; audio?: number; subtitle?: number; rate?: number }): Promise<void> {
     const seq = ++this.seq;
     const s = this.host.server(this.serverId);
     if (!s?.userId) throw new Error(t('errors.connection.notSignedIn'));
@@ -120,6 +120,8 @@ export class WebPlayback {
     const item = await (s.kind === 'jellyfin' ? this.api<BaseItem>('GET', `/Items/${id}`, { userId: s.userId }) : this.api<BaseItem>('GET', `/Users/${s.userId}/Items/${id}`));
     if (seq !== this.seq) return;
     const pb = this.host.settings().playback;
+    // A reload keeps the current speed; a new item gets "Vitesse par défaut" if it is a film or episode, as on the desktop.
+    const rate = o.rate ?? (item.MediaType === 'Video' && item.Type !== 'TvChannel' ? pb.defaultSpeed : 1);
     let source = item.MediaSources?.find((m) => m.Id === o.mediaSourceId) ?? item.MediaSources?.[0];
     const streams0 = source?.MediaStreams ?? item.MediaStreams ?? [];
     const picked = selectTracks(
@@ -228,11 +230,11 @@ export class WebPlayback {
       playMethod: this.playMethod,
       queueIndex: this.index,
       queueLength: this.queue.length,
-      rate: 1,
+      rate,
       stats: { resolution: video?.Width ? `${video.Width}×${video.Height}` : undefined, videoCodec: video?.Codec },
     };
     this.publish();
-    this.host.load({ url, isHls, startMs, volume: this.state.volume, muted: this.state.muted, subtitles: external, subtitleIndex: external.some((e) => e.index === subtitleIndex) ? subtitleIndex : null, rate: 1 });
+    this.host.load({ url, isHls, startMs, volume: this.state.volume, muted: this.state.muted, subtitles: external, subtitleIndex: external.some((e) => e.index === subtitleIndex) ? subtitleIndex : null, rate });
   }
 
   private reportBody(): Record<string, unknown> {
@@ -303,9 +305,10 @@ export class WebPlayback {
   private async advance(delta: 1 | -1, ended = false): Promise<void> {
     const next = this.index + delta;
     if (ended && this.item) this.state.positionMs = this.state.durationMs;
-    await this.stopped();
     if (next < 0 || next >= this.queue.length || (ended && !this.host.settings().playback.autoPlayNext)) return this.stop();
+    // Moved before the await, so a second Next during the Stopped report counts.
     this.index = next;
+    await this.stopped();
     await this.start({ startMs: 0 }).catch((err: unknown) => this.fail(err));
   }
 
@@ -335,9 +338,13 @@ export class WebPlayback {
       case 'resume':
         return this.host.command({ type: 'play' });
       case 'seek':
-        return this.host.command({ type: 'seek', positionMs: Math.max(0, c.positionMs) });
-      case 'seek-relative':
-        return this.host.command({ type: 'seek', positionMs: Math.max(0, Math.min(st.durationMs || Infinity, st.positionMs + c.deltaMs)) });
+      case 'seek-relative': {
+        const to = Math.max(0, c.type === 'seek' ? c.positionMs : Math.min(st.durationMs || Infinity, st.positionMs + c.deltaMs));
+        // Set now: while paused no 'time' event comes until seeked, and the next press must start from here.
+        st.positionMs = to;
+        this.publish();
+        return this.host.command({ type: 'seek', positionMs: to });
+      }
       case 'stop':
         return this.stop();
       case 'next':
@@ -371,8 +378,10 @@ export class WebPlayback {
   }
 
   private async reload(o: { audio?: number; subtitle?: number }): Promise<void> {
+    // Paused first, so the old stream stops moving past the position the new one resumes from.
+    this.host.command({ type: 'pause' });
     const at = this.state.positionMs;
     await this.stopped();
-    await this.start({ startMs: at, mediaSourceId: this.source?.Id, audio: o.audio ?? this.state.audioIndex ?? undefined, subtitle: o.subtitle ?? this.state.subtitleIndex ?? -1 }).catch((err: unknown) => this.fail(err));
+    await this.start({ startMs: at, mediaSourceId: this.source?.Id, audio: o.audio ?? this.state.audioIndex ?? undefined, subtitle: o.subtitle ?? this.state.subtitleIndex ?? -1, rate: this.state.rate }).catch((err: unknown) => this.fail(err));
   }
 }

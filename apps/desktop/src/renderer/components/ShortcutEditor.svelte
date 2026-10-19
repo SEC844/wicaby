@@ -98,7 +98,16 @@
   }
 </script>
 
-<svelte:window onkeydowncapture={onKeyCapture} />
+<!-- A click anywhere but the armed Record button cancels, so keys typed elsewhere are not captured. -->
+<svelte:window
+  onkeydowncapture={onKeyCapture}
+  onpointerdown={(e) => {
+    if (recording && !(e.target as Element).closest('.push[aria-pressed="true"]')) {
+      recording = null;
+      status = '';
+    }
+  }}
+/>
 
 {#snippet editRow(r: (typeof rows)[number])}
   {@const label = t(r.labelKey)}

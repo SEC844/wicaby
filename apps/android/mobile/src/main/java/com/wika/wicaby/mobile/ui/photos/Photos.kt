@@ -203,14 +203,15 @@ private fun Timeline(api: Api, key: String, other: String?, density: Int, onDens
     var slideFrom by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     // A load cut short (the tab left mid-paging) resumes here: only a complete timeline is reused (TimelineState).
-    LaunchedEffect(t, nonce) { load(t, nonce > 0) }
+    var pulled by remember { mutableStateOf(false) }
+    LaunchedEffect(t, nonce) { load(t, nonce > 0); pulled = false }
     fun setFavorite(i: Int, on: Boolean) {
         t.photos = t.photos.toMutableList().also { l -> l[i] = l[i].copy(asset = l[i].asset.copy(favorite = on)) }
         // The other tab reloads with the change.
         other?.let { Cache.map.remove(it) }
     }
     BackHandler(selected.isNotEmpty()) { selected = emptySet() }
-    PullToRefreshBox(isRefreshing = false, onRefresh = { nonce++ }, modifier = Modifier.fillMaxSize()) {
+    PullToRefreshBox(isRefreshing = pulled, onRefresh = { pulled = true; nonce++ }, modifier = Modifier.fillMaxSize()) {
         when {
             t.failed -> Centered { ErrorState({ nonce++ }) }
             t.total < 0 -> Centered { Spinner() }

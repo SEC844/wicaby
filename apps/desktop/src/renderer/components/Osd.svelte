@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, untrack } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { fade } from 'svelte/transition';
   import { ASPECT_MODES, ZOOM_STEPS, type AspectMode, type PlaybackCommand, type PlaybackState, type SkipSegmentType, type Track, type VideoAspect } from '../../shared/contract';
   import { activeSegment, SEGMENT_SETTING } from '../../shared/markers';
@@ -39,10 +39,17 @@
   let showStats = $state(false);
   let dragging = $state(false);
   let dragFraction = $state(0);
+  // Seek target held after release until mpv reports it, so the knob does not snap back to the old position first.
+  let landing = $state<number | null>(null);
+  let landingTimer: ReturnType<typeof setTimeout> | null = null;
+  // Volume shown while dragging or stepping: mpv echoes each step back late, which made the fill trail and bounce.
+  let volDraft = $state<number | null>(null);
+  let volDrag = $state(false);
+  let volTimer: ReturnType<typeof setTimeout> | null = null;
   let hoverFraction = $state<number | null>(null);
   let bar = $state<HTMLDivElement>();
   let barW = $state(0);
-  let flash = $state<{ kind: Flash; n: number } | null>(null);
+  let flash = $state<{ kind: Flash; n: number; sec?: number } | null>(null);
   // Live TV player mode (live/LiveOverlay.svelte): asked first for every key while a channel plays.
   let overlay = $state<LiveOverlay>();
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -67,7 +74,14 @@
   const subSearchServer = $derived(s?.item?.serverId);
   $effect(() => void subtitleSearchAllowed(subSearchServer).then((v) => (subSearchAllowed = v)));
   const subSearch = $derived(subSearchAllowed && subtitleSearchable(s));
-  const position = $derived(dragging ? dragFraction * duration : pending ? pending.target : (s?.positionMs ?? 0));
+  const position = $derived(dragging ? dragFraction * duration : pending ? pending.target : (landing ?? s?.positionMs ?? 0));
+  $effect(() => {
+    if (landing !== null && Math.abs((s?.positionMs ?? 0) - landing) < 1500) landing = null;
+  });
+  // The draft is dropped once main reports it (or after a short timeout), so the fill never steps back.
+  $effect(() => {
+    if (volDraft !== null && !volDrag && !s?.muted && Math.round(s?.volume ?? -1) === volDraft) volDraft = null;
+  });
   const fraction = $derived(duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0);
   const bufFraction = $derived(duration > 0 ? Math.min(1, Math.max(0, bufferedMs / duration)) : 0);
   // In live mode next / previous change channel (main maps them to zap).
@@ -84,7 +98,7 @@
     wasPaused = p;
   });
   const uiShown = $derived(visible || !s?.active || (Boolean(s?.paused) && !quietPause) || panel !== null || dragging || sleepOpen || qualityOpen || subSearchOpen || Boolean(cast.picker));
-  const volume = $derived(s?.muted ? 0 : (s?.volume ?? 100));
+  const volume = $derived(volDraft ?? (s?.muted ? 0 : (s?.volume ?? 100)));
   // mpv amplifies up to 150 % with the boost on; <video> stops at 100 %.
   const volMax = $derived(mode === 'mpv' && settings.value?.playback.volumeBoost ? 150 : 100);
   // X-04: the shortcut table with the user's rebindings (Settings > Général > Raccourcis).
@@ -223,13 +237,14 @@
     lastPausedItem = id;
   });
 
-  function showFlash(kind: Flash): void {
-    flash = { kind, n: (flash?.n ?? 0) + 1 };
+  function showFlash(kind: Flash, sec?: number): void {
+    flash = { kind, n: (flash?.n ?? 0) + 1, sec };
   }
 
   function cmd(c: PlaybackCommand): void {
     // Any other playhead move drops the pending merged seek.
     if (pending && ['seek', 'seek-relative', 'skip', 'next', 'previous', 'zap', 'tune', 'stop'].includes(c.type)) cancelSeek();
+    if (landing !== null && ['seek-relative', 'skip', 'next', 'previous', 'zap', 'tune', 'stop'].includes(c.type)) landing = null;
     void w.playback.command(c).catch(() => undefined);
   }
 
@@ -260,7 +275,14 @@
   function commitSeek(): void {
     const p = pending;
     cancelSeek();
-    if (p && p.target !== p.origin) void w.playback.command({ type: 'seek', positionMs: p.target }).catch(() => undefined);
+    if (p && p.target !== p.origin) seekTo(p.target);
+  }
+  // Absolute seek that holds the knob on the target until mpv reports it (see `landing`).
+  function seekTo(ms: number): void {
+    landing = ms;
+    if (landingTimer) clearTimeout(landingTimer);
+    landingTimer = setTimeout(() => (landing = null), 3000);
+    cmd({ type: 'seek', positionMs: ms });
   }
   // Key-up after a hold commits at once.
   function onKeyUp(): void {
@@ -309,7 +331,7 @@
     const starts = allChapters.map((c) => c.startMs);
     if (!starts.length) return seekPress(forward ? 1 : -1, stepShort, repeat);
     const to = chapterTarget(starts, position, forward);
-    if (to !== null) cmd({ type: 'seek', positionMs: to });
+    if (to !== null) seekTo(to);
   }
 
   // Wall clock for "Ends at" and the sleep timer, once per second.
@@ -371,7 +393,7 @@
 
   function skip(deltaMs: number): void {
     cmd({ type: 'seek-relative', deltaMs });
-    showFlash(deltaMs < 0 ? 'back' : 'fwd');
+    showFlash(deltaMs < 0 ? 'back' : 'fwd', Math.abs(deltaMs) / 1000);
   }
 
   function poke(): void {
@@ -383,7 +405,10 @@
     }, 3000);
   }
 
-  onMount(poke);
+  // Re-arm the hide timer once a panel closes or a scrub ends: its earlier run did nothing while they were up.
+  $effect(() => {
+    if (!panel && !dragging) untrack(poke);
+  });
 
   onDestroy(() => {
     if (hideTimer) clearTimeout(hideTimer);
@@ -391,6 +416,8 @@
     if (pillTimer) clearTimeout(pillTimer);
     if (noticeTimer) clearTimeout(noticeTimer);
     if (pendingTimer) clearTimeout(pendingTimer);
+    if (landingTimer) clearTimeout(landingTimer);
+    if (volTimer) clearTimeout(volTimer);
   });
 
   function onSurfaceClick(): void {
@@ -437,13 +464,23 @@
   function onBarUp(e: PointerEvent): void {
     if (!dragging) return;
     dragging = false;
-    cmd({ type: 'seek', positionMs: fractionAt(e.clientX) * duration });
+    seekTo(fractionAt(e.clientX) * duration);
   }
 
+  // One path for drag and keys: each step builds on the draft, not on the late published volume.
   function setVolume(v: number): void {
     v = Math.round(Math.min(volMax, Math.max(0, v)));
+    volDraft = v;
+    releaseVolDraft();
     cmd({ type: 'volume', value: v });
     if (s?.muted && v > 0) cmd({ type: 'mute', value: false });
+  }
+
+  function releaseVolDraft(): void {
+    if (volTimer) clearTimeout(volTimer);
+    volTimer = setTimeout(() => {
+      if (!volDrag) volDraft = null;
+    }, 400);
   }
 
   function volumeAt(e: PointerEvent): void {
@@ -502,10 +539,8 @@
         chapterJump(id === 'fastForward', e.repeat);
         break;
       case 'volumeUp':
-        cmd({ type: 'volume', value: Math.min(volMax, st.volume + 5) });
-        break;
       case 'volumeDown':
-        cmd({ type: 'volume', value: Math.max(0, st.volume - 5) });
+        setVolume((volDraft ?? st.volume) + (id === 'volumeUp' ? 5 : -5)); // from the level under the mute, not 0
         break;
       case 'mute':
         cmd({ type: 'mute', value: !st.muted });
@@ -553,7 +588,7 @@
         break;
       case 'jump':
         if (duration <= 0 || !/^[0-9]$/.test(e.key)) return false;
-        cmd({ type: 'seek', positionMs: (Number(e.key) / 10) * duration });
+        seekTo((Number(e.key) / 10) * duration);
         break;
       case 'info':
         showStats = !showStats;
@@ -692,7 +727,7 @@
           {:else if flash.kind === 'pause'}<Icon name="pause" size={36} fill />
           {:else}
             <Icon name={flash.kind === 'back' ? 'back10' : 'fwd30'} size={40} stroke={1.8} />
-            <span class="flash-n mono">10</span>
+            <span class="flash-n mono">{flash.sec}</span>
           {/if}
         </span>
       </div>
@@ -747,7 +782,7 @@
   {/if}
 
   {#if segment}
-    <div class="skip-wrap" class:lifted={uiShown} class:shown={pillShown}>
+    <div class="skip-wrap" out:fade={{ duration: dur('fast') }} class:lifted={uiShown} class:shown={pillShown}>
       <button class="skip-pill glass" tabindex={pillShown ? 0 : -1} onclick={skipSegment}>
         {t(`player.skip.${segment}`)}
       </button>
@@ -866,6 +901,7 @@
           </button>
           <div
             class="vol"
+            class:drag={volDrag}
             role="slider"
             tabindex="0"
             aria-label={t('player.osd.volume')}
@@ -874,11 +910,14 @@
             aria-valuenow={volume}
             onpointerdown={(e) => {
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              volDrag = true;
               volumeAt(e);
             }}
             onpointermove={(e) => {
               if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) volumeAt(e);
             }}
+            onpointerup={() => ((volDrag = false), releaseVolDraft())}
+            onpointercancel={() => ((volDrag = false), releaseVolDraft())}
             onkeydown={(e) => {
               const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 5 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -5 : 0;
               if (!d) return;
@@ -922,7 +961,7 @@
                       role="menuitemradio"
                       aria-checked={i === currentChapter}
                       onclick={() => {
-                        cmd({ type: 'seek', positionMs: ch.startMs });
+                        seekTo(ch.startMs);
                         panel = null;
                       }}
                     >
@@ -1729,6 +1768,9 @@
     transform-origin: left;
     transition: transform var(--t-fast) var(--ease);
   }
+  .vol.drag .vol-fill {
+    transition: none;
+  }
 
   /* Scrubber */
   .scrub-row {
@@ -1738,7 +1780,7 @@
     margin-bottom: 2px;
   }
   .time {
-    min-width: 46px;
+    min-width: 8ch;
     font-size: var(--fs-footnote);
     color: var(--label);
   }

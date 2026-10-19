@@ -2,7 +2,7 @@
   import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
   import { t } from '../lib/i18n.svelte';
-  import { toasts } from '../lib/stores.svelte';
+  import { dropToast, holdToast, releaseToast, toasts } from '../lib/stores.svelte';
   import Icon from './Icon.svelte';
   import { dur } from '../lib/motion';
 
@@ -11,8 +11,11 @@
   // On <body>, outside #app: an open Sheet makes #app inert, and toasts must stay announced and clickable.
   const toBody = (node: HTMLElement) => void document.body.appendChild(node);
 
-  function dismiss(id: number) {
-    toasts.list = toasts.list.filter((x) => x.id !== id);
+  // Pointer and focus both hold a toast: it is let go only when neither is still on it.
+  function release(e: Event, id: number) {
+    const el = e.currentTarget as HTMLElement;
+    const next = (e as FocusEvent).relatedTarget as Node | null;
+    if (e.type === 'focusout' ? !el.matches(':hover') && !el.contains(next) : !el.contains(document.activeElement)) releaseToast(id);
   }
 
   // Damped spring, ~7 % overshoot, lands exactly on 1.
@@ -39,14 +42,24 @@
 
 <div class="toasts" aria-live="polite" use:toBody>
   {#each [...toasts.list].reverse() as toast (toast.id)}
-    <div class="toast {toast.kind}" role="status" animate:flip={{ duration: dur('med'), easing: cubicOut }} in:drop out:lift>
+    <div
+      class="toast {toast.kind}"
+      role="status"
+      animate:flip={{ duration: dur('med'), easing: cubicOut }}
+      in:drop
+      out:lift
+      onpointerenter={() => holdToast(toast.id)}
+      onpointerleave={(e) => release(e, toast.id)}
+      onfocusin={() => holdToast(toast.id)}
+      onfocusout={(e) => release(e, toast.id)}
+    >
       <span class="glyph"><Icon name={ICON[toast.kind]} size={15} stroke={2.1} /></span>
       <span class="msg">{toast.message}</span>
       {#if toast.action}
         {@const action = toast.action}
-        <button class="act" onclick={() => (dismiss(toast.id), action.run())}>{action.label}</button>
+        <button class="act" onclick={() => (dropToast(toast.id), action.run())}>{action.label}</button>
       {/if}
-      <button class="x" onclick={() => dismiss(toast.id)} aria-label={t('common.actions.close')} tabindex="-1"><Icon name="close" size={11} stroke={2.4} /></button>
+      <button class="x" onclick={() => dropToast(toast.id)} aria-label={t('common.actions.close')} tabindex="-1"><Icon name="close" size={11} stroke={2.4} /></button>
     </div>
   {/each}
 </div>

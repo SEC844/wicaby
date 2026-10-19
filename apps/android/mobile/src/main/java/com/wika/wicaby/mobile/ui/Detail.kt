@@ -297,14 +297,16 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                             }
                             if (!item.isSeries && caps.castSend && canDownload) DownloadAction(downloads.firstOrNull { it.isOf(api.server.id, item.id) }) { download(item) }
                             if (caps.favorites) ActionIcon(if (favorite) Ic.HeartFilled else Ic.Heart, stringResource(R.string.favorite), active = favorite, onClick = {
-                                scope.launch { runCatching { api.setFavorite(item.id, !favorite) }.onSuccess { favorite = !favorite } }
+                                // Optimistic: reacts at once, and a quick double tap sends both values in order.
+                                val v = !favorite
+                                favorite = v
+                                scope.launch { runCatching { api.setFavorite(item.id, v) }.onFailure { favorite = !v } }
                             })
                             ActionIcon(if (watched) Ic.CircleCheck else Ic.Check, stringResource(R.string.watched), active = watched, onClick = {
+                                val v = !watched
+                                watched = v
                                 scope.launch {
-                                    runCatching { api.setPlayed(item.id, !watched) }.onSuccess {
-                                        watched = !watched
-                                        Cache.invalidateHome()
-                                    }
+                                    runCatching { api.setPlayed(item.id, v) }.onSuccess { Cache.invalidateHome() }.onFailure { watched = !v }
                                 }
                             })
                         }

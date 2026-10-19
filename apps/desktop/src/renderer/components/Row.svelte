@@ -118,6 +118,9 @@
     --card-w: calc(clamp(240px, 19vw, 360px) * var(--card-scale, 1));
     contain-intrinsic-size: auto 300px;
   }
+  :global(#main-scroller.restoring) .row {
+    content-visibility: visible;
+  }
   .row.square {
     --card-w: calc(clamp(146px, 11vw, 200px) * var(--card-scale, 1));
   }

@@ -90,7 +90,10 @@
   let box = $state<HTMLDivElement>();
   let lineEls = $state<HTMLElement[]>([]);
   let boxH = $state(0);
+  let boxW = $state(0);
   const y = $derived.by(() => {
+    // Read so a width-only resize (lines re-wrap, offsets move) recentres too.
+    void boxW;
     const el = lineEls[Math.max(0, current)];
     return el ? boxH * 0.35 - el.offsetTop - el.offsetHeight / 2 : boxH * 0.35;
   });
@@ -102,7 +105,7 @@
   {:else if !lyrics}
     <p class="none callout">{t('music.lyrics.none')}</p>
   {:else if lyrics.synced}
-    <div class="box" bind:this={box} bind:clientHeight={boxH}>
+    <div class="box" bind:this={box} bind:clientHeight={boxH} bind:clientWidth={boxW}>
       <ol class="lines" style:transform="translateY({y}px)" data-current={current}>
         {#each lyrics.lines as line, i (i)}
           <li bind:this={lineEls[i]}>

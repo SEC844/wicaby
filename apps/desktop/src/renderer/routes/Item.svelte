@@ -260,7 +260,9 @@
           if (seasonId === sid) episodes = r.Items;
         })
         .catch(() => undefined)
-        .finally(() => (episodesLoading = false)),
+        .finally(() => {
+          if (seasonId === sid) episodesLoading = false;
+        }),
     );
   });
 
@@ -372,6 +374,13 @@
     }
   }
 
+  // Clearing the list shows the skeleton instead of the previous season's cards until the new ones arrive.
+  function pickSeason(id: string): void {
+    if (seasonId === id) return;
+    seasonId = id;
+    episodes = [];
+  }
+
   async function toggleFavorite(): Promise<void> {
     if (!item) return;
     const next = !item.UserData?.IsFavorite;
@@ -386,12 +395,16 @@
 
   async function togglePlayed(target: BaseItem = item!): Promise<void> {
     const next = !target.UserData?.Played;
+    target.UserData = { ...target.UserData, Played: next };
     try {
       await api.setPlayed(target.Id, next);
       toast('success', next ? t('item.toast.markedWatched') : t('item.toast.markedUnwatched'));
-      await load();
     } catch (err) {
+      target.UserData = { ...target.UserData, Played: !next };
       toast('error', errorMessage(err));
+    } finally {
+      // Reloads the item and its episodes without waiting for the server's socket echo (none for file sources).
+      dataVersion.userData++;
     }
   }
 
@@ -707,7 +720,7 @@
             {#if item.Type === 'Series' && seasons.length > 1}
               <div class="seasons" role="tablist" aria-label={t('item.episodes.seasons')}>
                 {#each seasons as s (s.Id)}
-                  <button class="season" class:on={seasonId === s.Id} role="tab" aria-selected={seasonId === s.Id} onclick={() => (seasonId = s.Id)}>
+                  <button class="season" class:on={seasonId === s.Id} role="tab" aria-selected={seasonId === s.Id} onclick={() => pickSeason(s.Id)}>
                     {s.Name}
                     {#if s.UserData?.UnplayedItemCount}<span class="n">{s.UserData.UnplayedItemCount}</span>{/if}
                   </button>
@@ -723,40 +736,43 @@
               </button>
             {/if}
           </div>
-          <Row title="" variant="thumb" loading={episodesLoading}>
-            {#each episodes as ep, i (ep.Id)}
-              {@const pct = progress(ep)}
-              {@const thumb = thumbUrl(ep, 400)}
-              <div class="ep" class:enter class:next={ep.Id === nextUpId} class:played={ep.UserData?.Played} style:--i={Math.min(i, 12)}>
-                <div class="ep-lift on-media">
-                  <button class="ep-thumb" onclick={() => playEpisode(ep)} aria-label={t('item.episodes.play', { name: ep.Name })}>
-                    <span class="ep-ph">{episodeCode(ep)}</span>
-                    {#if thumb}<img class="reveal" use:reveal src={thumb} alt="" loading="lazy" decoding="async" />{/if}
-                    <span class="ep-play"><Icon name="play" size={18} fill stroke={0} /></span>
-                    {#if pct > 0 && !ep.UserData?.Played}<span class="ep-bar"><span style:transform="scaleX({pct / 100})"></span></span>{/if}
-                  </button>
-                  <button
-                    class="ep-seen"
-                    class:on={ep.UserData?.Played}
-                    onclick={() => togglePlayed(ep)}
-                    title={ep.UserData?.Played ? t('item.actions.markUnplayed', { kind: 'video' }) : t('item.actions.markPlayed', { kind: 'video' })}
-                    aria-pressed={Boolean(ep.UserData?.Played)}
-                  >
-                    <Icon name="check" size={13} stroke={2.8} />
-                  </button>
-                </div>
-                <a class="ep-text" href={`#${itemPath(ep)}`} onclick={(e) => openItem(e, ep, (e.currentTarget as HTMLElement).previousElementSibling as HTMLElement, thumb)}>
-                  <div class="ep-eyebrow">
-                    {#if ep.Id === nextUpId}<span class="nextup">{t('item.episodes.nextUp')}</span>{/if}
-                    <span>{ep.IndexNumber != null ? t('item.episodes.number', { number: ep.IndexNumber }) : t('item.episodes.episode')}</span>
-                    {#if ep.RunTimeTicks}<span class="rt">{pct > 0 && !ep.UserData?.Played ? remaining(ep) : runtime(ep.RunTimeTicks)}</span>{/if}
+          <!-- Keyed: a new season starts at its first episode, not at the previous season's scroll offset. -->
+          {#key seasonId}
+            <Row title="" variant="thumb" loading={episodesLoading}>
+              {#each episodes as ep, i (ep.Id)}
+                {@const pct = progress(ep)}
+                {@const thumb = thumbUrl(ep, 400)}
+                <div class="ep" class:enter class:next={ep.Id === nextUpId} class:played={ep.UserData?.Played} style:--i={Math.min(i, 12)}>
+                  <div class="ep-lift on-media">
+                    <button class="ep-thumb" onclick={() => playEpisode(ep)} aria-label={t('item.episodes.play', { name: ep.Name })}>
+                      <span class="ep-ph">{episodeCode(ep)}</span>
+                      {#if thumb}<img class="reveal" use:reveal src={thumb} alt="" loading="lazy" decoding="async" />{/if}
+                      <span class="ep-play"><Icon name="play" size={18} fill stroke={0} /></span>
+                      {#if pct > 0 && !ep.UserData?.Played}<span class="ep-bar"><span style:transform="scaleX({pct / 100})"></span></span>{/if}
+                    </button>
+                    <button
+                      class="ep-seen"
+                      class:on={ep.UserData?.Played}
+                      onclick={() => togglePlayed(ep)}
+                      title={ep.UserData?.Played ? t('item.actions.markUnplayed', { kind: 'video' }) : t('item.actions.markPlayed', { kind: 'video' })}
+                      aria-pressed={Boolean(ep.UserData?.Played)}
+                    >
+                      <Icon name="check" size={13} stroke={2.8} />
+                    </button>
                   </div>
-                  <div class="ep-name">{ep.Name}</div>
-                  {#if ep.Overview}<p class="ep-ov">{ep.Overview}</p>{/if}
-                </a>
-              </div>
-            {/each}
-          </Row>
+                  <a class="ep-text" href={`#${itemPath(ep)}`} onclick={(e) => openItem(e, ep, (e.currentTarget as HTMLElement).previousElementSibling as HTMLElement, thumb)}>
+                    <div class="ep-eyebrow">
+                      {#if ep.Id === nextUpId}<span class="nextup">{t('item.episodes.nextUp')}</span>{/if}
+                      <span>{ep.IndexNumber != null ? t('item.episodes.number', { number: ep.IndexNumber }) : t('item.episodes.episode')}</span>
+                      {#if ep.RunTimeTicks}<span class="rt">{pct > 0 && !ep.UserData?.Played ? remaining(ep) : runtime(ep.RunTimeTicks)}</span>{/if}
+                    </div>
+                    <div class="ep-name">{ep.Name}</div>
+                    {#if ep.Overview}<p class="ep-ov">{ep.Overview}</p>{/if}
+                  </a>
+                </div>
+              {/each}
+            </Row>
+          {/key}
         </section>
       {/if}
 
