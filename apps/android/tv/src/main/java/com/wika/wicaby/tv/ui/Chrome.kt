@@ -436,13 +436,15 @@ private fun TabPill(
             .focusRestorer(requesters[selected] ?: FocusRequester.Default)
             .clip(RoundedCornerShape(50))
             .background(C.elevated2.copy(alpha = 0.72f))
-            .padding(5.dp),
+            .padding(top = 5.dp, end = 5.dp, bottom = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Keyed: focusRestorer finds the tab to restore by its composite key, which unkeyed loop items share, so it
         // always restored the first tab (Home) and switched the screen to Home.
+        // The scroller clips at its edges: the pill's left inset sits inside it, on both sides, so the lift of the
+        // first and last text tabs is not cut flat.
         Row(
-            Modifier.weight(1f, fill = false).fadeEdges(scroll, edge).horizontalScroll(scroll).indicator(0),
+            Modifier.weight(1f, fill = false).fadeEdges(scroll, edge).horizontalScroll(scroll).padding(horizontal = 5.dp).indicator(0),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             tabs.filter { it.icon == null }.forEach { t -> key(t.key) { Tab(t, 0) } }
