@@ -1,6 +1,7 @@
 // Emby / Jellyfin HTTP client: the browser counterpart of the desktop's main/connection/api-client.ts and of the
 // Android core Emby.kt. One instance per signed-in server and user.
-import type { AuthenticationResult, BaseItem, ItemsResult, SystemInfoPublic, UserDto } from '$shared/models';
+import type { MediaSegment } from '$shared/markers';
+import type { AuthenticationResult, BaseItem, ItemsResult, MediaSource, SystemInfoPublic, UserDto } from '$shared/models';
 import { CLIENT, VERSION, deviceId, deviceName } from './identity';
 
 export type ServerKind = 'emby' | 'jellyfin';
@@ -338,6 +339,80 @@ export class Api {
     if (kind === 'playlist') return this.request('POST', `/Playlists/${listId}/Items`, { Ids: item.Id, UserId: this.userId }, {});
     return this.request('POST', `/Collections/${listId}/Items`, { Ids: item.Id }, {});
   }
+
+  // --- Playback (core Emby.kt, player/Playback.kt) ---
+
+  playbackInfo(id: string, query: Query, body: Record<string, unknown>): Promise<PlaybackInfo> {
+    return this.post(`/Items/${id}/PlaybackInfo`, body, query);
+  }
+
+  // A server URL (absolute, or a path the server gave) for <video> and AVPlay, which cannot send headers: the token
+  // goes in the query, only to this server's own origin. Null for anything but http(s) or a server path.
+  mediaUrl(url: string): string | null {
+    if ((/^[a-z][a-z0-9+.-]*:/i.test(url) && !/^https?:\/\//i.test(url)) || url.startsWith('//')) return null;
+    let full: URL;
+    try {
+      const rel = url.startsWith('/') ? url : `/${url}`;
+      // Emby's URLs may already carry the /emby prefix.
+      full = new URL(/^https?:\/\//i.test(url) ? url : `${this.address}${this.isEmby && /^\/emby\//i.test(rel) ? rel : this.prefix + rel}`);
+    } catch {
+      return null;
+    }
+    if (full.origin !== new URL(this.address).origin) return full.href;
+    // Emby reads api_key; Jellyfin ApiKey (it dropped api_key in 10.11).
+    if (this.token && !/[?&](api_key|ApiKey)=/i.test(full.search)) full.searchParams.set(this.isEmby ? 'api_key' : 'ApiKey', this.token);
+    return full.href;
+  }
+
+  // The episode after [ep] in the server's order (core Emby.kt nextInOrder, B29): a special follows only where the
+  // server placed it by air date, or after another special.
+  async nextEpisode(ep: BaseItem): Promise<BaseItem | undefined> {
+    if (!ep.SeriesId) return undefined;
+    const list = (
+      await this.get<ItemsResult>(`/Shows/${ep.SeriesId}/Episodes`, {
+        UserId: this.userId, StartItemId: ep.Id, Limit: 8, IsMissing: false, Fields: `${this.listFields},SpecialEpisodeNumbers`,
+        EnableImageTypes: 'Primary,Backdrop,Thumb', ImageTypeLimit: 1,
+      })
+    ).Items;
+    const i = list.findIndex((e) => e.Id === ep.Id);
+    if (i < 0) return undefined;
+    type Special = BaseItem & { AirsBeforeSeasonNumber?: number; AirsAfterSeasonNumber?: number };
+    return list.slice(i + 1).find((e: Special) => e.ParentIndexNumber !== 0 || ep.ParentIndexNumber === 0 || e.AirsBeforeSeasonNumber != null || e.AirsAfterSeasonNumber != null);
+  }
+
+  // Jellyfin 10.10+ media segments (intro, outro, recap, preview, commercial). Emby has no such route.
+  async mediaSegments(id: string): Promise<MediaSegment[]> {
+    const types = ['Intro', 'Outro', 'Recap', 'Preview', 'Commercial'].map((t) => `includeSegmentTypes=${t}`).join('&');
+    const r = await this.request<{ Items?: MediaSegment[] }>('GET', `/MediaSegments/${id}?${types}`);
+    return r?.Items ?? [];
+  }
+
+  // The /Sessions/Playing* reports; the body is SessionReporter's (lib/playback.svelte.ts).
+  report(path: '/Sessions/Playing' | '/Sessions/Playing/Progress' | '/Sessions/Playing/Stopped', body: Record<string, unknown>): Promise<void> {
+    return this.post(path, body);
+  }
+
+  // A paused transcode is killed after ~60 s without news (Jellyfin); the ping keeps it.
+  ping(playSessionId: string): Promise<void> {
+    return this.post('/Sessions/Playing/Ping', undefined, { PlaySessionId: playSessionId });
+  }
+
+  // Ends a transcode now rather than when the server notices.
+  stopEncoding(playSessionId: string): Promise<void> {
+    return this.del('/Videos/ActiveEncodings', { DeviceId: deviceId, PlaySessionId: playSessionId });
+  }
+
+  // A stream's server URL for direct play (no transcode), with this device's session.
+  streamUrl(item: BaseItem, mediaSourceId: string, playSessionId?: string): string | null {
+    const kind = item.MediaType === 'Audio' ? 'Audio' : 'Videos';
+    return this.mediaUrl(`/${kind}/${item.Id}/stream${buildQuery({ Static: true, MediaSourceId: mediaSourceId, PlaySessionId: playSessionId, DeviceId: deviceId })}`);
+  }
+}
+
+export interface PlaybackInfo {
+  PlaySessionId?: string;
+  ErrorCode?: string;
+  MediaSources?: MediaSource[];
 }
 
 // "Ajouter à une playlist / collection" (core Playlists.kt, desktop lib/playlists.ts).

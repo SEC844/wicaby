@@ -46,3 +46,16 @@ export function exitApp(): void {
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {
   return platform === 'tizen' && avplayAvailable() ? new AvPlayer() : new HtmlPlayer(video);
 }
+
+// The connection playback starts on (Settings > Playback caps each one). Tizen tells; webOS and a browser do not
+// expose it to a web app, so they count as Ethernet, the higher cap.
+declare const webapis: { network?: { getActiveConnectionType?(): number } } | undefined;
+
+export function onWifi(): boolean {
+  try {
+    // Tizen: 0 disconnected, 1 Wi-Fi, 2 cellular, 3 Ethernet.
+    return platform === 'tizen' && typeof webapis !== 'undefined' && webapis?.network?.getActiveConnectionType?.() === 1;
+  } catch {
+    return false;
+  }
+}
