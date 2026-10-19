@@ -866,18 +866,19 @@ export async function handler(req, res) {
   if (parts[0] === 'Items' && (parts[2] === 'File' || parts[2] === 'Download') && COMICS[parts[1]]) {
     const data = cbz(parts[1]);
     // Range requests as both servers serve files (comic covers read the end, then one entry; PDF pages read pieces).
+    // CORS as on every other answer: the TV web reader fetches the book from the page.
     const r = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (r && (r[1] || r[2])) {
       const start = r[1] ? Number(r[1]) : Math.max(0, data.length - Number(r[2]));
       const end = r[1] && r[2] ? Math.min(Number(r[2]), data.length - 1) : data.length - 1;
       if (start > end) {
-        res.writeHead(416, { 'Content-Range': `bytes */${data.length}` });
+        res.writeHead(416, { 'Content-Range': `bytes */${data.length}`, 'Access-Control-Allow-Origin': '*' });
         return res.end();
       }
-      res.writeHead(206, { 'Content-Type': 'application/zip', 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${data.length}`, 'Accept-Ranges': 'bytes' });
+      res.writeHead(206, { 'Content-Type': 'application/zip', 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${data.length}`, 'Accept-Ranges': 'bytes', 'Access-Control-Allow-Origin': '*' });
       return res.end(data.subarray(start, end + 1));
     }
-    res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Length': data.length, 'Accept-Ranges': 'bytes' });
+    res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Length': data.length, 'Accept-Ranges': 'bytes', 'Access-Control-Allow-Origin': '*' });
     return res.end(data);
   }
   if (parts[0] === 'Videos' && parts[2] === 'index.bif' && items.has(parts[1])) {
