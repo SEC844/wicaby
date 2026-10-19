@@ -272,6 +272,90 @@ export class Api {
   liveChannelsPage(start: number, limit: number): Promise<ItemsResult> {
     return this.get('/LiveTv/Channels', { UserId: this.userId, StartIndex: start, Limit: limit, EnableImageTypes: 'Primary,Thumb', Fields: 'PrimaryImageAspectRatio' });
   }
+
+  // --- Details page (core Emby.kt, Playlists.kt) ---
+
+  setFavorite(id: string, on: boolean): Promise<void> {
+    return this.request(on ? 'POST' : 'DELETE', `/Users/${this.userId}/FavoriteItems/${id}`, undefined, on ? {} : undefined);
+  }
+
+  // Jellyfin 10.9 moved it to /UserPlayedItems (the per-user route is obsolete); older Jellyfin only has the old one.
+  setPlayed(id: string, on: boolean): Promise<void> {
+    const method = on ? 'POST' : 'DELETE';
+    const body = on ? {} : undefined;
+    if (this.isEmby) return this.request(method, `/Users/${this.userId}/PlayedItems/${id}`, undefined, body);
+    return this.jellyfinOrLegacy(
+      () => this.request<void>(method, `/UserPlayedItems/${id}`, { userId: this.userId }, body),
+      () => this.request<void>(method, `/Users/${this.userId}/PlayedItems/${id}`, undefined, body),
+    );
+  }
+
+  // "Marquer les précédents comme vus": one call per item not already in that state. Returns how many changed; stops
+  // at the first failure. progress(done, total) after each call.
+  async markPlayed(items: BaseItem[], on: boolean, progress: (done: number, total: number) => void = () => {}): Promise<number> {
+    const todo = items.filter((i) => (i.UserData?.Played === true) !== on);
+    progress(0, todo.length);
+    for (let i = 0; i < todo.length; i++) {
+      await this.setPlayed(todo[i].Id, on);
+      progress(i + 1, todo.length);
+    }
+    return todo.length;
+  }
+
+  // Trailer files stored with the film. Jellyfin 10.9 moved the route; the old one is the fallback.
+  localTrailers(id: string): Promise<BaseItem[]> {
+    if (this.isEmby) return this.get(`/Users/${this.userId}/Items/${id}/LocalTrailers`, { Fields: DETAIL_FIELDS });
+    return this.get<BaseItem[]>(`/Items/${id}/LocalTrailers`, { userId: this.userId }).catch(() => this.get<BaseItem[]>(`/Users/${this.userId}/Items/${id}/LocalTrailers`));
+  }
+
+  // Bonus videos stored with a film or a show (making-of, deleted scenes, interviews). Empty when the server has none
+  // or answers the route with an HTTP error; network failures still throw.
+  async specialFeatures(id: string): Promise<BaseItem[]> {
+    try {
+      if (this.isEmby) return await this.get<BaseItem[]>(`/Users/${this.userId}/Items/${id}/SpecialFeatures`);
+      return await this.get<BaseItem[]>(`/Items/${id}/SpecialFeatures`, { userId: this.userId }).catch((e) => {
+        if (e instanceof ApiError && e.status) return this.get<BaseItem[]>(`/Users/${this.userId}/Items/${id}/SpecialFeatures`);
+        throw e;
+      });
+    } catch (e) {
+      if (e instanceof ApiError && e.status) return [];
+      throw e;
+    }
+  }
+
+  async lists(kind: ListKind): Promise<BaseItem[]> {
+    return (await this.items({ IncludeItemTypes: kind === 'playlist' ? 'Playlist' : 'BoxSet', Recursive: true, SortBy: 'SortName' })).Items;
+  }
+
+  // Jellyfin reads the playlist create call from a JSON body, Emby from the query, so both go.
+  createList(kind: ListKind, name: string, item: BaseItem): Promise<void> {
+    if (kind === 'collection') return this.request('POST', '/Collections', { Name: name, Ids: item.Id }, {});
+    const type = mediaTypeOf(item);
+    return this.request('POST', '/Playlists', { Name: name, Ids: item.Id, UserId: this.userId, MediaType: type }, { Name: name, Ids: [item.Id], UserId: this.userId, MediaType: type });
+  }
+
+  addToList(kind: ListKind, listId: string, item: BaseItem): Promise<void> {
+    if (kind === 'playlist') return this.request('POST', `/Playlists/${listId}/Items`, { Ids: item.Id, UserId: this.userId }, {});
+    return this.request('POST', `/Collections/${listId}/Items`, { Ids: item.Id }, {});
+  }
+}
+
+// "Ajouter à une playlist / collection" (core Playlists.kt, desktop lib/playlists.ts).
+export type ListKind = 'playlist' | 'collection';
+const PLAYLISTABLE = new Set(['Movie', 'Episode', 'Series', 'Season', 'Video', 'MusicVideo', 'Audio', 'MusicAlbum', 'Trailer']);
+const COLLECTABLE = new Set(['Movie', 'Series', 'Video', 'MusicVideo', 'MusicAlbum', 'Book', 'Trailer']);
+export const acceptsList = (kind: ListKind, item: BaseItem): boolean => (kind === 'playlist' ? PLAYLISTABLE : COLLECTABLE).has(item.Type ?? '');
+// Playlists hold one media type; music goes to audio playlists.
+export const mediaTypeOf = (item: BaseItem): string =>
+  ['Audio', 'MusicAlbum', 'MusicArtist'].includes(item.Type ?? '') || item.MediaType === 'Audio' ? 'Audio' : 'Video';
+// A playlist keeps one media type; one with no type is offered anyway.
+export const listTargets = (kind: ListKind, item: BaseItem, all: BaseItem[]): BaseItem[] =>
+  kind === 'collection' ? all : all.filter((l) => !l.MediaType || l.MediaType === mediaTypeOf(item));
+
+// The episodes before [ep] in series order; specials only when [ep] is one (core Emby.kt previousEpisodes).
+export function previousEpisodes(all: BaseItem[], ep: BaseItem): BaseItem[] {
+  const i = all.findIndex((e) => e.Id === ep.Id);
+  return i < 0 ? [] : all.slice(0, i).filter((e) => e.ParentIndexNumber !== 0 || ep.ParentIndexNumber === 0);
 }
 
 // core data/Emby.kt LIST_FIELDS and DETAIL_FIELDS.

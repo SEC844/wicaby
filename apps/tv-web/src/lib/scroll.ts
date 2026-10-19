@@ -17,3 +17,9 @@ export function pivotDelta(offset: number, container: number, fraction: number):
 export function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
+
+// HeroSpec (details page): while the element shows on the first screen, the page stays at the top, so the title and
+// its backdrop stay whole; further down, EdgeSpec. [scroll] is the page's current scroll.
+export function heroDelta(offset: number, size: number, container: number, margin: number, scroll: number): number {
+  return offset + scroll + size <= container - margin ? -scroll : edgeDelta(offset, size, container, margin);
+}

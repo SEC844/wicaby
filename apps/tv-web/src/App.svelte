@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import AlertDialog from './components/AlertDialog.svelte';
   import Screen from './components/Screen.svelte';
+  import Toast from './components/Toast.svelte';
   import { move, pressDown, pressUp } from './lib/focus';
   import { t } from './lib/i18n.svelte';
   import { handleBack, nav, stack } from './lib/nav.svelte';
@@ -12,6 +13,7 @@
   import { applyTheme } from './lib/theme';
   import { exitApp } from './platform';
   import { keyOf } from './platform/keys';
+  import Detail from './screens/Detail.svelte';
   import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
@@ -85,9 +87,12 @@
       <Login server={entry.route.server} add={entry.route.add} />
     {:else if entry.route.name === 'main'}
       <Main />
+    {:else if entry.route.name === 'detail'}
+      <Detail id={entry.route.id} />
     {:else if entry.route.name === 'folder'}
       <Folder id={entry.route.id} title={entry.route.title} />
     {/if}
   </Screen>
 {/each}
 {#if overlay.alert}<AlertDialog alert={overlay.alert} />{/if}
+<Toast />
