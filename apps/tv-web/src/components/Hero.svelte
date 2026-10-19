@@ -3,8 +3,8 @@
   // Right on More Info step through the titles; while it holds the focus (the Home tab tells it) it advances every 9 s.
   import type { BaseItem } from '$shared/models';
   import type { Api } from '../lib/api';
-  import { metaLine } from '../lib/format';
-  import { locale, t } from '../lib/i18n.svelte';
+  import { t } from '../lib/i18n.svelte';
+  import HeroText from './HeroText.svelte';
   import Pill from './Pill.svelte';
 
   let {
@@ -20,8 +20,6 @@
   const n = $derived(items.length);
   const item = $derived(items[Math.min(index, n - 1)]);
   const resume = $derived((item?.UserData?.PlaybackPositionTicks ?? 0) > 0);
-  let logoFailed = $state<string | null>(null);
-  const logo = $derived(item && logoFailed !== item.Id ? api.logo(item) : undefined);
 
   function step(d: number): void {
     if (n > 1) index = (index + d + n) % n;
@@ -47,15 +45,7 @@
   <section class="hero" data-focus-group ontvmove={onmove}>
     <div class="text">
       {#key item.Id}
-        <div class="fade">
-          {#if logo}
-            <img class="logo" src={logo} alt={item.Name} onerror={() => (logoFailed = item.Id)} />
-          {:else}
-            <h1 class="t-hero">{item.Type === 'Episode' ? (item.SeriesName ?? item.Name) : item.Name}</h1>
-          {/if}
-          <p class="meta t-callout">{metaLine(item, locale.current)}</p>
-          {#if item.Overview}<p class="overview t-body">{item.Overview}</p>{/if}
-        </div>
+        <div class="fade"><HeroText {api} {item} /></div>
       {/key}
       <div class="actions">
         <span data-hero-pill="play"><Pill text={t(resume ? 'resume' : 'play')} icon="Play" primary autofocus onclick={() => onplay(item)} /></span>
@@ -87,32 +77,6 @@
     from {
       opacity: 0;
     }
-  }
-  .logo {
-    max-height: 96rem;
-    max-width: 380rem;
-  }
-  h1 {
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .meta {
-    margin: 12rem 0 0;
-    color: var(--label-2);
-    white-space: nowrap;
-  }
-  .overview {
-    margin: 10rem 0 0;
-    color: var(--label-2);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   .actions {
     display: flex;
