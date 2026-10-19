@@ -11,8 +11,8 @@
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { api, prefs, signOut } from '../lib/session.svelte';
-  import { settings } from '../lib/settings.svelte';
-  import { browsable, type TopTab } from '../lib/tabs';
+  import { settings, tabBarPref } from '../lib/settings.svelte';
+  import { browsable, movableTabs, tabBar, type TopTab } from '../lib/tabs';
   import HomeTab from '../tabs/HomeTab.svelte';
   import LibraryTab from '../tabs/LibraryTab.svelte';
   import SearchTab from '../tabs/SearchTab.svelte';
@@ -23,14 +23,16 @@
   const views = useLoad(() => 'views', () => client.views(), { persist: true });
   const tabViews = $derived((views.value ?? []).filter((v) => browsable(v.CollectionType)));
 
-  const tabs = $derived<TopTab[]>([
+  // Every destination in its default order; Settings > Interface > Tab bar lists the movable ones.
+  const allTabs = $derived<TopTab[]>([
     { key: 'home', label: t('tab_home') },
     ...tabViews.map((v) => ({ key: `lib:${v.Id}`, label: v.Name })),
     { key: 'search', label: t('tab_search'), icon: 'Search' },
     { key: 'settings', label: t('tab_settings'), icon: 'Gear' },
   ]);
-
   let tab = $state('home');
+  // #6: the user's order, hidden tabs left out (the open one stays).
+  const tabs = $derived(tabBar(allTabs, tabBarPref(`${session.server.id}/${session.userId}`), tab));
   // Tabs mounted so far, kept alive while hidden.
   let visited = $state<string[]>(['home']);
   let scrolled = $state(false);
@@ -97,7 +99,7 @@
       {:else if key === 'search'}
         <SearchTab api={client} />
       {:else if key === 'settings'}
-        <SettingsTab api={client} views={views.value ?? []} onscrolled={(s) => (scrolled = s)} />
+        <SettingsTab api={client} views={views.value ?? []} tabs={movableTabs(allTabs)} onscrolled={(s) => (scrolled = s)} />
       {:else if view(key)}
         <LibraryTab api={client} view={view(key)!} onscrolled={(s) => (scrolled = s)} />
       {/if}

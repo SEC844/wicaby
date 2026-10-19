@@ -10,12 +10,13 @@
   import { setLanguage, t } from '../../lib/i18n.svelte';
   import { showAlert } from '../../lib/overlay.svelte';
   import { prefs } from '../../lib/session.svelte';
-  import { arrange, homeRows, setHomeRows, settings } from '../../lib/settings.svelte';
+  import { arrange, homeRows, setHomeRows, setTabBarPref, settings, tabBarPref } from '../../lib/settings.svelte';
+  import type { TopTab } from '../../lib/tabs';
   import { palette } from '../../lib/theme';
   import Icon from '../../components/Icon.svelte';
   import ThemeCards from '../../components/ThemeCards.svelte';
 
-  let { views }: { views: BaseItem[] } = $props();
+  let { views, tabs }: { views: BaseItem[]; tabs: TopTab[] } = $props();
 
   const LANGS = ['auto', 'fr', 'en'] as const;
 
@@ -49,6 +50,21 @@
     if (latestViewId(id) !== null)
       actions.push({ label: t(thumb ? 'home_row_posters' : 'home_row_thumbs'), run: () => save({ ...pref, order: rows, thumb: thumb ? pref.thumb.filter((h) => h !== id) : [...pref.thumb, id] }) });
     showAlert({ title: label(id), actions });
+  }
+
+  // --- #6: the tabs between Home and Search, in the user's order, each shown or hidden ---
+  const tabPref = $derived(tabBarPref(user));
+  const tabKeys = $derived(arrange(tabs.map((tb) => tb.key), tabPref));
+  const tabLabel = (key: string) => tabs.find((tb) => tb.key === key)?.label ?? key;
+  function tabMenu(key: string, i: number): void {
+    const hidden = tabPref.hidden.includes(key);
+    const save = (p: typeof tabPref) => setTabBarPref(user, p);
+    const actions = [
+      { label: t(hidden ? 'home_row_show' : 'home_row_hide'), run: () => save({ ...tabPref, order: tabKeys, hidden: hidden ? tabPref.hidden.filter((h) => h !== key) : [...tabPref.hidden, key] }) },
+    ];
+    if (i > 0) actions.push({ label: t('home_row_up'), run: () => save({ ...tabPref, order: move(tabKeys, i, i - 1) }) });
+    if (i < tabKeys.length - 1) actions.push({ label: t('home_row_down'), run: () => save({ ...tabPref, order: move(tabKeys, i, i + 1) }) });
+    showAlert({ title: tabLabel(key), actions });
   }
 
   function rowValue(id: string): string {
@@ -99,6 +115,15 @@
   {/each}
   <SettingRow label={t('home_rows_reset')} onclick={() => setHomeRows(user, { order: homeDefaults, hidden: [], thumb: [] })} />
 </SettingsGroup>
+
+{#if tabs.length}
+  <SettingsGroup title={t('group_tab_bar')} hint={t('tab_bar_hint')}>
+    {#each tabKeys as key, i (key)}
+      <SettingRow label={tabLabel(key)} value={t(tabPref.hidden.includes(key) ? 'tab_hidden' : 'tab_shown')} chevron onclick={() => tabMenu(key, i)} />
+    {/each}
+    <SettingRow label={t('tab_bar_reset')} onclick={() => setTabBarPref(user, { order: [], hidden: [], thumb: [] })} />
+  </SettingsGroup>
+{/if}
 
 <style>
   .theme-title {

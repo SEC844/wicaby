@@ -12,7 +12,12 @@
   import InterfaceSection from './settings/InterfaceSection.svelte';
   import PlaybackSection from './settings/PlaybackSection.svelte';
 
-  let { api, views, onscrolled }: { api: Api; views: import('$shared/models').BaseItem[]; onscrolled: (s: boolean) => void } = $props();
+  let {
+    api,
+    views,
+    tabs,
+    onscrolled,
+  }: { api: Api; views: import('$shared/models').BaseItem[]; tabs: import('../lib/tabs').TopTab[]; onscrolled: (s: boolean) => void } = $props();
 
   const SECTIONS = ['playback', 'interface', 'accounts', 'about'] as const;
   type Section = (typeof SECTIONS)[number];
@@ -65,7 +70,7 @@
           {#if section === 'playback'}
             <PlaybackSection {api} />
           {:else if section === 'interface'}
-            <InterfaceSection {views} />
+            <InterfaceSection {views} {tabs} />
           {:else if section === 'accounts'}
             <AccountsSection {api} />
           {:else}

@@ -92,4 +92,17 @@ export function setHomeRows(user: string, pref: HomePref): void {
   homeVersion.n++;
 }
 
+// #6: the tab bar's order and hidden tabs per `serverId/userId` (Android TvSettings.tabBar).
+const tabVersion = $state({ n: 0 });
+
+export function tabBarPref(user: string): HomePref {
+  void tabVersion.n;
+  return decode(load<string | null>(`tv.tab_bar:${user}`, null)) ?? { order: [], hidden: [], thumb: [] };
+}
+
+export function setTabBarPref(user: string, pref: HomePref): void {
+  save(`tv.tab_bar:${user}`, encode(pref));
+  tabVersion.n++;
+}
+
 export { arrange };
