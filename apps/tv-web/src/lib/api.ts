@@ -120,7 +120,7 @@ export class Api {
     return this.kind === 'emby';
   }
 
-  private get listFields(): string {
+  get listFields(): string {
     return this.isEmby ? `${LIST_FIELDS},PremiereDate` : LIST_FIELDS;
   }
 

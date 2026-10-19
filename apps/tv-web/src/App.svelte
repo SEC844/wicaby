@@ -23,6 +23,8 @@
   import MusicArtist from './screens/MusicArtist.svelte';
   import MusicLibrary from './screens/MusicLibrary.svelte';
   import NowPlaying from './screens/NowPlaying.svelte';
+  import PhotoAlbum from './screens/PhotoAlbum.svelte';
+  import PhotoViewer from './screens/PhotoViewer.svelte';
   import Player from './screens/Player.svelte';
   import Servers from './screens/Servers.svelte';
 
@@ -111,6 +113,10 @@
       <MusicLibrary id={entry.route.id} title={entry.route.title} mode={entry.route.mode} />
     {:else if entry.route.name === 'live'}
       <LivePlayer id={entry.route.id} list={entry.route.list} />
+    {:else if entry.route.name === 'photoAlbum'}
+      <PhotoAlbum id={entry.route.id} title={entry.route.title} />
+    {:else if entry.route.name === 'photoView'}
+      <PhotoViewer key={entry.route.key} index={entry.route.index} />
     {:else if entry.route.name === 'nowPlaying'}
       <NowPlaying />
     {:else if entry.route.name === 'folder'}
