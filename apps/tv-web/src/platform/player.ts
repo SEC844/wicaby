@@ -13,6 +13,13 @@ export interface PlayerEvents {
   error: (message: string) => void;
 }
 
+export interface PlayerStats {
+  bufferMs?: number;
+  dropped?: number;
+  width?: number;
+  height?: number;
+}
+
 // The picture format (core Aspect.kt): fit, fill the screen (crop), stretch, zoom (fill, then 4:3 larger).
 export type Aspect = 'fit' | 'fill' | 'stretch' | 'zoom';
 
@@ -32,6 +39,11 @@ export interface VideoPlayer {
   // The formats this player can draw, in the order OK cycles them.
   readonly aspects: Aspect[];
   setAspect(a: Aspect): void;
+  // The playback rates it plays with sound, 1 included; [] when only 1× (AVPlay trick-plays whole speeds, muted).
+  readonly speeds: number[];
+  setRate(rate: number): void;
+  // What the stats panel can read off the player: buffered time ahead, dropped frames, the decoded size.
+  stats(): PlayerStats;
   on<E extends keyof PlayerEvents>(event: E, cb: PlayerEvents[E]): () => void;
 }
 

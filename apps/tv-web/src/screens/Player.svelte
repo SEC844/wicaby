@@ -1,3 +1,8 @@
+<script module lang="ts">
+  // The stats panel stays on for the next videos of the session (Android PlaybackStats.visible).
+  const session = $state({ stats: false });
+</script>
+
 <script lang="ts">
   // Android TV PlayerScreen (player/PlayerActivity.kt): the picture, the subtitles the app draws, the OSD, the skip
   // chip, the up-next card with its countdown, "Still watching?", the track panel and the error state, driven by the
@@ -15,6 +20,7 @@
   import Pill from '../components/Pill.svelte';
   import ColumnsPanel, { type PanelColumn } from '../components/player/ColumnsPanel.svelte';
   import Osd, { type OsdButton } from '../components/player/Osd.svelte';
+  import StatsOverlay from '../components/player/StatsOverlay.svelte';
   import SubtitleLayer from '../components/player/SubtitleLayer.svelte';
   import Spinner from '../components/Spinner.svelte';
   import { focusable, focused, focusFirst, setFocus } from '../lib/focus';
@@ -26,6 +32,7 @@
   import { overlay } from '../lib/overlay.svelte';
   import { stopMusic } from '../lib/music.svelte';
   import { Playback } from '../lib/playback.svelte';
+  import { cancelSleep, checkSleep, endOfVideo, extendSleep, restartSleep, sleep, sleepAtEnd, SLEEP_MINUTES, startSleep } from '../lib/sleep.svelte';
   import { ORIGINAL_BITRATE } from '$shared/quality-presets';
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '../lib/segments';
   import { api } from '../lib/session.svelte';
@@ -38,6 +45,10 @@
 
   // Android's own glyph for the chapters button (PlayerActivity.kt ChaptersIcon).
   const CHAPTERS_ICON = 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z';
+  // And its moon (sleep timer) and speedometer (speed).
+  const MOON_ICON = 'M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z';
+  const SPEED_ICON =
+    'M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z';
 
   const client = api()!;
   const screen = getContext<number>(SCREEN);
@@ -51,7 +62,8 @@
   let osd = $state(true);
   let nonce = $state(0);
   let controlsFocused = $state(false);
-  let panel = $state<'tracks' | 'quality' | 'chapters' | null>(null);
+  type Panel = 'tracks' | 'quality' | 'chapters' | 'speed' | 'sleep';
+  let panel = $state<Panel | null>(null);
   let now = $state(Date.now());
   function poke(): void {
     osd = true;
@@ -137,7 +149,8 @@
   let stillWatching = $state(false);
   let countdown = $state<number | null>(null);
   const upNext = $derived.by<BaseItem | null>(() => {
-    if (!pb || !pb.next || dismissedUpNext || stillWatching || pb.trailer) return null;
+    // "End of this video" on the sleep timer: no up next.
+    if (!pb || !pb.next || dismissedUpNext || stillWatching || pb.trailer || endOfVideo()) return null;
     const at = upNextAt(pb.durationMs, pb.segments.credits);
     return at !== undefined && pb.positionMs >= at && pb.positionMs > 0 ? pb.next : null;
   });
@@ -170,7 +183,9 @@
     return () => clearInterval(timer);
   });
   $effect(() => {
-    if (!pb?.ended || stillWatching) return;
+    if (!pb?.ended || stillWatching || sleep.state?.promptUntil) return;
+    // The sleep timer's "end of this video": stay at the end and ask.
+    if (sleepAtEnd()) return;
     if (pb.next && !dismissedUpNext && settings.autoplayNext.value) autoAdvance();
     else exit();
   });
@@ -285,14 +300,76 @@
   );
   const chapterStarts = $derived(chapters.map((c) => c.ms));
 
+  // --- X-03 speed ---
+  const speedText = (r: number) => t('speed_value', r.toLocaleString(locale.current, { maximumFractionDigits: 2 }));
+  const speedColumns = $derived.by<PanelColumn[]>(() => {
+    if (!pb) return [];
+    const p = pb;
+    const list = p.player.speeds;
+    return [{ key: 'r', title: t('speed'), weight: 1, rows: list.map((r, i) => ({ id: i, text: speedText(r) })), selected: list.indexOf(p.rate), pick: (i) => (p.setSpeed(list[i]), closePanel()) }];
+  });
+
+  // --- X-04 sleep timer: +15 min and Cancel while one runs, then end of this video and the durations ---
+  const SLEEP_EXTEND = -2;
+  const SLEEP_CANCEL = -3;
+  const SLEEP_END = -1;
+  const sleepColumns = $derived.by<PanelColumn[]>(() => {
+    const st = sleep.state;
+    const rows = [
+      ...(st?.endsAt ? [{ id: SLEEP_EXTEND, text: t('sleep_extend') }] : []),
+      ...(st ? [{ id: SLEEP_CANCEL, text: t('sleep_cancel') }] : []),
+      { id: SLEEP_END, text: t('sleep_end_of_video') },
+      ...SLEEP_MINUTES.map((m) => ({ id: m, text: t('sleep_minutes', m) })),
+    ];
+    return [
+      {
+        key: 's', title: t('sleep_timer'), weight: 1, rows, selected: st ? (st.minutes ?? SLEEP_END) : null,
+        pick: (i) => {
+          if (i === SLEEP_EXTEND) extendSleep();
+          else if (i === SLEEP_CANCEL) cancelSleep();
+          else startSleep(i === SLEEP_END ? null : i);
+          closePanel();
+        },
+      },
+    ];
+  });
+  const sleepLeft = $derived(sleep.state?.endsAt ? Math.max(0, sleep.state.endsAt - now) : null);
+  // Once a second (the clock): the prompt, then the pause.
+  $effect(() => {
+    void now;
+    if (!pb || pb.trailer) return;
+    if (checkSleep(now) === 'expire') pb.togglePlay(false);
+  });
+  const sleepPrompt = $derived(sleep.state?.promptUntil ? Math.max(0, Math.ceil((sleep.state.promptUntil - now) / 1000)) : null);
+  // Continue (or Back): the same timer again; at the end of the video it goes on.
+  function sleepContinue(): void {
+    const atEnd = !!pb?.ended;
+    restartSleep();
+    if (atEnd) {
+      if (pb?.next) advance(false);
+      else exit();
+    } else if (pb && !pb.playing) pb.togglePlay(true);
+    setFocus(sink);
+  }
+  function sleepStop(): void {
+    cancelSleep();
+    pb?.togglePlay(false);
+    setFocus(sink);
+  }
+
   const buttons = $derived<OsdButton[]>([
     { key: 'tracks', icon: 'Subtitles', text: t('tracks_hint_touch'), run: () => openPanel('tracks') },
     ...(chapters.length > 1 ? [{ key: 'chapters', icon: '', path: CHAPTERS_ICON, text: t('chip_chapters'), run: () => openPanel('chapters') }] : []),
     ...(pb && !pb.trailer ? [{ key: 'quality', icon: 'Gear', text: t('quality'), value: qualityShort, run: () => openPanel('quality') }] : []),
+    ...(pb && pb.player.speeds.length > 1 ? [{ key: 'speed', icon: '', path: SPEED_ICON, text: t('speed'), value: pb.rate === 1 ? undefined : speedText(pb.rate), run: () => openPanel('speed') }] : []),
+    ...(pb && !pb.trailer
+      ? [{ key: 'sleep', icon: '', path: MOON_ICON, text: t('sleep_timer'), value: sleepLeft !== null ? clock(sleepLeft) : sleep.state ? t('sleep_end_of_video') : undefined, run: () => openPanel('sleep') }]
+      : []),
     { key: 'aspect', icon: 'Aspect', text: t(ASPECT_LABEL[aspect]), run: cycleAspect },
+    { key: 'stats', icon: 'Info', text: t('stats_title'), value: session.stats ? '✓' : undefined, run: () => (session.stats = !session.stats) },
   ]);
 
-  function openPanel(kind: 'tracks' | 'quality' | 'chapters'): void {
+  function openPanel(kind: Panel): void {
     panel = kind;
     osd = true;
     // The panel takes the focus at once (its selected row, the current chapter), off the button behind it.
@@ -332,7 +409,7 @@
     if (key === 'ff' || key === 'rw') return consume(), stepSeek(key === 'ff', e.repeat);
     if (key === 'next') return consume(), void (pb?.next && advance(false));
     if (key === 'prev') return consume(), void (!e.repeat && pb?.previous());
-    if (panel || stillWatching || pb?.error) return;
+    if (panel || stillWatching || sleepPrompt !== null || pb?.error) return;
     if (inControls()) {
       poke();
       if (key === 'up') return consume(), setFocus(sink);
@@ -382,6 +459,8 @@
     const clockTimer = setInterval(() => (now = Date.now()), 1000);
     const stopBack = onBack(screen, () => {
       if (panel) return closePanel(), true;
+      // Back on the sleep prompt counts as Continue.
+      if (sleepPrompt !== null) return sleepContinue(), true;
       if (stillWatching) return false;
       if (inControls()) return setFocus(sink), true;
       if (upNext) return (dismissedUpNext = true), true;
@@ -469,6 +548,10 @@
       <ColumnsPanel columns={trackColumns} />
     {:else if panel === 'quality'}
       <ColumnsPanel columns={qualityColumns} height={320} />
+    {:else if panel === 'speed'}
+      <ColumnsPanel columns={speedColumns} height={300} />
+    {:else if panel === 'sleep'}
+      <ColumnsPanel columns={sleepColumns} height={320} />
     {:else if panel === 'chapters' && pb.item}
       {@const item = pb.item}
       {@const current = Math.max(0, chapterStarts.filter((s) => s <= (pb?.positionMs ?? 0)).length - 1)}
@@ -496,6 +579,24 @@
               </div>
             {/each}
           </HScroll>
+        </div>
+      </div>
+    {/if}
+
+    {#if session.stats && pb.item}
+      <StatsOverlay {pb} />
+    {/if}
+
+    {#if sleepPrompt !== null && !stillWatching}
+      <div class="still" data-focus-trap>
+        <div class="card">
+          <p class="t-title2">{t('still_watching')}</p>
+          <p class="t-callout label-2 sub">{t('still_watching_pausing_in', sleepPrompt)}</p>
+          <div class="row">
+            <Pill text={t('keep_watching')} primary autofocus onclick={sleepContinue} />
+            <span class="gap"></span>
+            <Pill text={t('sleep_pause')} onclick={sleepStop} />
+          </div>
         </div>
       </div>
     {/if}

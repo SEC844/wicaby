@@ -96,13 +96,13 @@
       <span class="position mono">{clock(position)}</span>
       <span class="spring"></span>
       {#each buttons as b (b.key)}
-        <button class="button t-caption" use:focusable onclick={b.run} data-osd-button={b.key}>
+        <button class="button t-caption" class:compact={buttons.length > 5} use:focusable onclick={b.run} data-osd-button={b.key} aria-label={b.text}>
           {#if b.path}
             <svg viewBox="0 0 24 24" class="glyph" aria-hidden="true"><path d={b.path} fill="currentColor" /></svg>
           {:else}
             <Icon name={b.icon} size={16} />
           {/if}
-          <span>{b.text}</span>
+          <span class="text">{b.text}</span>
           {#if b.value}<span class="value">· {b.value}</span>{/if}
         </button>
       {/each}
@@ -238,7 +238,9 @@
   }
   .button {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
+    white-space: nowrap;
     margin-left: 8rem;
     padding: 7rem 14rem;
     border-radius: 999rem;
@@ -259,6 +261,13 @@
   }
   .value {
     color: var(--label-3);
+  }
+  /* Many buttons: at rest the icon and the value, the name too once focused (the row stays on one line). */
+  .button.compact:not(:global(.focused)) .text {
+    display: none;
+  }
+  .button.compact:not(:global(.focused)) .value {
+    margin-left: 5rem;
   }
   .button:global(.focused) .value {
     color: rgba(0, 0, 0, 0.55);

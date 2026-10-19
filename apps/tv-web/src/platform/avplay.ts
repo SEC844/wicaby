@@ -1,4 +1,4 @@
-import { Emitter, type Aspect, type Track, type VideoPlayer } from './player';
+import { Emitter, type Aspect, type PlayerStats, type Track, type VideoPlayer } from './player';
 
 // Samsung AVPlay (webapis.avplay): the TV's own media pipeline, so HEVC, HDR10/HDR10+ and passthrough audio play as
 // in the built-in apps. Video renders on a plane behind the page, through the <object type="application/avplayer">
@@ -19,6 +19,7 @@ interface AvPlay {
   setDisplayMethod(method: string): void;
   setStreamingProperty(name: string, value: string): void;
   getTotalTrackInfo(): AvTrackInfo[];
+  getCurrentStreamInfo?(): AvTrackInfo[];
   setSelectTrack(type: 'AUDIO' | 'TEXT', index: number): void;
   setSilentSubtitle(silent: boolean): void;
   setListener(l: Record<string, (...a: never[]) => void>): void;
@@ -99,6 +100,20 @@ export class AvPlayer extends Emitter implements VideoPlayer {
   audioTracks(): Track[] { return this.tracks('AUDIO'); }
   textTracks(): Track[] { return this.tracks('TEXT'); }
   selectAudio(index: number): void { this.av.setSelectTrack('AUDIO', index); }
+
+  // AVPlay's setSpeed is trick play (whole speeds, no sound): no rate menu.
+  readonly speeds: number[] = [];
+  setRate(): void {}
+
+  stats(): PlayerStats {
+    try {
+      const v = this.av.getCurrentStreamInfo?.().find((s) => s.type === 'VIDEO');
+      const info = v ? (JSON.parse(v.extra_info) as { Width?: string; Height?: string }) : {};
+      return { width: Number(info.Width) || undefined, height: Number(info.Height) || undefined };
+    } catch {
+      return {};
+    }
+  }
 
   // The plane letterboxes or stretches; AVPlay has no crop mode.
   readonly aspects: Aspect[] = ['fit', 'stretch'];

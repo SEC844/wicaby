@@ -65,6 +65,8 @@ export default defineConfig({
     cssCodeSplit: false,
     assetsInlineLimit: 4096,
     rollupOptions: { output: { format: 'iife', inlineDynamicImports: true } },
+    // One classic script by design (above): the whole app, about 500 kB (165 kB gzipped), read from the TV's storage.
+    chunkSizeWarningLimit: 800,
   },
   server: {
     port: 5299,

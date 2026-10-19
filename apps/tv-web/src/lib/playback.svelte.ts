@@ -57,13 +57,17 @@ export class Playback {
   // player; null = the Settings cap. switching: a reload is in flight.
   qualityCap = $state<number | null>(null);
   switching = $state(false);
+  // The playback rate (X-03), kept for the next episodes of this player.
+  rate = $state(1);
+  // The source playing and why the server converts it (TranscodeReasons of its URL), for the stats panel.
+  source = $state.raw<MediaSource | null>(null);
+  transcodeReasons = $state.raw<string[]>([]);
   // Scrub thumbnails; null when the item has none.
   preview = $state.raw<Preview | null>(null);
   // Episodes started by the countdown in a row; any input resets it ("Still watching?").
   autoCount = 0;
 
   itemId: string;
-  private source: MediaSource | null = null;
   private sourceId: string | undefined;
   private playSessionId: string | undefined;
   private started = false;
@@ -207,6 +211,7 @@ export class Playback {
     }
     if (!url) throw new Error(t('no_playable_source'));
     switchFrom?.();
+    this.transcodeReasons = method === 'DirectPlay' ? [] : (/[?&]TranscodeReasons=([^&]+)/i.exec(ps.TranscodingUrl ?? '')?.[1] ?? '').split(/%2C|,/i).filter(Boolean);
     this.playMethod = method;
     this.source = ps;
     this.playSessionId = info.PlaySessionId;
@@ -217,6 +222,7 @@ export class Playback {
     this.buffering = true;
     await this.player.open(url, from);
     if (seq !== this.seq) return;
+    if (this.rate !== 1) this.player.setRate(this.rate);
     this.durationMs = this.player.durationMs || (it.RunTimeTicks ?? 0) / TICKS_PER_MS;
     this.positionMs = startMs;
     this.player.play();
@@ -273,6 +279,11 @@ export class Playback {
     else this.player.pause();
     this.playing = play;
     this.report('/Sessions/Playing/Progress', play ? 'Unpause' : 'Pause');
+  }
+
+  setSpeed(rate: number): void {
+    this.rate = rate;
+    this.player.setRate(rate);
   }
 
   seek(ms: number): void {

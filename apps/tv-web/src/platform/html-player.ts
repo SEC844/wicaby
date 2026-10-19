@@ -1,4 +1,4 @@
-import { Emitter, type Aspect, type Track, type VideoPlayer } from './player';
+import { Emitter, type Aspect, type PlayerStats, type Track, type VideoPlayer } from './player';
 
 // <video>-based player: webOS (its media pipeline decodes HEVC/HDR in hardware) and the dev build.
 export class HtmlPlayer extends Emitter implements VideoPlayer {
@@ -64,5 +64,22 @@ export class HtmlPlayer extends Emitter implements VideoPlayer {
 
   selectText(index: number | null): void {
     Array.from(this.video.textTracks).forEach((t, i) => (t.mode = i === index ? 'showing' : 'disabled'));
+  }
+
+  readonly speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+  // The default rate too: a new source resets the rate to it.
+  setRate(rate: number): void {
+    this.video.defaultPlaybackRate = rate;
+    this.video.playbackRate = rate;
+  }
+
+  stats(): PlayerStats {
+    const v = this.video as HTMLVideoElement & { webkitDroppedFrameCount?: number };
+    const b = v.buffered;
+    let ahead = 0;
+    for (let i = 0; i < b.length; i++) if (b.start(i) <= v.currentTime && b.end(i) >= v.currentTime) ahead = b.end(i) - v.currentTime;
+    const dropped = typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality().droppedVideoFrames : v.webkitDroppedFrameCount;
+    return { bufferMs: ahead * 1000, dropped, width: v.videoWidth || undefined, height: v.videoHeight || undefined };
   }
 }
