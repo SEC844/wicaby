@@ -1,7 +1,6 @@
 {
   "name": "wicaby-tv-web",
   "productName": "Wicaby",
-  "version": "0.10.10",
   "description": "Wicaby for TVs that run web apps (Samsung Tizen, LG webOS)",
   "author": "Wika",
   "license": "GPL-3.0-or-later",

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Tizen TV package manifest. scripts/package-wgt.mjs fills in the version from package.json. -->
+<!-- Tizen TV package manifest. scripts/package-wgt.mjs fills in the version from the repository's package.json. -->
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
         id="https://github.com/WicaebethTheo/wicaby" version="0.0.0" viewmodes="maximized">
   <tizen:application id="WicabyTizn.Wicaby" package="WicabyTizn" required_version="3.0"/>

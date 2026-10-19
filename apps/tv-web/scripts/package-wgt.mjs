@@ -7,7 +7,8 @@ import zlib from 'node:zlib';
 
 const app = path.resolve(import.meta.dirname, '..');
 const root = path.resolve(app, '..', '..');
-const { version } = JSON.parse(fs.readFileSync(path.join(app, 'package.json'), 'utf8'));
+// The repository's version (the release tag), shared by every app.
+const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const dist = path.join(app, 'dist');
 if (!fs.existsSync(path.join(dist, 'index.html'))) throw new Error('dist/index.html missing: run npm run build first');
 
