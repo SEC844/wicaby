@@ -42,7 +42,7 @@
     >
       {#snippet actions(total)}
         {#each MODES as x (x.m)}
-          <Pill text={t(x.label)} primary={mode === x.m} onclick={() => (mode = x.m)} />
+          <Pill text={t(x.label)} selected={mode === x.m} onclick={() => (mode = x.m)} />
         {/each}
         {#if total > 0}<Pill text={t('shuffle')} icon="Shuffle" onclick={shuffleAll} />{/if}
       {/snippet}

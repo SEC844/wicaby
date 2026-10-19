@@ -16,6 +16,7 @@
   import { keyOf } from './platform/keys';
   import Detail from './screens/Detail.svelte';
   import Folder from './screens/Folder.svelte';
+  import LivePlayer from './screens/LivePlayer.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
   import MusicAlbum from './screens/MusicAlbum.svelte';
@@ -108,6 +109,8 @@
       <MusicArtist id={entry.route.id} title={entry.route.title} />
     {:else if entry.route.name === 'musicLibrary'}
       <MusicLibrary id={entry.route.id} title={entry.route.title} mode={entry.route.mode} />
+    {:else if entry.route.name === 'live'}
+      <LivePlayer id={entry.route.id} list={entry.route.list} />
     {:else if entry.route.name === 'nowPlaying'}
       <NowPlaying />
     {:else if entry.route.name === 'folder'}

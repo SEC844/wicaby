@@ -23,6 +23,8 @@ function open(item: BaseItem, fromStart: boolean): void {
 
 // Settings > Playback > Resume: at once, ask, or always from the start.
 export function play(item: BaseItem, opts: PlayOptions = {}): void {
+  // A channel plays live (no position to resume).
+  if (item.Type === 'TvChannel') return nav.push({ name: 'live', id: item.Id });
   const at = resumeMs(item);
   if (opts.fromStart || at <= 0) return open(item, !!opts.fromStart);
   if (settings.resume.value === RESUME_START) return open(item, true);

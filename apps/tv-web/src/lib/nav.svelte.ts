@@ -16,13 +16,16 @@ export type Route =
   | { name: 'musicAlbum'; id: string; title: string }
   | { name: 'musicArtist'; id: string; title: string }
   | { name: 'musicLibrary'; id: string; title: string; mode: 'albums' | 'artists' | 'songs' }
-  | { name: 'nowPlaying' };
+  | { name: 'nowPlaying' }
+  // A Live TV channel full screen; [list] the zap order (channel ids) it was opened from, else the whole lineup.
+  | { name: 'live'; id: string; list?: string[] };
 
 // Android Item.route(): an album or audio playlist opens its page, an artist theirs, a folder (collection, plain
 // folder) its grid, everything else its details page. Photo albums keep the folder grid until their screen lands.
 export function itemRoute(item: BaseItem): Route {
   if (item.Type === 'MusicAlbum' || (item.Type === 'Playlist' && item.MediaType === 'Audio')) return { name: 'musicAlbum', id: item.Id, title: item.Name };
   if (item.Type === 'MusicArtist') return { name: 'musicArtist', id: item.Id, title: item.Name };
+  if (item.Type === 'TvChannel') return { name: 'live', id: item.Id };
   return item.IsFolder && item.Type !== 'Series' && item.Type !== 'Season'
     ? { name: 'folder', id: item.Id, title: item.Name, serverId: item.ServerId }
     : { name: 'detail', id: item.Id, serverId: item.ServerId };
