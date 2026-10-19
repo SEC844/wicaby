@@ -4,7 +4,8 @@
 //
 // - Arrows move to the nearest focusable element in that direction (geometric search, like Compose).
 // - A `data-focus-group` element remembers its last focused child and gives focus back to it when entered from
-//   outside (Compose focusRestorer): rows, the tab bar, the settings menu.
+//   outside (Compose focusRestorer): rows, the tab bar, the settings menu. Entered for the first time, it gives it to
+//   its `data-focus-default` child, if any.
 // - A `data-focus-trap` element (dialogs, sheets) keeps the search inside it.
 // - Every change dispatches a bubbling `tvfocus` event on the newly focused element, so containers can scroll it
 //   into view (Row, Page).
@@ -55,27 +56,48 @@ function candidates(scope: ParentNode): HTMLElement[] {
   return Array.prototype.filter.call(scope.querySelectorAll(`[${ATTR}]`), visible) as HTMLElement[];
 }
 
-// Distance in the direction of travel plus a penalty for the sideways offset; candidates overlapping the current
-// element's band on the cross axis win over diagonal ones.
-function score(a: DOMRect, b: DOMRect, dir: Dir): number {
-  const horizontal = dir === 'left' || dir === 'right';
-  const primary =
-    dir === 'right' ? b.left - a.right : dir === 'left' ? a.left - b.right : dir === 'down' ? b.top - a.bottom : a.top - b.bottom;
-  // Android FocusFinder.isCandidate: the target lies further that way on both edges. Comparing centres let Down from
-  // the tab bar's Search icon reach the avatar beside it, whose centre sits 3 px lower.
-  const forward =
-    dir === 'right' ? (a.left < b.left || a.right <= b.left) && a.right < b.right :
+// Compose's 2D focus search (TwoDimensionalFocusSearch.kt), so the arrows land where they would on the Android TV app.
+// A candidate lies further that way on both edges (comparing centres let Down from the tab bar's Search icon reach the
+// avatar beside it); one in the focused element's beam beats one outside it; otherwise the nearer one wins, the
+// distance along the arrow weighing 13 times more (squared) than the sideways offset.
+function isCandidate(a: DOMRect, b: DOMRect, dir: Dir): boolean {
+  return dir === 'right' ? (a.left < b.left || a.right <= b.left) && a.right < b.right :
     dir === 'left' ? (a.right > b.right || a.left >= b.right) && a.left > b.left :
     dir === 'down' ? (a.top < b.top || a.bottom <= b.top) && a.bottom < b.bottom :
     (a.bottom > b.bottom || a.top >= b.bottom) && a.top > b.top;
-  if (!forward) return Infinity;
-  const overlap = horizontal
-    ? Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
-    : Math.min(a.right, b.right) - Math.max(a.left, b.left);
-  const cross = horizontal
-    ? Math.abs(b.top + b.height / 2 - (a.top + a.height / 2))
-    : Math.abs(b.left + b.width / 2 - (a.left + a.width / 2));
-  return Math.max(0, primary) + (overlap > 0 ? cross * 0.1 : cross * 2 + 10_000);
+}
+
+function majorDistance(a: DOMRect, b: DOMRect, dir: Dir): number {
+  return Math.max(0, dir === 'right' ? b.left - a.right : dir === 'left' ? a.left - b.right : dir === 'down' ? b.top - a.bottom : a.top - b.bottom);
+}
+
+function majorDistanceToFarEdge(a: DOMRect, b: DOMRect, dir: Dir): number {
+  return Math.max(1, dir === 'right' ? b.right - a.right : dir === 'left' ? a.left - b.left : dir === 'down' ? b.bottom - a.bottom : a.top - b.top);
+}
+
+function weightedDistance(a: DOMRect, b: DOMRect, dir: Dir): number {
+  const major = majorDistance(a, b, dir);
+  const minor = dir === 'left' || dir === 'right' ? a.top + a.height / 2 - (b.top + b.height / 2) : a.left + a.width / 2 - (b.left + b.width / 2);
+  return 13 * major * major + minor * minor;
+}
+
+function inBeam(a: DOMRect, b: DOMRect, dir: Dir): boolean {
+  return dir === 'left' || dir === 'right' ? b.bottom > a.top && b.top < a.bottom : b.right > a.left && b.left < a.right;
+}
+
+function beamBeats(a: DOMRect, r1: DOMRect, r2: DOMRect, dir: Dir): boolean {
+  if (inBeam(a, r2, dir) || !inBeam(a, r1, dir)) return false;
+  const r2Ahead = dir === 'right' ? a.right <= r2.left : dir === 'left' ? a.left >= r2.right : dir === 'down' ? a.bottom <= r2.top : a.top >= r2.bottom;
+  if (!r2Ahead || dir === 'left' || dir === 'right') return true;
+  return majorDistance(a, r1, dir) < majorDistanceToFarEdge(a, r2, dir);
+}
+
+function isBetter(a: DOMRect, proposed: DOMRect, current: DOMRect | null, dir: Dir): boolean {
+  if (!isCandidate(a, proposed, dir)) return false;
+  if (!current) return true;
+  if (beamBeats(a, proposed, current, dir)) return true;
+  if (beamBeats(a, current, proposed, dir)) return false;
+  return weightedDistance(a, proposed, dir) < weightedDistance(a, current, dir);
 }
 
 export function move(dir: Dir): boolean {
@@ -86,18 +108,19 @@ export function move(dir: Dir): boolean {
   if (!from.dispatchEvent(claim)) return true;
   const a = from.getBoundingClientRect();
   let best: HTMLElement | null = null;
-  let bestScore = Infinity;
+  let bestRect: DOMRect | null = null;
   for (const el of candidates(scopeOf(from))) {
     if (el === from) continue;
-    const s = score(a, el.getBoundingClientRect(), dir);
-    if (s < bestScore) { bestScore = s; best = el; }
+    const r = el.getBoundingClientRect();
+    if (isBetter(a, r, bestRect, dir)) { best = el; bestRect = r; }
   }
   if (!best) return false;
-  // Entering a group from outside: back to the child focused last time it was left.
+  // Entering a group from outside: back to the child focused last time it was left, else to its `data-focus-default`
+  // child (Compose focusRestorer's fallback: the selected theme card).
   const fromGroups = new Set(groupsOf(from));
   for (const g of groupsOf(best).reverse()) {
     if (fromGroups.has(g)) continue;
-    const remembered = memory.get(g);
+    const remembered = memory.get(g) ?? g.querySelector<HTMLElement>(`[${ATTR}][data-focus-default]`);
     if (remembered && remembered.isConnected && visible(remembered)) { best = remembered; break; }
   }
   setFocus(best);
