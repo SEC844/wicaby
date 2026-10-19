@@ -13,6 +13,9 @@ export interface PlayerEvents {
   error: (message: string) => void;
 }
 
+// The picture format (core Aspect.kt): fit, fill the screen (crop), stretch, zoom (fill, then 4:3 larger).
+export type Aspect = 'fit' | 'fill' | 'stretch' | 'zoom';
+
 export interface VideoPlayer {
   open(url: string, startMs?: number): Promise<void>;
   play(): void;
@@ -26,6 +29,9 @@ export interface VideoPlayer {
   textTracks(): Track[];
   selectAudio(index: number): void;
   selectText(index: number | null): void;
+  // The formats this player can draw, in the order OK cycles them.
+  readonly aspects: Aspect[];
+  setAspect(a: Aspect): void;
   on<E extends keyof PlayerEvents>(event: E, cb: PlayerEvents[E]): () => void;
 }
 

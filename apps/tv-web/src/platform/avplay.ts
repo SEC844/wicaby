@@ -1,4 +1,4 @@
-import { Emitter, type Track, type VideoPlayer } from './player';
+import { Emitter, type Aspect, type Track, type VideoPlayer } from './player';
 
 // Samsung AVPlay (webapis.avplay): the TV's own media pipeline, so HEVC, HDR10/HDR10+ and passthrough audio play as
 // in the built-in apps. Video renders on a plane behind the page, through the <object type="application/avplayer">
@@ -99,6 +99,17 @@ export class AvPlayer extends Emitter implements VideoPlayer {
   audioTracks(): Track[] { return this.tracks('AUDIO'); }
   textTracks(): Track[] { return this.tracks('TEXT'); }
   selectAudio(index: number): void { this.av.setSelectTrack('AUDIO', index); }
+
+  // The plane letterboxes or stretches; AVPlay has no crop mode.
+  readonly aspects: Aspect[] = ['fit', 'stretch'];
+
+  setAspect(a: Aspect): void {
+    try {
+      this.av.setDisplayMethod(a === 'stretch' ? 'PLAYER_DISPLAY_MODE_FULL_SCREEN' : 'PLAYER_DISPLAY_MODE_LETTER_BOX');
+    } catch {
+      // Not ready yet: the next open applies the letterbox default.
+    }
+  }
 
   selectText(index: number | null): void {
     if (index == null) return this.av.setSilentSubtitle(true);

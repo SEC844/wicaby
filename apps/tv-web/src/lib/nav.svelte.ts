@@ -9,7 +9,9 @@ export type Route =
   | { name: 'login'; server: Server; add?: boolean }
   | { name: 'main' }
   | { name: 'detail'; id: string; serverId?: string }
-  | { name: 'folder'; id: string; title: string; serverId?: string };
+  | { name: 'folder'; id: string; title: string; serverId?: string }
+  // The player: [queue] for a shuffle (ids in play order, [id] first), [trailer] plays and reports nothing.
+  | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[] };
 
 // Android Item.route(): a folder (collection, plain folder) opens its grid, everything else its details page. Music
 // and photo albums keep the folder grid until their own screens land (M3).

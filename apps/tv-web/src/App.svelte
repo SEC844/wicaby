@@ -17,6 +17,7 @@
   import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
+  import Player from './screens/Player.svelte';
   import Servers from './screens/Servers.svelte';
 
   // MainActivity's start route: the session, else the saved server's sign-in, else the server screen.
@@ -89,6 +90,8 @@
       <Main />
     {:else if entry.route.name === 'detail'}
       <Detail id={entry.route.id} />
+    {:else if entry.route.name === 'player'}
+      <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} />
     {:else if entry.route.name === 'folder'}
       <Folder id={entry.route.id} title={entry.route.title} />
     {/if}

@@ -14,6 +14,7 @@
   import { t } from '../lib/i18n.svelte';
   import { useLoad } from '../lib/load.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
+  import { play } from '../lib/playback';
   import { clamp, pivotDelta } from '../lib/scroll';
   import { arrange, homeRows, settings } from '../lib/settings.svelte';
   import { prefs } from '../lib/session.svelte';
@@ -109,10 +110,10 @@
     return () => clearTimeout(timer);
   });
 
+  // Continue Watching, Next Up and the hero's Play start playback; every other card opens its page.
   function open(item: BaseItem, playable: boolean): void {
-    // Playback lands with the player (M2); until then a playable card opens its page too.
-    void playable;
-    nav.push(itemRoute(item));
+    if (playable) play(item);
+    else nav.push(itemRoute(item));
   }
 
   // --- Vertical scroll: rows pivot at 26 %, the hero always shows whole ---

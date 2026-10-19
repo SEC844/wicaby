@@ -1,0 +1,425 @@
+// One playback session (Android core player/Playback.kt): the item, PlaybackInfo with this TV's device profile, the
+// direct play or HLS URL for the platform player (AVPlay on Tizen, <video> on webOS), the tracks, the subtitles the
+// app draws, the skippable segments, the next episode or queue entry, and the /Sessions/Playing reports.
+// A direct play the TV fails to decode falls back once to the server's conversion (B01), at the same position.
+import type { BaseItem, MediaSource, MediaStream } from '$shared/models';
+import { caps } from '../platform/caps';
+import { onWifi } from '../platform/index';
+import type { VideoPlayer } from '../platform/player';
+import type { Api } from './api';
+import { deviceProfile } from './device-profile';
+import { t } from './i18n.svelte';
+import { changed } from './load.svelte';
+import { embySegments, isWatched, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
+import { settings } from './settings.svelte';
+import { activeCues, loadCues, type Cue } from './subtitles';
+import * as Versions from './versions';
+
+const TICKS_PER_MS = 10_000;
+const TEXT_CODECS = ['srt', 'subrip', 'ass', 'ssa', 'vtt', 'webvtt', 'mov_text', 'tx3g', 'text', 'smi', 'ttml'];
+const isText = (s: MediaStream) => s.IsTextSubtitleStream ?? TEXT_CODECS.includes((s.Codec ?? '').toLowerCase());
+const PROGRESS_MS = 10_000;
+
+export interface Queue {
+  ids: string[];
+  index: number;
+  // A shuffle or a list plays every entry from its start.
+  fromStart: boolean;
+}
+
+export interface PlaybackOptions {
+  fromStart?: boolean;
+  // A trailer or bonus: from the start, nothing reported, no watched state, no next episode.
+  trailer?: boolean;
+  queue?: Queue;
+}
+
+// The reports leave in order (a Stopped before the next Playing), one at a time; a Progress still waiting is replaced
+// by a newer one so a slow server never piles them up (core SessionReporter).
+class Reporter {
+  private chain: Promise<unknown> = Promise.resolve();
+  private pendingProgress: (() => Promise<unknown>) | null = null;
+
+  send(job: () => Promise<unknown>): Promise<boolean> {
+    this.pendingProgress = null;
+    const run = this.chain.then(job).then(
+      () => true,
+      () => false,
+    );
+    this.chain = run;
+    return run;
+  }
+
+  latest(job: () => Promise<unknown>): void {
+    const queued = this.pendingProgress !== null;
+    this.pendingProgress = job;
+    if (queued) return;
+    this.chain = this.chain.then(() => {
+      const j = this.pendingProgress;
+      this.pendingProgress = null;
+      return j?.().catch(() => {});
+    });
+  }
+}
+
+const reporter = new Reporter();
+
+export class Playback {
+  item = $state<BaseItem | null>(null);
+  error = $state<string | null>(null);
+  streams = $state<MediaStream[]>([]);
+  audioIndex = $state<number | null>(null);
+  subtitleIndex = $state<number>(-1);
+  cues = $state<Cue[]>([]);
+  segments = $state<Segments>({ ranges: [] });
+  next = $state<BaseItem | null>(null);
+  ended = $state(false);
+  playing = $state(false);
+  buffering = $state(true);
+  positionMs = $state(0);
+  durationMs = $state(0);
+  playMethod = $state<'DirectPlay' | 'DirectStream' | 'Transcode'>('DirectPlay');
+  // Episodes started by the countdown in a row; any input resets it ("Still watching?").
+  autoCount = 0;
+
+  itemId: string;
+  private source: MediaSource | null = null;
+  private sourceId: string | undefined;
+  private playSessionId: string | undefined;
+  private started = false;
+  private stopped = false;
+  private fellBack = false;
+  private forceTranscode = false;
+  // The WebVTT file could not be fetched (a server without CORS on it): text subtitles are burnt in instead.
+  private burnText = false;
+  private seq = 0;
+  private timer = 0;
+  private offs: (() => void)[] = [];
+  private readonly fromStart: boolean;
+  readonly trailer: boolean;
+  queue: Queue | null;
+
+  constructor(
+    readonly api: Api,
+    readonly player: VideoPlayer,
+    itemId: string,
+    opts: PlaybackOptions = {},
+  ) {
+    this.itemId = itemId;
+    this.fromStart = !!opts.fromStart;
+    this.trailer = !!opts.trailer;
+    this.queue = opts.queue ?? null;
+  }
+
+  // The subtitles showing now, with the offset of an out-of-sync file.
+  get activeCues(): Cue[] {
+    return this.cues.length ? activeCues(this.cues, this.positionMs) : [];
+  }
+
+  start(): void {
+    this.offs.push(
+      this.player.on('time', (ms) => {
+        this.positionMs = ms;
+        this.durationMs = this.player.durationMs || this.durationMs;
+      }),
+      this.player.on('buffering', (on) => (this.buffering = on)),
+      this.player.on('ended', () => {
+        this.ended = true;
+        this.playing = false;
+      }),
+      this.player.on('error', (message) => this.failed(message)),
+    );
+    this.timer = window.setInterval(() => {
+      if (!this.started || this.stopped) return;
+      this.playing = !this.player.paused;
+      if (this.playing) this.report('/Sessions/Playing/Progress', 'TimeUpdate');
+      else if (this.playSessionId) reporter.latest(() => this.api.ping(this.playSessionId!));
+    }, PROGRESS_MS);
+    void this.open(this.itemId, this.fromStart || (this.queue?.fromStart ?? false));
+  }
+
+  private async open(id: string, fromStart: boolean): Promise<void> {
+    const seq = ++this.seq;
+    try {
+      const it = await this.api.item(id);
+      if (seq !== this.seq) return;
+      this.item = it;
+      // The version picked on the details page (remembered per item), else the first.
+      const chosen = Versions.selected(it);
+      this.sourceId = chosen?.Id;
+      this.streams = chosen?.MediaStreams ?? [];
+      const start = fromStart || this.trailer ? 0 : resumeFrom((it.UserData?.PlaybackPositionTicks ?? 0) / TICKS_PER_MS, (it.RunTimeTicks ?? 0) / TICKS_PER_MS);
+      // Audio and subtitles picked on the details page go into the first PlaybackInfo.
+      const pick = Versions.pick(it.Id, chosen?.Id);
+      await this.load(start, pick?.audio ?? null, pick?.subtitle ?? null);
+      if (this.trailer || seq !== this.seq) return;
+      this.segments = this.api.isEmby ? embySegments(it.Chapters) : jellyfinSegments(await this.api.mediaSegments(it.Id).catch(() => []));
+      this.next = (await this.nextFor(it)) ?? null;
+    } catch (e) {
+      if (seq === this.seq) this.error = e instanceof Error && e.message ? e.message : t('playback_error');
+    }
+  }
+
+  private async nextFor(it: BaseItem): Promise<BaseItem | undefined> {
+    const q = this.queue;
+    if (!q) return it.Type === 'Episode' ? this.api.nextEpisode(it).catch(() => undefined) : undefined;
+    const id = q.ids[q.index + 1];
+    return id ? this.api.item(id).catch(() => undefined) : undefined;
+  }
+
+  private async load(startMs: number, audio: number | null, subtitle: number | null): Promise<void> {
+    const it = this.item;
+    if (!it) return;
+    const seq = this.seq;
+    const mbps = onWifi() ? settings.mbpsWifi.value : settings.mbpsEthernet.value;
+    const maxBitrate = mbps > 0 ? mbps * 1_000_000 : 200_000_000;
+    const ticks = Math.round(startMs * TICKS_PER_MS);
+    // Burning a text subtitle in needs the server's conversion.
+    const burn = this.burnText && subtitle !== null && subtitle >= 0 && this.streams.some((m) => m.Index === subtitle && m.Type === 'Subtitle' && isText(m));
+    const force = this.forceTranscode || burn;
+    const body = {
+      DeviceProfile: deviceProfile(await caps(), this.api.kind, maxBitrate, 0, this.burnText),
+      UserId: this.api.userId,
+      MaxStreamingBitrate: maxBitrate,
+      StartTimeTicks: ticks,
+      IsPlayback: true,
+      AutoOpenLiveStream: true,
+      MediaSourceId: this.sourceId,
+      AudioStreamIndex: audio ?? undefined,
+      SubtitleStreamIndex: subtitle ?? undefined,
+      EnableDirectPlay: !force,
+      EnableDirectStream: !force,
+      EnableTranscoding: true,
+      AllowVideoStreamCopy: !force,
+      AllowAudioStreamCopy: true,
+    };
+    const info = await this.api.playbackInfo(
+      it.Id,
+      { UserId: this.api.userId, StartTimeTicks: ticks, IsPlayback: true, AutoOpenLiveStream: true, MaxStreamingBitrate: maxBitrate, AudioStreamIndex: audio, SubtitleStreamIndex: subtitle, MediaSourceId: this.sourceId },
+      body,
+    );
+    if (seq !== this.seq) return;
+    if (info.ErrorCode) throw new Error(t('playback_error_code', info.ErrorCode));
+    const ps = info.MediaSources?.find((s) => s.Id === this.sourceId) ?? info.MediaSources?.[0];
+    if (!ps) throw new Error(t('no_playable_source'));
+    let url: string | null = null;
+    let from = startMs;
+    if (ps.SupportsDirectPlay && !force) {
+      url = this.api.streamUrl(it, ps.Id, info.PlaySessionId);
+      this.playMethod = 'DirectPlay';
+    } else if (ps.TranscodingUrl) {
+      url = this.api.mediaUrl(ps.TranscodingUrl);
+      this.playMethod = /videocodec=copy/i.test(ps.TranscodingUrl) ? 'DirectStream' : 'Transcode';
+      // Emby and Jellyfin HLS playlists cover the whole runtime; a server that echoes StartTimeTicks starts there.
+      if (ps.StartTimeTicks) from = Math.max(0, startMs - ps.StartTimeTicks / TICKS_PER_MS);
+    }
+    if (!url) throw new Error(t('no_playable_source'));
+    this.source = ps;
+    this.playSessionId = info.PlaySessionId;
+    this.streams = ps.MediaStreams?.length ? ps.MediaStreams : this.streams;
+    this.audioIndex = audio ?? ps.DefaultAudioStreamIndex ?? null;
+    this.subtitleIndex = subtitle ?? ps.DefaultSubtitleStreamIndex ?? -1;
+    this.started = false;
+    this.buffering = true;
+    await this.player.open(url, from);
+    if (seq !== this.seq) return;
+    this.durationMs = this.player.durationMs || (it.RunTimeTicks ?? 0) / TICKS_PER_MS;
+    this.positionMs = startMs;
+    this.player.play();
+    this.playing = true;
+    this.started = true;
+    this.report('/Sessions/Playing', null);
+    void this.applySubtitles();
+  }
+
+  // A text subtitle the app can draw: the server's WebVTT file, or, for one inside the file that the answer gave no
+  // URL for, the same conversion asked by route (both servers extract and convert it). Image subtitles cannot.
+  private subtitleUrl(s: MediaStream): string | null {
+    if (s.DeliveryMethod === 'External' && s.DeliveryUrl) return this.api.mediaUrl(s.DeliveryUrl);
+    if (s.DeliveryMethod === 'Encode' || !isText(s) || !this.source || !this.item) return null;
+    return this.api.mediaUrl(`/Videos/${this.item.Id}/${this.source.Id}/Subtitles/${s.Index}/0/Stream.vtt`);
+  }
+
+  // The subtitle the app draws (burnt-in ones are part of the picture).
+  private async applySubtitles(): Promise<void> {
+    const s = this.streams.find((m) => m.Index === this.subtitleIndex && m.Type === 'Subtitle');
+    this.cues = [];
+    const url = s ? this.subtitleUrl(s) : null;
+    const want = this.subtitleIndex;
+    if (!url) return;
+    try {
+      const cues = await loadCues(url);
+      if (this.subtitleIndex === want) this.cues = cues;
+    } catch {
+      // Refused (no CORS on the file) or unreachable: once per session, the server burns the text in.
+      if (this.subtitleIndex !== want || this.burnText || this.stopped) return;
+      this.burnText = true;
+      this.reload();
+    }
+  }
+
+  private failed(message: string): void {
+    if (this.stopped) return;
+    // B01: the TV could not decode the direct play: once per item, the server's conversion from the same position.
+    if (this.playMethod === 'DirectPlay' && !this.fellBack && this.item) {
+      this.fellBack = true;
+      this.forceTranscode = true;
+      const pos = this.positionMs;
+      this.endSession(true);
+      void this.load(pos, this.audioIndex, this.subtitleIndex >= 0 ? this.subtitleIndex : null).catch((e) => (this.error = e instanceof Error ? e.message : t('playback_error')));
+      return;
+    }
+    this.error = message || t('playback_error');
+  }
+
+  // --- Controls ---
+
+  togglePlay(play = this.player.paused): void {
+    if (play) this.player.play();
+    else this.player.pause();
+    this.playing = play;
+    this.report('/Sessions/Playing/Progress', play ? 'Unpause' : 'Pause');
+  }
+
+  seek(ms: number): void {
+    const target = Math.max(0, Math.min(ms, this.durationMs || ms));
+    this.player.seek(target);
+    this.positionMs = target;
+    this.ended = false;
+  }
+
+  audio(): MediaStream[] {
+    return this.streams.filter((s) => s.Type === 'Audio');
+  }
+
+  subtitles(): MediaStream[] {
+    return this.streams.filter((s) => s.Type === 'Subtitle');
+  }
+
+  // Direct play switches the TV's own track when it lists them in the file's order; anything else reloads with the
+  // track asked of the server, at the same position.
+  selectAudio(index: number): void {
+    if (index === this.audioIndex) return;
+    const embedded = this.audio().filter((s) => !s.IsExternal);
+    const pos = embedded.findIndex((s) => s.Index === index);
+    const native = this.player.audioTracks();
+    this.audioIndex = index;
+    if (this.playMethod === 'DirectPlay' && pos >= 0 && native.length === embedded.length) {
+      this.player.selectAudio(native[pos].index);
+      this.report('/Sessions/Playing/Progress', 'AudioTrackChange');
+    } else this.reload();
+  }
+
+  selectSubtitle(index: number): void {
+    if (index === this.subtitleIndex) return;
+    const was = this.streams.find((s) => s.Index === this.subtitleIndex);
+    const now = this.streams.find((s) => s.Index === index);
+    this.subtitleIndex = index;
+    // Burnt in (an image track) on either side: the picture itself changes.
+    if (was?.DeliveryMethod === 'Encode' || (now && (this.burnText || !this.subtitleUrl(now)))) return this.reload();
+    void this.applySubtitles();
+    this.report('/Sessions/Playing/Progress', 'SubtitleTrackChange');
+  }
+
+  private reload(): void {
+    const pos = this.positionMs;
+    this.endSession(true);
+    void this.load(pos, this.audioIndex, this.subtitleIndex).catch((e) => (this.error = e instanceof Error ? e.message : t('playback_error')));
+  }
+
+  retry(): void {
+    this.error = null;
+    void this.open(this.itemId, false);
+  }
+
+  // The next episode or queue entry, as a new session in the same player.
+  advance(auto: boolean): void {
+    const n = this.next;
+    if (!n) return;
+    if (this.queue) this.queue.index++;
+    this.autoCount = auto ? this.autoCount + 1 : 0;
+    this.switchTo(n.Id);
+  }
+
+  // The previous queue entry within the first 5 s, else back to the start.
+  previous(): void {
+    const q = this.queue;
+    if (q && q.index > 0 && this.positionMs <= 5000) {
+      q.index--;
+      this.switchTo(q.ids[q.index]);
+    } else this.seek(0);
+  }
+
+  private switchTo(id: string): void {
+    this.endSession();
+    this.player.stop();
+    this.itemId = id;
+    this.item = null;
+    this.next = null;
+    this.ended = false;
+    this.error = null;
+    this.cues = [];
+    this.segments = { ranges: [] };
+    this.fellBack = false;
+    this.forceTranscode = false;
+    this.positionMs = 0;
+    this.durationMs = 0;
+    void this.open(id, this.queue?.fromStart ?? false);
+  }
+
+  // --- Reports ---
+
+  private body(event: string | null): Record<string, unknown> {
+    return {
+      ItemId: this.itemId,
+      MediaSourceId: this.source?.Id,
+      PlaySessionId: this.playSessionId,
+      PositionTicks: Math.round(this.positionMs * TICKS_PER_MS),
+      IsPaused: this.player.paused,
+      IsMuted: false,
+      PlayMethod: this.playMethod,
+      CanSeek: true,
+      RepeatMode: 'RepeatNone',
+      AudioStreamIndex: this.audioIndex ?? undefined,
+      SubtitleStreamIndex: this.subtitleIndex,
+      ...(event ? { EventName: event } : {}),
+    };
+  }
+
+  private report(path: '/Sessions/Playing' | '/Sessions/Playing/Progress', event: string | null): void {
+    if (this.trailer || !this.source || !this.started) return;
+    const body = this.body(event);
+    if (path.endsWith('/Progress')) reporter.latest(() => this.api.report(path, body));
+    else void reporter.send(() => this.api.report(path, body));
+  }
+
+  // The Stopped report, then an explicit "played" when the credits were reached before the server's own 90 % rule.
+  // switching: the old session of an in-place reload, never marked played.
+  private endSession(switching = false): void {
+    if (this.started && !this.trailer && this.source) {
+      const pos = this.positionMs;
+      const dur = this.durationMs;
+      const id = this.itemId;
+      const body = this.body(null);
+      const credits = this.segments.credits;
+      void reporter.send(() => this.api.report('/Sessions/Playing/Stopped', body)).then(async (sent) => {
+        if (sent && !switching && markPlayedByCredits(pos, dur, credits)) await this.api.setPlayed(id, true).catch(() => {});
+        if (!switching && (sent || isWatched(pos, dur, credits))) changed();
+      });
+    }
+    // A conversion keeps running on the server until it notices; end it now.
+    const sid = this.playSessionId;
+    if (sid && this.playMethod !== 'DirectPlay') void this.api.stopEncoding(sid).catch(() => {});
+    this.started = false;
+  }
+
+  stop(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    this.seq++;
+    clearInterval(this.timer);
+    this.offs.forEach((off) => off());
+    this.endSession();
+    this.player.stop();
+  }
+}

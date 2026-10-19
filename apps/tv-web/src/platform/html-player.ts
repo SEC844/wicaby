@@ -1,4 +1,4 @@
-import { Emitter, type Track, type VideoPlayer } from './player';
+import { Emitter, type Aspect, type Track, type VideoPlayer } from './player';
 
 // <video>-based player: webOS (its media pipeline decodes HEVC/HDR in hardware) and the dev build.
 export class HtmlPlayer extends Emitter implements VideoPlayer {
@@ -53,6 +53,13 @@ export class HtmlPlayer extends Emitter implements VideoPlayer {
   selectAudio(index: number): void {
     const list = (this.video as HTMLVideoElement & { audioTracks?: ArrayLike<{ enabled: boolean }> }).audioTracks;
     if (list) Array.from(list).forEach((t, i) => (t.enabled = i === index));
+  }
+
+  readonly aspects: Aspect[] = ['fit', 'fill', 'stretch', 'zoom'];
+
+  setAspect(a: Aspect): void {
+    this.video.style.objectFit = a === 'fit' ? 'contain' : a === 'stretch' ? 'fill' : 'cover';
+    this.video.style.transform = a === 'zoom' ? 'scale(1.333)' : '';
   }
 
   selectText(index: number | null): void {

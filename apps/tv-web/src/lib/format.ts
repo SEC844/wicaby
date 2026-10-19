@@ -38,3 +38,12 @@ export function metaLine(item: BaseItem, locale: string): string {
     .filter(Boolean)
     .join('  ·  ');
 }
+
+// A playback time: "4:07", "1:05:12" (Android clock()).
+export function clock(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+}
