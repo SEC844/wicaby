@@ -18,6 +18,12 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+### Fixed
+
+- Android TV: the focused tab's pill in the top bar keeps its rounded ends on the first and last text tabs (Home,
+  the last library) instead of being cut flat by the scrolling row
+  ([#12](https://github.com/WicaebethTheo/wicaby/issues/12)).
+
 ## [0.10.15] - 2026-10-19
 
 Android TV 0.10.15 (versionCode 36), Android mobile 0.10.15 (versionCode 33).
