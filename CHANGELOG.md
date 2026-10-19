@@ -18,6 +18,29 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.10.14] - 2026-10-19
+
+Android TV 0.10.14 (versionCode 35), Android mobile 0.10.14 (versionCode 32).
+
+### Changed
+
+- Settings use the same categories, in the same order, on desktop, Android TV and phones: General, Appearance,
+  Home & libraries, Playback, Video, Audio, Subtitles, Music, Casting, Accounts, Sources, Remote access,
+  Downloads, Keyboard, System, About. Each app shows only the categories it has settings for. No setting was
+  removed and stored settings are kept.
+- Desktop: new Video, Music, Casting and Sources panes; Torrents moved into Downloads, Trakt into Accounts, the
+  window and notification options into General, Privacy and Advanced into System. Duplicate rows (automatic
+  update check, logs, data folder) now appear once. Old `?pane=` links still open the right pane.
+- Android TV: Interface and Trakt are no longer separate sections; every group has a title. Clearing remembered
+  settings, resetting rows or tabs, signing out, disconnecting Trakt and removing Immich now ask for confirmation.
+- Phones: Settings is a list of categories, each opening its own page, instead of one long page.
+- Clearer labels: "Control from other devices" (was "Allow remote control"), "ReplayGain preamp" and
+  "Equalizer preamp".
+
+### Fixed
+
+- Android TV: the settings section list scrolls, so every section stays reachable with the remote.
+
 ## [0.10.13] - 2026-10-19
 
 ### Added
