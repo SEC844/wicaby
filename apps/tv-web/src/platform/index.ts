@@ -40,7 +40,12 @@ export async function initPlatform(): Promise<void> {
 
 export function exitApp(): void {
   if (platform === 'tizen') tizen!.application.getCurrentApplication().exit();
-  else if (platform === 'webos') window.close();
+  else if (platform === 'webos') {
+    // webOS leaves an app through its system Back (back to the launcher); window.close() is the fallback.
+    const palm = (window as { PalmSystem?: { platformBack?(): void } }).PalmSystem;
+    if (palm?.platformBack) palm.platformBack();
+    else window.close();
+  }
 }
 
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {

@@ -1,6 +1,7 @@
 // Packages dist/ as a Tizen web app: release/tv-web/Wicaby-Tizen-<version>.wgt at the repo root.
 // The package is unsigned; the installer (Tizen Studio, or Apps2Samsung with a Samsung certificate) signs it.
 // A plain ZIP writer (deflate, CRC from node:zlib) keeps the build free of archive dependencies.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -11,6 +12,8 @@ const root = path.resolve(app, '..', '..');
 const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const dist = path.join(app, 'dist');
 if (!fs.existsSync(path.join(dist, 'index.html'))) throw new Error('dist/index.html missing: run npm run build first');
+// The licence texts ship inside the package, as on desktop.
+execFileSync(process.execPath, [path.join(root, 'tools/release/licenses.mjs'), path.join(dist, 'licenses')], { stdio: 'inherit' });
 
 const config = fs.readFileSync(path.join(app, 'tizen', 'config.xml'), 'utf8').replace('version="0.0.0"', `version="${version}"`);
 const files = [
