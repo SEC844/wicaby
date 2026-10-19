@@ -61,11 +61,13 @@ function score(a: DOMRect, b: DOMRect, dir: Dir): number {
   const horizontal = dir === 'left' || dir === 'right';
   const primary =
     dir === 'right' ? b.left - a.right : dir === 'left' ? a.left - b.right : dir === 'down' ? b.top - a.bottom : a.top - b.bottom;
+  // Android FocusFinder.isCandidate: the target lies further that way on both edges. Comparing centres let Down from
+  // the tab bar's Search icon reach the avatar beside it, whose centre sits 3 px lower.
   const forward =
-    dir === 'right' ? b.left + b.width / 2 > a.left + a.width / 2 + 1 :
-    dir === 'left' ? b.left + b.width / 2 < a.left + a.width / 2 - 1 :
-    dir === 'down' ? b.top + b.height / 2 > a.top + a.height / 2 + 1 :
-    b.top + b.height / 2 < a.top + a.height / 2 - 1;
+    dir === 'right' ? (a.left < b.left || a.right <= b.left) && a.right < b.right :
+    dir === 'left' ? (a.right > b.right || a.left >= b.right) && a.left > b.left :
+    dir === 'down' ? (a.top < b.top || a.bottom <= b.top) && a.bottom < b.bottom :
+    (a.bottom > b.bottom || a.top >= b.bottom) && a.top > b.top;
   if (!forward) return Infinity;
   const overlap = horizontal
     ? Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
