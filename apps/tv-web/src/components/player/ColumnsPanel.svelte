@@ -1,49 +1,28 @@
+<script module lang="ts">
+  export interface PanelColumn {
+    key: string;
+    title: string;
+    // Share of the card's width.
+    weight: number;
+    rows: { id: number; text: string }[];
+    selected: number | null | undefined;
+    // The row being switched to (a spinner instead of the check).
+    busy?: number | null;
+    pick: (id: number) => void;
+  }
+</script>
+
 <script lang="ts">
-  // Android TV TrackPanel (PlayerActivity.kt): a card along the bottom with the audio tracks, the subtitles ("Off"
-  // first), and the quick subtitle look (size, position, the Settings values). It keeps the focus (data-focus-trap)
-  // and opens on the selected audio track; each column scrolls with the focus.
+  // Android TV TrackPanel / QualityPanel layout (PlayerActivity.kt TrackColumn): a card along the bottom with
+  // columns of choices, the current one checked. It keeps the focus (data-focus-trap) and opens on the first
+  // column's selected row; each column scrolls with the focus and remembers its row.
   import { onMount } from 'svelte';
-  import type { MediaStream } from '$shared/models';
   import { focusable, focusFirst } from '../../lib/focus';
-  import { t } from '../../lib/i18n.svelte';
   import { edgeDelta } from '../../lib/scroll';
-  import { settings } from '../../lib/settings.svelte';
   import Icon from '../Icon.svelte';
+  import Spinner from '../Spinner.svelte';
 
-  let {
-    audio,
-    subtitles,
-    audioIndex,
-    subtitleIndex,
-    onaudio,
-    onsubtitle,
-  }: {
-    audio: MediaStream[];
-    subtitles: MediaStream[];
-    audioIndex: number | null;
-    subtitleIndex: number;
-    onaudio: (index: number) => void;
-    onsubtitle: (index: number) => void;
-  } = $props();
-
-  const label = (s: MediaStream) => s.DisplayTitle || s.Title || s.Language || t('track_unknown', s.Index);
-  const columns = $derived([
-    { key: 'a', title: t('audio'), weight: 1.3, rows: audio.map((s) => ({ id: s.Index, text: label(s) })), selected: audioIndex ?? audio.find((s) => s.IsDefault)?.Index, pick: onaudio },
-    {
-      key: 's', title: t('subtitles'), weight: 1.3,
-      rows: [{ id: -1, text: t('subtitles_off') }, ...subtitles.map((s) => ({ id: s.Index, text: label(s) }))], selected: subtitleIndex, pick: onsubtitle,
-    },
-    {
-      key: 'z', title: t('subtitle_size'), weight: 1,
-      rows: ['size_small', 'size_normal', 'size_large', 'size_xlarge'].map((k, i) => ({ id: i, text: t(k) })),
-      selected: settings.subtitleSize.value, pick: (i: number) => (settings.subtitleSize.value = i),
-    },
-    {
-      key: 'p', title: t('subtitle_position'), weight: 1,
-      rows: ['sub_pos_bottom', 'sub_pos_slightly_raised', 'sub_pos_raised'].map((k, i) => ({ id: i, text: t(k) })),
-      selected: settings.subtitlePosition.value, pick: (i: number) => (settings.subtitlePosition.value = i),
-    },
-  ]);
+  let { columns, height = 280 }: { columns: PanelColumn[]; height?: number } = $props();
 
   let card: HTMLDivElement;
   onMount(() => requestAnimationFrame(() => focusFirst(card)));
@@ -57,19 +36,21 @@
 </script>
 
 <div class="scrim" data-focus-trap>
-  <div class="card" bind:this={card} ontvfocus={scroll}>
+  <div class="card" style="height:{height}rem" bind:this={card} ontvfocus={scroll}>
     {#each columns as c, ci (c.key)}
       <div class="column" style="flex:{c.weight}" data-focus-group>
         <p class="t-eyebrow title">{c.title.toUpperCase()}</p>
         <div class="rows">
-          {#each c.rows as r (r.id)}
+          {#each c.rows as r, ri (r.id)}
             <button
               class="row t-body"
-              use:focusable={ci === 0 ? r.id === c.selected : false}
+              use:focusable={ci === 0 && (r.id === c.selected || (c.selected == null && ri === 0))}
               data-focus-default={r.id === c.selected ? '' : undefined}
               onclick={() => c.pick(r.id)}
             >
-              <span class="mark">{#if r.id === c.selected}<Icon name="Check" size={18} />{/if}</span>
+              <span class="mark">
+                {#if r.id === c.busy}<Spinner size={16} color="currentColor" />{:else if r.id === c.selected}<Icon name="Check" size={18} />{/if}
+              </span>
               <span class="ellipsis">{r.text}</span>
             </button>
           {/each}
@@ -93,7 +74,6 @@
     left: 32rem;
     right: 32rem;
     bottom: 32rem;
-    height: 280rem;
     display: flex;
     padding: 24rem;
     border-radius: var(--r-xl);
@@ -139,6 +119,7 @@
     transform: scale(1.02);
   }
   .mark {
+    display: flex;
     flex-shrink: 0;
     width: 26rem;
     color: var(--accent);

@@ -11,6 +11,7 @@ import { deviceProfile } from './device-profile';
 import { t } from './i18n.svelte';
 import { changed } from './load.svelte';
 import { embySegments, isWatched, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
+import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows, type QualityRow } from '$shared/quality-presets';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
 import { loadPreview, type Preview } from './trickplay';
@@ -80,6 +81,10 @@ export class Playback {
   positionMs = $state(0);
   durationMs = $state(0);
   playMethod = $state<'DirectPlay' | 'DirectStream' | 'Transcode'>('DirectPlay');
+  // X-02: the bitrate cap picked in the player (ORIGINAL_BITRATE for Original), kept for the next episodes of this
+  // player; null = the Settings cap. switching: a reload is in flight.
+  qualityCap = $state<number | null>(null);
+  switching = $state(false);
   // Scrub thumbnails; null when the item has none.
   preview = $state.raw<Preview | null>(null);
   // Episodes started by the countdown in a row; any input resets it ("Still watching?").
@@ -175,16 +180,23 @@ export class Playback {
     return id ? this.api.item(id).catch(() => undefined) : undefined;
   }
 
-  private async load(startMs: number, audio: number | null, subtitle: number | null): Promise<void> {
+  // switchFrom: runs once the new PlaybackInfo resolved, before anything of the session changes. Until then a failure
+  // throws and the old stream plays on (make-before-break).
+  private async load(startMs: number, audio: number | null, subtitle: number | null, switchFrom?: () => void): Promise<void> {
     const it = this.item;
     if (!it) return;
     const seq = this.seq;
     const mbps = onWifi() ? settings.mbpsWifi.value : settings.mbpsEthernet.value;
-    const maxBitrate = mbps > 0 ? mbps * 1_000_000 : 200_000_000;
+    const maxBitrate = this.qualityCap ?? (mbps > 0 ? mbps * 1_000_000 : 200_000_000);
     const ticks = Math.round(startMs * TICKS_PER_MS);
     // Burning a text subtitle in needs the server's conversion.
     const burn = this.burnText && subtitle !== null && subtitle >= 0 && this.streams.some((m) => m.Index === subtitle && m.Type === 'Subtitle' && isText(m));
-    const force = this.forceTranscode || burn;
+    // A picked preset below the source must convert, or the server would direct play it anyway.
+    const src = it.MediaSources?.find((m) => m.Id === this.sourceId) ?? it.MediaSources?.[0];
+    const video = src?.MediaStreams?.find((m) => m.Type === 'Video');
+    const preset = QUALITY_PRESETS.find((p) => p.bitrate === this.qualityCap);
+    const below = !!preset && !coversSource(preset, src?.Bitrate, heightClass(video?.Width, video?.Height));
+    const force = this.forceTranscode || burn || below;
     const body = {
       DeviceProfile: deviceProfile(await caps(), this.api.kind, maxBitrate, 0, this.burnText),
       UserId: this.api.userId,
@@ -212,16 +224,18 @@ export class Playback {
     if (!ps) throw new Error(t('no_playable_source'));
     let url: string | null = null;
     let from = startMs;
+    let method: 'DirectPlay' | 'DirectStream' | 'Transcode' = 'DirectPlay';
     if (ps.SupportsDirectPlay && !force) {
       url = this.api.streamUrl(it, ps.Id, info.PlaySessionId);
-      this.playMethod = 'DirectPlay';
     } else if (ps.TranscodingUrl) {
       url = this.api.mediaUrl(ps.TranscodingUrl);
-      this.playMethod = /videocodec=copy/i.test(ps.TranscodingUrl) ? 'DirectStream' : 'Transcode';
+      method = /videocodec=copy/i.test(ps.TranscodingUrl) ? 'DirectStream' : 'Transcode';
       // Emby and Jellyfin HLS playlists cover the whole runtime; a server that echoes StartTimeTicks starts there.
       if (ps.StartTimeTicks) from = Math.max(0, startMs - ps.StartTimeTicks / TICKS_PER_MS);
     }
     if (!url) throw new Error(t('no_playable_source'));
+    switchFrom?.();
+    this.playMethod = method;
     this.source = ps;
     this.playSessionId = info.PlaySessionId;
     this.streams = ps.MediaStreams?.length ? ps.MediaStreams : this.streams;
@@ -272,9 +286,9 @@ export class Playback {
     if (this.playMethod === 'DirectPlay' && !this.fellBack && this.item) {
       this.fellBack = true;
       this.forceTranscode = true;
-      const pos = this.positionMs;
-      this.endSession(true);
-      void this.load(pos, this.audioIndex, this.subtitleIndex >= 0 ? this.subtitleIndex : null).catch((e) => (this.error = e instanceof Error ? e.message : t('playback_error')));
+      void this.load(this.positionMs, this.audioIndex, this.subtitleIndex >= 0 ? this.subtitleIndex : null, () => this.endSession(true)).catch(
+        (e) => (this.error = e instanceof Error ? e.message : t('playback_error')),
+      );
       return;
     }
     this.error = message || t('playback_error');
@@ -330,9 +344,62 @@ export class Playback {
   }
 
   private reload(): void {
-    const pos = this.positionMs;
-    this.endSession(true);
-    void this.load(pos, this.audioIndex, this.subtitleIndex).catch((e) => (this.error = e instanceof Error ? e.message : t('playback_error')));
+    void this.load(this.positionMs, this.audioIndex, this.subtitleIndex, () => this.endSession(true)).catch(
+      (e) => (this.error = e instanceof Error ? e.message : t('playback_error')),
+    );
+  }
+
+  // --- X-02 quality and version ---
+
+  get versions(): MediaSource[] {
+    return this.item?.MediaSources ?? [];
+  }
+
+  get currentSourceId(): string | undefined {
+    return this.source?.Id ?? this.sourceId;
+  }
+
+  qualityRows(): QualityRow[] {
+    const s = this.versions.find((v) => v.Id === this.currentSourceId) ?? this.versions[0];
+    const video = s?.MediaStreams?.find((m) => m.Type === 'Video');
+    // The title's runtime, not the stream's: a conversion that starts at the resume point is shorter.
+    const runtime = (s?.RunTimeTicks ?? this.item?.RunTimeTicks ?? 0) / TICKS_PER_MS;
+    return qualityRows({ bitrate: s?.Bitrate, height: heightClass(video?.Width, video?.Height), size: s?.Size, durationMs: runtime || this.durationMs });
+  }
+
+  // Reload in place at the current position with another version (null = this one) and cap (null = Original), with
+  // the same tracks (the other version's matching ones). The old stream plays on until the new PlaybackInfo
+  // resolves; a failure there leaves it playing. True when the switch took.
+  async switchQuality(sourceId: string | null, maxBitrate: number | null): Promise<boolean> {
+    const it = this.item;
+    if (!it || this.switching) return false;
+    const target = this.versions.find((v) => v.Id === (sourceId ?? this.currentSourceId)) ?? this.versions[0];
+    if (!target) return false;
+    const prev = { cap: this.qualityCap, source: this.sourceId };
+    const newVersion = target.Id !== this.currentSourceId;
+    const audio = newVersion ? sameTrack(this.streams, target.MediaStreams ?? [], this.audioIndex) : this.audioIndex;
+    const subtitle = this.subtitleIndex < 0 ? -1 : newVersion ? (sameTrack(this.streams, target.MediaStreams ?? [], this.subtitleIndex) ?? -1) : this.subtitleIndex;
+    this.qualityCap = maxBitrate ?? ORIGINAL_BITRATE;
+    this.sourceId = target.Id;
+    this.switching = true;
+    let stopped = false;
+    try {
+      await this.load(this.positionMs, audio, subtitle, () => {
+        stopped = true;
+        this.endSession(true);
+      });
+      if (newVersion) Versions.select(it.Id, target.Id);
+      return true;
+    } catch (e) {
+      if (stopped) this.error = e instanceof Error ? e.message : t('playback_error');
+      else {
+        this.qualityCap = prev.cap;
+        this.sourceId = prev.source;
+      }
+      return false;
+    } finally {
+      this.switching = false;
+    }
   }
 
   retry(): void {
@@ -437,4 +504,13 @@ export class Playback {
     this.endSession();
     this.player.stop();
   }
+}
+
+// Another version's stream with the same type, language and forced flag (the same codec first): index numbers differ
+// between versions.
+function sameTrack(from: MediaStream[], to: MediaStream[], index: number | null): number | null {
+  const s = from.find((m) => m.Index === index);
+  if (!s) return null;
+  const pool = to.filter((m) => m.Type === s.Type && m.Language === s.Language && !!m.IsForced === !!s.IsForced);
+  return (pool.find((m) => m.Codec === s.Codec) ?? pool[0])?.Index ?? null;
 }

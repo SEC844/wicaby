@@ -10,18 +10,22 @@
   import type { BaseItem } from '$shared/models';
   import { MERGE_MS, press, type PendingSeek } from '$shared/stepped-seek';
   import { getContext, onMount } from 'svelte';
+  import HScroll from '../components/HScroll.svelte';
   import Icon from '../components/Icon.svelte';
   import Pill from '../components/Pill.svelte';
+  import ColumnsPanel, { type PanelColumn } from '../components/player/ColumnsPanel.svelte';
   import Osd, { type OsdButton } from '../components/player/Osd.svelte';
   import SubtitleLayer from '../components/player/SubtitleLayer.svelte';
-  import TrackPanel from '../components/player/TrackPanel.svelte';
   import Spinner from '../components/Spinner.svelte';
-  import { focusable, focused, setFocus } from '../lib/focus';
-  import { episodeLine } from '../lib/format';
-  import { t } from '../lib/i18n.svelte';
+  import { focusable, focused, focusFirst, setFocus } from '../lib/focus';
+  import { clock, episodeLine } from '../lib/format';
+  import { locale, t } from '../lib/i18n.svelte';
+  import { showToast } from '../lib/toast.svelte';
+  import * as Versions from '../lib/versions';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { overlay } from '../lib/overlay.svelte';
   import { Playback } from '../lib/playback.svelte';
+  import { ORIGINAL_BITRATE } from '$shared/quality-presets';
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '../lib/segments';
   import { api } from '../lib/session.svelte';
   import { SKIP_AUTO, SKIP_OFF, settings } from '../lib/settings.svelte';
@@ -30,6 +34,9 @@
   import type { Aspect } from '../platform/player';
 
   let { id, fromStart = false, trailer = false, queue }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[] } = $props();
+
+  // Android's own glyph for the chapters button (PlayerActivity.kt ChaptersIcon).
+  const CHAPTERS_ICON = 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z';
 
   const client = api()!;
   const screen = getContext<number>(SCREEN);
@@ -43,7 +50,7 @@
   let osd = $state(true);
   let nonce = $state(0);
   let controlsFocused = $state(false);
-  let panel = $state(false);
+  let panel = $state<'tracks' | 'quality' | 'chapters' | null>(null);
   let now = $state(Date.now());
   function poke(): void {
     osd = true;
@@ -178,17 +185,123 @@
     poke();
   }
 
+  // --- Audio and subtitles: the tracks, then the quick subtitle look (the Settings values) ---
+  const trackName = (s: { DisplayTitle?: string; Title?: string; Language?: string; Index: number }) =>
+    s.DisplayTitle || s.Title || s.Language || t('track_unknown', s.Index);
+  const trackColumns = $derived.by<PanelColumn[]>(() => {
+    if (!pb) return [];
+    const p = pb;
+    const audio = p.audio();
+    return [
+      { key: 'a', title: t('audio'), weight: 1.3, rows: audio.map((s) => ({ id: s.Index, text: trackName(s) })), selected: p.audioIndex ?? audio.find((s) => s.IsDefault)?.Index, pick: (i) => p.selectAudio(i) },
+      {
+        key: 's', title: t('subtitles'), weight: 1.3, selected: p.subtitleIndex, pick: (i) => p.selectSubtitle(i),
+        rows: [{ id: -1, text: t('subtitles_off') }, ...p.subtitles().map((s) => ({ id: s.Index, text: trackName(s) }))],
+      },
+      {
+        key: 'z', title: t('subtitle_size'), weight: 1, selected: settings.subtitleSize.value, pick: (i) => (settings.subtitleSize.value = i),
+        rows: ['size_small', 'size_normal', 'size_large', 'size_xlarge'].map((k, i) => ({ id: i, text: t(k) })),
+      },
+      {
+        key: 'p', title: t('subtitle_position'), weight: 1, selected: settings.subtitlePosition.value, pick: (i) => (settings.subtitlePosition.value = i),
+        rows: ['sub_pos_bottom', 'sub_pos_slightly_raised', 'sub_pos_raised'].map((k, i) => ({ id: i, text: t(k) })),
+      },
+    ];
+  });
+
+  // --- X-02 quality: "Quality · Original" / "Quality · 720p" on the button, presets with their bitrate in the sheet ---
+  const mbps = (b: number) => (b / 1_000_000).toLocaleString(locale.current, { maximumFractionDigits: 2 });
+  const presetLabel = (b: number, height?: number) => t('quality_preset', height ?? 0, mbps(b));
+  const capped = $derived(pb && pb.qualityCap !== null && pb.qualityCap < ORIGINAL_BITRATE ? pb.qualityCap : null);
+  const qualityShort = $derived.by(() => {
+    const row = capped ? pb?.qualityRows().find((r) => r.maxBitrate === capped) : undefined;
+    return row?.height ? `${row.height}p` : t('quality_original');
+  });
+  // "1,4 Go" / "1.4 GB" (Android formatShortFileSize).
+  function size(bytes?: number): string | undefined {
+    if (!bytes) return undefined;
+    const units = locale.current.startsWith('fr') ? ['o', 'ko', 'Mo', 'Go', 'To'] : ['B', 'kB', 'MB', 'GB', 'TB'];
+    let v = bytes;
+    let u = 0;
+    while (v >= 1000 && u < units.length - 1) {
+      v /= 1000;
+      u++;
+    }
+    return `${v.toLocaleString(locale.current, { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[u]}`;
+  }
+  let busy = $state<{ col: 'v' | 'q'; i: number } | null>(null);
+  const qualityColumns = $derived.by<PanelColumn[]>(() => {
+    if (!pb) return [];
+    const p = pb;
+    const tag = p.playMethod === 'Transcode' ? t('play_method_transcode') : t('play_method_direct');
+    const versions = p.versions;
+    const labels = p.item ? Versions.labels(p.item) : [];
+    const vSel = versions.findIndex((v) => v.Id === p.currentSourceId);
+    const rows = p.qualityRows();
+    const rSel = rows.findIndex((r) => r.maxBitrate === capped);
+    const cols: PanelColumn[] = [];
+    if (versions.length > 1)
+      cols.push({
+        key: 'v', title: t('quality_version'), weight: 1, selected: vSel, busy: busy?.col === 'v' ? busy.i : null,
+        rows: versions.map((v, i) => ({ id: i, text: [labels[i] ?? v.Id, i === vSel && !p.switching ? tag : undefined, size(v.Size)].filter(Boolean).join(' · ') })),
+        pick: (i) => void (i !== vSel && switchQuality('v', i, versions[i].Id, capped)),
+      });
+    cols.push({
+      key: 'q', title: t('quality'), weight: 1.3, selected: rSel, busy: busy?.col === 'q' ? busy.i : null,
+      rows: rows.map((r, i) => {
+        const name = r.maxBitrate === null ? [t('quality_original'), r.height ? `${r.height}p` : undefined].filter(Boolean).join(' · ') : presetLabel(r.maxBitrate, r.height);
+        const sz = size(r.size);
+        return { id: i, text: [name, i === rSel && !p.switching ? tag : undefined, sz && r.percent !== undefined ? t('quality_size', sz, r.percent) : sz].filter(Boolean).join(' · ') };
+      }),
+      pick: (i) => void (i !== rSel && switchQuality('q', i, null, rows[i].maxBitrate)),
+    });
+    return cols;
+  });
+  // The sheet closes once the switch took and stays open on a failure (its toast says so).
+  async function switchQuality(col: 'v' | 'q', i: number, sourceId: string | null, maxBitrate: number | null): Promise<void> {
+    if (!pb || pb.switching) return;
+    busy = { col, i };
+    const ok = await pb.switchQuality(sourceId, maxBitrate);
+    busy = null;
+    if (!ok) return showToast(t('quality_failed'));
+    const item = pb.item;
+    const label =
+      sourceId && item
+        ? (Versions.labels(item)[pb.versions.findIndex((v) => v.Id === sourceId)] ?? sourceId)
+        : maxBitrate
+          ? presetLabel(maxBitrate, pb.qualityRows().find((r) => r.maxBitrate === maxBitrate)?.height)
+          : t('quality_original');
+    showToast(t('quality_switched', label));
+    closePanel();
+  }
+
+  // --- Chapters: the real ones (Emby's intro and credits markers left out), with their index for the stills ---
+  const chapters = $derived(
+    (pb?.item?.Chapters ?? [])
+      .map((c, index) => ({ c, index, ms: c.StartPositionTicks / 10_000 }))
+      .filter(({ c }) => !c.MarkerType || c.MarkerType === 'Chapter')
+      .sort((a, b) => a.ms - b.ms),
+  );
+  const chapterStarts = $derived(chapters.map((c) => c.ms));
+
   const buttons = $derived<OsdButton[]>([
-    { key: 'tracks', icon: 'Subtitles', text: t('tracks_hint_touch'), run: openPanel },
+    { key: 'tracks', icon: 'Subtitles', text: t('tracks_hint_touch'), run: () => openPanel('tracks') },
+    ...(chapters.length > 1 ? [{ key: 'chapters', icon: '', path: CHAPTERS_ICON, text: t('chip_chapters'), run: () => openPanel('chapters') }] : []),
+    ...(pb && !pb.trailer ? [{ key: 'quality', icon: 'Gear', text: t('quality'), value: qualityShort, run: () => openPanel('quality') }] : []),
     { key: 'aspect', icon: 'Aspect', text: t(ASPECT_LABEL[aspect]), run: cycleAspect },
   ]);
 
-  function openPanel(): void {
-    panel = true;
+  function openPanel(kind: 'tracks' | 'quality' | 'chapters'): void {
+    panel = kind;
     osd = true;
+    // The panel takes the focus at once (its selected row, the current chapter), off the button behind it.
+    requestAnimationFrame(() => {
+      const trap = document.querySelector('[data-screen-top] .player [data-focus-trap]');
+      if (trap) focusFirst(trap);
+    });
   }
   function closePanel(): void {
-    panel = false;
+    panel = null;
     setFocus(sink);
   }
 
@@ -222,7 +335,7 @@
     if (inControls()) {
       poke();
       if (key === 'up') return consume(), setFocus(sink);
-      if (key === 'down' && focused()?.getAttribute('data-osd-button') === 'tracks') return consume(), openPanel();
+      if (key === 'down' && focused()?.getAttribute('data-osd-button') === 'tracks') return consume(), openPanel('tracks');
       return;
     }
     consume();
@@ -287,9 +400,6 @@
   const position = $derived(scrub ?? pb?.positionMs ?? 0);
   // The skip chip and the up-next card sit just above the OSD's title row.
   const OSD_TOP = 176;
-  const chapterStarts = $derived(
-    (pb?.item?.Chapters ?? []).filter((c) => !c.MarkerType || c.MarkerType === 'Chapter').map((c) => c.StartPositionTicks / 10_000),
-  );
 </script>
 
 <div class="player" class:avplay>
@@ -352,15 +462,39 @@
       </div>
     {/if}
 
-    {#if panel}
-      <TrackPanel
-        audio={pb.audio()}
-        subtitles={pb.subtitles()}
-        audioIndex={pb.audioIndex}
-        subtitleIndex={pb.subtitleIndex}
-        onaudio={(i) => pb?.selectAudio(i)}
-        onsubtitle={(i) => pb?.selectSubtitle(i)}
-      />
+    {#if panel === 'tracks'}
+      <ColumnsPanel columns={trackColumns} />
+    {:else if panel === 'quality'}
+      <ColumnsPanel columns={qualityColumns} height={320} />
+    {:else if panel === 'chapters' && pb.item}
+      {@const item = pb.item}
+      {@const current = Math.max(0, chapterStarts.filter((s) => s <= (pb?.positionMs ?? 0)).length - 1)}
+      <div class="scrim" data-focus-trap>
+        <div class="chapters">
+          <p class="t-title3 sheet-title">{t('chapters')}</p>
+          <HScroll spacing={16} padding={[8, 12, 8, 12]}>
+            {#each chapters as ch, i (ch.index)}
+              {@const still = client.image(item.Id, `Chapter/${ch.index}`, ch.c.ImageTag, { maxWidth: 480 })}
+              {@const where = t('chapter_position', i + 1, chapters.length, clock(ch.ms))}
+              <div data-row-item>
+                <button
+                  class="chapter"
+                  use:focusable={i === current}
+                  aria-label={where}
+                  onclick={() => {
+                    pb?.seek(ch.ms);
+                    closePanel();
+                  }}
+                >
+                  <span class="still-image">{#if still}<img src={still} alt="" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />{/if}</span>
+                  <span class="name t-callout ellipsis">{ch.c.Name?.trim() || where}</span>
+                  <span class="time">{clock(ch.ms)}</span>
+                </button>
+              </div>
+            {/each}
+          </HScroll>
+        </div>
+      </div>
     {/if}
 
     {#if stillWatching}
@@ -542,6 +676,69 @@
   }
   .in {
     margin-left: 14rem;
+  }
+  .scrim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .chapters {
+    position: absolute;
+    left: 32rem;
+    right: 32rem;
+    bottom: 32rem;
+    padding: 20rem 12rem 12rem;
+    border-radius: var(--r-xl);
+    background: var(--elevated);
+    animation: fade 220ms var(--ease-out) both;
+  }
+  .sheet-title {
+    margin: 0 0 8rem 20rem;
+  }
+  .chapter {
+    display: block;
+    width: 240rem;
+    padding: 8rem;
+    border-radius: var(--r-md);
+    color: var(--label);
+    text-align: left;
+    transition: transform var(--t-fast) var(--ease-out), background-color var(--t-fast);
+  }
+  .chapter:global(.focused) {
+    background: #fff;
+    color: #000;
+    transform: scale(1.05);
+  }
+  .still-image {
+    position: relative;
+    display: block;
+    padding-top: 56.25%;
+    overflow: hidden;
+    border-radius: var(--r-sm);
+    background: var(--elevated-2);
+  }
+  .still-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .chapter .name {
+    display: block;
+    margin-top: 8rem;
+  }
+  .chapter .time {
+    font-family: 'Geist Mono', monospace;
+    font-size: 15rem;
+    color: var(--label-2);
+  }
+  .chapter:global(.focused) .time {
+    color: rgba(0, 0, 0, 0.62);
   }
   .still {
     position: absolute;
