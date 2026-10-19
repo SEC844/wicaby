@@ -14,6 +14,7 @@ import { embySegments, isWatched, jellyfinSegments, markPlayedByCredits, resumeF
 import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows, type QualityRow } from '$shared/quality-presets';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
+import { reporter } from './reporter';
 import { loadPreview, type Preview } from './trickplay';
 import * as Versions from './versions';
 
@@ -36,35 +37,6 @@ export interface PlaybackOptions {
   queue?: Queue;
 }
 
-// The reports leave in order (a Stopped before the next Playing), one at a time; a Progress still waiting is replaced
-// by a newer one so a slow server never piles them up (core SessionReporter).
-class Reporter {
-  private chain: Promise<unknown> = Promise.resolve();
-  private pendingProgress: (() => Promise<unknown>) | null = null;
-
-  send(job: () => Promise<unknown>): Promise<boolean> {
-    this.pendingProgress = null;
-    const run = this.chain.then(job).then(
-      () => true,
-      () => false,
-    );
-    this.chain = run;
-    return run;
-  }
-
-  latest(job: () => Promise<unknown>): void {
-    const queued = this.pendingProgress !== null;
-    this.pendingProgress = job;
-    if (queued) return;
-    this.chain = this.chain.then(() => {
-      const j = this.pendingProgress;
-      this.pendingProgress = null;
-      return j?.().catch(() => {});
-    });
-  }
-}
-
-const reporter = new Reporter();
 
 export class Playback {
   item = $state<BaseItem | null>(null);
