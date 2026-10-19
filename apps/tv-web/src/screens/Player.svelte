@@ -24,6 +24,7 @@
   import * as Versions from '../lib/versions';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { overlay } from '../lib/overlay.svelte';
+  import { stopMusic } from '../lib/music.svelte';
   import { Playback } from '../lib/playback.svelte';
   import { ORIGINAL_BITRATE } from '$shared/quality-presets';
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '../lib/segments';
@@ -366,6 +367,8 @@
   }
 
   onMount(() => {
+    // A video ends the music session, as on Android (one audio output, one session).
+    stopMusic();
     document.documentElement.classList.toggle('avplay', avplay);
     const player = createPlayer(video);
     const p = new Playback(client, player, id, { fromStart, trailer, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });

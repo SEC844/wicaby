@@ -403,6 +403,56 @@ export class Api {
     return this.del('/Videos/ActiveEncodings', { DeviceId: deviceId, PlaySessionId: playSessionId });
   }
 
+  // --- Music (core MusicApi.kt, Emby.kt): the Emby / Jellyfin differences in one place ---
+
+  // A track's list fields: its MediaSources too (the stream's own source id, the audio badge).
+  get trackFields(): string {
+    return `${this.listFields},MediaSources`;
+  }
+
+  albumArtists(query: Query): Promise<ItemsResult> {
+    return this.get('/Artists/AlbumArtists', { UserId: this.userId, Fields: this.listFields, EnableImageTypes: 'Primary', ImageTypeLimit: 1, ...query });
+  }
+
+  // Emby /MusicGenres; Jellyfin /Genres?IncludeItemTypes=MusicAlbum (its /MusicGenres is deprecated since 10.8).
+  musicGenres(parentId: string): Promise<ItemsResult> {
+    if (this.isEmby) return this.get('/MusicGenres', { UserId: this.userId, ParentId: parentId, SortBy: 'SortName' });
+    return this.get('/Genres', { userId: this.userId, ParentId: parentId, IncludeItemTypes: 'MusicAlbum', SortBy: 'SortName' });
+  }
+
+  // One route for tracks, albums, artists, genres and playlists on both servers.
+  instantMix(id: string, limit = 100): Promise<ItemsResult> {
+    return this.get(`/Items/${id}/InstantMix`, { [this.isEmby ? 'UserId' : 'userId']: this.userId, Limit: limit, Fields: this.trackFields });
+  }
+
+  // The tracks of an album, artist, playlist or genre, in play order (core PlayQueue.tracks), with their metadata.
+  async tracksOf(item: BaseItem): Promise<BaseItem[]> {
+    const order: Query =
+      item.Type === 'MusicArtist' ? { ArtistIds: item.Id, SortBy: 'Album,ParentIndexNumber,IndexNumber,SortName' }
+      : item.Type === 'Playlist' ? { ParentId: item.Id }
+      : item.Type === 'MusicGenre' || item.Type === 'Genre' ? { GenreIds: item.Id, SortBy: 'Random' }
+      : { ParentId: item.Id, SortBy: 'ParentIndexNumber,IndexNumber,SortName' };
+    return (await this.items({ ...order, Recursive: true, IncludeItemTypes: 'Audio', Limit: 1000, Fields: this.trackFields })).Items;
+  }
+
+  // Server lyrics. Jellyfin: /Audio/{id}/Lyrics when HasLyrics. Emby has no lyrics route: an external lrc / text
+  // subtitle stream of the audio item (that Emby shape is unverified: any failure reads as "no lyrics").
+  async lyricsText(item: BaseItem): Promise<{ jellyfin: unknown } | { lrc: string } | null> {
+    try {
+      if (!this.isEmby) {
+        if ((item as BaseItem & { HasLyrics?: boolean }).HasLyrics === false) return null;
+        return { jellyfin: await this.get(`/Audio/${item.Id}/Lyrics`) };
+      }
+      const source = item.MediaSources?.[0];
+      const stream = (source?.MediaStreams ?? item.MediaStreams ?? []).find((s) => s.Type === 'Subtitle' && ['lrc', 'text', 'txt'].includes((s.Codec ?? '').toLowerCase()));
+      if (!stream) return null;
+      const base = `/Videos/${item.Id}/${source?.Id || item.Id}/Subtitles/${stream.Index}/Stream`;
+      return { lrc: await this.get<string>(`${base}.lrc`).catch(() => this.get<string>(`${base}.txt`)) };
+    } catch {
+      return null;
+    }
+  }
+
   // A stream's server URL for direct play (no transcode), with this device's session.
   streamUrl(item: BaseItem, mediaSourceId: string, playSessionId?: string): string | null {
     const kind = item.MediaType === 'Audio' ? 'Audio' : 'Videos';

@@ -6,6 +6,7 @@
   import Toast from './components/Toast.svelte';
   import { move, pressDown, pressUp } from './lib/focus';
   import { t } from './lib/i18n.svelte';
+  import { music, stopMusic } from './lib/music.svelte';
   import { handleBack, nav, stack } from './lib/nav.svelte';
   import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
   import { prefs } from './lib/session.svelte';
@@ -17,6 +18,10 @@
   import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
+  import MusicAlbum from './screens/MusicAlbum.svelte';
+  import MusicArtist from './screens/MusicArtist.svelte';
+  import MusicLibrary from './screens/MusicLibrary.svelte';
+  import NowPlaying from './screens/NowPlaying.svelte';
   import Player from './screens/Player.svelte';
   import Servers from './screens/Servers.svelte';
 
@@ -63,6 +68,11 @@
         requestAnimationFrame(() => (moved = false));
         move(key);
       } else if (key === 'ok') pressDown(e.repeat);
+      else if (music.session && !e.repeat && (key === 'playPause' || key === 'play' || key === 'pause')) music.session.playPause();
+      // The music plays on while the user browses: the remote's media keys drive it (the players take them first).
+      else if (music.session && key === 'next') music.session.next();
+      else if (music.session && key === 'prev') music.session.previous();
+      else if (music.session && key === 'stop') stopMusic();
       else if (key === 'back' && !e.repeat) {
         if (overlay.alert) closeAlert();
         else if (!handleBack()) confirmQuit();
@@ -92,6 +102,14 @@
       <Detail id={entry.route.id} />
     {:else if entry.route.name === 'player'}
       <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} />
+    {:else if entry.route.name === 'musicAlbum'}
+      <MusicAlbum id={entry.route.id} title={entry.route.title} />
+    {:else if entry.route.name === 'musicArtist'}
+      <MusicArtist id={entry.route.id} title={entry.route.title} />
+    {:else if entry.route.name === 'musicLibrary'}
+      <MusicLibrary id={entry.route.id} title={entry.route.title} mode={entry.route.mode} />
+    {:else if entry.route.name === 'nowPlaying'}
+      <NowPlaying />
     {:else if entry.route.name === 'folder'}
       <Folder id={entry.route.id} title={entry.route.title} />
     {/if}

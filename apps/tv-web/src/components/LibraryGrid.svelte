@@ -11,7 +11,7 @@
   //   the page scrolls with one GPU transform, by EdgeSpec (110 dp from the edges, as on Android).
   // - The items array is a plain array behind a revision counter: thousands of entries are never made reactive.
   import type { BaseItem, ItemsResult } from '$shared/models';
-  import { getContext, onMount, tick } from 'svelte';
+  import { getContext, onMount, tick, type Snippet } from 'svelte';
   import type { Api } from '../lib/api';
   import { focused, setFocus } from '../lib/focus';
   import { plural, t } from '../lib/i18n.svelte';
@@ -31,6 +31,9 @@
     collectionType,
     top,
     defaultFocus = false,
+    mode = 'albums',
+    actions,
+    onopen,
     onscrolled,
   }: {
     api: Api;
@@ -39,6 +42,12 @@
     collectionType?: string;
     top: number;
     defaultFocus?: boolean;
+    // A music library: the grid it shows (Android MUSIC_ALBUMS, MUSIC_ARTISTS, MUSIC_SONGS).
+    mode?: 'albums' | 'artists' | 'songs';
+    // The header's pills, right of the title (music modes, Play, Shuffle); given the title count.
+    actions?: Snippet<[number]>;
+    // A card's OK, when the caller plays it (a track); false: the default (its page).
+    onopen?: (item: BaseItem, index: number) => boolean;
     onscrolled?: (scrolled: boolean) => void;
   } = $props();
 
@@ -58,9 +67,13 @@
 
   // svelte-ignore state_referenced_locally
   const ct = collectionType;
-  // Music cards are square (MU: album and artist art); a music library's grid is M3, it shows albums for now.
+  // svelte-ignore state_referenced_locally
+  const artists = ct === 'music' && mode === 'artists';
+  // Music cards are square (album and artist art).
   const ratio = ct === 'music' ? 1 : 1.5;
-  const types = ct === 'movies' ? 'Movie' : ct === 'tvshows' ? 'Series' : ct === 'boxsets' ? 'BoxSet' : ct === 'music' ? 'MusicAlbum' : undefined;
+  // svelte-ignore state_referenced_locally
+  const types =
+    ct === 'movies' ? 'Movie' : ct === 'tvshows' ? 'Series' : ct === 'boxsets' ? 'BoxSet' : ct === 'music' ? (mode === 'songs' ? 'Audio' : 'MusicAlbum') : undefined;
   // Sorted by name, hence the A–Z rail (not Live TV's channel list).
   const byName = ct !== 'livetv';
   // svelte-ignore state_referenced_locally
@@ -76,7 +89,8 @@
 
   function page(start: number): Promise<ItemsResult> {
     if (ct === 'livetv') return api.liveChannelsPage(start, PAGE);
-    return api.items({ ...filters, SortBy: 'SortName', SortOrder: 'Ascending', StartIndex: start, Limit: PAGE });
+    if (artists) return api.albumArtists({ ParentId: parentId, SortBy: 'SortName', SortOrder: 'Ascending', StartIndex: start, Limit: PAGE });
+    return api.items({ ...filters, SortBy: 'SortName', SortOrder: 'Ascending', StartIndex: start, Limit: PAGE, ...(mode === 'songs' ? { Fields: api.trackFields } : {}) });
   }
 
   // Page [n] into its slots; a new total (titles added or removed on the server) starts the list over.
@@ -106,7 +120,9 @@
   // The rail's letter offsets, once the library is big enough.
   $effect(() => {
     if (!byName || total <= RAIL_MIN || letters) return;
-    LetterIndex.load(async (b) => (await api.items({ ...filters, ...LetterIndex.countOnly(b) })).TotalRecordCount)
+    LetterIndex.load(async (b) =>
+      artists ? (await api.albumArtists({ ParentId: parentId, ...LetterIndex.countOnly(b) })).TotalRecordCount : (await api.items({ ...filters, ...LetterIndex.countOnly(b) })).TotalRecordCount,
+    )
       .then((l) => (letters = l))
       .catch(() => {});
   });
@@ -246,8 +262,8 @@
     target = 0;
   });
 
-  function open(item: BaseItem): void {
-    // Channels and tracks play once the player lands (M2); until then they open their page too.
+  function open(item: BaseItem, index: number): void {
+    if (onopen?.(item, index)) return;
     nav.push(itemRoute(item));
   }
 
@@ -283,15 +299,18 @@
   {/if}
   <div class="content" class:jump style="height:{height}rem;transform:translate3d(0,{-y}rem,0)" data-focus-group ontvfocus={onfocus} ontvmove={onmove}>
     <header style="top:{top}rem">
-      <h1 class="t-large-title ellipsis">{title}</h1>
-      {#if total >= 0}<p class="t-footnote label-3">{plural('items_count', total, total)}</p>{/if}
+      <div class="titles">
+        <h1 class="t-large-title ellipsis">{title}</h1>
+        {#if total >= 0}<p class="t-footnote label-3">{plural('items_count', total, total)}</p>{/if}
+      </div>
+      {#if actions}<div class="actions">{@render actions(Math.max(0, total))}</div>{/if}
     </header>
     {#each mounted as r (r.row)}
       <div class="row" style="transform:translate3d(0,{rowTop(r.row)}rem,0)">
         {#each r.slots as s (s.index)}
           <div class="slot" data-index={s.index} style="width:{cardW}rem">
             {#if s.item}
-              <Card item={s.item} {api} variant={ratio === 1 ? 'square' : 'poster'} width={cardW} onclick={() => open(s.item!)} />
+              <Card item={s.item} {api} variant={ratio === 1 ? 'square' : 'poster'} width={cardW} onclick={() => open(s.item!, s.index)} />
             {:else}
               <div class="placeholder" style="height:{artH}rem"></div>
             {/if}
@@ -326,6 +345,19 @@
     position: absolute;
     left: 48rem;
     right: 48rem;
+    display: flex;
+    align-items: center;
+  }
+  .titles {
+    flex: 1;
+    min-width: 0;
+  }
+  .actions {
+    display: flex;
+    margin-right: 16rem;
+  }
+  .actions > :global(* + *) {
+    margin-left: 10rem;
   }
   h1,
   p {

@@ -4,9 +4,11 @@
   // tab selects it. The pill is centred when it fits, slides left otherwise, and its text tabs scroll with the focus
   // behind faded edges. Left/Right follow the tab order: geometric search would jump from a half-hidden tab to the
   // pinned icons.
-  import { onMount, tick } from 'svelte';
+  import { getContext, onMount, tick } from 'svelte';
   import { focusable, setFocus } from '../lib/focus';
-  import { locale } from '../lib/i18n.svelte';
+  import { locale, t } from '../lib/i18n.svelte';
+  import { music, musicActive } from '../lib/music.svelte';
+  import { nav, SCREEN, stack } from '../lib/nav.svelte';
   import { dp } from '../lib/screen';
   import { clamp } from '../lib/scroll';
   import type { TopTab } from '../lib/tabs';
@@ -39,6 +41,8 @@
   let bar: HTMLDivElement;
   let pill: HTMLDivElement;
   let right: HTMLDivElement;
+  const screen = getContext<number>(SCREEN);
+  const onTop = (): boolean => stack[stack.length - 1]?.key === screen;
   let viewport: HTMLDivElement;
   let track: HTMLDivElement;
   let left = $state(0);
@@ -97,6 +101,9 @@
   $effect(() => {
     void tabs;
     void locale.current;
+    // The now-playing button widens the right side; measured once the screen is back on top (hidden, it has no size).
+    void musicActive();
+    if (!onTop()) return;
     void tick().then(() => {
       layout();
       place();
@@ -172,6 +179,12 @@
     </div>
   </div>
   <div class="right" bind:this={right}>
+    <!-- Music playing: back to its screen (a TV app has no system "Now playing" card, unlike Google TV). -->
+    {#if musicActive()}
+      <button class="music" class:playing={music.session?.playing} aria-label={t('music_now_playing')} use:focusable onclick={() => nav.push({ name: 'nowPlaying' })}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" fill="currentColor" /></svg>
+      </button>
+    {/if}
     {#if showClock}<span class="clock t-headline">{clock}</span>{/if}
     <button class="avatar" aria-label={userName} use:focusable onclick={onavatar}>
       {#if userImage}<img src={userImage} alt="" />{:else}<span class="t-headline">{userName.slice(0, 1).toUpperCase()}</span>{/if}
@@ -273,6 +286,30 @@
     display: flex;
     align-items: center;
     height: 47rem;
+  }
+  .music {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40rem;
+    height: 40rem;
+    margin-right: 18rem;
+    border-radius: 50%;
+    background: var(--raised);
+    color: var(--label-2);
+    transition: transform var(--t-fast) var(--ease-out), background-color var(--t-fast);
+  }
+  .music.playing {
+    color: var(--accent);
+  }
+  .music svg {
+    width: 20rem;
+    height: 20rem;
+  }
+  .music:global(.focused) {
+    background: #fff;
+    color: #000;
+    transform: scale(1.16);
   }
   .clock {
     margin-right: 18rem;

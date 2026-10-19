@@ -11,11 +11,18 @@ export type Route =
   | { name: 'detail'; id: string; serverId?: string }
   | { name: 'folder'; id: string; title: string; serverId?: string }
   // The player: [queue] for a shuffle (ids in play order, [id] first), [trailer] plays and reports nothing.
-  | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[] };
+  | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[] }
+  // Music: an album or audio playlist, an artist, a music library's whole grid, and the now-playing screen.
+  | { name: 'musicAlbum'; id: string; title: string }
+  | { name: 'musicArtist'; id: string; title: string }
+  | { name: 'musicLibrary'; id: string; title: string; mode: 'albums' | 'artists' | 'songs' }
+  | { name: 'nowPlaying' };
 
-// Android Item.route(): a folder (collection, plain folder) opens its grid, everything else its details page. Music
-// and photo albums keep the folder grid until their own screens land (M3).
+// Android Item.route(): an album or audio playlist opens its page, an artist theirs, a folder (collection, plain
+// folder) its grid, everything else its details page. Photo albums keep the folder grid until their screen lands.
 export function itemRoute(item: BaseItem): Route {
+  if (item.Type === 'MusicAlbum' || (item.Type === 'Playlist' && item.MediaType === 'Audio')) return { name: 'musicAlbum', id: item.Id, title: item.Name };
+  if (item.Type === 'MusicArtist') return { name: 'musicArtist', id: item.Id, title: item.Name };
   return item.IsFolder && item.Type !== 'Series' && item.Type !== 'Season'
     ? { name: 'folder', id: item.Id, title: item.Name, serverId: item.ServerId }
     : { name: 'detail', id: item.Id, serverId: item.ServerId };
