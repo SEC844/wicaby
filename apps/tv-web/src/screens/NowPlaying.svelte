@@ -50,12 +50,16 @@
     });
     return i;
   });
+  // The lines slide (a transform, composited) rather than jump: the line playing sits a third down the column.
   let lyricsBox = $state<HTMLDivElement>();
+  let lyricsLines = $state<HTMLDivElement>();
+  let lyricsY = $state(0);
   $effect(() => {
     const box = lyricsBox;
-    if (!box || lyricIndex < 0) return;
-    const line = box.children[Math.max(0, lyricIndex - 2)] as HTMLElement | undefined;
-    if (line) box.scrollTop = line.offsetTop - box.offsetTop;
+    const lines = lyricsLines;
+    if (!box || !lines) return;
+    const line = lyricIndex >= 0 ? (lines.children[lyricIndex] as HTMLElement | undefined) : undefined;
+    lyricsY = line ? Math.max(0, line.offsetTop + line.offsetHeight / 2 - box.clientHeight / 3) : 0;
   });
 
   async function mix(): Promise<void> {
@@ -153,7 +157,7 @@
           <Cover src={art} name={item.Album ?? item.Name} size={280} font={96} />
           <span class="gap"></span>
         {/if}
-        <div class="info">
+        <div class="info" class:narrow={showLyrics}>
           <p class="t-eyebrow label-3">{t('music_now_playing').toUpperCase()}</p>
           <p class="t-title1 title">{item.Name}</p>
           {#if artist}<p class="t-title3 label-2 line">{artist}</p>{/if}
@@ -182,9 +186,11 @@
             {#if lyrics && !lyrics.lines.length}
               <p class="t-callout label-3">{t('music_no_lyrics')}</p>
             {:else if lyrics}
-              {#each lyrics.lines as line, i (i)}
-                <p class={lyrics.synced ? 't-title3' : 't-body'} class:now={lyrics.synced && i === lyricIndex} class:past={lyrics.synced && i !== lyricIndex}>{line.text || '♪'}</p>
-              {/each}
+              <div class="lines" bind:this={lyricsLines} style="transform:translate3d(0,{-lyricsY}px,0)">
+                {#each lyrics.lines as line, i (i)}
+                  <p class={lyrics.synced ? 't-title2' : 't-title3'} class:now={lyrics.synced && i === lyricIndex} class:past={lyrics.synced && i !== lyricIndex}>{line.text || '♪'}</p>
+                {/each}
+              </div>
             {/if}
           </div>
         {/if}
@@ -337,6 +343,7 @@
     justify-content: center;
     width: 44rem;
     height: 44rem;
+    flex-shrink: 0;
     margin-right: 12rem;
     border-radius: 50%;
     background: var(--fill-2);
@@ -358,22 +365,42 @@
     color: #000;
     transform: scale(1.12);
   }
+  /* Faded top and bottom: lines come and go rather than being cut. */
+  .info.narrow {
+    flex: none;
+    width: 476rem;
+  }
   .lyrics {
-    width: 320rem;
+    position: relative;
+    flex: 1;
+    min-width: 0;
     height: 100%;
-    margin-left: 32rem;
-    padding: 24rem 12rem;
+    margin-left: 40rem;
     overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 80%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 80%, transparent);
   }
-  .lyrics p {
-    margin-bottom: 10rem;
+  .lyrics > p {
+    position: absolute;
+    top: 33%;
+  }
+  .lines {
+    padding-top: 64rem;
+    transition: transform var(--t-med) var(--ease);
+    will-change: transform;
+  }
+  .lines p {
+    margin-bottom: 14rem;
     color: var(--label-2);
+    transform-origin: left center;
+    transition: color var(--t-med), opacity var(--t-med), transform var(--t-med) var(--ease);
   }
-  .lyrics .now {
+  .lines .now {
     color: var(--label);
+    transform: scale(1.04);
   }
-  .lyrics .past {
-    color: var(--label-3);
+  .lines .past {
+    opacity: 0.45;
   }
   /* Edge to edge, like the rows: entries scroll out under the screen's edges, not a hard cut at the margin. */
   .queue {
