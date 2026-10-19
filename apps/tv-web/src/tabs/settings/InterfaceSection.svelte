@@ -1,6 +1,6 @@
 <script lang="ts">
   // Android TV InterfaceSection (Settings.kt): language, appearance (theme, accent, clock) and the home rows
-  // (HomeGroup: show or hide, move, posters or thumbnails). The screensaver group arrives with the photos (M3).
+  // (HomeGroup: show or hide, move, posters or thumbnails). No screensaver group: the TV's own one runs.
   import type { BaseItem } from '$shared/models';
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';

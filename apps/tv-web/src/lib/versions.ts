@@ -1,6 +1,6 @@
 // An item with several MediaSources ("versions"): 4K and 1080p, VF and VOST, a director's cut (Android core
 // Versions.kt). Labels for the details page's Version picker, the choice remembered per item (across launches), and
-// the audio/subtitle picks made on the details page (per item and version, this session only). Playback (M2) reads
+// the audio/subtitle picks made on the details page (per item and version, this session only). Playback reads
 // both, so the player, PlaybackInfo and the play session follow the choice.
 import type { BaseItem, MediaSource, MediaStream } from '$shared/models';
 import { hdrFromStream, type HdrKind } from '$shared/hdr';

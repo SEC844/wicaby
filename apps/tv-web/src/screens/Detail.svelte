@@ -3,7 +3,7 @@
   // Resume, From the start, Shuffle, Trailer, Favorite, Watched, More), the version / audio / subtitle pickers, then a
   // series' seasons and episodes, and the bonus videos. The page stays at the top while the focus is on the first
   // screen, then scrolls by its edges (HeroSpec).
-  // Not here yet: the external player (Android only), "Available on 2 servers" (multi-server, M3) and Trakt history.
+  // Left out: the external player (Android only) and "Available on 2 servers" (Android's copies on other servers).
   import type { BaseItem } from '$shared/models';
   import Backdrop from '../components/Backdrop.svelte';
   import Card from '../components/Card.svelte';
