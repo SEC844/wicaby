@@ -1,5 +1,6 @@
 // Screen stack, as the Android TV app's Route stack (MainActivity.kt). Screens below the top stay mounted but
 // hidden, so Back returns instantly with their scroll position and focused element intact.
+import type { BaseItem } from '$shared/models';
 import { focusFirst, focused, setFocus } from './focus';
 import type { Server } from './session.svelte';
 
@@ -9,6 +10,14 @@ export type Route =
   | { name: 'main' }
   | { name: 'detail'; id: string; serverId?: string }
   | { name: 'folder'; id: string; title: string; serverId?: string };
+
+// Android Item.route(): a folder (collection, plain folder) opens its grid, everything else its details page. Music
+// and photo albums keep the folder grid until their own screens land (M3).
+export function itemRoute(item: BaseItem): Route {
+  return item.IsFolder && item.Type !== 'Series' && item.Type !== 'Season'
+    ? { name: 'folder', id: item.Id, title: item.Name, serverId: item.ServerId }
+    : { name: 'detail', id: item.Id, serverId: item.ServerId };
+}
 
 interface Entry {
   key: number;

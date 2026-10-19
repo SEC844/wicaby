@@ -12,7 +12,7 @@
   import { BECAUSE, becauseSeeds, defaults, latest, latestViewId, NEXT_UP, RESUME, UPCOMING, unseen } from '../lib/home-rows';
   import { t } from '../lib/i18n.svelte';
   import { useLoad } from '../lib/load.svelte';
-  import { nav } from '../lib/nav.svelte';
+  import { itemRoute, nav } from '../lib/nav.svelte';
   import { clamp, pivotDelta } from '../lib/scroll';
   import { arrange, homeRows, settings } from '../lib/settings.svelte';
   import { prefs } from '../lib/session.svelte';
@@ -111,7 +111,7 @@
   function open(item: BaseItem, playable: boolean): void {
     // Playback lands with the player (M2); until then a playable card opens its page too.
     void playable;
-    nav.push({ name: 'detail', id: item.Id, serverId: item.ServerId });
+    nav.push(itemRoute(item));
   }
 
   // --- Vertical scroll: rows pivot at 26 %, the hero always shows whole ---

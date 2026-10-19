@@ -14,6 +14,7 @@
   import { settings } from '../lib/settings.svelte';
   import { browsable, type TopTab } from '../lib/tabs';
   import HomeTab from '../tabs/HomeTab.svelte';
+  import SearchTab from '../tabs/SearchTab.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
 
   const client = api()!;
@@ -92,6 +93,8 @@
     <div class="tab" class:hidden={key !== tab} data-focus-group>
       {#if key === 'home'}
         <HomeTab api={client} views={views.value ?? []} onscrolled={(s) => (scrolled = s)} />
+      {:else if key === 'search'}
+        <SearchTab api={client} />
       {:else if key === 'settings'}
         <SettingsTab api={client} views={views.value ?? []} onscrolled={(s) => (scrolled = s)} />
       {:else if view(key)}
