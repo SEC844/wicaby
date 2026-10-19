@@ -8,7 +8,8 @@
   import { handleBack, nav, stack } from './lib/nav.svelte';
   import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
   import { prefs } from './lib/session.svelte';
-  import { ACCENTS, onAccent, settings } from './lib/settings.svelte';
+  import { settings } from './lib/settings.svelte';
+  import { applyTheme } from './lib/theme';
   import { exitApp } from './platform';
   import { keyOf } from './platform/keys';
   import Folder from './screens/Folder.svelte';
@@ -21,14 +22,8 @@
   else if (prefs.server) nav.reset({ name: 'login', server: prefs.server });
   else nav.reset({ name: 'servers' });
 
-  // Theme and accent (html[data-theme], the accent tokens), following Settings at once.
-  $effect(() => {
-    const root = document.documentElement;
-    if (settings.oled.value) root.setAttribute('data-theme', 'oled');
-    else root.removeAttribute('data-theme');
-    root.style.setProperty('--accent', ACCENTS[settings.accent.value] ?? ACCENTS[0]);
-    root.style.setProperty('--on-accent', onAccent(settings.accent.value));
-  });
+  // Theme and accent, following Settings at once (main.ts applied them before the first paint).
+  $effect(() => applyTheme(settings.theme.value, settings.accent.value));
 
   function confirmQuit(): void {
     showAlert({

@@ -3,7 +3,9 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import androidIcons from './scripts/android-icons.mjs';
 import androidStrings from './scripts/android-strings.mjs';
-import pkg from './package.json' with { type: 'json' };
+import tokens from './scripts/tokens.mjs';
+// The repository's version (the release tag), shared by every app.
+import pkg from '../../package.json' with { type: 'json' };
 
 // The oldest web engine this app supports: TVs from 2018 on, LG webOS 4 (Chromium 53) and Samsung Tizen 4
 // (Chromium 56). The build lowers syntax to it; src/polyfills.ts fills in the missing APIs. CSS must stay within it
@@ -43,7 +45,7 @@ export default defineConfig({
   root: 'src',
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: './',
-  plugins: [svelte(), androidStrings(), androidIcons(), classicScript, plainScoping],
+  plugins: [svelte(), androidStrings(), androidIcons(), tokens(), classicScript, plainScoping],
   resolve: {
     // Platform-neutral code shared with the desktop app (models, markers, HDR, track selection…).
     alias: {

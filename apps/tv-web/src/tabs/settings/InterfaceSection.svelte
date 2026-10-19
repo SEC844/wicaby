@@ -10,8 +10,10 @@
   import { setLanguage, t } from '../../lib/i18n.svelte';
   import { showAlert } from '../../lib/overlay.svelte';
   import { prefs } from '../../lib/session.svelte';
-  import { ACCENTS, arrange, homeRows, onAccent, setHomeRows, settings } from '../../lib/settings.svelte';
+  import { arrange, homeRows, setHomeRows, settings } from '../../lib/settings.svelte';
+  import { palette } from '../../lib/theme';
   import Icon from '../../components/Icon.svelte';
+  import ThemeCards from '../../components/ThemeCards.svelte';
 
   let { views }: { views: BaseItem[] } = $props();
 
@@ -67,12 +69,20 @@
 </SettingsGroup>
 
 <SettingsGroup title={t('section_appearance')}>
-  <SettingRow {...choice(t('settings_theme'), [t('theme_graphite'), t('theme_oled')], settings.oled.value ? 1 : 0, (i) => (settings.oled.value = i === 1))} />
+  <!-- Each card is drawn in its own theme; picking one applies it to the whole screen at once. -->
+  <p class="t-headline theme-title">{t('settings_theme')}</p>
+  <ThemeCards
+    current={palette(settings.theme.value).id}
+    onpick={(id) => {
+      settings.theme.value = id;
+      settings.themeHintShown.value = true;
+    }}
+  />
   <div class="accent-row">
     <span class="t-headline">{t('settings_accent')}</span>
     <div class="accents">
-      {#each ACCENTS as c, i (c)}
-        <button class="accent" style="background:{c};color:{onAccent(i)}" aria-label={c} use:focusable onclick={() => (settings.accent.value = i)}>
+      {#each palette(settings.theme.value).accents as a, i (i)}
+        <button class="accent" style="background:{a.color};color:{a.fg}" aria-label={a.color} use:focusable onclick={() => (settings.accent.value = i)}>
           {#if i === settings.accent.value}<Icon name="Check" size={16} />{/if}
         </button>
       {/each}
@@ -91,6 +101,9 @@
 </SettingsGroup>
 
 <style>
+  .theme-title {
+    margin: 4rem 0 0 18rem;
+  }
   .accent-row {
     display: flex;
     align-items: center;

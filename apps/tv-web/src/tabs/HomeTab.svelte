@@ -7,6 +7,7 @@
   import Hero from '../components/Hero.svelte';
   import MediaRow from '../components/MediaRow.svelte';
   import Spinner from '../components/Spinner.svelte';
+  import ThemeHint from '../components/ThemeHint.svelte';
   import type { Api } from '../lib/api';
   import { continueSubtitle, loadContinue } from '../lib/continue-watching';
   import { BECAUSE, becauseSeeds, defaults, latest, latestViewId, NEXT_UP, RESUME, UPCOMING, unseen } from '../lib/home-rows';
@@ -152,6 +153,10 @@
       </div>
     {:else}
       <div class="top"></div>
+    {/if}
+    <!-- The one-time living-room theme suggestion. -->
+    {#if settings.theme.value === 'graphite' && !settings.themeHintShown.value}
+      <div data-home-row><ThemeHint /></div>
     {/if}
     {#each rows as row (row.key)}
       <div data-home-row>

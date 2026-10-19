@@ -56,8 +56,12 @@ export const settings = {
   // Interface
   language: new Setting<'auto' | 'fr' | 'en'>('language', 'auto'),
   clock: new Setting('clock', true),
-  oled: new Setting('oled', false),
-  accent: new Setting('accent', 0), // index into ACCENTS
+  // Theme id, as the desktop's ui.theme (packages/tokens/tokens.json). Builds before the theme list stored a boolean
+  // "oled": it becomes the theme id until a theme is picked (TvSettings.kt).
+  theme: new Setting('theme', load<boolean>('tv.oled', false) ? 'oled' : 'graphite'),
+  // The Home hint (OLED or Cinéma for a living room), shown once while the TV is on the default theme.
+  themeHintShown: new Setting('theme_hint_shown', false),
+  accent: new Setting('accent', 0), // index into the theme's accents (lib/theme.ts)
   rowHero: new Setting('row_hero', true),
   rowResume: new Setting('row_resume', true),
   rowNextUp: new Setting('row_nextup', true),
@@ -65,10 +69,6 @@ export const settings = {
   mergeContinue: new Setting('merge_continue', true),
   rowLatest: new Setting('row_latest', true),
 };
-
-// Theme.kt Accents, same order.
-export const ACCENTS = ['#0a84ff', '#5e5ce6', '#bf5af2', '#ff375f', '#ff453a', '#ff9f0a', '#30d158', '#d1d1d6'];
-export const onAccent = (i: number): string => (i === 5 || i === 6 || i === 7 ? '#000' : '#fff');
 
 // TP-07: home rows order, hidden and thumbnail rows per `serverId/userId`. Until the user changes them, the older
 // Continue / Up Next / Latest toggles say what is hidden.

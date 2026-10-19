@@ -1,5 +1,5 @@
-/* Graphite for the TV web app, mirrored from the Android TV theme (apps/android/tv/.../ui/Theme.kt; fonts from :core), itself mirrored
-   from apps/desktop/src/renderer/app.css (docs/design.md).
+/* Graphite for the TV web app (docs/design.md): the Android TV theme's radii, motion and fonts (ui/Theme.kt, fonts from
+   :core); the colours of every theme come from packages/tokens/tokens.json through src/lib/theme.ts.
    Units: 1rem = 1 dp of the Android TV layout (a 960 × 540 dp screen), set by src/lib/screen.ts from the viewport
    width, so the Android sizes carry over as is and the UI scales to 720p, 1080p and 4K viewports alike.
    Chromium 53 syntax only: rgba(), no color-mix(), no grid, no flexbox gap, no backdrop-filter, no :focus-visible. */
@@ -12,23 +12,7 @@
 @font-face { font-family: 'Geist Mono'; font-weight: 500; src: url('$android/core/src/main/res/font/geist_mono_medium.ttf'); }
 
 :root {
-  --bg: #0b0b0d;
-  --elevated: #151517;
-  --elevated-2: #1c1c1f;
-  --raised: #323235; /* opaque fill for focused surfaces: a lift shadow must not show through */
-  --label: #f5f5f7;
-  --label-2: rgba(235, 235, 245, 0.62);
-  --label-3: rgba(235, 235, 245, 0.34);
-  --fill-1: rgba(255, 255, 255, 0.04);
-  --fill-2: rgba(255, 255, 255, 0.07);
-  --fill-3: rgba(255, 255, 255, 0.11);
-  --fill-4: rgba(255, 255, 255, 0.16);
-  --separator: rgba(255, 255, 255, 0.08);
-  --scrim: rgba(0, 0, 0, 0.5);
-  --red: #ff453a;
-  --accent: #0a84ff;
-  --on-accent: #fff;
-
+  /* Colours (--bg, --label, --fill-2, --accent…) come from the shared tokens, set on <html> by src/lib/theme.ts. */
   --r-xs: 6rem;
   --r-sm: 10rem;
   --r-md: 14rem;
@@ -40,13 +24,6 @@
   --t-fast: 160ms;
   --t-med: 320ms;
   --focus-scale: 1.08;
-}
-
-/* html[data-theme='oled']: pure black canvas, surfaces nudged down to keep their contrast. */
-:root[data-theme='oled'] {
-  --bg: #000;
-  --elevated: #0e0e10;
-  --elevated-2: #161618;
 }
 
 /* Low-end TVs (src/lib/screen.ts): no transitions, no shadows. */
