@@ -21,7 +21,8 @@ export type Route =
   | { name: 'live'; id: string; list?: string[] }
   // Photos: an album's own timeline, and the viewer over a loaded timeline (lib/photos.svelte.ts timelineByKey).
   | { name: 'photoAlbum'; id: string; title: string }
-  | { name: 'photoView'; key: string; index: number };
+  | { name: 'photoView'; key: string; index: number }
+  | { name: 'reader'; id: string; fromStart?: boolean };
 
 // Android Item.route(): an album or audio playlist opens its page, an artist theirs, a folder (collection, plain
 // folder) its grid, a channel plays live, a photo album opens its timeline, everything else its details page.

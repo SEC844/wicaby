@@ -66,10 +66,9 @@ export function playTrailer(item: BaseItem): void {
   nav.push({ name: 'player', id: item.Id, serverId: item.ServerId, fromStart: true, trailer: true });
 }
 
-// A book or comic: the reader (M3), at the saved page unless fromStart.
+// A book or comic: the reader, at the saved page unless fromStart.
 export function read(item: BaseItem, opts: PlayOptions = {}): void {
-  void item;
-  void opts;
+  nav.push({ name: 'reader', id: item.Id, fromStart: opts.fromStart });
 }
 
 // A remote trailer (core Trailers.remoteUrl): the TV's YouTube app, else its link as a QR code (Android TrailerQr).

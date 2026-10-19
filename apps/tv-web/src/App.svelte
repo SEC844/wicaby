@@ -26,6 +26,7 @@
   import PhotoAlbum from './screens/PhotoAlbum.svelte';
   import PhotoViewer from './screens/PhotoViewer.svelte';
   import Player from './screens/Player.svelte';
+  import Reader from './screens/Reader.svelte';
   import Servers from './screens/Servers.svelte';
 
   // MainActivity's start route: the session, else the saved server's sign-in, else the server screen.
@@ -117,6 +118,8 @@
       <PhotoAlbum id={entry.route.id} title={entry.route.title} />
     {:else if entry.route.name === 'photoView'}
       <PhotoViewer key={entry.route.key} index={entry.route.index} />
+    {:else if entry.route.name === 'reader'}
+      <Reader id={entry.route.id} fromStart={entry.route.fromStart} />
     {:else if entry.route.name === 'nowPlaying'}
       <NowPlaying />
     {:else if entry.route.name === 'folder'}
