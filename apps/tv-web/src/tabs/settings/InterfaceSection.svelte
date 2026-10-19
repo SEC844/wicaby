@@ -109,6 +109,7 @@
 
 <SettingsGroup title={t('group_home')} hint={t('home_rows_hint')}>
   <SettingRow {...toggle(t('row_hero'), settings.rowHero)} />
+  {#if settings.rowHero.value}<SettingRow {...toggle(t('hero_hide_watched'), settings.heroHideWatched)} />{/if}
   <SettingRow {...toggle(t('settings_merge_continue'), settings.mergeContinue)} />
   {#each rows as id, i (id)}
     <SettingRow label={label(id)} value={rowValue(id)} chevron onclick={() => rowMenu(id, i)} />

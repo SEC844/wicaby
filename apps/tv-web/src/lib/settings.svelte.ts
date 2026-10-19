@@ -63,6 +63,8 @@ export const settings = {
   themeHintShown: new Setting('theme_hint_shown', false),
   accent: new Setting('accent', 0), // index into the theme's accents (lib/theme.ts)
   rowHero: new Setting('row_hero', true),
+  // #8: the hero carousel without watched titles (all of them when everything is watched).
+  heroHideWatched: new Setting('hero_hide_watched', false),
   rowResume: new Setting('row_resume', true),
   rowNextUp: new Setting('row_nextup', true),
   // X-01: "Continuer" and "À suivre" as one "Continuer à regarder" row.

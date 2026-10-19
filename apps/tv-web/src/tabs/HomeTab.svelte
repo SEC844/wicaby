@@ -30,15 +30,22 @@
   const pref = $derived(homeRows(user, homeDefaults));
   const shown = $derived(arrange(homeDefaults, pref).filter((id) => !pref.hidden.includes(id)));
 
+  // #8: unwatched titles only when asked, all of them when everything is watched (Main.kt heroItems).
+  const pickHero = async (unwatched: boolean) =>
+    (
+      await api.items({
+        IncludeItemTypes: 'Movie,Series', Recursive: true, SortBy: 'Random', Limit: 8,
+        ImageTypes: 'Backdrop', EnableImageTypes: 'Primary,Backdrop,Logo,Thumb', Filters: unwatched ? 'IsUnplayed' : undefined,
+      })
+    ).Items.filter((i) => i.BackdropImageTags?.length).slice(0, 6);
+  const hideWatched = $derived(settings.heroHideWatched.value);
   const hero = useLoad(
-    () => 'hero',
-    async () =>
-      (
-        await api.items({
-          IncludeItemTypes: 'Movie,Series', Recursive: true, SortBy: 'Random', Limit: 8,
-          ImageTypes: 'Backdrop', EnableImageTypes: 'Primary,Backdrop,Logo,Thumb',
-        })
-      ).Items.filter((i) => i.BackdropImageTags?.length).slice(0, 6),
+    () => (hideWatched ? 'hero-unwatched' : 'hero'),
+    async () => {
+      if (!hideWatched) return pickHero(false);
+      const list = await pickHero(true);
+      return list.length ? list : pickHero(false);
+    },
     // A new draw per launch, stable for the session (Android: refresh = false, no disk cache).
     { refresh: false },
   );
