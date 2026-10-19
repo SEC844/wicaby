@@ -11,6 +11,7 @@
   import { ACCENTS, onAccent, settings } from './lib/settings.svelte';
   import { exitApp } from './platform';
   import { keyOf } from './platform/keys';
+  import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
   import Servers from './screens/Servers.svelte';
@@ -89,6 +90,8 @@
       <Login server={entry.route.server} add={entry.route.add} />
     {:else if entry.route.name === 'main'}
       <Main />
+    {:else if entry.route.name === 'folder'}
+      <Folder id={entry.route.id} title={entry.route.title} />
     {/if}
   </Screen>
 {/each}

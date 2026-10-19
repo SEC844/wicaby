@@ -14,6 +14,7 @@
   import { settings } from '../lib/settings.svelte';
   import { browsable, type TopTab } from '../lib/tabs';
   import HomeTab from '../tabs/HomeTab.svelte';
+  import LibraryTab from '../tabs/LibraryTab.svelte';
   import SearchTab from '../tabs/SearchTab.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
 
@@ -98,7 +99,7 @@
       {:else if key === 'settings'}
         <SettingsTab api={client} views={views.value ?? []} onscrolled={(s) => (scrolled = s)} />
       {:else if view(key)}
-        <!-- Library tabs: LibraryTab (grid, music, photos, Live TV) lands next. -->
+        <LibraryTab api={client} view={view(key)!} onscrolled={(s) => (scrolled = s)} />
       {/if}
     </div>
   {/each}

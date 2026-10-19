@@ -265,6 +265,13 @@ export class Api {
       ? this.url(`/Users/${user.Id}/Images/Primary`, { tag, maxHeight, quality: 90 })
       : this.url('/UserImage', { userId: user.Id, tag, maxHeight, quality: 90 });
   }
+
+  // --- Library grid (tv Main.kt LibraryGrid) ---
+
+  // A Live TV library's grid: the channel list rather than the view's folders.
+  liveChannelsPage(start: number, limit: number): Promise<ItemsResult> {
+    return this.get('/LiveTv/Channels', { UserId: this.userId, StartIndex: start, Limit: limit, EnableImageTypes: 'Primary,Thumb', Fields: 'PrimaryImageAspectRatio' });
+  }
 }
 
 // core data/Emby.kt LIST_FIELDS and DETAIL_FIELDS.
