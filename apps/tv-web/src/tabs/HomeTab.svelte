@@ -5,12 +5,17 @@
   import type { BaseItem } from '$shared/models';
   import Backdrop from '../components/Backdrop.svelte';
   import Hero from '../components/Hero.svelte';
+  import LiveCard from '../components/livetv/LiveCard.svelte';
   import MediaRow from '../components/MediaRow.svelte';
+  import MemoryCard from '../components/MemoryCard.svelte';
   import Spinner from '../components/Spinner.svelte';
   import ThemeHint from '../components/ThemeHint.svelte';
   import type { Api } from '../lib/api';
   import { continueSubtitle, loadContinue } from '../lib/continue-watching';
-  import { BECAUSE, becauseSeeds, defaults, latest, latestViewId, NEXT_UP, RESUME, UPCOMING, unseen } from '../lib/home-rows';
+  import { BECAUSE, becauseSeeds, defaults, latest, latestViewId, LIVE_NOW, MEMORIES, NEXT_UP, RESUME, UPCOMING, unseen } from '../lib/home-rows';
+  import { liveTv } from '../lib/livetv.svelte';
+  import { normalizeProgram } from '$shared/livetv/model';
+  import { homeMemories, memoryTimeline, type MemoryGroup } from '../lib/photos.svelte';
   import { t } from '../lib/i18n.svelte';
   import { useLoad } from '../lib/load.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
@@ -26,7 +31,9 @@
   const merged = $derived(settings.mergeContinue.value);
   // The libraries with a "Recently Added" row: all but playlists, Live TV and folders (HomeLayout.kt latestViews).
   const latestViews = $derived(views.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? '')));
-  const homeDefaults = $derived(defaults(latestViews.map((v) => v.Id), merged));
+  const hasLive = $derived(views.some((v) => v.CollectionType === 'livetv'));
+  const hasPhotos = $derived(views.some((v) => v.CollectionType === 'photos'));
+  const homeDefaults = $derived(defaults(latestViews.map((v) => v.Id), merged, hasLive, hasPhotos));
   const pref = $derived(homeRows(user, homeDefaults));
   const shown = $derived(arrange(homeDefaults, pref).filter((id) => !pref.hidden.includes(id)));
 
@@ -70,9 +77,31 @@
     },
   );
 
+  // Live TV now: the server's airing programmes, OK tunes; memories: one card per earlier year.
+  const repo = $derived(hasLive ? liveTv(api) : null);
+  const liveNow = useLoad(() => (hasLive && shown.includes(LIVE_NOW) ? 'home-live-now' : 'home-live-now-off'), () => (repo ? repo.onNow() : Promise.resolve([])));
+  const memories = useLoad(() => (hasPhotos && shown.includes(MEMORIES) ? 'home-memories' : 'home-memories-off'), () => (hasPhotos ? homeMemories(api) : Promise.resolve([])));
+  const memoryOf = (cover: BaseItem): MemoryGroup | undefined => (memories.value ?? []).find((g) => g.photos.some((p) => p.item.Id === cover.Id));
+  let liveClock = $state(Date.now());
+  $effect(() => {
+    const id = setInterval(() => (liveClock = Date.now()), 30_000);
+    return () => clearInterval(id);
+  });
+  $effect(() => {
+    if (repo && !repo.loaded && liveNow.value?.length) void repo.loadChannels();
+  });
+
   const rows = $derived.by(() => {
     let seen: BaseItem[] = [...(cont.value?.items ?? []), ...(resume.value ?? []), ...(nextUp.value ?? []), ...Object.values(latests.value ?? {}).flat()];
-    const out: { key: string; title: string; items: BaseItem[]; wide: boolean; playable: boolean; subtitle?: (i: BaseItem) => string | undefined }[] = [];
+    const out: {
+      key: string;
+      title: string;
+      items: BaseItem[];
+      wide: boolean;
+      playable: boolean;
+      subtitle?: (i: BaseItem) => string | undefined;
+      kind?: 'live' | 'memory';
+    }[] = [];
     for (const id of shown) {
       if (id === RESUME) {
         if (merged && cont.value?.items.length) out.push({ key: 'continue', title: t('continue_watching_merged'), items: cont.value.items, wide: true, playable: true, subtitle: continueSubtitle });
@@ -81,6 +110,11 @@
         if (nextUp.value?.length) out.push({ key: 'nextup', title: t('next_up'), items: nextUp.value, wide: true, playable: true });
       } else if (id === UPCOMING) {
         if (upcoming.value?.length) out.push({ key: 'upcoming', title: t('row_upcoming'), items: upcoming.value, wide: true, playable: false });
+      } else if (id === LIVE_NOW) {
+        if (liveNow.value?.length) out.push({ key: 'live-now', title: t('row_live_now'), items: liveNow.value, wide: true, playable: false, kind: 'live' });
+      } else if (id === MEMORIES) {
+        const covers = (memories.value ?? []).map((g) => g.photos[0]?.item).filter((i): i is BaseItem => !!i);
+        if (covers.length) out.push({ key: 'memories', title: t('photos_memories_title'), items: covers, wide: true, playable: false, kind: 'memory' });
       } else if (id === BECAUSE) {
         for (const b of because.value ?? []) {
           const items = unseen(b.items, seen);
@@ -166,6 +200,25 @@
     {#if settings.theme.value === 'graphite' && !settings.themeHintShown.value}
       <div data-home-row><ThemeHint /></div>
     {/if}
+    {#snippet liveCard(p: BaseItem)}
+      {@const lite = normalizeProgram(p as never, { kind: api.kind })}
+      {@const tag = p.ImageTags?.Primary ?? p.ImageTags?.Thumb}
+      {#if repo && lite}
+        <LiveCard
+          {repo}
+          row={repo.channel(lite.channelId)}
+          program={lite}
+          image={tag ? { id: p.Id, tag } : undefined}
+          airingCard
+          now={liveClock}
+          onclick={() => nav.push({ name: 'live', id: lite.channelId })}
+        />
+      {/if}
+    {/snippet}
+    {#snippet memoryCard(cover: BaseItem)}
+      {@const g = memoryOf(cover)}
+      {#if g}<MemoryCard {api} group={g} onclick={() => nav.push({ name: 'photoView', key: memoryTimeline(g), index: 0 })} />{/if}
+    {/snippet}
     {#each rows as row (row.key)}
       <div data-home-row>
         <MediaRow
@@ -176,6 +229,7 @@
           subtitle={row.subtitle}
           onclick={(i) => open(i, row.playable)}
           onfocusitem={(i) => (focusedItem = i)}
+          card={row.kind === 'live' ? liveCard : row.kind === 'memory' ? memoryCard : undefined}
         />
       </div>
     {/each}

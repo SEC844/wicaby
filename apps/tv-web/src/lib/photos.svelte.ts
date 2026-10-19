@@ -3,7 +3,8 @@
 // the albums; the image URLs. The asset shape, dates and orientation rules are the desktop's ($desktop/photos/asset,
 // pinned by the shared photo fixtures). A timeline stays loaded for the session, so the viewer and Back find it again.
 import type { BaseItem, ItemsResult } from '$shared/models';
-import { toAsset, type PhotoAsset } from '$desktop/photos/asset';
+import { quarterTurn, toAsset, type PhotoAsset } from '$desktop/photos/asset';
+import { localDay, memoryQuery } from '$desktop/photos/memories';
 import { byTakenDesc } from '$desktop/photos/timeline';
 import type { Api } from './api';
 
@@ -112,4 +113,53 @@ export function photoDate(takenAt: string, locale: string, month = false): strin
   const d = new Date(Number(takenAt.slice(0, 4)), Number(takenAt.slice(5, 7)) - 1, Number(takenAt.slice(8, 10)) || 1);
   const s = d.toLocaleDateString(locale, month ? { month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long', year: 'numeric' });
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// --- "Ce jour-là" (spec F7, PH-08; Android core photos/Memories.kt homeMemories) ---
+
+export interface MemoryGroup {
+  yearsAgo: number;
+  photos: Photo[];
+}
+
+const memoryCache = new Map<string, Promise<MemoryGroup[]>>();
+
+// Today's month and day in earlier years, across every photo library: /Years once, then one premiere-date range per
+// year (the 10 nearest, three in flight), kept by the desktop's memories() so the Feb 29 rule holds. Once per server,
+// user and day.
+export function homeMemories(api: Api): Promise<MemoryGroup[]> {
+  const today = localDay();
+  const key = `${api.address}|${api.userId}|${today}`;
+  let p = memoryCache.get(key);
+  if (!p) {
+    p = memoryQuery<BaseItem>(
+      async () =>
+        (await api.get<ItemsResult>('/Years', { UserId: api.userId, Recursive: true, IncludeItemTypes: 'Photo', SortBy: 'SortName', SortOrder: 'Descending' })).Items.map(
+          (y) => y.ProductionYear ?? Number(y.Name),
+        ).filter((y) => y > 0),
+      async (min, max) =>
+        (
+          await photoItems(api, { Recursive: true, IncludeItemTypes: 'Photo', MinPremiereDate: min, MaxPremiereDate: max, SortBy: 'PremiereDate', SortOrder: 'Ascending', Limit: 90 })
+        ).Items.filter((i) => i.ImageTags?.Primary),
+      (item) => toAsset(item).takenAt,
+      today,
+    ).then(({ items, memories }) => memories.map((m) => ({ yearsAgo: m.yearsAgo, photos: m.indexes.map((i) => ({ asset: toAsset(items[i]), item: items[i] })) })));
+    p.catch(() => memoryCache.delete(key));
+    memoryCache.set(key, p);
+  }
+  return p;
+}
+
+// The cover: a photo the server shows upright (a quarter-turned one needs the decoded-size test first).
+export const memoryCover = (photos: Photo[]): Photo => photos.find((p) => quarterTurn(p.item.ImageOrientation) === 0) ?? photos[0];
+
+// A year's photos as a loaded timeline, for the viewer (its route reads timelines by key).
+export function memoryTimeline(group: MemoryGroup): string {
+  const key = `memories|${group.yearsAgo}`;
+  const tl = new Timeline(() => Promise.resolve({ Items: [], TotalRecordCount: 0 }));
+  tl.photos = group.photos;
+  tl.total = group.photos.length;
+  tl.complete = true;
+  timelines.set(key, tl);
+  return key;
 }

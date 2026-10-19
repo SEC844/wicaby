@@ -24,7 +24,14 @@
   const user = $derived(`${prefs.session!.server.id}/${prefs.session!.userId}`);
   const merged = $derived(settings.mergeContinue.value);
   const latestViews = $derived(views.filter((v) => !['playlists', 'livetv', 'folders'].includes(v.CollectionType ?? '')));
-  const homeDefaults = $derived(defaults(latestViews.map((v) => v.Id), merged));
+  const homeDefaults = $derived(
+    defaults(
+      latestViews.map((v) => v.Id),
+      merged,
+      views.some((v) => v.CollectionType === 'livetv'),
+      views.some((v) => v.CollectionType === 'photos'),
+    ),
+  );
   const pref = $derived(homeRows(user, homeDefaults));
   const rows = $derived(arrange(homeDefaults, pref));
 
