@@ -18,6 +18,7 @@
   import { focusable } from '../../lib/focus';
   import { clock, episodeLine } from '../../lib/format';
   import { locale, t } from '../../lib/i18n.svelte';
+  import type { Thumb } from '../../lib/trickplay';
   import Icon from '../Icon.svelte';
 
   let {
@@ -29,6 +30,7 @@
     chapterStarts,
     buttons,
     now,
+    thumb = null,
   }: {
     item: BaseItem;
     position: number;
@@ -38,11 +40,22 @@
     chapterStarts: number[];
     buttons: OsdButton[];
     now: number;
+    // The frame at the scrub target.
+    thumb?: Thumb | null;
   } = $props();
 
   const eyebrow = $derived(item.Type === 'Episode' ? item.SeriesName : item.ProductionYear?.toString());
   const title = $derived(item.Type === 'Episode' ? (episodeLine(item) ?? item.Name) : item.Name);
   const f = $derived(duration > 0 ? Math.max(0, Math.min(1, position / duration)) : 0);
+  // The bar spans the screen less the 56 dp margins; the target time stays whole at its ends.
+  const BAR = 960 - 112;
+  const label = $derived(Math.max(34, Math.min(BAR - 34, f * BAR)));
+
+  // 160 dp wide over the target (320 px on a 1080p screen), kept on screen at the bar's ends.
+  const THUMB_W = 160;
+  const thumbH = $derived(thumb ? (THUMB_W * thumb.height) / thumb.width : 0);
+  const thumbLeft = $derived(Math.max(0, Math.min(BAR - THUMB_W, f * BAR - THUMB_W / 2)));
+  const scale = $derived(thumb ? THUMB_W / thumb.width : 1);
   // "Ends at": stable while playing (position and clock advance together), follows the clock while paused.
   const endsAt = $derived(
     duration > 0 ? new Date(now + Math.max(0, duration - position)).toLocaleTimeString(locale.current, { hour: '2-digit', minute: '2-digit' }) : '',
@@ -68,7 +81,15 @@
           {#if s > 0 && s < duration}<span class="chapter" style="left:{(s / duration) * 100}%"></span>{/if}
         {/each}
       </div>
-      {#if scrubbing}<span class="target mono" style="left:{f * 100}%">{clock(position)}</span>{/if}
+      {#if scrubbing && thumb}
+        <span
+          class="scrub-thumb"
+          style="left:{thumbLeft}rem;width:{THUMB_W}rem;height:{thumbH}rem;background-image:url('{thumb.src}');{thumb.tile
+            ? `background-size:${thumb.tile.sheetWidth * scale}rem ${thumb.tile.sheetHeight * scale}rem;background-position:-${thumb.tile.x * scale}rem -${thumb.tile.y * scale}rem`
+            : 'background-size:cover'}"
+        ></span>
+      {/if}
+      {#if scrubbing}<span class="target mono" style="left:{label}rem">{clock(position)}</span>{/if}
     </div>
     <div class="controls" data-focus-group>
       <Icon name={playing ? 'Pause' : 'Play'} size={18} />
@@ -154,6 +175,11 @@
     position: relative;
     margin-top: 8rem;
     padding: 12rem 0;
+    transition: padding-top var(--t-fast) var(--ease-out);
+  }
+  /* Room for the target time above the bar: the title row moves up instead of under it. */
+  .bar.scrubbing {
+    padding-top: 44rem;
   }
   .track {
     position: relative;
@@ -183,9 +209,17 @@
     margin-left: -1rem;
     background: rgba(0, 0, 0, 0.6);
   }
+  .scrub-thumb {
+    position: absolute;
+    bottom: 64rem;
+    border-radius: var(--r-sm);
+    background-color: #000;
+    background-repeat: no-repeat;
+    box-shadow: 0 8rem 24rem rgba(0, 0, 0, 0.5);
+  }
   .target {
     position: absolute;
-    bottom: 34rem;
+    bottom: 30rem;
     padding: 3rem 8rem;
     border-radius: var(--r-xs);
     background: #fff;

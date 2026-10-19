@@ -13,6 +13,7 @@ import { changed } from './load.svelte';
 import { embySegments, isWatched, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
+import { loadPreview, type Preview } from './trickplay';
 import * as Versions from './versions';
 
 const TICKS_PER_MS = 10_000;
@@ -79,6 +80,8 @@ export class Playback {
   positionMs = $state(0);
   durationMs = $state(0);
   playMethod = $state<'DirectPlay' | 'DirectStream' | 'Transcode'>('DirectPlay');
+  // Scrub thumbnails; null when the item has none.
+  preview = $state.raw<Preview | null>(null);
   // Episodes started by the countdown in a row; any input resets it ("Still watching?").
   autoCount = 0;
 
@@ -153,6 +156,11 @@ export class Playback {
       const pick = Versions.pick(it.Id, chosen?.Id);
       await this.load(start, pick?.audio ?? null, pick?.subtitle ?? null);
       if (this.trailer || seq !== this.seq) return;
+      // Off the open path: a large BIF must not delay the segments or the next episode.
+      void loadPreview(this.api, it, this.sourceId).then((p) => {
+        if (seq === this.seq && !this.stopped) this.preview = p;
+        else p?.release();
+      });
       this.segments = this.api.isEmby ? embySegments(it.Chapters) : jellyfinSegments(await this.api.mediaSegments(it.Id).catch(() => []));
       this.next = (await this.nextFor(it)) ?? null;
     } catch (e) {
@@ -350,7 +358,13 @@ export class Playback {
     } else this.seek(0);
   }
 
+  private dropPreview(): void {
+    this.preview?.release();
+    this.preview = null;
+  }
+
   private switchTo(id: string): void {
+    this.dropPreview();
     this.endSession();
     this.player.stop();
     this.itemId = id;
@@ -419,6 +433,7 @@ export class Playback {
     this.seq++;
     clearInterval(this.timer);
     this.offs.forEach((off) => off());
+    this.dropPreview();
     this.endSession();
     this.player.stop();
   }

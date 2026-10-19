@@ -285,6 +285,8 @@
   });
 
   const position = $derived(scrub ?? pb?.positionMs ?? 0);
+  // The skip chip and the up-next card sit just above the OSD's title row.
+  const OSD_TOP = 176;
   const chapterStarts = $derived(
     (pb?.item?.Chapters ?? []).filter((c) => !c.MarkerType || c.MarkerType === 'Chapter').map((c) => c.StartPositionTicks / 10_000),
   );
@@ -313,16 +315,26 @@
     {/if}
 
     {#if pb.item && (osd || scrub !== null || panel) && !pb.error}
-      <Osd item={pb.item} {position} duration={pb.durationMs} scrubbing={scrub !== null} playing={pb.playing} {chapterStarts} {buttons} {now} />
+      <Osd
+        item={pb.item}
+        {position}
+        duration={pb.durationMs}
+        scrubbing={scrub !== null}
+        playing={pb.playing}
+        {chapterStarts}
+        {buttons}
+        {now}
+        thumb={scrub !== null ? (pb.preview?.at(scrub) ?? null) : null}
+      />
     {/if}
 
-    {#if skipVisible && !upNext && !panel}
-      <div class="chip t-headline" style="bottom:{osd ? 150 : 56}rem"><Icon name="Next" size={20} /><span>{t(SKIP_LABEL[skippable?.kind ?? 'Intro'])}</span></div>
+    {#if skipVisible && !upNext && !panel && scrub === null}
+      <div class="chip t-headline" style="bottom:{osd ? OSD_TOP : 56}rem"><Icon name="Next" size={20} /><span>{t(SKIP_LABEL[skippable?.kind ?? 'Intro'])}</span></div>
     {/if}
 
     {#if upNext && !panel}
       {@const thumb = client.thumb(upNext, 800)}
-      <div class="upnext" style="bottom:{osd ? 150 : 56}rem">
+      <div class="upnext" style="bottom:{osd ? OSD_TOP : 56}rem">
         <div class="art">
           {#if thumb}<img src={thumb} alt="" />{/if}
           {#if countdown !== null}
