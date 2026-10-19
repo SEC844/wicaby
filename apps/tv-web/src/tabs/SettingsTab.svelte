@@ -1,7 +1,7 @@
 <script lang="ts">
   // Android TV SettingsTab (Settings.kt): the section list on the left (focusing a section shows it), its rows on
   // the right. Left from a row goes back to the current section, not the nearest one. Sections the TV web app cannot
-  // offer are left out: Remote Access (no VPN on these TVs); Files and Trakt arrive with milestone M3.
+  // offer are left out: Remote Access (no VPN on these TVs) and Files (no file sources on a TV browser).
   import { focusable, setFocus } from '../lib/focus';
   import type { Api } from '../lib/api';
   import { k, t } from '../lib/i18n.svelte';
@@ -11,6 +11,7 @@
   import AccountsSection from './settings/AccountsSection.svelte';
   import InterfaceSection from './settings/InterfaceSection.svelte';
   import PlaybackSection from './settings/PlaybackSection.svelte';
+  import TraktSection from './settings/TraktSection.svelte';
 
   let {
     api,
@@ -19,9 +20,9 @@
     onscrolled,
   }: { api: Api; views: import('$shared/models').BaseItem[]; tabs: import('../lib/tabs').TopTab[]; onscrolled: (s: boolean) => void } = $props();
 
-  const SECTIONS = ['playback', 'interface', 'accounts', 'about'] as const;
+  const SECTIONS = ['playback', 'interface', 'accounts', 'trakt', 'about'] as const;
   type Section = (typeof SECTIONS)[number];
-  const LABELS: Record<Section, string> = { playback: k('section_playback'), interface: k('section_appearance'), accounts: k('section_accounts'), about: k('section_about') };
+  const LABELS: Record<Section, string> = { playback: k('section_playback'), interface: k('section_appearance'), accounts: k('section_accounts'), trakt: k('trakt_title'), about: k('section_about') };
   let section = $state<Section>('playback');
   let menu: HTMLDivElement;
   let viewport: HTMLDivElement;
@@ -73,6 +74,8 @@
             <InterfaceSection {views} {tabs} />
           {:else if section === 'accounts'}
             <AccountsSection {api} />
+          {:else if section === 'trakt'}
+            <TraktSection />
           {:else}
             <AboutSection />
           {/if}

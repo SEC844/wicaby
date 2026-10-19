@@ -21,6 +21,7 @@
   import { openRemoteTrailer, play, playTrailer, read, shuffle } from '../lib/playback';
   import { dp } from '../lib/screen';
   import { clamp, heroDelta } from '../lib/scroll';
+  import * as Trakt from '../lib/trakt.svelte';
   import { apiOf } from '../lib/session.svelte';
   import * as Versions from '../lib/versions';
 
@@ -95,6 +96,7 @@
     const on = !watched;
     try {
       await client.setPlayed(item.Id, on);
+      Trakt.history(client, item, on);
       watched = on;
       changed();
     } catch {

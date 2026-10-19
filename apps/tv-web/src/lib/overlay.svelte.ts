@@ -15,6 +15,8 @@ export interface Alert {
   focusIndex?: number;
   // A picker (Android TvPicker): the chosen action gets a check and the focus.
   selected?: number;
+  // A link to open on a phone: shown as a QR code with the link below it (Android TrailerQr).
+  qr?: string;
 }
 
 export const overlay = $state<{ alert: Alert | null }>({ alert: null });

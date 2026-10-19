@@ -15,6 +15,7 @@ import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRo
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
 import { reporter } from './reporter';
+import * as Trakt from './trakt.svelte';
 import { loadPreview, type Preview } from './trickplay';
 import * as Versions from './versions';
 
@@ -453,6 +454,9 @@ export class Playback {
   private report(path: '/Sessions/Playing' | '/Sessions/Playing/Progress', event: string | null): void {
     if (this.trailer || !this.source || !this.started) return;
     const body = this.body(event);
+    // Trakt follows the reports: start (and resume), pause.
+    if (this.item && (path === '/Sessions/Playing' || event === 'Unpause' || event === 'Pause'))
+      Trakt.scrobble(event === 'Pause' ? 'pause' : 'start', this.api, this.item, this.positionMs, this.durationMs);
     if (path.endsWith('/Progress')) reporter.latest(() => this.api.report(path, body));
     else void reporter.send(() => this.api.report(path, body));
   }
@@ -466,6 +470,7 @@ export class Playback {
       const id = this.itemId;
       const body = this.body(null);
       const credits = this.segments.credits;
+      if (this.item && !switching) Trakt.scrobble('stop', this.api, this.item, pos, dur);
       void reporter.send(() => this.api.report('/Sessions/Playing/Stopped', body)).then(async (sent) => {
         if (sent && !switching && markPlayedByCredits(pos, dur, credits)) await this.api.setPlayed(id, true).catch(() => {});
         if (!switching && (sent || isWatched(pos, dur, credits))) changed();

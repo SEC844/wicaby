@@ -4,6 +4,7 @@
   import { focusable, setFocus } from '../lib/focus';
   import { closeAlert, type Alert } from '../lib/overlay.svelte';
   import Icon from './Icon.svelte';
+  import QrCode from './QrCode.svelte';
 
   let { alert }: { alert: Alert } = $props();
   let buttons: HTMLButtonElement[] = $state([]);
@@ -20,6 +21,10 @@
   <div class="card">
     <h2 class="t-title2">{alert.title}</h2>
     {#if alert.message}<p class="t-body label-2">{alert.message}</p>{/if}
+    {#if alert.qr}
+      <div class="qr"><QrCode text={alert.qr} size={160} /></div>
+      <p class="t-caption label-3 link">{alert.qr}</p>
+    {/if}
     {#each alert.actions as a, i (a.label)}
       <button
         bind:this={buttons[i]}
@@ -37,6 +42,18 @@
 </div>
 
 <style>
+  .qr {
+    display: flex;
+    justify-content: center;
+    margin-top: 18rem;
+  }
+  .link {
+    margin: 10rem 0 6rem;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .scrim {
     position: fixed;
     top: 0;

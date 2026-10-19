@@ -7,6 +7,7 @@ import { nav } from './nav.svelte';
 import { showAlert } from './overlay.svelte';
 import { resumeFrom } from './segments';
 import { apiOf } from './session.svelte';
+import { openUrl } from '../platform/index';
 import { RESUME_ASK, RESUME_START, settings } from './settings.svelte';
 import { showToast } from './toast.svelte';
 
@@ -73,5 +74,7 @@ export function read(item: BaseItem, opts: PlayOptions = {}): void {
 
 // A remote trailer (core Trailers.remoteUrl): the TV's YouTube app, else its link as a QR code (Android TrailerQr).
 export function openRemoteTrailer(url: string): void {
-  void url;
+  void openUrl(url).then((opened) => {
+    if (!opened) showAlert({ title: t('trailer_qr_title'), message: t('trailer_qr_body'), qr: url, actions: [{ label: t('close'), run: () => {} }] });
+  });
 }

@@ -48,6 +48,34 @@ export function exitApp(): void {
   }
 }
 
+// A link in another app of the TV (a remote trailer in YouTube): Tizen's app control "view", webOS's YouTube app
+// through Luna. false when the TV has no app for it (the caller shows the link as a QR code instead).
+export function openUrl(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      if (platform === 'tizen') {
+        const t = tizen as unknown as {
+          ApplicationControl: new (op: string, uri: string) => unknown;
+          application: { launchAppControl(c: unknown, id: string | null, ok: () => void, fail: () => void): void };
+        };
+        t.application.launchAppControl(new t.ApplicationControl('http://tizen.org/appcontrol/operation/view', url), null, () => resolve(true), () => resolve(false));
+        return;
+      }
+      const Bridge = (window as { PalmServiceBridge?: new () => { onservicecallback?: (r: string) => void; call(uri: string, params: string): void } }).PalmServiceBridge;
+      if (platform === 'webos' && Bridge && /youtu\.?be/i.test(url)) {
+        const b = new Bridge();
+        b.onservicecallback = (r) => resolve(/"returnValue"\s*:\s*true/.test(r));
+        b.call('luna://com.webos.applicationManager/launch', JSON.stringify({ id: 'youtube.leanback.v4', params: { contentTarget: url } }));
+        setTimeout(() => resolve(false), 4000);
+        return;
+      }
+    } catch {
+      // No app control: the QR code.
+    }
+    resolve(false);
+  });
+}
+
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {
   return platform === 'tizen' && avplayAvailable() ? new AvPlayer() : new HtmlPlayer(video);
 }
