@@ -201,7 +201,8 @@ export class Api {
   // Last played date per series, one batched call (Continue Watching's next-up order).
   async seriesUserData(ids: string[]): Promise<Map<string, string>> {
     if (!ids.length) return new Map();
-    const r = await this.get<ItemsResult>(`/Users/${this.userId}/Items`, { Ids: ids.slice(0, 24).join(','), Fields: 'UserData', EnableImages: false });
+    // items() picks the route each server takes (Jellyfin 10.9+ dropped /Users/{id}/Items).
+    const r = await this.items({ Ids: ids.slice(0, 24).join(','), Fields: 'UserData', EnableImages: false });
     return new Map(r.Items.filter((i) => i.UserData?.LastPlayedDate).map((i) => [i.Id, i.UserData!.LastPlayedDate!]));
   }
 
