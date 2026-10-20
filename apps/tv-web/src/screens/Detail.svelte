@@ -39,13 +39,21 @@
 
   const seasons = useLoad(() => (series ? `seasons-${id}` : 'none'), () => (series ? client.seasons(id) : Promise.resolve([])));
   const nextUp = useLoad(() => (series ? `nextup-${id}` : 'none-next'), () => (series ? client.nextUp(id, 1) : Promise.resolve([])));
-  // The season of the next episode to watch, else the first; then whichever the user picks.
+  // The season of the next episode to watch, else the first; then whichever the user picks. Next-up is waited for:
+  // a seasons reply that lands first must not pin Season 1.
   let picked = $state(-1);
+  const nextKnown = $derived(nextUp.value !== undefined || nextUp.error !== undefined);
   const seasonIndex = $derived(
     picked >= 0 ? picked : Math.max(0, (seasons.value ?? []).findIndex((s) => s.Id === nextUp.value?.[0]?.SeasonId)),
   );
-  const season = $derived(seasons.value?.[seasonIndex]);
+  const season = $derived(picked >= 0 || nextKnown ? seasons.value?.[seasonIndex] : undefined);
   const episodes = useLoad(() => (season ? `episodes-${id}-${season.Id}` : 'none-ep'), () => (season ? client.episodes(id, season.Id) : Promise.resolve([])));
+  // The last season's episodes stay while the next one loads, so the row does not collapse and shift the page.
+  let shownEpisodes = $state<BaseItem[]>([]);
+  $effect(() => {
+    if (episodes.value !== undefined) shownEpisodes = episodes.value;
+    else if (episodes.error !== undefined) shownEpisodes = [];
+  });
   // IMDb, Rotten Tomatoes…: only once the user set an MDBList key (Settings > Home and libraries).
   const external = useLoad(
     () => (item ? `ratings-${id}-${ratings.configured}` : 'ratings-none'),
@@ -88,28 +96,29 @@
     else if (target) play(target, { fromStart: true });
   }
 
+  // Flipped at once (a second press before the reply then sends the right value), back on a failure.
   async function toggleFavorite(): Promise<void> {
     if (!item) return;
     const on = !favorite;
+    favorite = on;
     try {
       await client.setFavorite(item.Id, on);
-      favorite = on;
       changed();
     } catch {
-      // The pill keeps its state: nothing changed on the server.
+      favorite = !on;
     }
   }
 
   async function toggleWatched(): Promise<void> {
     if (!item) return;
     const on = !watched;
+    watched = on;
     try {
       await client.setPlayed(item.Id, on);
       Trakt.history(client, item, on);
-      watched = on;
       changed();
     } catch {
-      // As above.
+      watched = !on;
     }
   }
 
@@ -242,7 +251,7 @@
         </div>
         <div data-detail-band>
           <HScroll spacing={22} padding={[18, 56, 40, 56]}>
-            {#each episodes.value ?? [] as ep (ep.Id)}
+            {#each shownEpisodes as ep (ep.Id)}
               <div data-row-item><Card item={ep} api={client} variant="thumb" inSeries onclick={() => play(ep)} /></div>
             {/each}
           </HScroll>
