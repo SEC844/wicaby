@@ -21,6 +21,7 @@
   import { openRemoteTrailer, play, playTrailer, read, shuffle } from '../lib/playback';
   import { dp } from '../lib/screen';
   import { clamp, heroDelta } from '../lib/scroll';
+  import { externalRatings, ratingLabel, ratings } from '../lib/ratings.svelte';
   import * as Trakt from '../lib/trakt.svelte';
   import { apiOf } from '../lib/session.svelte';
   import { trackName } from '../lib/track-memory';
@@ -45,6 +46,12 @@
   );
   const season = $derived(seasons.value?.[seasonIndex]);
   const episodes = useLoad(() => (season ? `episodes-${id}-${season.Id}` : 'none-ep'), () => (season ? client.episodes(id, season.Id) : Promise.resolve([])));
+  // IMDb, Rotten Tomatoes…: only once the user set an MDBList key (Settings > Home and libraries).
+  const external = useLoad(
+    () => (item ? `ratings-${id}-${ratings.configured}` : 'ratings-none'),
+    () => (ratings.configured && item ? externalRatings(item) : Promise.resolve([])),
+    { refresh: false },
+  );
   // Making-of, deleted scenes…: none for books, and none when the server lacks the route.
   const extras = useLoad(() => (book ? 'none-extras' : `extras-${id}`), () => (book ? Promise.resolve([]) : client.specialFeatures(id)));
 
@@ -58,6 +65,7 @@
   let sourceId = $derived(item ? Versions.selected(item)?.Id : undefined);
   const source = $derived(item?.MediaSources?.find((s) => s.Id === sourceId) ?? item?.MediaSources?.[0]);
   const tags = $derived(item ? badges(item, source) : []);
+  const ratingTags = $derived((external.value ?? []).map(ratingLabel));
 
   const playLabel = $derived.by(() => {
     if (book) return bookPage !== null ? t('reader_resume_page', bookPage + 1) : t('reader_read');
@@ -173,11 +181,13 @@
         <div data-detail-band>
           {#if item.Type === 'Episode'}<p class="episode t-title3">{episodeLine(item) ?? ''}</p>{/if}
           <div class="hero-text"><HeroText api={client} {item} overviewLines={4} /></div>
-          {#if tags.length}
-            <div class="tags">
-              {#each tags as tag (tag)}<span class="tag t-caption">{tag}</span>{/each}
-            </div>
-          {/if}
+          {#each [ratingTags, tags] as list, n (n)}
+            {#if list.length}
+              <div class="tags">
+                {#each list as tag (tag)}<span class="tag t-caption">{tag}</span>{/each}
+              </div>
+            {/if}
+          {/each}
         </div>
         <div class="actions" data-detail-band data-focus-group>
           <Pill text={playLabel} icon="Play" primary autofocus onclick={onPlay} />
