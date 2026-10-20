@@ -1,10 +1,12 @@
 <script lang="ts">
   // Android TV AccountsSection (Settings.kt): who is signed in, Switch User / Switch Server / Sign Out, then the
   // other servers signed in at once (TP-06): OK on one offers to remove it, "Add a server" signs another in; then
-  // Trakt (TP-09).
+  // Trakt (TP-09). On Jellyfin, "Authorize a device" approves another device's Quick Connect code.
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
   import { confirm } from '../../components/settings/rows';
+  import TextField from '../../components/TextField.svelte';
+  import { showToast } from '../../lib/toast.svelte';
   import TraktSection from './TraktSection.svelte';
   import type { Api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
@@ -33,6 +35,22 @@
       ],
       focusIndex: 1,
     });
+  }
+
+  // Quick Connect: another device's code, approved for this user.
+  let quick = $state(false);
+  let code = $state('');
+  // svelte-ignore state_referenced_locally
+  void api.quickConnectEnabled().then((on) => (quick = on));
+  async function authorize(): Promise<void> {
+    if (!code.trim()) return;
+    try {
+      await api.authorizeQuickConnect(code);
+      code = '';
+      showToast(t('quick_connect_authorized'));
+    } catch {
+      showToast(t('quick_connect_unknown_code'));
+    }
   }
 
   function leave(to: 'login' | 'servers', revoke: boolean): void {
@@ -65,6 +83,13 @@
   {/each}
   <SettingRow label={t('add_server')} chevron onclick={() => nav.push({ name: 'servers', add: true })} />
 </SettingsGroup>
+
+{#if quick}
+  <SettingsGroup title={t('quick_connect')} hint={t('quick_connect_authorize_hint')}>
+    <TextField bind:value={code} placeholder={t('quick_connect_authorize_hint')} onsubmit={authorize} />
+    <SettingRow label={t('quick_connect_authorize')} chevron onclick={authorize} />
+  </SettingsGroup>
+{/if}
 
 <TraktSection />
 

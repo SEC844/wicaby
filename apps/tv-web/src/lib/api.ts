@@ -122,6 +122,50 @@ export class Api {
     return r;
   }
 
+  // --- Quick Connect (Jellyfin, core Emby.kt): sign in by approving a code on a device already signed in ---
+
+  async quickConnectEnabled(): Promise<boolean> {
+    if (this.isEmby) return false;
+    return (await this.get<boolean>('/QuickConnect/Enabled').catch(() => false)) === true;
+  }
+
+  // Shows each code through [onCode] and polls until it is approved; an expired code (Connect 404s) gets a fresh
+  // one. [stopped] ends the wait (the sheet closed): it then rejects.
+  async quickConnect(onCode: (code: string) => void, stopped: () => boolean, everyMs = 5000): Promise<AuthenticationResult> {
+    type Qc = { Code: string; Secret: string; Authenticated?: boolean };
+    const wait = () => new Promise((r) => setTimeout(r, everyMs));
+    for (;;) {
+      // Jellyfin 10.8 only answers GET here (10.9+ only POST).
+      const init = await this.post<Qc>('/QuickConnect/Initiate').catch((e) => {
+        if (e instanceof ApiError && (e.status === 405 || e.status === 404)) return this.get<Qc>('/QuickConnect/Initiate');
+        throw e;
+      });
+      onCode(init.Code);
+      for (;;) {
+        await wait();
+        if (stopped()) throw new ApiError('cancelled', 0);
+        let s: Qc;
+        try {
+          s = await this.get<Qc>('/QuickConnect/Connect', { secret: init.Secret });
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 404) break;
+          throw e;
+        }
+        if (s.Authenticated) {
+          const r = await this.post<AuthenticationResult>('/Users/AuthenticateWithQuickConnect', { Secret: init.Secret });
+          this.token = r.AccessToken;
+          this.userId = r.User.Id;
+          return r;
+        }
+      }
+    }
+  }
+
+  // The other side: approves [code] shown by another device, for this signed-in user.
+  authorizeQuickConnect(code: string): Promise<void> {
+    return this.request('POST', '/QuickConnect/Authorize', { code: code.trim() });
+  }
+
   // --- Browsing: the Android Emby.kt calls, same routes and queries ---
 
   get isEmby(): boolean {

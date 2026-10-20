@@ -1,10 +1,12 @@
 <script lang="ts">
   // Android TV LoginScreen (ui/Setup.kt): "Who's watching?" with the server's public users and this TV's saved
-  // accounts, then the password form (or name and password for another user).
+  // accounts, then the password form (or name and password for another user). On Jellyfin with Quick Connect on, a code
+  // to approve elsewhere signs in with no password typed on the remote.
   import type { UserDto } from '$shared/models';
   import { getContext, onMount } from 'svelte';
   import Avatar from '../components/Avatar.svelte';
   import Pill from '../components/Pill.svelte';
+  import QuickConnectSheet from '../components/QuickConnectSheet.svelte';
   import Spinner from '../components/Spinner.svelte';
   import TextButton from '../components/TextButton.svelte';
   import TextField from '../components/TextField.svelte';
@@ -68,6 +70,11 @@
     signIn(session);
     nav.reset({ name: 'main' });
   }
+
+  // Jellyfin with Quick Connect on: the "Quick Connect" button.
+  let quick = $state(false);
+  let quickOpen = $state(false);
+  void api.quickConnectEnabled().then((on) => (quick = on));
 
   async function login(user: string, pw: string): Promise<void> {
     if (busy) return;
@@ -181,8 +188,19 @@
   {#if error}<p class="t-callout error">{error}</p>{/if}
   <div class="secondary">
     {#if !add}<TextButton text={t('switch_server')} icon="Server" onclick={() => nav.reset({ name: 'servers' })} />{/if}
+    {#if quick}<TextButton text={t('quick_connect')} icon="Keyboard" onclick={() => (quickOpen = true)} />{/if}
   </div>
 </div>
+{#if quickOpen}
+  <QuickConnectSheet
+    {api}
+    onclose={() => (quickOpen = false)}
+    onsignedin={(r) => {
+      quickOpen = false;
+      done({ server, userId: r.User.Id, userName: r.User.Name, token: r.AccessToken });
+    }}
+  />
+{/if}
 
 <style>
   .screen {
@@ -246,5 +264,8 @@
   .secondary {
     display: flex;
     margin-top: 40rem;
+  }
+  .secondary > :global(* + *) {
+    margin-left: 12rem;
   }
 </style>
