@@ -64,7 +64,9 @@ object Servers {
     suspend fun merged(primary: Api, byDate: Boolean = false, fn: suspend (Api) -> List<Item>): List<Item> {
         if (offline.isNotEmpty()) wake.value++
         val others = online.filter { it.server.id != primary.server.id }
-        if (others.isEmpty()) return fn(primary)
+        // One server: its list, minus an item it repeats (Emby's /Shows/Upcoming can list one episode 24 times, and a
+        // LazyRow throws on the duplicate key).
+        if (others.isEmpty()) return dedupe(fn(primary))
         return merge(fanOut(listOf(primary) + others, fn), byDate)
     }
 

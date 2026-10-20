@@ -3,7 +3,7 @@
 // optionally by last played, one copy of a title found on several servers). Alone, the primary's answer and its
 // error as they are. An extra server that does not answer in time is left out, then skipped for a minute.
 import type { BaseItem } from '$shared/models';
-import { merge } from '$desktop/items';
+import { dedupe, merge } from '$desktop/items';
 import type { Api } from './api';
 import { api, apis } from './session.svelte';
 
@@ -44,7 +44,9 @@ export async function fanOut<T>(fn: (a: Api) => Promise<T>): Promise<(T | null)[
 // The query on every server, merged; byDate: the most recently played first (Continue Watching).
 export async function merged(fn: (a: Api) => Promise<BaseItem[]>, byDate = false): Promise<BaseItem[]> {
   const list = apis();
-  if (list.length < 2) return fn(list[0] ?? api()!);
+  // One server: its list as is, minus an item it repeats (Emby's /Shows/Upcoming can list one episode 24 times, and a
+  // keyed row throws on the duplicate).
+  if (list.length < 2) return dedupe(await fn(list[0] ?? api()!));
   const answers = await fanOut((a) => fn(a).then((items) => tag(a, items)));
   return merge(answers, byDate);
 }

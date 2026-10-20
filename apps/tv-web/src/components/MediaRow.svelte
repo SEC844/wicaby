@@ -35,6 +35,10 @@
     card?: Snippet<[BaseItem]>;
   } = $props();
 
+  // Each item once, whatever the list: a server can repeat one, and a keyed row throws on the duplicate (the whole
+  // screen would stop rendering).
+  const shown = $derived(items.filter((it, i) => items.findIndex((x) => itemKey(x) === itemKey(it)) === i));
+
   let viewport: HTMLDivElement;
   let track: HTMLDivElement;
   let x = $state(0);
@@ -58,7 +62,7 @@
   <h3 class="t-title3">{title}</h3>
   <div class="viewport" bind:this={viewport}>
     <div class="track" class:wide bind:this={track} style="transform:translate3d({-x}px,0,0)">
-      {#each items as item (itemKey(item))}
+      {#each shown as item (itemKey(item))}
         <div class="item" data-row-item>
           {#if card}
             {@render card(item)}
