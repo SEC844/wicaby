@@ -14,6 +14,7 @@ import { embySegments, jellyfinSegments, markPlayedByCredits, resumeFrom, type S
 import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows, type QualityRow } from '$shared/quality-presets';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
+import { recall, remember, scopeCtx, type ScopeCtx } from './remembered';
 import { reporter } from './reporter';
 import * as Trakt from './trakt.svelte';
 import { loadPreview, type Preview } from './trickplay';
@@ -60,6 +61,8 @@ export class Playback {
   switching = $state(false);
   // The playback rate (X-03), kept for the next episodes of this player.
   rate = $state(1);
+  // X-05: where this title's speed and picture format are remembered (null for a trailer).
+  scopeCtx = $state<ScopeCtx | null>(null);
   // The source playing and why the server converts it (TranscodeReasons of its URL), for the stats panel.
   source = $state.raw<MediaSource | null>(null);
   transcodeReasons = $state.raw<string[]>([]);
@@ -138,6 +141,12 @@ export class Playback {
       this.sourceId = chosen?.Id;
       this.streams = chosen?.MediaStreams ?? [];
       const start = fromStart || this.trailer ? 0 : resumeFrom((it.UserData?.PlaybackPositionTicks ?? 0) / TICKS_PER_MS, (it.RunTimeTicks ?? 0) / TICKS_PER_MS);
+      if (!this.trailer) {
+        this.scopeCtx = await scopeCtx(this.api, it);
+        if (seq !== this.seq) return;
+        const rate = recall('speed', this.scopeCtx);
+        if (typeof rate === 'number' && this.player.speeds.includes(rate)) this.rate = rate;
+      }
       // Audio and subtitles picked on the details page go into the first PlaybackInfo.
       const pick = Versions.pick(it.Id, chosen?.Id);
       await this.load(start, pick?.audio ?? null, pick?.subtitle ?? null);
@@ -295,6 +304,7 @@ export class Playback {
   setSpeed(rate: number): void {
     this.rate = rate;
     this.player.setRate(rate);
+    remember('speed', this.scopeCtx, rate);
   }
 
   seek(ms: number): void {

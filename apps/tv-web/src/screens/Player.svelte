@@ -40,6 +40,7 @@
   import { createPlayer, keepAwake, platform } from '../platform';
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
+  import { recall, remember } from '../lib/remembered';
 
   let {
     id,
@@ -205,8 +206,19 @@
     const list = pb.player.aspects;
     aspect = list[(list.indexOf(aspect) + 1) % list.length];
     pb.player.setAspect(aspect);
+    remember('aspect', pb.scopeCtx, aspect);
     poke();
   }
+  // X-05: the title's remembered format, once its scope is known.
+  $effect(() => {
+    const p = pb;
+    if (!p?.scopeCtx) return;
+    const a = recall('aspect', p.scopeCtx);
+    if (typeof a === 'string' && p.player.aspects.includes(a as Aspect)) {
+      aspect = a as Aspect;
+      p.player.setAspect(aspect);
+    }
+  });
 
   // --- Audio and subtitles: the tracks, then the quick subtitle look (the Settings values) ---
   const trackName = (s: { DisplayTitle?: string; Title?: string; Language?: string; Index: number }) =>
