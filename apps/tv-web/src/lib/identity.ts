@@ -18,7 +18,14 @@ export const deviceId: string = (() => {
   return id;
 })();
 
-export const deviceName: string = (() => {
+// Read on first use, not at import: Tizen's webapis (the model) load in initPlatform, after the modules evaluate.
+let name: string | undefined;
+export function deviceName(): string {
+  if (name === undefined) name = readDeviceName();
+  return name;
+}
+
+function readDeviceName(): string {
   if (platform === 'tizen') {
     try {
       const model = typeof webapis !== 'undefined' ? webapis?.productinfo?.getRealModel?.() ?? webapis?.productinfo?.getModel?.() : '';
@@ -29,4 +36,4 @@ export const deviceName: string = (() => {
   }
   if (platform === 'webos') return 'LG TV';
   return 'TV';
-})();
+}

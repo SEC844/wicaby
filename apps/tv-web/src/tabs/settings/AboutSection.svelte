@@ -31,7 +31,7 @@
 </SettingsGroup>
 
 <SettingsGroup title={t('group_device')}>
-  <SettingRow label={t('device_model')} value={deviceName} />
+  <SettingRow label={t('device_model')} value={deviceName()} />
   <SettingRow label={system} value={`Chromium ${engine}`} mono />
   {#await caps()}
     <SettingRow label={t('video_decoders')} value={t('loading')} />

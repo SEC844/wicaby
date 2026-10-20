@@ -66,7 +66,7 @@ export class Api {
   }
 
   authHeaders(): Record<string, string> {
-    const parts = [`Client=${quote(CLIENT)}`, `Device=${quote(deviceName)}`, `DeviceId=${quote(deviceId)}`, `Version=${quote(VERSION)}`];
+    const parts = [`Client=${quote(CLIENT)}`, `Device=${quote(deviceName())}`, `DeviceId=${quote(deviceId)}`, `Version=${quote(VERSION)}`];
     if (this.kind === 'emby') {
       if (this.userId) parts.unshift(`UserId=${quote(this.userId)}`);
       const headers: Record<string, string> = { 'X-Emby-Authorization': `Emby ${parts.join(', ')}` };
