@@ -269,7 +269,7 @@ Linux environment variables: `WICABY_OZONE=x11` runs Wicaby under XWayland in a 
 
 Installing on a TV and turning on automatic updates: see [Install on a TV](apps/android/README.md#install-on-a-tv) and [Updates for sideloaded APKs](apps/android/README.md#updates-for-sideloaded-apks).
 
-**LG and Samsung TVs (test builds)**: the TV web app, the Android TV app rebuilt for Samsung Tizen 4+ and LG webOS 4+ (sets from 2018 on), with Emby and Jellyfin: the player (AVPlay on Tizen), Live TV, music, photos, comics, several servers and Trakt. It is not part of any release yet: the unsigned `.wgt` and the `.ipk` are workflow artifacts. See [docs/tv-web.md](docs/tv-web.md).
+**LG and Samsung TVs (test builds)**: the TV web app, the Android TV app rebuilt for Samsung Tizen 4+ and LG webOS 4+ (sets from 2018 on), with Emby and Jellyfin: the player (AVPlay on Tizen), Live TV, music, photos, comics, several servers and Trakt. Used on a Samsung Q60T (Tizen 5.5); not yet tried on a real LG set. It is not part of any release yet: the unsigned `.wgt` and the `.ipk` are workflow artifacts. See [docs/tv-web.md](docs/tv-web.md).
 
 ## Getting started
 

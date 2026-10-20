@@ -1,6 +1,6 @@
 // Rasterises the Wicaby icons from the brand SVG masters with Chromium
 // (the project's own Electron, no extra dependency) and packs the result.
-// Output: resources/icon.ico (16..256 px) and resources/icon.png (512 px), the web TV icons;
+// Output: resources/icon.ico (16..256 px) and resources/icon.png (512 px), the TV web app icons;
 // 16-32 px come from the small optical cut (brand/wicaby-app-icon-small.svg),
 // 48 px and up from brand/wicaby-app-icon.svg. Also the Android legacy
 // launcher PNGs, straight into apps/android/tv/src/main/res/mipmap-*dpi
@@ -20,8 +20,8 @@ const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 const ROUND = path.join(ROOT, 'brand', 'android', 'legacy-round.svg');
 const TV_RES = path.join(ROOT, 'apps', 'android', 'tv', 'src', 'main', 'res');
 const MIPMAPS = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
-// The web TV app's package icons (docs/webtv.md): webOS icon 80 and largeIcon 130, Tizen 512.
-const WEBTV = path.join(ROOT, 'apps', 'webtv', 'platform');
+// The TV web app's package icons (docs/tv-web.md): webOS icon 80 and largeIcon 130, Tizen 512.
+const WEBTV = path.join(ROOT, 'apps', 'tv-web', 'platform');
 const WEBTV_SIZES = [80, 130, 512];
 
 if (!process.versions.electron) {

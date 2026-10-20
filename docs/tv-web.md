@@ -2,8 +2,8 @@
 
 `apps/tv-web` is Wicaby for the TVs that only run web apps: Samsung (Tizen) and LG (webOS). It is the Android TV app
 rebuilt for those TVs, screen for screen and key for key, so a Samsung or LG owner gets the same app as a Google TV
-owner. It is meant to replace the earlier web TV app (`apps/webtv`, [webtv.md](webtv.md)): it installs under the
-same ids, so it updates an installed earlier build in place.
+owner. It replaces the earlier web TV app (`apps/webtv`, the desktop interface in a TV shell) and installs under
+the same ids, so it updates an installed earlier build in place.
 
 Why a separate app rather than the desktop renderer in a TV shell:
 
@@ -116,9 +116,7 @@ stream URLs carry the token only to the server's own address.
 - **Still to come:** Live TV's channel manager, series rules and guide search, the first-run wizard, Plex and IPTV
   sources.
 
-## Replacing apps/webtv
+## Tested on
 
-This app supersedes `apps/webtv`: it reaches older TVs, plays through AVPlay on Tizen, and covers Live TV, music,
-photos, comics, several servers and Trakt. The pull request that brings it upstream also removes `apps/webtv`, its
-root scripts (`*:webtv`), its workflow and [webtv.md](webtv.md), in their own commits. Until then both build side
-by side; their packages share ids, so whichever is installed last replaces the other.
+- **Samsung:** a QE65Q60T (2020, Tizen 5.5), installed with a Samsung certificate as above.
+- **LG:** the Chromium 53, 56 and 69 engines of `npm run smoke` against the mock servers; not yet a real webOS set.

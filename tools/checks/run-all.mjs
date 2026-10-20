@@ -19,10 +19,6 @@ const checks = [
   // "What's this song?": the Shazam signature against SongRec's reference.
   ['song-id-check.mjs'],
   ['track-check.mjs'],
-  // Web TV app (docs/webtv.md): the 'tv' device profile, mediaBase, TV Back keys, the web bridge and its demo server.
-  ['webtv-check.mjs'],
-  // Web TV Jellyfin SyncPlay: server clock offset, command scheduling, 2 s drift.
-  ['syncplay-webtv-check.mjs'],
   // TV web app (docs/tv-web.md): its inflate, the comic ZIP reader over Range requests, page order, the bundle syntax.
   ['tv-web-check.mjs'],
   ['parity-check.mjs'],

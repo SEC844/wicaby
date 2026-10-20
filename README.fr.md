@@ -269,7 +269,7 @@ Variables d'environnement sous Linux : `WICABY_OZONE=x11` lance Wicaby sous XWay
 
 Installer sur une TV et activer les mises à jour automatiques : voir [Install on a TV](apps/android/README.md#install-on-a-tv) et [Updates for sideloaded APKs](apps/android/README.md#updates-for-sideloaded-apks) (en anglais).
 
-**TV LG et Samsung (versions de test)** : une app TV web pour LG webOS 6+ et Samsung Tizen 6.5+, avec Emby et Jellyfin. C'est un aperçu, jamais testé sur une vraie TV et absent des versions publiées : les paquets `.ipk` et `.wgt` (non signé) sont des artefacts du workflow, et une démo tourne dans le navigateur sur GitHub Pages. Voir [docs/webtv.md](docs/webtv.md) (en anglais).
+**TV LG et Samsung (versions de test)** : l'app TV web, l'app Android TV refaite pour Samsung Tizen 4+ et LG webOS 4+ (les modèles depuis 2018), avec Emby et Jellyfin : le lecteur (AVPlay sur Tizen), la TV en direct, la musique, les photos, les BD, plusieurs serveurs et Trakt. Utilisée sur une Samsung Q60T (Tizen 5.5) ; pas encore essayée sur une vraie TV LG. Elle n'est dans aucune version publiée : le `.wgt` non signé et le `.ipk` sont des artefacts du workflow. Voir [docs/tv-web.md](docs/tv-web.md) (en anglais).
 
 ## Prise en main
 
@@ -293,7 +293,7 @@ cd apps/android; ./gradlew :tv:assembleDebug :mobile:assembleDebug
 
 Pas de serveur sous la main ? `node tools/mock-server/mock-emby.mjs 8104` lance un faux serveur (utilisateur `Wika`, mot de passe `wicaby`).
 
-Tout le reste est dans [docs/](docs/) : [fonctionnalités](docs/features.md), [Windows](docs/desktop.md), [Android](docs/android.md), [app TV web en aperçu (LG, Samsung)](docs/webtv.md), [accès à distance](docs/remote-access.md), [design](docs/design.md), [traductions](docs/i18n.md), [releases](docs/release.md) et [architecture](docs/architecture.md) (en français). Pour contribuer, lisez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une faille, [SECURITY.md](SECURITY.md).
+Tout le reste est dans [docs/](docs/) : [fonctionnalités](docs/features.md), [Windows](docs/desktop.md), [Android](docs/android.md), [app TV web (Samsung, LG)](docs/tv-web.md), [accès à distance](docs/remote-access.md), [design](docs/design.md), [traductions](docs/i18n.md), [releases](docs/release.md) et [architecture](docs/architecture.md) (en français). Pour contribuer, lisez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une faille, [SECURITY.md](SECURITY.md).
 
 ## Licence
 

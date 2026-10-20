@@ -1,5 +1,5 @@
 // Quick Connect sign-in on the Jellyfin mock, the wire steps every app follows (Android core Api.quickConnect, desktop
-// ConnectionManager.quickConnect, webtv bridge session.quickConnect; the client logic itself is QuickConnectTest.kt):
+// ConnectionManager.quickConnect, TV web app Api.quickConnect; the client logic itself is QuickConnectTest.kt):
 // Enabled, an anonymous Initiate as this device, Connect pending, the approving side's Authorize (Settings > Accounts,
 // with the user token), Connect authenticated, AuthenticateWithQuickConnect for a token bound to this device, the
 // secret spent after one use and an unknown one 404 (the apps then start a fresh code). MOCK_QC=0: Enabled false.
