@@ -192,7 +192,8 @@ class ScrobbleTest {
         store.q = List(500) { QueuedListen("lastfm", it.toLong(), info) }
         f.down = true
         svc.listened(song, 1_700_000_400, 40_000)
-        until { store.q.lastOrNull()?.at == 1_700_000_400L && store.q.size == 500 }
+        // Both services queue it (ListenBrainz first, then Last.fm), each push dropping the oldest.
+        until { store.q.count { it.at == 1_700_000_400L } == 2 && store.q.size == 500 }
         assertEquals("the oldest went", 2L, store.q.first().at)
         // Disconnecting drops a service's waiting listens.
         svc.disconnectLastfm()
