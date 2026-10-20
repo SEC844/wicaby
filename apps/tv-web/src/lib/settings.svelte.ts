@@ -51,6 +51,8 @@ export const settings = {
   subtitleOverrideAss: new Setting('sub_ass_override', false),
   rememberSpeed: new Setting('remember_speed', SCOPE_GLOBAL),
   rememberAspect: new Setting('remember_aspect', SCOPE_TITLE),
+  // TP-10: no "Who is watching?" at start when this TV has a single account without a PIN.
+  skipPicker: new Setting('skip_profile_picker', true),
   // "Play on" target for the official Emby/Jellyfin apps (X-06).
   remoteControl: new Setting('remote_control', true),
   // Accessibility (core Core.preferSdh, Core.audioDescription): prefer, avoid or any.

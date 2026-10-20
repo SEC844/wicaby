@@ -5,6 +5,7 @@
   import type { UserDto } from '$shared/models';
   import { getContext, onMount } from 'svelte';
   import Avatar from '../components/Avatar.svelte';
+  import PinSheet from '../components/PinSheet.svelte';
   import Pill from '../components/Pill.svelte';
   import QuickConnectSheet from '../components/QuickConnectSheet.svelte';
   import Spinner from '../components/Spinner.svelte';
@@ -16,6 +17,7 @@
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { addExtra, apiFor, prefs, signIn, type Server, type Session } from '../lib/session.svelte';
   import { clearCache } from '../lib/load.svelte';
+  import { checkPin, hasPin } from '../lib/profiles.svelte';
 
   let { server, add = false }: { server: Server; add?: boolean } = $props();
 
@@ -118,8 +120,12 @@
     requestAnimationFrame(() => focusFirst(document.querySelector('[data-screen-top]') ?? document));
   }
 
+  // TP-10: a saved account with a PIN on this TV asks for it first.
+  let pinFor = $state<(Entry & { saved: Session }) | null>(null);
+
   function choose(entry: Entry): void {
-    if (entry.saved) void open(entry as Entry & { saved: Session });
+    if (entry.saved && hasPin(entry.saved)) pinFor = entry as Entry & { saved: Session };
+    else if (entry.saved) void open(entry as Entry & { saved: Session });
     else if (entry.user.HasPassword === false) void login(entry.user.Name, '');
     else pick(entry.user);
   }
@@ -191,6 +197,20 @@
     {#if quick}<TextButton text={t('quick_connect')} icon="Keyboard" onclick={() => (quickOpen = true)} />{/if}
   </div>
 </div>
+{#if pinFor}
+  <PinSheet
+    mode="enter"
+    name={pinFor.saved.userName}
+    check={(p) => checkPin(pinFor!.saved, p)}
+    onok={() => {
+      // Read before it is cleared: the sheet closes with it.
+      const entry = pinFor!;
+      pinFor = null;
+      void open(entry);
+    }}
+    onclose={() => (pinFor = null)}
+  />
+{/if}
 {#if quickOpen}
   <QuickConnectSheet
     {api}

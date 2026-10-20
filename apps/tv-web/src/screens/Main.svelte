@@ -8,6 +8,7 @@
   import TopBar from '../components/TopBar.svelte';
   import { focused, setFocus } from '../lib/focus';
   import { runHomeRefresh } from '../lib/auto-refresh';
+  import { forgetPin } from '../lib/profiles.svelte';
   import { runRemoteControl } from '../lib/remote-control';
   import { runScrobbleRetries } from '../lib/scrobble.svelte';
   import { postCapabilities } from '../lib/server-socket';
@@ -60,6 +61,8 @@
   }
 
   function leave(forget: boolean): void {
+    // Signing out forgets the saved profile and its PIN (TP-10); Switch User keeps both.
+    if (forget) forgetPin(session);
     signOut(forget);
     clearCache();
     nav.reset({ name: 'login', server: session.server });

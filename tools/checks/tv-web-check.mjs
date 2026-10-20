@@ -177,6 +177,19 @@ assert.equal(sc.scrobble.queued, 0, 'scrobble: the queue is empty again');
 await sc.disconnectListenBrainz();
 assert.equal(sc.scrobble.lbUser, null, 'scrobble: disconnected');
 
+// --- Profile PINs: the JavaScript PBKDF2-HMAC-SHA1 against Node's, the stored form, the waits ---
+const pinMod = await load('src/lib/pin.ts');
+for (const [pin, saltHex] of [['0000', '00'], ['1234', 'a1b2c3d4e5f60718293a4b5c6d7e8f90'], ['9876', 'ff'.repeat(16)]]) {
+  const salt = Buffer.from(saltHex, 'hex');
+  const want = crypto.pbkdf2Sync(pin, salt, 20_000, 32, 'sha1');
+  assert.ok(Buffer.from(pinMod.pbkdf2Sha1(new TextEncoder().encode(pin), new Uint8Array(salt), 20_000, 32)).equals(want), `pin: PBKDF2 of ${pin}`);
+}
+const stored = await pinMod.hashPin('4321');
+assert.match(stored, /^[0-9a-f]{32}:[0-9a-f]{64}$/, 'pin: salt:hash in hex');
+assert.equal(await pinMod.pinMatches('4321', stored), true, 'pin: the right PIN');
+assert.equal(await pinMod.pinMatches('4322', stored), false, 'pin: a wrong PIN');
+assert.deepEqual([0, 4, 5, 6, 12, 20].map(pinMod.pinWaitMs), [0, 0, 30_000, 60_000, 3_600_000, 3_600_000], 'pin: five free tries, then 30 s doubling to 1 h');
+
 // --- The bundle, when built ---
 const assets = path.join(app, 'dist', 'assets');
 if (fs.existsSync(assets)) {

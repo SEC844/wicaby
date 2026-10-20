@@ -15,6 +15,10 @@
   import { nav } from '../../lib/nav.svelte';
   import { closeAlert, showAlert } from '../../lib/overlay.svelte';
   import { prefs, removeExtra, signOut } from '../../lib/session.svelte';
+  import PinSheet from '../../components/PinSheet.svelte';
+  import { toggle } from '../../components/settings/rows';
+  import { forgetPin, hasPin, setPin } from '../../lib/profiles.svelte';
+  import { settings } from '../../lib/settings.svelte';
 
   let { api }: { api: Api } = $props();
   const session = prefs.session!;
@@ -35,6 +39,20 @@
         { label: t('cancel'), run: closeAlert },
       ],
       focusIndex: 1,
+    });
+  }
+
+  // TP-10: "Who is watching?" at start, and this account's PIN on this TV.
+  let settingPin = $state(false);
+  function pinMenu(): void {
+    if (!hasPin(session)) return void (settingPin = true);
+    showAlert({
+      title: t('profile_pin'),
+      actions: [
+        { label: t('pin_change'), run: () => (settingPin = true) },
+        { label: t('pin_remove'), destructive: true, run: () => void setPin(session, null) },
+        { label: t('cancel'), run: () => {} },
+      ],
     });
   }
 
@@ -60,6 +78,7 @@
     clearCache();
     if (to === 'servers') nav.reset({ name: 'servers' });
     else nav.reset({ name: 'login', server });
+    if (revoke) forgetPin(session);
     signOut(revoke);
   }
 </script>
@@ -77,6 +96,12 @@
   <SettingRow label={t('switch_server')} chevron onclick={() => leave('servers', false)} />
   <SettingRow {...confirm(t('sign_out'), t('sign_out'), () => leave('login', true))} />
 </SettingsGroup>
+
+<SettingsGroup title={t('who_is_watching')} hint={t('profiles_hint')}>
+  <SettingRow {...toggle(t('profile_skip_single'), settings.skipPicker)} />
+  <SettingRow label={t('profile_pin')} value={t(hasPin(session) ? 'on' : 'off')} chevron onclick={pinMenu} />
+</SettingsGroup>
+{#if settingPin}<PinSheet mode="set" onsave={(p) => setPin(session, p)} onclose={() => (settingPin = false)} />{/if}
 
 <SettingsGroup title={t('other_servers')} hint={t('other_servers_hint')}>
   {#each extras as e (e.server.id)}

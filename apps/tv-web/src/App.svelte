@@ -11,6 +11,7 @@
   import { music, stopMusic } from './lib/music.svelte';
   import { handleBack, nav, stack } from './lib/nav.svelte';
   import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
+  import { skipPicker } from './lib/profiles.svelte';
   import { api, prefs } from './lib/session.svelte';
   import { settings } from './lib/settings.svelte';
   import { applyTheme } from './lib/theme';
@@ -33,7 +34,8 @@
   import Servers from './screens/Servers.svelte';
 
   // MainActivity's start route: the session, else the saved server's sign-in, else the server screen.
-  if (prefs.session) nav.reset({ name: 'main' });
+  // TP-10: "Who is watching?" first, unless this TV has one account without a PIN and the picker is skipped.
+  if (prefs.session) nav.reset(skipPicker(prefs.session) ? { name: 'main' } : { name: 'login', server: prefs.session.server });
   else if (prefs.server) nav.reset({ name: 'login', server: prefs.server });
   else nav.reset({ name: 'servers' });
 
