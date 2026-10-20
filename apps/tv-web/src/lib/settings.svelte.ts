@@ -53,6 +53,9 @@ export const settings = {
   rememberAspect: new Setting('remember_aspect', SCOPE_TITLE),
   // "Play on" target for the official Emby/Jellyfin apps (X-06).
   remoteControl: new Setting('remote_control', true),
+  // Accessibility (core Core.preferSdh, Core.audioDescription): prefer, avoid or any.
+  preferSdh: new Setting('prefer_sdh', false),
+  audioDescription: new Setting<'prefer' | 'avoid' | 'any'>('audio_description', 'avoid'),
   // Interface
   language: new Setting<'auto' | 'fr' | 'en'>('language', 'auto'),
   clock: new Setting('clock', true),

@@ -23,6 +23,7 @@
   import { clamp, heroDelta } from '../lib/scroll';
   import * as Trakt from '../lib/trakt.svelte';
   import { apiOf } from '../lib/session.svelte';
+  import { trackName } from '../lib/track-memory';
   import * as Versions from '../lib/versions';
 
   let { id, serverId }: { id: string; serverId?: string } = $props();
@@ -116,8 +117,6 @@
   }
 
   // --- Version, Audio, Subtitles: each opens a picker; the lists are the selected version's. ---
-  const trackName = (s: { DisplayTitle?: string; Title?: string; Language?: string; Index: number }): string =>
-    s.DisplayTitle ?? s.Title ?? s.Language ?? t('track_unknown', s.Index);
   const audio = $derived(source?.MediaStreams?.filter((s) => s.Type === 'Audio') ?? []);
   const subs = $derived(source?.MediaStreams?.filter((s) => s.Type === 'Subtitle') ?? []);
   const versions = $derived(item?.MediaSources ?? []);

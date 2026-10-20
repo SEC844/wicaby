@@ -6,6 +6,7 @@ import type { BaseItem, MediaSource, MediaStream } from '$shared/models';
 import { hdrFromStream, type HdrKind } from '$shared/hdr';
 import { versionSignature } from '$shared/quality-presets';
 import { load, save } from './storage';
+import { accessibleIndex } from './track-memory';
 
 // ---- Labels
 
@@ -105,16 +106,20 @@ function cleanName(title: string, s: MediaSource): string | undefined {
   return n || undefined;
 }
 
+// The server's pick, unless an audio-description track has a plain twin (or the reverse, per Settings).
 export function defaultAudioStream(s: MediaSource): MediaStream | undefined {
   const audio = (s.MediaStreams ?? []).filter((m) => m.Type === 'Audio');
-  return audio.find((m) => m.Index === s.DefaultAudioStreamIndex) ?? audio.find((m) => m.IsDefault) ?? audio[0];
+  const d = audio.find((m) => m.Index === s.DefaultAudioStreamIndex) ?? audio.find((m) => m.IsDefault) ?? audio[0];
+  if (!d) return undefined;
+  const i = accessibleIndex(s.MediaStreams ?? [], d.Index);
+  return audio.find((m) => m.Index === i);
 }
 
 // -1 = off. The server's pick already applies the user's language, subtitle mode and forced rules, and it is what
-// PlaybackInfo plays: no client-side guess (desktop track-selection.ts).
+// PlaybackInfo plays; only "Prefer SDH subtitles" swaps it for its SDH twin (desktop track-selection.ts).
 export function defaultSubtitleIndex(s: MediaSource): number {
   const d = s.DefaultSubtitleStreamIndex;
-  return d != null && (s.MediaStreams ?? []).some((m) => m.Type === 'Subtitle' && m.Index === d) ? d : -1;
+  return d != null && (s.MediaStreams ?? []).some((m) => m.Type === 'Subtitle' && m.Index === d) ? accessibleIndex(s.MediaStreams ?? [], d) : -1;
 }
 
 // ---- The choice, remembered per item; the version picked in the player, per series (X-02, written by the player)

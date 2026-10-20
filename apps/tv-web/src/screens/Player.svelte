@@ -41,6 +41,7 @@
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
   import { recall, remember } from '../lib/remembered';
+  import { trackName } from '../lib/track-memory';
 
   let {
     id,
@@ -221,8 +222,6 @@
   });
 
   // --- Audio and subtitles: the tracks, then the quick subtitle look (the Settings values) ---
-  const trackName = (s: { DisplayTitle?: string; Title?: string; Language?: string; Index: number }) =>
-    s.DisplayTitle || s.Title || s.Language || t('track_unknown', s.Index);
   const trackColumns = $derived.by<PanelColumn[]>(() => {
     if (!pb) return [];
     const p = pb;

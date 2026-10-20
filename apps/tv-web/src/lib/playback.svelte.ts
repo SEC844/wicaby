@@ -15,6 +15,8 @@ import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRo
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
 import { recall, remember, scopeCtx, type ScopeCtx } from './remembered';
+import { showToast } from './toast.svelte';
+import { memoryPick, recordTrack } from './track-memory';
 import { reporter } from './reporter';
 import * as Trakt from './trakt.svelte';
 import { loadPreview, type Preview } from './trickplay';
@@ -39,6 +41,9 @@ export interface PlaybackOptions {
   queue?: Queue;
 }
 
+
+// The series whose remembered tracks were announced this session (once each, as Android's tracksToasted).
+const toasted = new Set<string>();
 
 export class Playback {
   item = $state<BaseItem | null>(null);
@@ -149,7 +154,21 @@ export class Playback {
       }
       // Audio and subtitles picked on the details page go into the first PlaybackInfo.
       const pick = Versions.pick(it.Id, chosen?.Id);
-      await this.load(start, pick?.audio ?? null, pick?.subtitle ?? null);
+      // X-05: the tracks picked earlier in this series, when nothing else asked for some.
+      const series = it.SeriesId;
+      const mem = !pick && !this.trailer && series ? memoryPick(series, this.streams) : {};
+      // Accessibility: the server default swapped for its AD / plain / SDH twin (Versions); null leaves it to the server.
+      const a11yAudio = chosen ? Versions.defaultAudioStream(chosen)?.Index : undefined;
+      const a11ySub = chosen ? Versions.defaultSubtitleIndex(chosen) : -1;
+      const audio = pick?.audio ?? mem.audio ?? (chosen && a11yAudio !== chosen.DefaultAudioStreamIndex ? a11yAudio : undefined) ?? null;
+      const subtitle = pick?.subtitle ?? mem.subtitle ?? (chosen && a11ySub >= 0 && a11ySub !== chosen.DefaultSubtitleStreamIndex ? a11ySub : null);
+      await this.load(start, audio, subtitle);
+      const moved =
+        !!chosen && ((mem.audio ?? chosen.DefaultAudioStreamIndex) !== chosen.DefaultAudioStreamIndex || (mem.subtitle ?? Versions.defaultSubtitleIndex(chosen)) !== Versions.defaultSubtitleIndex(chosen));
+      if (moved && series && !toasted.has(series)) {
+        toasted.add(series);
+        showToast(t('tracks_applied'));
+      }
       if (this.trailer || seq !== this.seq) return;
       // Off the open path: a large BIF must not delay the segments or the next episode.
       void loadPreview(this.api, it, this.sourceId).then((p) => {
@@ -327,6 +346,7 @@ export class Playback {
   // track asked of the server, at the same position.
   selectAudio(index: number): void {
     if (index === this.audioIndex) return;
+    this.rememberTrack('audio', index);
     const embedded = this.audio().filter((s) => !s.IsExternal);
     const pos = embedded.findIndex((s) => s.Index === index);
     const native = this.player.audioTracks();
@@ -339,6 +359,7 @@ export class Playback {
 
   selectSubtitle(index: number): void {
     if (index === this.subtitleIndex) return;
+    this.rememberTrack('subtitle', index);
     const was = this.streams.find((s) => s.Index === this.subtitleIndex);
     const now = this.streams.find((s) => s.Index === index);
     this.subtitleIndex = index;
@@ -346,6 +367,13 @@ export class Playback {
     if (was?.DeliveryMethod === 'Encode' || (now && (this.burnText || !this.subtitleUrl(now)))) return this.reload();
     void this.applySubtitles();
     this.report('/Sessions/Playing/Progress', 'SubtitleTrackChange');
+  }
+
+  // X-05: a pick during an episode becomes the series default (-1 = subtitles off).
+  private rememberTrack(kind: 'audio' | 'subtitle', index: number): void {
+    const series = this.item?.SeriesId;
+    if (this.trailer || !series) return;
+    recordTrack(series, kind, this.streams.find((s) => s.Index === index && index >= 0) ?? null, this.streams);
   }
 
   private reload(): void {
