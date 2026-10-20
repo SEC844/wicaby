@@ -41,6 +41,9 @@
     <SettingRow {...choiceOf(t('segment_commercial'), skipOptions, settings.skipCommercial)} />
   {/if}
 </SettingsGroup>
+<SettingsGroup title={t('aniskip')} hint={t('aniskip_hint')}>
+  <SettingRow {...toggle(t('aniskip'), settings.aniskip)} />
+</SettingsGroup>
 <!-- X-05: where speed and aspect are remembered. -->
 <SettingsGroup title={t('remember_title')}>
   <SettingRow {...choiceOf(t('remember_speed'), scopes, settings.rememberSpeed)} />

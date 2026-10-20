@@ -1,8 +1,8 @@
 // Self-check for the TV web app (apps/tv-web, docs/tv-web.md): its own DEFLATE decoder against zlib, the ZIP reader
 // over Range requests on a real CBZ (stored and deflated pages, ComicInfo flags, deleted pages), the comic page order
-// and spreads, when the home rows reload by themselves, and, when apps/tv-web/dist holds a build, that the bundle
-// parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the book is served from
-// memory.
+// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, and, when
+// apps/tv-web/dist holds a build, that the bundle parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018
+// models). No network: the book and the AniSkip answers are served from memory.
 // Run: node tools/checks/tv-web-check.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -111,6 +111,29 @@ clock += PERIOD_MS - 1;
 r.done();
 clock += 1;
 assert.equal(r.due(), false, 'refresh: a return restarts the period');
+
+// --- AniSkip: the shared fixtures' saved answers, as the player's segments (no network) ---
+const aniskipFx = JSON.parse(fs.readFileSync(path.join(repo, 'tools', 'checks', 'fixtures', 'aniskip.json'), 'utf8'));
+const { aniskipSegments, mergeAniskip } = await load('src/lib/aniskip.ts');
+const anime = {
+  item: async (id) => ({ Id: id, ProviderIds: id === 'season-1' ? { MyAnimeList: '5114' } : {} }),
+};
+const asked = [];
+for (const [n, c] of aniskipFx.cases.filter((x) => x.response).entries()) {
+  globalThis.fetch = async (url) => (asked.push(String(url)), new Response(JSON.stringify(c.response), { status: c.response.statusCode ?? 200 }));
+  const ep = { Id: `ep-${n}`, Type: 'Episode', SeasonId: 'season-1', SeriesId: 'series-1', IndexNumber: n + 1, ParentIndexNumber: 1, RunTimeTicks: 1440 * 10_000_000 };
+  const s = await aniskipSegments(anime, ep);
+  if (!c.expect) assert.equal(s, null, `aniskip: ${c.name}`);
+  else {
+    const intro = s.ranges.find((r) => r.kind === 'Intro');
+    assert.deepEqual([intro?.startMs, intro?.endMs, s.credits], [c.expect.introStartMs, c.expect.introEndMs, c.expect.creditsStartMs], `aniskip: ${c.name}`);
+    const recap = s.ranges.find((r) => r.kind === 'Recap');
+    assert.deepEqual(recap ? [recap.startMs, recap.endMs] : null, c.expect.recap, `aniskip: ${c.name} recap`);
+  }
+}
+assert.ok(asked.every((u) => u.startsWith('https://api.aniskip.com/v2/skip-times/5114/')), 'aniskip: the season MAL id and episode');
+const merged = mergeAniskip({ ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }] }, { credits: 9, ranges: [{ kind: 'Intro', startMs: 3, endMs: 4 }, { kind: 'Recap', startMs: 5, endMs: 6 }] });
+assert.deepEqual(merged, { credits: 9, ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }, { kind: 'Intro', startMs: 3, endMs: 4 }] }, 'aniskip: the server recap wins');
 
 // --- The bundle, when built ---
 const assets = path.join(app, 'dist', 'assets');

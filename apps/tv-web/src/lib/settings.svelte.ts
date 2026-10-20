@@ -56,6 +56,8 @@ export const settings = {
   // Accessibility (core Core.preferSdh, Core.audioDescription): prefer, avoid or any.
   preferSdh: new Setting('prefer_sdh', false),
   audioDescription: new Setting<'prefer' | 'avoid' | 'any'>('audio_description', 'avoid'),
+  // Anime openings and endings from aniskip.com when the server has no markers (core AniSkip.enabled).
+  aniskip: new Setting('aniskip', false),
   // Interface
   language: new Setting<'auto' | 'fr' | 'en'>('language', 'auto'),
   clock: new Setting('clock', true),

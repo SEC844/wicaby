@@ -6,6 +6,7 @@ import type { BaseItem, MediaSource, MediaStream } from '$shared/models';
 import { caps } from '../platform/caps';
 import { onWifi } from '../platform/index';
 import type { VideoPlayer } from '../platform/player';
+import { aniskipSegments, mergeAniskip } from './aniskip';
 import type { Api } from './api';
 import { deviceProfile } from './device-profile';
 import { t } from './i18n.svelte';
@@ -175,7 +176,17 @@ export class Playback {
         if (seq === this.seq && !this.stopped) this.preview = p;
         else p?.release();
       });
-      this.segments = this.api.isEmby ? embySegments(it.Chapters) : jellyfinSegments(await this.api.mediaSegments(it.Id).catch(() => []));
+      const fromServer = this.api.isEmby ? embySegments(it.Chapters) : jellyfinSegments(await this.api.mediaSegments(it.Id).catch(() => []));
+      this.segments = fromServer;
+      // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
+      if (settings.aniskip.value && it.Type === 'Episode' && fromServer.credits === undefined && !fromServer.ranges.some((r) => r.kind === 'Intro')) {
+        void aniskipSegments(this.api, it).then(
+          (a) => {
+            if (a && seq === this.seq && !this.stopped) this.segments = mergeAniskip(fromServer, a);
+          },
+          () => {},
+        );
+      }
       this.next = (await this.nextFor(it)) ?? null;
     } catch (e) {
       if (seq === this.seq) this.error = e instanceof Error && e.message ? e.message : t('playback_error');
