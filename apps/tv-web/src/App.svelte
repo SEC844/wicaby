@@ -3,13 +3,15 @@
   import { onMount } from 'svelte';
   import AlertDialog from './components/AlertDialog.svelte';
   import Screen from './components/Screen.svelte';
+  import Screensaver from './components/Screensaver.svelte';
   import Toast from './components/Toast.svelte';
   import { move, pressDown, pressUp } from './lib/focus';
   import { t } from './lib/i18n.svelte';
+  import { idle, poke } from './lib/idle.svelte';
   import { music, stopMusic } from './lib/music.svelte';
   import { handleBack, nav, stack } from './lib/nav.svelte';
   import { closeAlert, overlay, showAlert } from './lib/overlay.svelte';
-  import { prefs } from './lib/session.svelte';
+  import { api, prefs } from './lib/session.svelte';
   import { settings } from './lib/settings.svelte';
   import { applyTheme } from './lib/theme';
   import { exitApp } from './platform';
@@ -60,6 +62,15 @@
   onMount(() => {
     // A held arrow repeats faster than slow sets paint: one move per frame, so focus never runs ahead of the screen.
     let moved = false;
+    // Any press wakes the screensaver, and only wakes it (Chrome.kt Idle).
+    const onAnyKey = (e: KeyboardEvent) => {
+      poke();
+      if (!idle.saver) return;
+      idle.saver = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener('keydown', onAnyKey, true);
     const onKey = (e: KeyboardEvent) => {
       const key = keyOf(e);
       if (!key) return;
@@ -88,7 +99,18 @@
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKeyUp);
+    // ScreensaverHost: on Home, after Settings > Appearance's delay without a press; the now-playing screen turns
+    // ambient after 2 minutes while music plays (Ambient.kt AMBIENT_AFTER_MS).
+    const saverTimer = setInterval(() => {
+      if (idle.saver || overlay.alert) return;
+      const top = stack[stack.length - 1]?.route.name;
+      const idleMs = Date.now() - idle.last;
+      const min = settings.screensaverMin.value;
+      if ((top === 'main' && min > 0 && idleMs > min * 60_000) || (top === 'nowPlaying' && music.session?.playing && idleMs > 120_000)) idle.saver = true;
+    }, 5000);
     return () => {
+      clearInterval(saverTimer);
+      window.removeEventListener('keydown', onAnyKey, true);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp);
     };
@@ -131,4 +153,5 @@
   </Screen>
 {/each}
 {#if overlay.alert}<AlertDialog alert={overlay.alert} />{/if}
+{#if idle.saver && api()}<Screensaver api={api()!} />{/if}
 <Toast />

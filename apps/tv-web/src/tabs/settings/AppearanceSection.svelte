@@ -1,15 +1,35 @@
 <script lang="ts">
-  // Android TV AppearanceSection (Settings.kt): the theme cards (each drawn in its own theme), the accent and the
-  // clock. No screensaver group yet.
+  // Android TV AppearanceSection (Settings.kt): the theme cards (each drawn in its own theme), the accent, the clock
+  // and the screensaver (ScreensaverRow, ScreensaverSourceRows: its delay, what it shows, from which album).
   import Icon from '../../components/Icon.svelte';
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
-  import { toggle } from '../../components/settings/rows';
+  import { choice, toggle } from '../../components/settings/rows';
+  import type { BaseItem } from '$shared/models';
+  import type { Api } from '../../lib/api';
+  import { useLoad } from '../../lib/load.svelte';
+  import { photoAlbums } from '../../lib/photos.svelte';
   import ThemeCards from '../../components/ThemeCards.svelte';
   import { focusable } from '../../lib/focus';
   import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { palette } from '../../lib/theme';
+
+  let { api, views }: { api: Api; views: BaseItem[] } = $props();
+
+  const MINS = [0, 2, 5, 10, 15, 30];
+  const SOURCES = ['backdrops', 'photos', 'memories'] as const;
+  // Every photo library, then its albums ("Library · Album").
+  const albums = useLoad(
+    () => (settings.screensaverSource.value === 'backdrops' ? 'saver-albums-off' : 'saver-albums'),
+    async () => {
+      if (settings.screensaverSource.value === 'backdrops') return [];
+      const libs = views.filter((v) => v.CollectionType === 'photos' || v.CollectionType === 'homevideos');
+      const lists = await Promise.all(libs.map(async (lib) => [[lib.Id, lib.Name], ...(await photoAlbums(api, lib.Id).catch(() => [])).map((a) => [a.Id, `${lib.Name} · ${a.Name}`])]));
+      return lists.flat() as [string, string][];
+    },
+  );
+  const albumIds = $derived(['', ...(albums.value ?? []).map(([id]) => id)]);
 </script>
 
 <SettingsGroup title={t('settings_theme')}>
@@ -34,6 +54,28 @@
 </SettingsGroup>
 <SettingsGroup title={t('group_display')}>
   <SettingRow {...toggle(t('show_clock'), settings.clock)} />
+</SettingsGroup>
+<SettingsGroup title={t('group_screensaver')}>
+  <SettingRow
+    {...choice(t('screensaver_after'), MINS.map((m) => (m === 0 ? t('never') : t('minutes', m))), Math.max(0, MINS.indexOf(settings.screensaverMin.value)), (i) =>
+      (settings.screensaverMin.value = MINS[i]),
+    )}
+  />
+  <SettingRow
+    {...choice(
+      t('screensaver_source'),
+      [t('screensaver_source_backdrops'), t('screensaver_source_photos'), t('screensaver_source_memories')],
+      Math.max(0, SOURCES.indexOf(settings.screensaverSource.value)),
+      (i) => (settings.screensaverSource.value = SOURCES[i]),
+    )}
+  />
+  {#if settings.screensaverSource.value !== 'backdrops'}
+    <SettingRow
+      {...choice(t('screensaver_album'), [t('screensaver_album_all'), ...(albums.value ?? []).map(([, name]) => name)], Math.max(0, albumIds.indexOf(settings.screensaverAlbum.value)), (i) =>
+        (settings.screensaverAlbum.value = albumIds[i]),
+      )}
+    />
+  {/if}
 </SettingsGroup>
 
 <style>

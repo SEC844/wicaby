@@ -127,19 +127,22 @@ const memoryCache = new Map<string, Promise<MemoryGroup[]>>();
 // Today's month and day in earlier years, across every photo library: /Years once, then one premiere-date range per
 // year (the 10 nearest, three in flight), kept by the desktop's memories() so the Feb 29 rule holds. Once per server,
 // user and day.
-export function homeMemories(api: Api): Promise<MemoryGroup[]> {
+// parentId: an album or library only (the screensaver's Memories source).
+export function homeMemories(api: Api, parentId?: string): Promise<MemoryGroup[]> {
   const today = localDay();
-  const key = `${api.address}|${api.userId}|${today}`;
+  const key = `${api.address}|${api.userId}|${today}|${parentId ?? ''}`;
   let p = memoryCache.get(key);
   if (!p) {
     p = memoryQuery<BaseItem>(
       async () =>
-        (await api.get<ItemsResult>('/Years', { UserId: api.userId, Recursive: true, IncludeItemTypes: 'Photo', SortBy: 'SortName', SortOrder: 'Descending' })).Items.map(
-          (y) => y.ProductionYear ?? Number(y.Name),
-        ).filter((y) => y > 0),
+        (
+          await api.get<ItemsResult>('/Years', { UserId: api.userId, ParentId: parentId, Recursive: true, IncludeItemTypes: 'Photo', SortBy: 'SortName', SortOrder: 'Descending' })
+        ).Items.map((y) => y.ProductionYear ?? Number(y.Name)).filter((y) => y > 0),
       async (min, max) =>
         (
-          await photoItems(api, { Recursive: true, IncludeItemTypes: 'Photo', MinPremiereDate: min, MaxPremiereDate: max, SortBy: 'PremiereDate', SortOrder: 'Ascending', Limit: 90 })
+          await photoItems(api, {
+            ParentId: parentId, Recursive: true, IncludeItemTypes: 'Photo', MinPremiereDate: min, MaxPremiereDate: max, SortBy: 'PremiereDate', SortOrder: 'Ascending', Limit: 90,
+          })
         ).Items.filter((i) => i.ImageTags?.Primary),
       (item) => toAsset(item).takenAt,
       today,
@@ -162,4 +165,17 @@ export function memoryTimeline(group: MemoryGroup): string {
   tl.complete = true;
   timelines.set(key, tl);
   return key;
+}
+
+// The screensaver's photo sources (photos spec PH-07, core randomPhotos and memoryPhotos): 60 random stills under an
+// album or library (every library without one), or today's photos in earlier years, else random stills, so the
+// screensaver never goes black.
+export async function randomPhotos(api: Api, parentId?: string, limit = 60): Promise<Photo[]> {
+  const r = await photoItems(api, { ParentId: parentId, Recursive: true, IncludeItemTypes: 'Photo', SortBy: 'Random', Limit: limit });
+  return r.Items.filter((i) => i.ImageTags?.Primary).map((item) => ({ asset: toAsset(item), item }));
+}
+
+export async function memoryPhotos(api: Api, parentId?: string, limit = 60): Promise<Photo[]> {
+  const found = (await homeMemories(api, parentId).catch(() => [])).flatMap((g) => g.photos).slice(0, limit);
+  return found.length ? found : randomPhotos(api, parentId, limit);
 }

@@ -93,7 +93,7 @@
           {#if section === 'general'}
             <GeneralSection />
           {:else if section === 'appearance'}
-            <AppearanceSection />
+            <AppearanceSection {api} {views} />
           {:else if section === 'home'}
             <HomeSection {views} {tabs} />
           {:else if section === 'playback'}

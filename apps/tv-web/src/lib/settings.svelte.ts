@@ -67,6 +67,11 @@ export const settings = {
   // The Home hint (OLED or Cinéma for a living room), shown once while the TV is on the default theme.
   themeHintShown: new Setting('theme_hint_shown', false),
   accent: new Setting('accent', 0), // index into the theme's accents (lib/theme.ts)
+  // The in-app screensaver: after that many idle minutes on Home (0 = never), showing film backdrops, photos or
+  // "On this day" from an album or library ("" = every photo). Photos spec PH-07.
+  screensaverMin: new Setting('screensaver_min', 0),
+  screensaverSource: new Setting<'backdrops' | 'photos' | 'memories'>('screensaver_source', 'backdrops'),
+  screensaverAlbum: new Setting('screensaver_album', ''),
   rowHero: new Setting('row_hero', true),
   // #8: the hero carousel without watched titles (all of them when everything is watched).
   heroHideWatched: new Setting('hero_hide_watched', false),
