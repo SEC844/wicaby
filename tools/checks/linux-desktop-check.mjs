@@ -64,13 +64,15 @@ assert.equal(linuxDisplayTool({ XDG_SESSION_TYPE: 'tty' }), null);
 
 // ---- Ozone backend (WICABY_OZONE) ----
 const kde = { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' };
-assert.equal(ozonePlatform(kde), 'x11', 'Wayland session with XWayland: X11 so mpv can embed');
+assert.equal(ozonePlatform(kde), 'wayland', 'Wayland session: native Wayland even with XWayland (#14)');
 assert.equal(ozonePlatform({ XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' }), 'wayland', 'no X server: native Wayland');
+assert.equal(ozonePlatform({ XDG_SESSION_TYPE: 'x11', WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' }), 'x11', 'X11 session: X11');
 assert.equal(ozonePlatform({ DISPLAY: ':0' }), 'x11');
 assert.equal(ozonePlatform({}), 'x11');
 assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: ' Wayland ' }), 'wayland');
 assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'auto' }), 'auto');
-assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'bogus' }), 'x11', 'unknown value: the default');
+assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'bogus' }), 'wayland', 'unknown value: the default');
+assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'x11' }), 'x11');
 assert.equal(nativeWayland(kde, 'x11'), false);
 assert.equal(nativeWayland(kde, 'wayland'), true);
 assert.equal(nativeWayland(kde, 'auto'), true);

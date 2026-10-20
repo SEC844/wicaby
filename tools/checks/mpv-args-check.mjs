@@ -109,6 +109,8 @@ assert.deepEqual(out({}, 'linux', '0.41.0'), [
   '--tone-mapping=spline', '--hdr-compute-peak=yes', '--hdr-peak-percentile=99.995', '--hdr-contrast-recovery=0.30', '--gamut-mapping-mode=perceptual',
   '--ao=pipewire,pulse,alsa', '--audio-exclusive=no', '--deinterlace=auto',
 ]);
+// mpv's own window (native Wayland, #14): no X11 context forced.
+assert.ok(!mpvOutputArgs({ hwdec: 'auto-safe', useMpvConfig: false, audioExclusive: false }, 'linux', '0.41.0', false).some((a) => a.startsWith('--gpu-context')));
 assert.equal(hw('vaapi', 'linux'), '--hwdec=vaapi,auto-safe');
 assert.equal(hw('nvdec', 'linux'), '--hwdec=nvdec,auto-safe');
 assert.equal(hw('vulkan', 'linux'), '--hwdec=vulkan,auto-safe');

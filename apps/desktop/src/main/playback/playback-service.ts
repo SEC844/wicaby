@@ -301,8 +301,6 @@ export class PlaybackService extends EventEmitter {
     const pref = requested ?? (byType !== 'default' ? byType : pb.player);
     const hasMpv = Boolean(this.deps.mpvExe());
     if (pref === 'html') return 'html';
-    // Music plays windowless, so it keeps mpv on native Wayland.
-    if (!this.deps.mpvEmbeds && item.MediaType !== 'Audio') return 'html';
     if (pref === 'mpv' && !hasMpv) {
       this.deps.onMessage('info', t('main.playback.mpvMissing'));
       return 'html';
@@ -389,7 +387,7 @@ export class PlaybackService extends EventEmitter {
 
     // A file source cannot be transcoded (server-caps.ts transcode: false): mpv whenever there is one.
     const fileSource = session?.server.kind === 'files';
-    const kind = fileSource && opts.player !== 'html' && deps.mpvExe() && deps.mpvEmbeds ? 'mpv' : this.choosePlayer(opts.player, item);
+    const kind = fileSource && opts.player !== 'html' && deps.mpvExe() ? 'mpv' : this.choosePlayer(opts.player, item);
     if (online && item.Type === 'TvChannel') {
       this.memory.scopeCtx = { global: true };
       return this.lives.openLive(seq, item, kind, { ...opts, maxBitrate: this.qualityCap });
@@ -801,7 +799,7 @@ export class PlaybackService extends EventEmitter {
         ? new HtmlPlayer(deps.windows)
         : audio
           ? await MpvAudioPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value)
-          : await MpvPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value, deps.mpvConfigDir);
+          : await MpvPlayer.create(deps.mpvExe()!, deps.windows, () => deps.settings.value, deps.mpvConfigDir, !deps.mpvEmbeds);
     this.attach(player);
     this.player = player;
     this.watchMinimize(player);
@@ -1082,6 +1080,8 @@ export class PlaybackService extends EventEmitter {
   }
 
   private stillWatchingDue(): boolean {
+    // mpv's own window (native Wayland) has no OSD to ask in, and its keys never reach lastInputAt.
+    if (this.player instanceof MpvPlayer && this.player.detached) return false;
     return this.autoAdvanced >= STILL_WATCHING_EPISODES || Date.now() - this.lastInputAt >= STILL_WATCHING_IDLE_MS;
   }
 

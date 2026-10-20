@@ -162,6 +162,9 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
   private loading = false;
   private firstFrame = false;
   private cache: TimeUpdate['cache'];
+  private fullscreen = false;
+  // Detached (native Wayland, #14): mpv's own window with its own controls; the main window was visible before it.
+  private mainWasShown = false;
 
   private constructor(
     exe: string,
@@ -170,28 +173,32 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
     private readonly passthrough: boolean,
     // A user mpv.conf owns tone mapping and subtitle looks; Wicaby then leaves those options alone.
     private readonly tuneHdr: boolean,
+    readonly detached: boolean,
   ) {
     super();
     this.ctl = new MpvController(exe);
   }
 
   get hostWindow(): BaseWindow | null {
-    return this.windows.playback?.video ?? null;
+    // Detached: the hidden main window still says which display to switch the refresh rate on.
+    return this.detached ? this.windows.main : (this.windows.playback?.video ?? null);
   }
 
-  static async create(exe: string, windows: WindowManager, settings: () => Settings, configDir: string): Promise<MpvPlayer> {
+  // detached: native Wayland has no X11 window for --wid, so mpv opens its own window, with its own on-screen
+  // controller and keys, and Wicaby's main window steps aside until it closes. No OSD window in that mode.
+  static async create(exe: string, windows: WindowManager, settings: () => Settings, configDir: string, detached = false): Promise<MpvPlayer> {
     const p = settings().playback;
     // Linux runs the system mpv: 0.37 or newer, newer options gated (probed once per path, index.ts
     // already did at startup). Windows ships its own mpv and never waits for the probe.
     const version = process.platform === 'win32' ? null : await mpvVersion(exe);
     if (process.platform !== 'win32' && !mpvAtLeast(version, 37)) throw new Error(t('errors.playback.mpvTooOld', { version: String(version), min: '0.37' }));
-    const player = new MpvPlayer(exe, windows, settings, p.hdrPassthrough, !p.useMpvConfig);
-    const pw = windows.createPlaybackWindows(p.startFullscreen);
-    pw.osd.on('closed', () => {
+    const player = new MpvPlayer(exe, windows, settings, p.hdrPassthrough, !p.useMpvConfig, detached);
+    const pw = detached ? null : windows.createPlaybackWindows(p.startFullscreen);
+    pw?.osd.on('closed', () => {
       if (!player.destroyed) player.emit('closed');
     });
     // An OSD crash leaves nothing to control playback with: handled as a close (live: ledger sweep, §8.1).
-    pw.osd.webContents.on('render-process-gone', () => {
+    pw?.osd.webContents.on('render-process-gone', () => {
       if (!player.destroyed) player.emit('closed');
     });
     const userConf = path.join(configDir, 'mpv.conf');
@@ -199,20 +206,25 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
     const extra = parseMpvArgs(p.mpvArgs);
     if (extra.rejected.length) log.warn(`ignored mpv arguments: ${extra.rejected.join(' ')}`);
     // Embedding and control: neither the user's mpv.conf nor a profile may change these.
+    const control = pw
+      ? [
+          `--wid=${hwndOf(pw.video)}`,
+          '--osc=no',
+          '--osd-level=0',
+          '--osd-bar=no',
+          '--input-default-bindings=no',
+          '--input-vo-keyboard=no',
+          '--input-cursor=no',
+          '--cursor-autohide=no',
+        ]
+      : ['--title=Wicaby', '--osc=yes', '--input-default-bindings=yes', '--input-vo-keyboard=yes', ...(p.startFullscreen ? ['--fullscreen=yes'] : [])];
     const fixed = [
-      `--wid=${hwndOf(pw.video)}`,
+      ...control,
       '--idle=yes',
       '--force-window=yes',
       '--keep-open=no',
       '--terminal=yes',
       '--msg-level=all=warn',
-      '--osc=no',
-      '--osd-level=0',
-      '--osd-bar=no',
-      '--input-default-bindings=no',
-      '--input-vo-keyboard=no',
-      '--input-cursor=no',
-      '--cursor-autohide=no',
       '--ytdl=no',
       '--load-scripts=no',
       '--sub-auto=no',
@@ -233,7 +245,7 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
       '--network-timeout=20',
       '--embeddedfonts=yes',
       `--sub-fonts-dir=${ensureSubFonts(configDir)}`,
-      ...mpvOutputArgs(p, process.platform, version),
+      ...mpvOutputArgs(p, process.platform, version, !detached),
       `--volume-max=${p.volumeBoost ? 150 : 100}`,
       '--background-color=#000000',
       // dts-hd already covers the DTS core. WASAPI switches to exclusive mode for any bitstream.
@@ -247,7 +259,10 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
     player.audioDevice = p.audioDevice;
     try {
       await player.ctl.start(args);
-      windows.onPlaybackSettled = () => player.scheduleGeometryCheck();
+      if (detached) {
+        player.mainWasShown = Boolean(windows.main?.isVisible());
+        windows.main?.hide();
+      } else windows.onPlaybackSettled = () => player.scheduleGeometryCheck();
       player.wire();
       await player.applySettings();
     } catch (err) {
@@ -358,7 +373,9 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
       this.hung = true;
       this.emit('hung');
     });
-    ctl.on('exit', () => {
+    ctl.on('exit', (code: number | null) => {
+      // Its own window closed, or q: the user left playback.
+      if (this.detached && code === 0 && !this.destroyed) return void this.emit('closed');
       setTimeout(() => {
         if (!this.destroyed && !this.hung) this.emit('failure', t('errors.playback.mpvExited'));
       }, 300);
@@ -384,6 +401,7 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
       'frame-drop-count',
       'video-bitrate',
       'demuxer-cache-state',
+      'fullscreen',
     ];
     for (const p of props) void ctl.observe(p).catch(() => undefined);
   }
@@ -430,6 +448,9 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
     switch (name) {
       case 'time-pos':
         if (typeof value === 'number' && !this.loading) this.position = value * 1000;
+        break;
+      case 'fullscreen':
+        this.fullscreen = value === true;
         break;
       case 'duration':
         if (typeof value === 'number' && !this.loading) this.duration = value * 1000;
@@ -793,11 +814,12 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
   }
 
   setFullscreen(value: boolean): void {
-    this.windows.setPlaybackFullscreen(value);
+    if (this.detached) void this.ctl.set('fullscreen', value).catch(() => undefined);
+    else this.windows.setPlaybackFullscreen(value);
   }
 
   isFullscreen(): boolean {
-    return this.windows.isPlaybackFullscreen();
+    return this.detached ? this.fullscreen : this.windows.isPlaybackFullscreen();
   }
 
   // The OSD's veil fades the paused picture to black (OsdWindow.svelte), the main window comes up and paints under
@@ -826,5 +848,10 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
     this.removeAllListeners();
     await this.ctl.quit();
     this.windows.destroyPlaybackWindows();
+    const main = this.windows.main;
+    if (this.mainWasShown && !this.windows.inTray && main && !main.isDestroyed()) {
+      main.show();
+      main.focus();
+    }
   }
 }

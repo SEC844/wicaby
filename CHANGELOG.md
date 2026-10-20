@@ -18,6 +18,16 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-10-20
+
+Android TV 0.11.1 (versionCode 38), Android mobile 0.11.1 (versionCode 35); no Android change.
+
+### Fixed
+
+- Linux: in a Wayland session Wicaby now runs as a native Wayland app by default, since under XWayland the
+  window never showed on hybrid Intel + NVIDIA setups (#14). Video plays in mpv's own window there, with
+  mpv's controls, instead of the built-in player; `WICABY_OZONE=x11` brings back the embedded player.
+
 ## [0.11.0] - 2026-10-20
 
 Android TV 0.11.0 (versionCode 37), Android mobile 0.11.0 (versionCode 34).

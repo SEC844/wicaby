@@ -25,7 +25,7 @@ export interface PlaybackDeps {
   display: DisplayModeSwitcher;
   hdr: HdrModeSwitcher;
   mpvExe: () => string | null;
-  // False when Electron runs native Wayland: mpv's --wid needs an X11 window, so video goes to the built-in player.
+  // False when Electron runs native Wayland: mpv's --wid needs an X11 window, so video plays in mpv's own window.
   mpvEmbeds: boolean;
   mpvConfigDir: string;
   deviceId: string;

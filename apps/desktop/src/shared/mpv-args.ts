@@ -154,7 +154,7 @@ export function mpvAtLeast(version: string | null, minor: number): boolean {
 // Renderer, decoder, colour and audio-output arguments for this platform. Windows ships its
 // own recent mpv (vendor/mpv): its arguments never depend on the version. Elsewhere the
 // system mpv may be older, so newer options are dropped below the release that added them.
-export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExclusive: boolean; smoothMotion?: boolean }, platform: string, version: string | null): string[] {
+export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExclusive: boolean; smoothMotion?: boolean }, platform: string, version: string | null, embedded = true): string[] {
   const win = platform === 'win32';
   const has = (minor: number) => win || mpvAtLeast(version, minor);
   const hwdec = win
@@ -167,8 +167,9 @@ export function mpvOutputArgs(p: { hwdec: HwDec; useMpvConfig: boolean; audioExc
       p.hwdec === 'no' || p.hwdec === 'auto-safe' ? p.hwdec : p.hwdec === 'd3d11va' ? 'auto-safe' : `${p.hwdec},auto-safe`;
   return [
     '--vo=gpu-next',
-    // Linux: --wid is an X11 window (X11 or XWayland, see index.ts), so only X11 contexts can embed.
-    ...(win ? ['--gpu-api=d3d11'] : ['--gpu-api=auto', '--gpu-context=x11vk,x11egl']),
+    // Linux: --wid is an X11 window (X11 or XWayland, see index.ts), so only X11 contexts can embed; mpv's own
+    // window (native Wayland) picks its context.
+    ...(win ? ['--gpu-api=d3d11'] : ['--gpu-api=auto', ...(embedded ? ['--gpu-context=x11vk,x11egl'] : [])]),
     `--hwdec=${hwdec}`,
     // auto: PQ/BT.2020 swapchain at the display's peak when Windows HDR is on, SDR otherwise.
     // "no" would tone-map to SDR even on an HDR desktop (dim, flat). The passthrough setting

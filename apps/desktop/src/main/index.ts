@@ -78,10 +78,10 @@ if (hardwareAccelerationSetting()) {
 } else {
   app.disableHardwareAcceleration();
 }
-// mpv embeds into an X11 window id (--wid): X11 (XWayland in a Wayland session) unless WICABY_OZONE says otherwise.
+// Native Wayland in a Wayland session, X11 elsewhere, unless WICABY_OZONE says otherwise (display-mode-linux.ts).
 const ozone = process.platform === 'linux' ? ozonePlatform(process.env) : null;
 if (ozone && ozone !== 'auto') app.commandLine.appendSwitch('ozone-platform', ozone);
-// Native Wayland windows have no X11 id: video then plays in the built-in player (playback-service.ts).
+// Native Wayland windows have no X11 id for mpv's --wid: video then plays in mpv's own window (mpv-player.ts).
 const mpvEmbeds = !ozone || !nativeWayland(process.env, ozone);
 
 function hardwareAccelerationSetting(): boolean {
@@ -256,7 +256,7 @@ async function bootstrap(): Promise<void> {
       mpvVer = mpvPath ? mpvVersion(mpvPath) : Promise.resolve(null);
     }
   });
-  log.info(`mpv: ${mpvPath ?? 'not found'}${mpvEmbeds ? '' : ' (native Wayland: video uses the built-in player)'}`);
+  log.info(`mpv: ${mpvPath ?? 'not found'}${mpvEmbeds ? '' : ' (native Wayland: video in its own mpv window)'}`);
 
   const toast = (kind: 'info' | 'success' | 'error', message: string, ms?: number) => windows.broadcast(Channels.toast, { kind, message, ms });
 
