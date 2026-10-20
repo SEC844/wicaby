@@ -34,6 +34,15 @@ function readDeviceName(): string {
       return 'Samsung TV';
     }
   }
-  if (platform === 'webos') return 'LG TV';
+  if (platform === 'webos') {
+    // PalmSystem.deviceInfo: the webOS system's JSON, with the set's modelName ("OLED55C1PUB").
+    try {
+      const info = (window as { PalmSystem?: { deviceInfo?: string } }).PalmSystem?.deviceInfo;
+      const model = info ? (JSON.parse(info) as { modelName?: string }).modelName : '';
+      return model ? `LG ${model}` : 'LG TV';
+    } catch {
+      return 'LG TV';
+    }
+  }
   return 'TV';
 }
