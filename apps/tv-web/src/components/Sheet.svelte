@@ -13,8 +13,11 @@
   let card: HTMLDivElement;
   const screen = getContext<number>(SCREEN);
 
-  function toBody(node: HTMLElement): void {
+  // Removed on destroy by hand: when the whole screen goes (Switch User resets the stack), Svelte removes the screen's
+  // own nodes only, and this one no longer is one.
+  function toBody(node: HTMLElement) {
     document.body.appendChild(node);
+    return { destroy: () => node.remove() };
   }
 
   onMount(() => {
