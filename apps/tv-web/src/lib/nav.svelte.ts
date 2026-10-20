@@ -17,6 +17,7 @@ export type Route =
   | { name: 'musicArtist'; id: string; title: string; serverId?: string }
   | { name: 'musicLibrary'; id: string; title: string; mode: 'albums' | 'artists' | 'songs'; serverId?: string }
   | { name: 'nowPlaying' }
+  | { name: 'history' }
   // A Live TV channel full screen; [list] the zap order (channel ids) it was opened from, else the whole lineup.
   | { name: 'live'; id: string; list?: string[] }
   // Photos: an album's own timeline, and the viewer over a loaded timeline (lib/photos.svelte.ts timelineByKey).

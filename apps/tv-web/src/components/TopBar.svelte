@@ -139,6 +139,8 @@
     const i = order.indexOf(key) + (e.detail === 'left' ? -1 : 1);
     e.preventDefault();
     if (i >= 0 && i < order.length) setFocus(tabEl(order[i]));
+    // Past the last tab: the now-playing button or the avatar (Chrome.kt: the bar's right side is focusable).
+    else if (i === order.length) setFocus(right.querySelector<HTMLElement>('button'));
   }
 
 

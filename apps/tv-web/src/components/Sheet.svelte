@@ -7,7 +7,8 @@
   import { focusFirst, focused, setFocus } from '../lib/focus';
   import { onBack, SCREEN } from '../lib/nav.svelte';
 
-  let { width = 460, onclose, children }: { width?: number; onclose: () => void; children: Snippet } = $props();
+  // corner: under the top bar's avatar (ProfileMenu: alignment TopEnd, 76 dp down, 32 dp in), else centred.
+  let { width = 460, corner = false, onclose, children }: { width?: number; corner?: boolean; onclose: () => void; children: Snippet } = $props();
 
   let card: HTMLDivElement;
   const screen = getContext<number>(SCREEN);
@@ -32,7 +33,7 @@
   });
 </script>
 
-<div class="scrim" data-focus-trap use:toBody>
+<div class="scrim" class:corner data-focus-trap use:toBody>
   <div class="card" bind:this={card} style="width:{width}rem">
     {@render children()}
   </div>
@@ -50,6 +51,12 @@
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.72);
+  }
+  .scrim.corner {
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 76rem 32rem 0 0;
+    background: rgba(0, 0, 0, 0.5);
   }
   .card {
     padding: 28rem;

@@ -16,6 +16,7 @@
   import { keyOf } from './platform/keys';
   import Detail from './screens/Detail.svelte';
   import Folder from './screens/Folder.svelte';
+  import History from './screens/History.svelte';
   import LivePlayer from './screens/LivePlayer.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
@@ -122,6 +123,8 @@
       <Reader id={entry.route.id} fromStart={entry.route.fromStart} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'nowPlaying'}
       <NowPlaying />
+    {:else if entry.route.name === 'history'}
+      <History />
     {:else if entry.route.name === 'folder'}
       <Folder id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {/if}

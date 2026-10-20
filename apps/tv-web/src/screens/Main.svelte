@@ -4,13 +4,13 @@
   // and focus; Back from the content goes up to the bar, from the bar the app shell asks to quit.
   import type { BaseItem } from '$shared/models';
   import { getContext, onMount } from 'svelte';
+  import ProfileMenu from '../components/ProfileMenu.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { focused, setFocus } from '../lib/focus';
   import { runHomeRefresh } from '../lib/auto-refresh';
   import { t } from '../lib/i18n.svelte';
   import { clearCache, useLoad } from '../lib/load.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
-  import { showAlert } from '../lib/overlay.svelte';
   import { api, prefs, signOut } from '../lib/session.svelte';
   import { settings, tabBarPref } from '../lib/settings.svelte';
   import { browsable, movableTabs, tabBar, type TopTab } from '../lib/tabs';
@@ -62,17 +62,11 @@
     nav.reset({ name: 'login', server: session.server });
   }
 
+  // Android ProfileMenu: OK on the avatar.
+  let profileOpen = $state(false);
+  const avatarUrl = $derived(me.value ? client.userImage(me.value, 160) : undefined);
   function openProfile(): void {
-    showAlert({
-      title: session.userName,
-      message: session.server.name,
-      actions: [
-        { label: t('switch_user'), run: () => leave(false) },
-        { label: t('switch_server'), run: () => nav.reset({ name: 'servers' }) },
-        { label: t('tab_settings'), run: () => { select('settings'); requestAnimationFrame(() => setFocus(selectedTab())); } },
-        { label: t('sign_out'), destructive: true, run: () => leave(true) },
-      ],
-    });
+    profileOpen = true;
   }
 
   const screen = getContext<number>(SCREEN);
@@ -116,10 +110,26 @@
     visible={barFocused || !scrolled}
     showClock={settings.clock.value}
     userName={session.userName}
-    userImage={me.value ? client.userImage(me.value, 160) : undefined}
+    userImage={avatarUrl}
     onselect={select}
     onavatar={openProfile}
   />
+  {#if profileOpen}
+    <ProfileMenu
+      name={session.userName}
+      server={session.server.name}
+      image={avatarUrl}
+      onclose={() => (profileOpen = false)}
+      onswitchuser={() => leave(false)}
+      onswitchserver={() => nav.reset({ name: 'servers' })}
+      onhistory={() => nav.push({ name: 'history' })}
+      onsettings={() => {
+        select('settings');
+        requestAnimationFrame(() => setFocus(selectedTab()));
+      }}
+      onsignout={() => leave(true)}
+    />
+  {/if}
 </div>
 
 <style>
