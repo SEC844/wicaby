@@ -98,6 +98,24 @@ export function keepAwake(on: boolean): void {
   }
 }
 
+// The TV's volume, for a controller's SetVolume, VolumeUp… (X-06): Tizen's tvaudiocontrol; webOS lets an app set none.
+export const canSetVolume = (): boolean => platform === 'tizen' && !!(tizen as unknown as { tvaudiocontrol?: unknown } | undefined)?.tvaudiocontrol;
+
+export function setVolume(command: string, level?: number): void {
+  if (!canSetVolume()) return;
+  const a = (tizen as unknown as { tvaudiocontrol: { setVolume(v: number): void; setVolumeUp(): void; setVolumeDown(): void; setMute(on: boolean): void; isMute(): boolean } }).tvaudiocontrol;
+  try {
+    if (command === 'SetVolume' && level !== undefined) a.setVolume(Math.max(0, Math.min(100, Math.round(level))));
+    else if (command === 'VolumeUp') a.setVolumeUp();
+    else if (command === 'VolumeDown') a.setVolumeDown();
+    else if (command === 'Mute') a.setMute(true);
+    else if (command === 'Unmute') a.setMute(false);
+    else if (command === 'ToggleMute') a.setMute(!a.isMute());
+  } catch {
+    // Refused (no privilege, a TV without the API): the controller's slider stays where it is.
+  }
+}
+
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {
   return platform === 'tizen' && avplayAvailable() ? new AvPlayer() : new HtmlPlayer(video);
 }

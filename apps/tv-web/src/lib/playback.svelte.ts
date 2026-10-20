@@ -41,8 +41,10 @@ export interface PlaybackOptions {
   // A trailer or bonus: from the start, nothing reported, no watched state, no next episode.
   trailer?: boolean;
   queue?: Queue;
-  // Where to start, whatever the resume point (a SyncPlay group's position).
+  // Where to start, whatever the resume point (a SyncPlay group's position, a controller's "Play on").
   startMs?: number;
+  // The audio and subtitle a controller asked for (X-06), over the details page's pick.
+  tracks?: Versions.TrackPick;
 }
 
 // The series whose remembered tracks were announced this session (once each, as Android's tracksToasted).
@@ -97,6 +99,7 @@ export class Playback {
   private offs: (() => void)[] = [];
   private readonly fromStart: boolean;
   private startAt: number | undefined;
+  private tracks: Versions.TrackPick | undefined;
   readonly trailer: boolean;
   queue: Queue | null;
 
@@ -109,6 +112,7 @@ export class Playback {
     this.itemId = itemId;
     this.fromStart = !!opts.fromStart;
     this.startAt = opts.startMs;
+    this.tracks = opts.tracks;
     this.trailer = !!opts.trailer;
     this.queue = opts.queue ?? null;
   }
@@ -163,7 +167,8 @@ export class Playback {
         if (typeof rate === 'number' && this.player.speeds.includes(rate)) this.rate = rate;
       }
       // Audio and subtitles picked on the details page go into the first PlaybackInfo.
-      const pick = Versions.pick(it.Id, chosen?.Id);
+      const pick = this.tracks ?? Versions.pick(it.Id, chosen?.Id);
+      this.tracks = undefined;
       // X-05: the tracks picked earlier in this series, when nothing else asked for some.
       const series = it.SeriesId;
       const mem = !pick && !this.trailer && series ? memoryPick(series, this.streams) : {};

@@ -11,6 +11,7 @@ import { buildQuery } from './api';
 import { deviceId } from './identity';
 import { nav } from './nav.svelte';
 import { reporter } from './reporter';
+import { setMusicTarget } from './remote-control';
 import { scrobbleListened, scrobbleNowPlaying } from './scrobble.svelte';
 
 const TICKS_PER_MS = 10_000;
@@ -295,11 +296,24 @@ export function playMusic(api: Api, items: BaseItem[], start = 0, shuffle = fals
   if (shuffle) s.toggleShuffle();
   music.session = s;
   s.start();
+  // X-06: a controller's commands reach the music while no video plays.
+  setMusicTarget({
+    pause: () => s.playing && s.playPause(),
+    unpause: () => s.playing || s.playPause(),
+    playPause: () => s.playPause(),
+    stop: stopMusic,
+    seek: (ms) => s.seek(ms),
+    next: () => s.next(),
+    previous: () => s.previous(),
+    audio: () => {},
+    subtitle: () => {},
+  });
 }
 
 export function stopMusic(): void {
   music.session?.release();
   music.session = null;
+  setMusicTarget(null);
 }
 
 // Something to show: a session with a track.

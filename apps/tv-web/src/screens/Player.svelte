@@ -42,6 +42,7 @@
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
   import { recall, remember } from '../lib/remembered';
+  import { setVideoTarget } from '../lib/remote-control';
   import { syncAvailable, syncplay } from '../lib/syncplay.svelte';
   import { trackName } from '../lib/track-memory';
 
@@ -52,7 +53,8 @@
     queue,
     serverId,
     startMs,
-  }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string; startMs?: number } = $props();
+    tracks,
+  }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string; startMs?: number; tracks?: { audio?: number; subtitle?: number } } = $props();
 
   // Android's own glyph for the chapters button (PlayerActivity.kt ChaptersIcon).
   const CHAPTERS_ICON = 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z';
@@ -474,10 +476,22 @@
     keepAwake(true);
     document.documentElement.classList.toggle('avplay', avplay);
     const player = createPlayer(video);
-    const p = new Playback(client, player, id, { fromStart, trailer, startMs, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
+    const p = new Playback(client, player, id, { fromStart, trailer, startMs, tracks, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
     pb = p;
     p.start();
     setFocus(sink);
+    // X-06: a controller's play, pause, seek, next and tracks reach this player.
+    setVideoTarget({
+      pause: () => togglePlay(false),
+      unpause: () => togglePlay(true),
+      playPause: () => togglePlay(),
+      stop: exit,
+      seek: (ms) => p.seek(ms),
+      next: () => void (p.next && advance(false)),
+      previous: () => p.previous(),
+      audio: (i) => p.selectAudio(i),
+      subtitle: (i) => p.selectSubtitle(i),
+    });
     const track = () => (controlsFocused = inControls());
     document.addEventListener('tvfocus', track);
     window.addEventListener('keydown', onKey, true);
@@ -494,6 +508,7 @@
       return false;
     });
     return () => {
+      setVideoTarget(null);
       stopBack();
       clearInterval(clockTimer);
       clearTimeout(scrubTimer);

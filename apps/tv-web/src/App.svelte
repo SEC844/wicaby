@@ -106,7 +106,7 @@
     {:else if entry.route.name === 'detail'}
       <Detail id={entry.route.id} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'player'}
-      <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} serverId={entry.route.serverId} startMs={entry.route.startMs} />
+      <Player id={entry.route.id} fromStart={entry.route.fromStart} trailer={entry.route.trailer} queue={entry.route.queue} serverId={entry.route.serverId} startMs={entry.route.startMs} tracks={entry.route.tracks} />
     {:else if entry.route.name === 'musicAlbum'}
       <MusicAlbum id={entry.route.id} title={entry.route.title} serverId={entry.route.serverId} />
     {:else if entry.route.name === 'musicArtist'}

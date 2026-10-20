@@ -8,7 +8,9 @@
   import TopBar from '../components/TopBar.svelte';
   import { focused, setFocus } from '../lib/focus';
   import { runHomeRefresh } from '../lib/auto-refresh';
+  import { runRemoteControl } from '../lib/remote-control';
   import { runScrobbleRetries } from '../lib/scrobble.svelte';
+  import { postCapabilities } from '../lib/server-socket';
   import { t } from '../lib/i18n.svelte';
   import { clearCache, useLoad } from '../lib/load.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
@@ -63,6 +65,15 @@
     nav.reset({ name: 'login', server: session.server });
   }
 
+  // Settings > "Control from other devices" changed: the server hears it at once.
+  let postedControl = settings.remoteControl.value;
+  $effect(() => {
+    const on = settings.remoteControl.value;
+    if (on === postedControl) return;
+    postedControl = on;
+    void postCapabilities(client).catch(() => {});
+  });
+
   // Android ProfileMenu: OK on the avatar.
   let profileOpen = $state(false);
   const avatarUrl = $derived(me.value ? client.userImage(me.value, 160) : undefined);
@@ -84,11 +95,13 @@
     });
     const refresh = runHomeRefresh(client);
     const retries = runScrobbleRetries();
+    const remote = runRemoteControl();
     return () => {
       document.removeEventListener('tvfocus', track);
       stop();
       refresh();
       retries();
+      remote();
     };
   });
 </script>

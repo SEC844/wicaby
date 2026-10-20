@@ -3,7 +3,10 @@
 // go first: Emby only delivers LibraryChanged to a session whose capabilities arrived before its socket connected.
 // Reconnects with a backoff while open.
 import type { Api } from './api';
+import { canSetVolume } from '../platform/index';
 import { deviceId } from './identity';
+import { supportedCommands } from './remote-control';
+import { settings } from './settings.svelte';
 
 type Listener = (type: string, data: unknown) => void;
 const listeners = new Set<Listener>();
@@ -12,6 +15,18 @@ const listeners = new Set<Listener>();
 export function onSocket(cb: Listener): () => void {
   listeners.add(cb);
   return () => void listeners.delete(cb);
+}
+
+// Makes this session a remote-control target ("Play on", X-06) as Settings > "Control from other devices" says; off,
+// messages only. Posted before every connect, and again when the setting changes.
+export function postCapabilities(api: Api): Promise<void> {
+  const control = settings.remoteControl.value;
+  return api.post('/Sessions/Capabilities/Full', {
+    PlayableMediaTypes: ['Audio', 'Video'],
+    SupportedCommands: supportedCommands(canSetVolume()),
+    SupportsMediaControl: control,
+    SupportsPersistentIdentifier: true,
+  });
 }
 
 export class ServerSocket {
@@ -41,10 +56,7 @@ export class ServerSocket {
   }
 
   private async connect(): Promise<void> {
-    // No remote control yet: the session only says what it plays.
-    await this.api
-      .post('/Sessions/Capabilities/Full', { PlayableMediaTypes: ['Audio', 'Video'], SupportedCommands: [], SupportsMediaControl: false, SupportsPersistentIdentifier: true })
-      .catch(() => {});
+    await postCapabilities(this.api).catch(() => {});
     if (this.closed || !this.api.token) return;
     // Jellyfin 12 rejects the legacy api_key parameter by default; ApiKey is accepted by 10.x too.
     const path = this.api.isEmby ? `/embywebsocket?api_key=` : `/socket?ApiKey=`;
