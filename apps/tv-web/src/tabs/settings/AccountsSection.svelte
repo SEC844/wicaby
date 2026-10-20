@@ -8,6 +8,7 @@
   import TextField from '../../components/TextField.svelte';
   import { showToast } from '../../lib/toast.svelte';
   import ScrobbleSection from './ScrobbleSection.svelte';
+  import AddressesGroup from './AddressesGroup.svelte';
   import TraktSection from './TraktSection.svelte';
   import type { Api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
@@ -102,6 +103,8 @@
   <SettingRow label={t('profile_pin')} value={t(hasPin(session) ? 'on' : 'off')} chevron onclick={pinMenu} />
 </SettingsGroup>
 {#if settingPin}<PinSheet mode="set" onsave={(p) => setPin(session, p)} onclose={() => (settingPin = false)} />{/if}
+
+<AddressesGroup server={session.server} />
 
 <SettingsGroup title={t('other_servers')} hint={t('other_servers_hint')}>
   {#each extras as e (e.server.id)}

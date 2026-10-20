@@ -73,7 +73,7 @@
     if (live.bufferMs !== undefined) out.push([t('stats_buffer'), t('stats_seconds', num(live.bufferMs / 1000))]);
     if (live.dropped !== undefined) out.push([t('stats_dropped'), String(live.dropped)]);
     try {
-      const host = new URL(pb.api.address).hostname;
+      const host = new URL(pb.api.base).hostname;
       out.push([t('stats_server'), `${host} · ${privateHost(host) ? t('stats_link_local') : t('stats_link_remote')}`]);
     } catch {
       // No address to show.

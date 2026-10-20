@@ -1,9 +1,9 @@
 // Self-check for the TV web app (apps/tv-web, docs/tv-web.md): its own DEFLATE decoder against zlib, the ZIP reader
 // over Range requests on a real CBZ (stored and deflated pages, ComicInfo flags, deleted pages), the comic page order
-// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, its MD5 against
-// node:crypto, scrobbling's queue, and, when apps/tv-web/dist holds a build, that the bundle parses as ES2016 (the
-// Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the book and the services' answers are served
-// from memory.
+// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, its MD5 and PBKDF2
+// against node:crypto, scrobbling's queue, the server addresses raced (B09), and, when apps/tv-web/dist holds a
+// build, that the bundle parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the
+// book and the services' answers are served from memory.
 // Run: node tools/checks/tv-web-check.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -144,7 +144,7 @@ for (const s of ['', 'a', 'abc', 'message digest', 'é😀 Wicaby', 'x'.repeat(5
 
 // --- Scrobbling: a listen sent, a failed one queued then sent with the next (no network: fetch answers) ---
 // The module's $state is Svelte's; outside the compiler it is the plain value.
-globalThis.$state = (v) => v;
+globalThis.$state = Object.assign((v) => v, { snapshot: (v) => structuredClone(v) });
 const store = new Map();
 globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
 const sc = await load('src/lib/scrobble.svelte.ts');
@@ -176,6 +176,23 @@ assert.deepEqual(sent.map((b) => b.payload[0].track_metadata.track_name), ['Fil 
 assert.equal(sc.scrobble.queued, 0, 'scrobble: the queue is empty again');
 await sc.disconnectListenBrainz();
 assert.equal(sc.scrobble.lbUser, null, 'scrobble: disconnected');
+
+// --- B09: the addresses raced, what is learned, the switch when the stored one does not answer ---
+const ad = await load('src/lib/addresses.svelte.ts');
+assert.deepEqual(ad.candidates('https://media.example.org', { local: 'http://192.168.1.10:8096', remote: 'https://alt.example.org/' }), ['https://media.example.org', 'https://alt.example.org'], 'addresses: no learned plain HTTP for an HTTPS server');
+assert.deepEqual(ad.candidates('https://media.example.org', { local: 'http://192.168.1.10:8096', edited: true }), ['https://media.example.org', 'http://192.168.1.10:8096'], 'addresses: a typed one is used');
+assert.deepEqual(ad.candidates('http://lan:8096/jf', { remote: 'https://h.example.org', local: 'http://10.0.0.2/jf' }), ['http://lan:8096/jf', 'http://10.0.0.2/jf'], 'addresses: the path must fit');
+assert.deepEqual(ad.learned({}, { LocalAddress: 'http://192.168.1.10:8096', WanAddress: 'http://203.0.113.5:8096' }), { local: 'http://192.168.1.10:8096', remote: undefined }, 'addresses: no plain-HTTP remote on the internet');
+assert.deepEqual(ad.learned({ local: 'x', edited: true }, { LocalAddress: 'http://192.168.1.10:8096' }), { local: 'x', edited: true }, 'addresses: typed ones are kept');
+assert.deepEqual(['192.168.0.4', '10.1.2.3', '172.20.0.1', '172.32.0.1', 'nas.local', '8.8.8.8'].map(ad.isLanHost), [true, true, true, false, true, false], 'addresses: LAN hosts');
+globalThis.fetch = async (url) => {
+  if (String(url).startsWith('http://down.example')) throw new TypeError('Failed to fetch');
+  return new Response(JSON.stringify({ Id: 'srv-1', LocalAddress: 'http://192.168.1.10:8096' }), { status: 200 });
+};
+assert.equal(ad.editAddresses('srv-1', 'http://down.example:8096', false, 'http://192.168.1.10:8096', ''), true, 'addresses: edited');
+await new Promise((r) => setTimeout(r, 20));
+assert.equal(ad.addressInUse('srv-1', 'http://down.example:8096'), 'http://192.168.1.10:8096', 'addresses: the one that answers is used');
+assert.equal(ad.editAddresses('srv-1', 'http://down.example:8096', false, 'ftp://x', ''), false, 'addresses: not an http(s) URL');
 
 // --- Profile PINs: the JavaScript PBKDF2-HMAC-SHA1 against Node's, the stored form, the waits ---
 const pinMod = await load('src/lib/pin.ts');

@@ -2,6 +2,7 @@
 // Android core Emby.kt. One instance per signed-in server and user.
 import type { MediaSegment } from '$shared/markers';
 import type { AuthenticationResult, BaseItem, ItemsResult, MediaSource, SystemInfoPublic, UserDto } from '$shared/models';
+import { addressFailed, addressInUse } from './addresses.svelte';
 import { CLIENT, VERSION, deviceId, deviceName } from './identity';
 
 export type ServerKind = 'emby' | 'jellyfin';
@@ -61,8 +62,13 @@ export class Api {
     return this.kind === 'emby' ? '/emby' : '';
   }
 
+  // B09: the address requests go to now (local or remote, lib/addresses); `address` stays the server's identity.
+  get base(): string {
+    return addressInUse(this.serverId, this.address);
+  }
+
   url(path: string, query?: Query): string {
-    return `${this.address}${this.prefix}${path}${buildQuery(query)}`;
+    return `${this.base}${this.prefix}${path}${buildQuery(query)}`;
   }
 
   authHeaders(): Record<string, string> {
@@ -84,6 +90,8 @@ export class Api {
     try {
       res = await fetchWithTimeout(this.url(path, query), { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }, TIMEOUT_MS);
     } catch (e) {
+      // Could not connect: the server's other address may answer (B09).
+      addressFailed(this.serverId, this.address, this.isEmby);
       throw e instanceof ApiError ? e : new ApiError(e instanceof Error ? e.message : String(e), 0);
     }
     if (!res.ok) throw new ApiError((await res.text().catch(() => '')).slice(0, 300) || `HTTP ${res.status}`, res.status);
@@ -407,11 +415,11 @@ export class Api {
     try {
       const rel = url.startsWith('/') ? url : `/${url}`;
       // Emby's URLs may already carry the /emby prefix.
-      full = new URL(/^https?:\/\//i.test(url) ? url : `${this.address}${this.isEmby && /^\/emby\//i.test(rel) ? rel : this.prefix + rel}`);
+      full = new URL(/^https?:\/\//i.test(url) ? url : `${this.base}${this.isEmby && /^\/emby\//i.test(rel) ? rel : this.prefix + rel}`);
     } catch {
       return null;
     }
-    if (full.origin !== new URL(this.address).origin) return full.href;
+    if (full.origin !== new URL(this.base).origin) return full.href;
     // Emby reads api_key; Jellyfin ApiKey (it dropped api_key in 10.11).
     if (this.token && !/[?&](api_key|ApiKey)=/i.test(full.search)) full.searchParams.set(this.isEmby ? 'api_key' : 'ApiKey', this.token);
     return full.href;

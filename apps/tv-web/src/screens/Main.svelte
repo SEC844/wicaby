@@ -7,6 +7,7 @@
   import ProfileMenu from '../components/ProfileMenu.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { focused, setFocus } from '../lib/focus';
+  import { repick } from '../lib/addresses.svelte';
   import { runHomeRefresh } from '../lib/auto-refresh';
   import { forgetPin } from '../lib/profiles.svelte';
   import { runRemoteControl } from '../lib/remote-control';
@@ -96,6 +97,8 @@
       setFocus(selectedTab());
       return true;
     });
+    // B09: each signed-in server's requests go to whichever of its addresses answers.
+    for (const s of [session, ...(prefs.extras ?? [])]) void repick(s.server.id, s.server.address, s.server.kind === 'emby');
     const refresh = runHomeRefresh(client);
     const retries = runScrobbleRetries();
     const remote = runRemoteControl();

@@ -60,7 +60,7 @@ export class ServerSocket {
     if (this.closed || !this.api.token) return;
     // Jellyfin 12 rejects the legacy api_key parameter by default; ApiKey is accepted by 10.x too.
     const path = this.api.isEmby ? `/embywebsocket?api_key=` : `/socket?ApiKey=`;
-    const url = `${this.api.address.replace(/^http/i, 'ws')}${path}${encodeURIComponent(this.api.token)}&deviceId=${encodeURIComponent(deviceId)}`;
+    const url = `${this.api.base.replace(/^http/i, 'ws')}${path}${encodeURIComponent(this.api.token)}&deviceId=${encodeURIComponent(deviceId)}`;
     let ws: WebSocket;
     try {
       ws = new WebSocket(url);
