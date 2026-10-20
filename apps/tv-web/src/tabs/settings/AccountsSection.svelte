@@ -1,8 +1,11 @@
 <script lang="ts">
   // Android TV AccountsSection (Settings.kt): who is signed in, Switch User / Switch Server / Sign Out, then the
-  // other servers signed in at once (TP-06): OK on one offers to remove it, "Add a server" signs another in.
+  // other servers signed in at once (TP-06): OK on one offers to remove it, "Add a server" signs another in; then
+  // Trakt (TP-09).
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
+  import { confirm } from '../../components/settings/rows';
+  import TraktSection from './TraktSection.svelte';
   import type { Api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import { clearCache, useLoad } from '../../lib/load.svelte';
@@ -50,10 +53,10 @@
   </div>
 </div>
 
-<SettingsGroup>
+<SettingsGroup title={t('group_user')}>
   <SettingRow label={t('switch_user')} chevron onclick={() => nav.push({ name: 'login', server: session.server })} />
   <SettingRow label={t('switch_server')} chevron onclick={() => leave('servers', false)} />
-  <SettingRow label={t('sign_out')} onclick={() => leave('login', true)} />
+  <SettingRow {...confirm(t('sign_out'), t('sign_out'), () => leave('login', true))} />
 </SettingsGroup>
 
 <SettingsGroup title={t('other_servers')} hint={t('other_servers_hint')}>
@@ -62,6 +65,8 @@
   {/each}
   <SettingRow label={t('add_server')} chevron onclick={() => nav.push({ name: 'servers', add: true })} />
 </SettingsGroup>
+
+<TraktSection />
 
 <style>
   .who {

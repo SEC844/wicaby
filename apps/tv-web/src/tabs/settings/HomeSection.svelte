@@ -1,26 +1,24 @@
 <script lang="ts">
-  // Android TV InterfaceSection (Settings.kt): language, appearance (theme, accent, clock) and the home rows
-  // (HomeGroup: show or hide, move, posters or thumbnails). No screensaver group: the TV's own one runs.
+  // Android TV HomeSection (Settings.kt): the home rows (HomeGroup: show or hide, move, posters or thumbnails), the
+  // tab bar (TabBarGroup), the external ratings key (RatingsGroup) and whether a search lists episodes.
   import type { BaseItem } from '$shared/models';
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
-  import { choice, toggle } from '../../components/settings/rows';
-  import { focusable } from '../../lib/focus';
+  import { confirm, toggle } from '../../components/settings/rows';
+  import TextField from '../../components/TextField.svelte';
+  import { ratings, setRatingsKey } from '../../lib/ratings.svelte';
+  import { showToast } from '../../lib/toast.svelte';
   import { defaults, latestViewId, move, NEXT_UP, RESUME, UPCOMING, BECAUSE, LIVE_NOW, MEMORIES } from '../../lib/home-rows';
-  import { setLanguage, t } from '../../lib/i18n.svelte';
+  import { t } from '../../lib/i18n.svelte';
   import { showAlert } from '../../lib/overlay.svelte';
   import { isMulti, prefs, serverName } from '../../lib/session.svelte';
   import { extraViews, libraryRef } from '../../lib/servers';
   import { useLoad } from '../../lib/load.svelte';
   import { arrange, homeRows, setHomeRows, setTabBarPref, settings, tabBarPref } from '../../lib/settings.svelte';
   import type { TopTab } from '../../lib/tabs';
-  import { palette } from '../../lib/theme';
-  import Icon from '../../components/Icon.svelte';
-  import ThemeCards from '../../components/ThemeCards.svelte';
 
   let { views, tabs }: { views: BaseItem[]; tabs: TopTab[] } = $props();
 
-  const LANGS = ['auto', 'fr', 'en'] as const;
 
   // --- Home rows (TP-07) ---
   const user = $derived(`${prefs.session!.server.id}/${prefs.session!.userId}`);
@@ -84,6 +82,13 @@
     showAlert({ title: tabLabel(key), actions });
   }
 
+  // The MDBList key for IMDb, Rotten Tomatoes… on the detail pages (core/ratings). Off until set.
+  let ratingsKey = $state('');
+  function saveKey(key: string): void {
+    if (setRatingsKey(key)) ratingsKey = '';
+    else showToast(t('ratings_invalid'));
+  }
+
   function rowValue(id: string): string {
     const state = t(pref.hidden.includes(id) ? 'home_row_hidden' : 'home_row_shown');
     if (latestViewId(id) === null || pref.hidden.includes(id)) return state;
@@ -91,47 +96,16 @@
   }
 </script>
 
-<SettingsGroup>
-  <!-- The language names stay in their own language, so either reader can find theirs. -->
-  <SettingRow
-    {...choice(t('language'), [t('language_system'), t('language_fr'), t('language_en')], LANGS.indexOf(settings.language.value), (i) => {
-      settings.language.value = LANGS[i];
-      setLanguage(LANGS[i]);
-    })}
-  />
-</SettingsGroup>
-
-<SettingsGroup title={t('section_appearance')}>
-  <!-- Each card is drawn in its own theme; picking one applies it to the whole screen at once. -->
-  <p class="t-headline theme-title">{t('settings_theme')}</p>
-  <ThemeCards
-    current={palette(settings.theme.value).id}
-    onpick={(id) => {
-      settings.theme.value = id;
-      settings.themeHintShown.value = true;
-    }}
-  />
-  <div class="accent-row">
-    <span class="t-headline">{t('settings_accent')}</span>
-    <div class="accents">
-      {#each palette(settings.theme.value).accents as a, i (i)}
-        <button class="accent" style="background:{a.color};color:{a.fg}" aria-label={a.color} use:focusable onclick={() => (settings.accent.value = i)}>
-          {#if i === settings.accent.value}<Icon name="Check" size={16} />{/if}
-        </button>
-      {/each}
-    </div>
-  </div>
-  <SettingRow {...toggle(t('show_clock'), settings.clock)} />
-</SettingsGroup>
-
-<SettingsGroup title={t('group_home')} hint={t('home_rows_hint')}>
+<SettingsGroup title={t('group_home')}>
   <SettingRow {...toggle(t('row_hero'), settings.rowHero)} />
   {#if settings.rowHero.value}<SettingRow {...toggle(t('hero_hide_watched'), settings.heroHideWatched)} />{/if}
   <SettingRow {...toggle(t('settings_merge_continue'), settings.mergeContinue)} />
+</SettingsGroup>
+<SettingsGroup title={t('group_home_rows')} hint={t('home_rows_hint')}>
   {#each rows as id, i (id)}
     <SettingRow label={label(id)} value={rowValue(id)} chevron onclick={() => rowMenu(id, i)} />
   {/each}
-  <SettingRow label={t('home_rows_reset')} onclick={() => setHomeRows(user, { order: homeDefaults, hidden: [], thumb: [] })} />
+  <SettingRow {...confirm(t('home_rows_reset'), t('confirm_reset'), () => setHomeRows(user, { order: homeDefaults, hidden: [], thumb: [] }))} />
 </SettingsGroup>
 
 {#if tabs.length}
@@ -139,40 +113,21 @@
     {#each tabKeys as key, i (key)}
       <SettingRow label={tabLabel(key)} value={t(tabPref.hidden.includes(key) ? 'tab_hidden' : 'tab_shown')} chevron onclick={() => tabMenu(key, i)} />
     {/each}
-    <SettingRow label={t('tab_bar_reset')} onclick={() => setTabBarPref(user, { order: [], hidden: [], thumb: [] })} />
+    <SettingRow {...confirm(t('tab_bar_reset'), t('confirm_reset'), () => setTabBarPref(user, { order: [], hidden: [], thumb: [] }))} />
   </SettingsGroup>
 {/if}
+<SettingsGroup title={t('ratings_title')} hint={t('ratings_desc')}>
+  <TextField bind:value={ratingsKey} placeholder={t(ratings.configured ? 'ratings_saved' : 'ratings_key')} password onsubmit={() => ratingsKey.trim() && saveKey(ratingsKey)} />
+  <SettingRow label={t('ratings_save')} chevron onclick={() => ratingsKey.trim() && saveKey(ratingsKey)} />
+  {#if ratings.configured}<SettingRow label={t('ratings_remove')} onclick={() => saveKey('')} />{/if}
+</SettingsGroup>
+<p class="t-footnote label-3 hint">{t('ratings_hint')}</p>
+<SettingsGroup title={t('tab_search')} hint={t('search_episodes_hint')}>
+  <SettingRow {...toggle(t('search_episodes'), settings.searchEpisodes)} />
+</SettingsGroup>
 
 <style>
-  .theme-title {
-    margin: 4rem 0 0 18rem;
-  }
-  .accent-row {
-    display: flex;
-    align-items: center;
-    margin-top: 4rem;
-    padding: 12rem 18rem;
-    border-radius: var(--r-md);
-    background: var(--fill-1);
-  }
-  .accent-row > span {
-    flex: 1;
-  }
-  .accents {
-    display: flex;
-  }
-  .accent {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28rem;
-    height: 28rem;
-    margin-left: 12rem;
-    border-radius: 50%;
-    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow var(--t-med);
-  }
-  .accent:global(.focused) {
-    transform: scale(1.3);
-    box-shadow: 0 10rem 20rem rgba(0, 0, 0, 0.5);
+  .hint {
+    margin: -16rem 18rem 26rem;
   }
 </style>

@@ -22,3 +22,12 @@ export function choice(label: string, options: string[], selected: number, onSel
 export function choiceOf(label: string, options: string[], setting: Setting<number>) {
   return choice(label, options, Math.max(0, setting.value), (i) => (setting.value = i));
 }
+
+// ConfirmRow: a destructive row; OK asks first (TvAlert), Cancel has the focus.
+export function confirm(label: string, confirmLabel: string, run: () => void, value?: string) {
+  return {
+    label,
+    value,
+    onclick: () => showAlert({ title: label, actions: [{ label: confirmLabel, destructive: true, run }, { label: t('cancel'), run: () => {} }], focusIndex: 1 }),
+  };
+}

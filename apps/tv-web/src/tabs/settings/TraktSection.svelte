@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Android TV TraktSettings (ui/TraktSettings.kt, TP-09, as the desktop's TraktSettings.svelte): the user's own Trakt
+  // Android TV TraktSettings (ui/TraktSettings.kt, TP-09, in Settings > Accounts, as the desktop's TraktSettings.svelte): the user's own Trakt
   // application (client id and secret), authorized with a device code shown big with a QR code to the activation
   // page, then one switch per signed-in server. A server whose own Trakt plugin scrobbles shows it instead of a switch.
   import Pill from '../../components/Pill.svelte';
@@ -7,6 +7,7 @@
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
   import TextField from '../../components/TextField.svelte';
+  import { confirm } from '../../components/settings/rows';
   import { t } from '../../lib/i18n.svelte';
   import { apis, serverName } from '../../lib/session.svelte';
   import { cancel, connect, disconnect, hasPlugin, setScrobble, trakt } from '../../lib/trakt.svelte';
@@ -44,9 +45,9 @@
     </div>
   </div>
 {:else if trakt.user !== null}
-  <SettingsGroup hint={t('trakt_connected_desc')}>
+  <SettingsGroup title={t('trakt_title')} hint={t('trakt_connected_desc')}>
     <SettingRow label={trakt.user ? t('trakt_connected_as', trakt.user) : t('trakt_connected')} />
-    <SettingRow label={t('trakt_disconnect')} onclick={() => void disconnect()} />
+    <SettingRow {...confirm(t('trakt_disconnect'), t('trakt_disconnect'), () => void disconnect())} />
   </SettingsGroup>
   <SettingsGroup title={t('trakt_servers')} hint={t('trakt_servers_hint')}>
     {#if !servers.length}
@@ -70,7 +71,7 @@
     {/if}
   </SettingsGroup>
 {:else}
-  <SettingsGroup hint={t('trakt_hint')}>
+  <SettingsGroup title={t('trakt_title')} hint={t('trakt_hint')}>
     <div class="fields">
       <p class="t-footnote label-2">{t('trakt_client_id')}</p>
       <TextField bind:value={clientId} placeholder={t('trakt_client_id')} />

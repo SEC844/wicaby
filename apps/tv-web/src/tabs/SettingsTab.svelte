@@ -1,7 +1,8 @@
 <script lang="ts">
   // Android TV SettingsTab (Settings.kt): the section list on the left (focusing a section shows it), its rows on
-  // the right. Left from a row goes back to the current section, not the nearest one. Sections the TV web app cannot
-  // offer are left out: Remote Access (no VPN on these TVs) and Files (no file sources on a TV browser).
+  // the right. Left from a row goes back to the current section, not the nearest one. The categories and their order
+  // are the ones every Wicaby app shares; the TV web app leaves out Sources (no file sources on a TV browser) and
+  // Remote Access (no VPN on these TVs). The list scrolls to keep the focused section in view.
   import { focusable, setFocus } from '../lib/focus';
   import type { Api } from '../lib/api';
   import { k, t } from '../lib/i18n.svelte';
@@ -9,9 +10,12 @@
   import { clamp, edgeDelta } from '../lib/scroll';
   import AboutSection from './settings/AboutSection.svelte';
   import AccountsSection from './settings/AccountsSection.svelte';
-  import InterfaceSection from './settings/InterfaceSection.svelte';
+  import AppearanceSection from './settings/AppearanceSection.svelte';
+  import AudioSection from './settings/AudioSection.svelte';
+  import GeneralSection from './settings/GeneralSection.svelte';
+  import HomeSection from './settings/HomeSection.svelte';
   import PlaybackSection from './settings/PlaybackSection.svelte';
-  import TraktSection from './settings/TraktSection.svelte';
+  import SubtitlesSection from './settings/SubtitlesSection.svelte';
 
   let {
     api,
@@ -20,11 +24,22 @@
     onscrolled,
   }: { api: Api; views: import('$shared/models').BaseItem[]; tabs: import('../lib/tabs').TopTab[]; onscrolled: (s: boolean) => void } = $props();
 
-  const SECTIONS = ['playback', 'interface', 'accounts', 'trakt', 'about'] as const;
+  const SECTIONS = ['general', 'appearance', 'home', 'playback', 'audio', 'subtitles', 'accounts', 'about'] as const;
   type Section = (typeof SECTIONS)[number];
-  const LABELS: Record<Section, string> = { playback: k('section_playback'), interface: k('section_appearance'), accounts: k('section_accounts'), trakt: k('trakt_title'), about: k('section_about') };
-  let section = $state<Section>('playback');
+  const LABELS: Record<Section, string> = {
+    general: k('section_general'),
+    appearance: k('section_appearance'),
+    home: k('section_home'),
+    playback: k('section_playback'),
+    audio: k('section_audio'),
+    subtitles: k('section_subtitles'),
+    accounts: k('section_accounts'),
+    about: k('section_about'),
+  };
+  let section = $state<Section>('general');
+  let menuY = $state(0);
   let menu: HTMLDivElement;
+  let menuList: HTMLDivElement;
   let viewport: HTMLDivElement;
   let content: HTMLDivElement;
   let y = $state(0);
@@ -39,6 +54,11 @@
   // The rows scroll only as far as needed (EdgeSpec, 64 dp from the edges).
   function onfocus(e: CustomEvent): void {
     const el = e.target as HTMLElement;
+    if (menu.contains(el)) {
+      const max = Math.max(0, menuList.offsetHeight - menu.clientHeight);
+      menuY = clamp(menuY + edgeDelta(el.offsetTop - menuY, el.offsetHeight, menu.clientHeight, dp(48)), 0, max);
+      return;
+    }
     if (!content.contains(el)) return;
     const max = Math.max(0, content.offsetHeight - viewport.clientHeight);
     const top = el.getBoundingClientRect().top - content.getBoundingClientRect().top;
@@ -57,25 +77,33 @@
 
 <div class="settings" ontvfocus={onfocus} ontvmove={onmove}>
   <div class="menu" bind:this={menu} data-focus-group>
-    <h1 class="t-large-title">{t('tab_settings')}</h1>
-    {#each SECTIONS as s (s)}
-      <button class="section t-headline" class:selected={s === section} data-section={s} use:focusable ontvfocus={() => show(s)}>
-        <span>{t(LABELS[s])}</span>
-      </button>
-    {/each}
+    <div class="menu-list" bind:this={menuList} style="transform:translate3d(0,{-menuY}px,0)">
+      <h1 class="t-large-title">{t('tab_settings')}</h1>
+      {#each SECTIONS as s (s)}
+        <button class="section t-headline" class:selected={s === section} data-section={s} use:focusable ontvfocus={() => show(s)}>
+          <span>{t(LABELS[s])}</span>
+        </button>
+      {/each}
+    </div>
   </div>
   <div class="viewport" bind:this={viewport}>
     <div class="content" bind:this={content} style="transform:translate3d(0,{-y}px,0)">
       {#key section}
         <div class="fade">
-          {#if section === 'playback'}
+          {#if section === 'general'}
+            <GeneralSection />
+          {:else if section === 'appearance'}
+            <AppearanceSection />
+          {:else if section === 'home'}
+            <HomeSection {views} {tabs} />
+          {:else if section === 'playback'}
             <PlaybackSection {api} />
-          {:else if section === 'interface'}
-            <InterfaceSection {views} {tabs} />
+          {:else if section === 'audio'}
+            <AudioSection {api} />
+          {:else if section === 'subtitles'}
+            <SubtitlesSection {api} />
           {:else if section === 'accounts'}
             <AccountsSection {api} />
-          {:else if section === 'trakt'}
-            <TraktSection />
           {:else}
             <AboutSection />
           {/if}
@@ -98,6 +126,13 @@
     width: 240rem;
     margin-right: 48rem;
     flex-shrink: 0;
+    overflow: hidden;
+    /* Room for the focused section's lift. */
+    padding: 0 6rem;
+  }
+  .menu-list {
+    padding-bottom: 48rem;
+    transition: transform var(--t-med) var(--ease);
   }
   h1 {
     margin: 0 0 18rem 16rem;
