@@ -62,7 +62,9 @@ import com.wika.wicaby.core.data.caps
 import com.wika.wicaby.core.data.MediaSource
 import com.wika.wicaby.core.data.MediaStream
 import com.wika.wicaby.core.data.Versions
+import com.wika.wicaby.core.player.TrackMemory
 import com.wika.wicaby.core.player.Trailers
+import com.wika.wicaby.core.syncplay.SyncPlay
 import com.wika.wicaby.core.player.ExternalPlayer
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Servers
@@ -72,6 +74,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.wika.wicaby.meshui.QrCode
 import com.wika.wicaby.tv.playTrailer
+import com.wika.wicaby.core.ratings.Ratings
+import androidx.compose.runtime.collectAsState
 
 // The selected version's streams; "N versions" when there is a choice.
 private fun badges(context: Context, item: Item, source: MediaSource?): List<String> {
@@ -146,6 +150,9 @@ fun DetailScreen(id: String) {
         // Making-of, deleted scenes…: none for books, and none when the server lacks the route.
         val extras = if (book) emptyList() else rememberLoad("extras-$id") { api.specialFeatures(id) }.value.value.orEmpty()
         val external = remember(api) { ExternalPlayer.available(context, api) }
+        // IMDb, Rotten Tomatoes…: only once the user set an MDBList key (Réglages > Bibliothèques).
+        val ratingsOn by Ratings.configured.collectAsState()
+        val ratings = rememberLoad("ratings-$id-$ratingsOn", refresh = false) { if (ratingsOn) Ratings.default.get(item) else emptyList() }.value.value.orEmpty()
 
         val pageScroll = rememberScrollState()
         val heroMargin = with(LocalDensity.current) { 56.dp.toPx() }
@@ -157,8 +164,7 @@ fun DetailScreen(id: String) {
                         Text(episodeLine(item).orEmpty(), style = Type.title3, color = C.label, modifier = Modifier.padding(bottom = 6.dp))
                     }
                     Box(Modifier.width(600.dp)) { HeroText(api, item, overviewLines = 4) }
-                    val tags = badges(context, item, source)
-                    if (tags.isNotEmpty()) {
+                    for (tags in listOf(ratings.map { Ratings.label(context.resources, it) }, badges(context, item, source))) if (tags.isNotEmpty()) {
                         Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             tags.forEach {
                                 Text(
@@ -192,6 +198,8 @@ fun DetailScreen(id: String) {
                                 onClick = { scope.launch { com.wika.wicaby.tv.shuffle(context, api, item.id) } },
                             )
                         }
+                        // Jellyfin SyncPlay: watch this with others, or join a group.
+                        if (!book && target != null && SyncPlay.available(api)) TogetherPill(api, target.id, resumeMs, Modifier.remembered(memory, "together"))
                         if (Trailers.has(item)) TrailerPill(api, item, Modifier.remembered(memory, "trailer"))
                         if (external && !book && target != null) ExternalPill(api, target, Modifier.remembered(memory, "external"))
                         // No heart for a source without favorites (a file source, caps §2.2).
@@ -409,4 +417,4 @@ private fun TrailerQr(url: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun trackName(s: MediaStream): String = s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index)
+private fun trackName(s: MediaStream): String = listOfNotNull(s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index), TrackMemory.badge(s)).joinToString(" · ")

@@ -95,6 +95,9 @@ data class Snapshot(
     val onboarded: Boolean = true,
     // Mobile Réglages > Thème: a theme id (see themeKey; the TV keeps its own in TvSettings).
     val theme: String = "graphite",
+    // Mobile Réglages > Accessibilité (Core.preferSdh, Core.audioDescription; the TV keeps its own in TvSettings).
+    val preferSdh: Boolean = false,
+    val audioDescription: String = "avoid",
 )
 
 // One extra account as stored: the token sealed by Vault, like the primary one.
@@ -140,6 +143,8 @@ class Prefs(private val context: Context) {
     private val updateUrlKey = stringPreferencesKey("update_url")
     private val updateCheckedKey = longPreferencesKey("update_checked_at")
     private val remoteControlKey = booleanPreferencesKey("remote_control")
+    private val preferSdhKey = booleanPreferencesKey("prefer_sdh")
+    private val audioDescriptionKey = stringPreferencesKey("audio_description")
 
     // Off the collector's thread: snapshot() opens every sealed token with the Keystore (binder calls), and the
     // screens collect this on Main.
@@ -155,6 +160,8 @@ class Prefs(private val context: Context) {
             skipPicker = p[skipPickerKey] ?: true,
             onboarded = onboarded(p),
             theme = p[themeKey] ?: "graphite",
+            preferSdh = p[preferSdhKey] ?: false,
+            audioDescription = p[audioDescriptionKey] ?: "avoid",
         )
     }
 
@@ -285,6 +292,10 @@ class Prefs(private val context: Context) {
     suspend fun setWifiOnlyDownloads(v: Boolean) = context.store.edit { it[wifiOnlyKey] = v }
 
     suspend fun setRemoteControl(v: Boolean) = context.store.edit { it[remoteControlKey] = v }
+
+    suspend fun setPreferSdh(v: Boolean) = context.store.edit { it[preferSdhKey] = v }
+
+    suspend fun setAudioDescription(v: String) = context.store.edit { it[audioDescriptionKey] = v }
 
     suspend fun setTheme(id: String) = context.store.edit { it[themeKey] = id }
 

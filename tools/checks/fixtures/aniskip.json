@@ -1,0 +1,33 @@
+{
+  "_": "AniSkip parsing and MAL target rules, shared by apps/desktop/src/shared/aniskip.ts (tools/checks/aniskip-check.mjs) and Android core player/AniSkip.kt (AniSkipTest). Responses saved from api.aniskip.com/v2 (MAL 5114, episode 1).",
+  "cases": [
+    {
+      "name": "op and ed",
+      "response": {"found":true,"results":[{"interval":{"startTime":58.642,"endTime":148.642},"skipType":"op","skipId":"067cdb2a-0b1e-4cae-956d-f3fb22800816","episodeLength":1469.6349},{"interval":{"startTime":1349.903,"endTime":1474},"skipType":"ed","skipId":"473e6917-fc08-4db2-8c63-aa5b5f23f41b","episodeLength":1474.692}],"message":"Successfully found skip times","statusCode":200},
+      "expect": {"introStartMs": 58642, "introEndMs": 148642, "creditsStartMs": 1349903, "recap": null}
+    },
+    {
+      "name": "mixed op, recap, the earliest op wins",
+      "response": {"found":true,"results":[{"interval":{"startTime":300,"endTime":390},"skipType":"op"},{"interval":{"startTime":100,"endTime":190},"skipType":"mixed-op"},{"interval":{"startTime":0,"endTime":95.5},"skipType":"recap"},{"interval":{"startTime":1300,"endTime":1390},"skipType":"mixed-ed"}],"statusCode":200},
+      "expect": {"introStartMs": 100000, "introEndMs": 190000, "creditsStartMs": 1300000, "recap": [0, 95500]}
+    },
+    {
+      "name": "not found",
+      "response": {"found":false,"results":[],"message":"No skip times found","statusCode":404},
+      "expect": null
+    },
+    {
+      "name": "empty or reversed intervals ignored",
+      "response": {"found":true,"results":[{"interval":{"startTime":50,"endTime":50},"skipType":"op"},{"interval":{"startTime":0,"endTime":80},"skipType":"ed"},{"skipType":"op"}]},
+      "expect": null
+    }
+  ],
+  "targets": [
+    {"name": "season id wins", "episode": {"IndexNumber": 3, "ParentIndexNumber": 2}, "season": {"MyAnimeList": "38000"}, "series": {"MyAnimeList": "1"}, "expect": {"mal": 38000, "anilist": null, "episode": 3}},
+    {"name": "series id in season 1", "episode": {"IndexNumber": 5, "ParentIndexNumber": 1}, "season": {}, "series": {"AniList": "5114"}, "expect": {"mal": null, "anilist": 5114, "episode": 5}},
+    {"name": "series id in season 2 is unsure", "episode": {"IndexNumber": 5, "ParentIndexNumber": 2}, "season": {}, "series": {"Mal": "5114"}, "expect": null},
+    {"name": "specials skipped", "episode": {"IndexNumber": 1, "ParentIndexNumber": 0}, "season": {"MyAnimeList": "5114"}, "series": {}, "expect": null},
+    {"name": "no anime ids", "episode": {"IndexNumber": 1, "ParentIndexNumber": 1}, "season": {"Tvdb": "1"}, "series": {"AniDB": "6107"}, "expect": null},
+    {"name": "bad id", "episode": {"IndexNumber": 1, "ParentIndexNumber": 1}, "season": {}, "series": {"myanimelist": "abc"}, "expect": null}
+  ]
+}

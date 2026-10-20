@@ -6,6 +6,7 @@ import { app, dialog, Menu, nativeTheme, net, session, shell } from 'electron';
 import { installKind } from '../shared/app-update';
 import { Channels, type AppInfo } from '../shared/contract';
 import { CastManager } from './cast/cast-manager';
+import { SyncPlay } from './playback/syncplay';
 import { EphemeralTokens } from './cast/ephemeral-token';
 import type { SocketMessage } from './connection/server-socket';
 import { ComicService } from './comics/comic-service';
@@ -23,12 +24,15 @@ import { AdminAlerts } from './features/admin-alerts';
 import { AppUpdates } from './features/app-updates';
 import { ContinueWatching } from './features/continue-watching';
 import { DisplayModeSwitcher } from './features/display-mode';
+import { nativeWayland, ozonePlatform } from './features/display-mode-linux';
 import { HdrModeSwitcher } from './features/hdr-mode';
 import { Notifier } from './features/notify';
 import { Reminders } from './features/reminders';
 import { liveLinkFromArgv } from '../shared/livetv/reminders';
 import { installLoginItem, startedHidden } from './features/startup';
 import { installJumpList } from './features/taskbar';
+import { RatingsService } from './features/ratings';
+import { ScrobbleService } from './features/scrobble';
 import { TraktService } from './features/trakt';
 import { DesktopIntegration } from './features/tray';
 import { createSettingsExtras } from './core/settings-extras';
@@ -74,10 +78,15 @@ if (hardwareAccelerationSetting()) {
 } else {
   app.disableHardwareAcceleration();
 }
-// mpv embeds into an X11 window id (--wid): run under X11, or XWayland in a Wayland session.
-if (process.platform === 'linux') app.commandLine.appendSwitch('ozone-platform', 'x11');
+// mpv embeds into an X11 window id (--wid): X11 (XWayland in a Wayland session) unless WICABY_OZONE says otherwise.
+const ozone = process.platform === 'linux' ? ozonePlatform(process.env) : null;
+if (ozone && ozone !== 'auto') app.commandLine.appendSwitch('ozone-platform', ozone);
+// Native Wayland windows have no X11 id: video then plays in the built-in player (playback-service.ts).
+const mpvEmbeds = !ozone || !nativeWayland(process.env, ozone);
 
 function hardwareAccelerationSetting(): boolean {
+  // WICABY_DISABLE_GPU=1: for GPUs whose process crashes before a window ever shows (hybrid laptops).
+  if (process.env.WICABY_DISABLE_GPU === '1') return false;
   try {
     const doc = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8')) as { system?: { hardwareAcceleration?: unknown } };
     return doc.system?.hardwareAcceleration !== false;
@@ -194,7 +203,8 @@ async function bootstrap(): Promise<void> {
   files.start();
   // A packaged build always loads its own bundled pages.
   const devUrl = app.isPackaged ? undefined : process.env.WICABY_DEV_URL;
-  const icon = path.join(app.getAppPath(), 'resources', 'icon.ico');
+  // Linux cannot decode .ico (the window would get no icon at all).
+  const icon = path.join(app.getAppPath(), 'resources', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
   const windows = new WindowManager({
     preload: path.join(__dirname, '..', 'preload', 'index.cjs'),
     devUrl,
@@ -226,6 +236,8 @@ async function bootstrap(): Promise<void> {
   });
   const torrents = new TorrentService(path.join(userData, 'torrents.json'), settings, vault, connection, windows);
   const trakt = new TraktService(vault, settings, connection);
+  const ratings = new RatingsService(vault, path.join(userData, 'ratings-cache.json'));
+  const scrobble = new ScrobbleService(vault, path.join(userData, 'scrobble-queue.json'));
 
   const mpvConfigDir = path.join(userData, 'mpv');
   fs.mkdirSync(mpvConfigDir, { recursive: true });
@@ -244,7 +256,7 @@ async function bootstrap(): Promise<void> {
       mpvVer = mpvPath ? mpvVersion(mpvPath) : Promise.resolve(null);
     }
   });
-  log.info(`mpv: ${mpvPath ?? 'not found'}`);
+  log.info(`mpv: ${mpvPath ?? 'not found'}${mpvEmbeds ? '' : ' (native Wayland: video uses the built-in player)'}`);
 
   const toast = (kind: 'info' | 'success' | 'error', message: string, ms?: number) => windows.broadcast(Channels.toast, { kind, message, ms });
 
@@ -256,6 +268,7 @@ async function bootstrap(): Promise<void> {
     display,
     hdr,
     mpvExe: () => mpvPath,
+    mpvEmbeds,
     mpvConfigDir,
     deviceId: identity.deviceId,
     onMessage: toast,
@@ -267,6 +280,7 @@ async function bootstrap(): Promise<void> {
 
   const cast = new CastManager({ connection, local: playback, deviceId: identity.deviceId, notify: toast, settings, tokens: new EphemeralTokens(vault, identity.version) });
   playback.beforePlay = () => cast.stopSenderReported();
+  const syncplay = new SyncPlay({ connection, playback, onMessage: toast });
   // CA-11: disposable cast tokens left by a crash or a quit are revoked once their server is signed in again.
   connection.on('session', () => void cast.cleanupTokens());
 
@@ -335,8 +349,11 @@ async function bootstrap(): Promise<void> {
     vpn,
     torrents,
     trakt,
+    ratings,
+    scrobble,
     reminders,
     cast,
+    syncplay,
     appInfo,
     files,
     iptv,
@@ -359,12 +376,16 @@ async function bootstrap(): Promise<void> {
   torrents.on('state', (s) => windows.send(windows.main, Channels.torrentsChanged, s));
   trakt.on('state', (s) => windows.send(windows.main, Channels.traktChanged, s));
   playback.on('report', (action, serverId, item, positionMs, durationMs) => trakt.scrobble(action, serverId, item, positionMs, durationMs));
+  scrobble.on('state', (s) => windows.send(windows.main, Channels.scrobbleChanged, s));
+  playback.on('report', (action, _serverId, item, positionMs, durationMs) => scrobble.report(action, item, positionMs, durationMs));
   mesh.on('change', (s) => windows.broadcast(Channels.vpnEmbeddedChanged, s));
   cast.on('state', (s) => windows.broadcast(Channels.castState, s));
   cast.on('targets', (list) => windows.broadcast(Channels.castTargetsUpdated, list));
+  syncplay.on('change', (g) => windows.broadcast(Channels.syncplayChanged, g));
   connection.on('server-message', (msg: SocketMessage, serverId: string) => {
     // The cast mirror's SessionsStart pushes (cast-spec CA-04).
     if (msg.MessageType === 'Sessions') return cast.onSessions(serverId, msg.Data);
+    if (msg.MessageType.startsWith('SyncPlay')) return syncplay.onMessage(msg, serverId);
     // A Plex server stopped this client's session (server-socket.ts plexEvent).
     if (msg.MessageType === 'PlexSessionEnded') return void playback.serverEnded(serverId, String((msg.Data as { ItemId?: string } | undefined)?.ItemId ?? ''));
     if (playback.handleRemote(msg, serverId)) return;
@@ -502,6 +523,8 @@ async function bootstrap(): Promise<void> {
       try {
         cast.dispose();
         await Promise.race([playback.shutdown(), new Promise((r) => setTimeout(r, 4000))]);
+        // After playback's final 'stop' report: its listen is sent or queued, and the queue saved.
+        await scrobble.shutdown();
         // A credential change still being encrypted reaches the disk before exit.
         if (vault.busy) await Promise.race([vault.flush(), new Promise((r) => setTimeout(r, 2000))]);
       } finally {

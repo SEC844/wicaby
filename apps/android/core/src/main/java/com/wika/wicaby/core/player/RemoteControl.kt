@@ -78,6 +78,12 @@ object RemoteControl {
         pending = request to System.currentTimeMillis()
     }
 
+    /** Starts [request] as a "Play on" would (SyncPlay: the group's item). */
+    fun play(request: RemotePlay) {
+        arm(request)
+        _plays.tryEmit(request)
+    }
+
     /** The remote request for [itemId] (position, version, tracks), once, if it is under 30 s old. */
     fun take(itemId: String): RemotePlay? {
         val (req, at) = pending ?: return null

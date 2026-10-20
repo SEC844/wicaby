@@ -42,7 +42,9 @@
     "sleep": "Sleep Timer",
     "sleepActive": "Sleep in {time}",
     "quality": "Quality",
-    "qualityHint": "Quality (Q)"
+    "qualityHint": "Quality (Q)",
+    "songId": "What’s This Song?",
+    "songIdHint": "What’s This Song? (W)"
   },
   "error": {
     "title": "Playback Failed"
@@ -74,6 +76,8 @@
     "off": "Off",
     "forced": "Forced",
     "external": "External",
+    "sdh": "SDH",
+    "ad": "AD",
     "applied": "Tracks from the previous episode applied",
     "secondary": "Show as Second Subtitle",
     "secondaryBadge": "2",
@@ -117,7 +121,14 @@
     "segmentSkipped": "{type, select, recap {Recap skipped} preview {Preview skipped} other {Commercial skipped}}",
     "delay": "{kind, select, audio {Audio offset} other {Subtitle offset}}: {value} ms",
     "passthroughRefused": "Audio output refused passthrough, decoding audio instead",
-    "transcodeFallback": "Direct play failed, the server is converting it"
+    "transcodeFallback": "Direct play failed, the server is converting it",
+    "syncplay": {
+      "pause": "Paused by the group",
+      "unpause": "Playing with the group",
+      "seek": "The group moved the position",
+      "joined": "{name} joined",
+      "left": "{name} left"
+    }
   },
   "reconnect": {
     "title": "Reconnecting…",
@@ -228,5 +239,41 @@
     "added": "Subtitle added",
     "failed": "Couldn’t add the subtitle",
     "machineTranslated": "Machine Translated"
+  },
+  "syncplay": {
+    "button": "Watch together",
+    "title": "Watch together",
+    "intro": "Play in sync with other Jellyfin users: pause, seek and play apply to everyone.",
+    "create": "New group",
+    "defaultName": "{name}’s group",
+    "groups": "Groups on this server",
+    "none": "No group yet",
+    "join": "Join",
+    "members": "{count, plural, one {# viewer} other {# viewers}}",
+    "leave": "Leave the group",
+    "inGroup": "In “{name}”"
+  },
+  "songId": {
+    "title": "What’s This Song?",
+    "notice": "Wicaby sends a short audio fingerprint of the last seconds (not the sound itself) to Shazam to name the music.",
+    "identify": "Identify",
+    "listening": "Listening to the last seconds…",
+    "links": {
+      "shazam": "Shazam",
+      "spotify": "Spotify",
+      "youtube": "YouTube",
+      "apple": "Apple Music"
+    },
+    "findInLibrary": "Find in My Library",
+    "inLibrary": "In your library",
+    "notInLibrary": "Not in your library",
+    "playLater": "Play Later",
+    "queued": "Added to Queue",
+    "errors": {
+      "unavailable": "Not enough of the stream is loaded yet. Try again in a few seconds.",
+      "nomatch": "No song recognized.",
+      "rateLimited": "Shazam is limiting requests. Try again later.",
+      "failed": "Couldn’t reach Shazam."
+    }
   }
 }

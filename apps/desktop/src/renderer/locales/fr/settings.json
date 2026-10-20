@@ -72,6 +72,7 @@
         "sleep": "Minuterie de mise en veille",
         "quality": "Qualité",
         "subtitleSearch": "Rechercher des sous-titres",
+        "songId": "Quel est ce morceau ? (mpv)",
         "subSeekBack": "Réplique précédente (mpv)",
         "subSeekForward": "Réplique suivante (mpv)",
         "speedDown": "Ralentir de 0,25×",
@@ -370,6 +371,10 @@
       "label": "Passer les publicités",
       "desc": "Les coupures publicitaires des enregistrements TV."
     },
+    "aniskip": {
+      "label": "AniSkip pour les animés",
+      "desc": "Complète les génériques d’animés manquants depuis aniskip.com (envoie l’identifiant MyAnimeList et le numéro d’épisode)."
+    },
     "skip": {
       "ask": "Proposer",
       "auto": "Auto",
@@ -456,6 +461,13 @@
       "saved": "Périphérique enregistré",
       "missing": "Périphérique absent",
       "title": "Sortie"
+    },
+    "audioDescription": {
+      "label": "Audiodescription",
+      "desc": "Pistes commentées pour les personnes aveugles et malvoyantes. « Éviter » n’en choisit jamais une automatiquement s'il existe une piste normale dans la même langue.",
+      "prefer": "Préférer",
+      "avoid": "Éviter",
+      "any": "Sans préférence"
     },
     "language": {
       "label": "Langue préférée",
@@ -550,6 +562,10 @@
         "desc": "Suit la piste par défaut du fichier et du serveur."
       }
     },
+    "preferSdh": {
+      "label": "Préférer les sous-titres SDH",
+      "desc": "Sous-titres pour sourds et malentendants (bruits, locuteurs) quand la langue en propose."
+    },
     "alwaysForced": {
       "label": "Toujours afficher les sous-titres forcés",
       "desc": "Les passages dans une autre langue et les panneaux restent traduits, même sous-titres désactivés."
@@ -631,7 +647,18 @@
       "thumb": "Vignettes"
     },
     "foot": "Un tri choisi dans la barre d’une bibliothèque reste propre à celle-ci.",
-    "home": "Accueil"
+    "home": "Accueil",
+    "ratings": {
+      "title": "Notes",
+      "label": "Clé API MDBList",
+      "desc": "Affiche les notes IMDb, Rotten Tomatoes, Metacritic, Letterboxd et TMDb sur les pages des films et séries. Désactivé tant qu’aucune clé n’est saisie ; ensuite, chaque page envoie l’identifiant IMDb ou TMDb du titre à mdblist.com.",
+      "hint": "Gratuite : connectez-vous sur mdblist.com, puis Preferences → API Key.",
+      "get": "Obtenir une clé",
+      "save": "Enregistrer",
+      "remove": "Supprimer",
+      "set": "Clé enregistrée. Les notes sont activées.",
+      "saved": "Enregistrée (masquée)"
+    }
   },
   "downloads": {
     "folder": {
@@ -670,6 +697,12 @@
     },
     "foot": "Votre jeton d’accès est chiffré par Windows et ne quitte jamais cet appareil.",
     "footLinux": "Votre jeton d’accès est chiffré par le trousseau du système et ne quitte jamais cet appareil.",
+    "quickConnect": {
+      "label": "Autoriser un appareil",
+      "desc": "Saisissez le code Quick Connect affiché par un autre appareil pour le connecter avec votre compte.",
+      "button": "Autoriser",
+      "done": "Appareil autorisé."
+    },
     "addTitle": "Ajouter"
   },
   "windows": {
@@ -863,6 +896,31 @@
       "desc": "Les liens magnet ouverts dans le navigateur arrivent dans Wicaby. Chaque lien est confirmé avant d’être ajouté."
     },
     "magnetTitle": "Liens magnet"
+  },
+  "scrobble": {
+    "title": "Scrobbling",
+    "lbToken": "Jeton ListenBrainz",
+    "lbHint": "Désactivé par défaut. Collez votre jeton utilisateur depuis listenbrainz.org/settings pour envoyer à ListenBrainz la musique écoutée dans Wicaby.",
+    "lbConnected": "Connecté à ListenBrainz",
+    "lbConnectedAs": "ListenBrainz : {user}",
+    "fmTitle": "Last.fm",
+    "fmHint": "Désactivé par défaut. Last.fm exige votre propre compte d’API : ouvrez Avancé pour saisir sa clé et son secret.",
+    "advanced": "Avancé",
+    "fmKey": "Clé d’API",
+    "fmSecret": "Secret partagé",
+    "fmKeyHint": "Créez un compte d’API sur last.fm/api/account/create (nom libre, sans URL de rappel), puis collez ici sa clé d’API et son secret partagé.",
+    "fmWaiting": "Autorisez Wicaby sur Last.fm",
+    "fmWaitingDesc": "Connectez-vous sur la page Last.fm qui s’est ouverte et choisissez Oui, autoriser l’accès. Wicaby attend.",
+    "fmOpen": "Ouvrir Last.fm",
+    "fmConnected": "Connecté à Last.fm",
+    "fmConnectedAs": "Last.fm : {user}",
+    "connect": "Se connecter",
+    "disconnect": "Déconnecter",
+    "connectedDesc": "Les morceaux écoutés dans Wicaby sont scrobblés une fois la moitié ou 4 minutes entendues.",
+    "queued": "Écoutes en attente d’envoi : {count}",
+    "serverNote": "Si votre serveur scrobble déjà (plugin Last.fm ou ListenBrainz, ou Navidrome), laissez ceci désactivé pour éviter les doublons.",
+    "foot": "Les jetons et secrets sont chiffrés par Windows sur cet appareil et ne sont jamais journalisés.",
+    "footLinux": "Les jetons et secrets sont chiffrés par le trousseau du système sur cet appareil et ne sont jamais journalisés."
   },
   "trakt": {
     "clientId": "Client ID",

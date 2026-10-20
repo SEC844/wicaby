@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Music scrobbling (core/scrobble): ListenBrainz and Last.fm. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="scrobble_title">Scrobbling</string>
+    <string name="scrobble_error_invalid_token">Jeton ListenBrainz invalide</string>
+    <string name="scrobble_error_invalid_key">Clé d’API ou secret partagé Last.fm invalide</string>
+    <string name="scrobble_error_failed">Le service de scrobbling n’a pas pu être joint : %1$s</string>
+    <string name="scrobble_error_expired">L’autorisation Last.fm a expiré. Reconnectez-vous.</string>
+    <string name="scrobble_error_listenbrainz_reauthorize">ListenBrainz a refusé le jeton. Reconnectez-vous.</string>
+    <string name="scrobble_error_lastfm_reauthorize">Last.fm a révoqué l’accès. Reconnectez-vous.</string>
+    <string name="scrobble_lb_token">Jeton ListenBrainz</string>
+    <string name="scrobble_lb_hint">Désactivé par défaut. Saisissez votre jeton utilisateur depuis listenbrainz.org/settings pour envoyer à ListenBrainz la musique écoutée dans Wicaby.</string>
+    <string name="scrobble_lb_connected">Connecté à ListenBrainz</string>
+    <string name="scrobble_lb_connected_as">ListenBrainz : %1$s</string>
+    <string name="scrobble_fm_title">Last.fm</string>
+    <string name="scrobble_fm_hint">Désactivé par défaut. Last.fm exige votre propre compte d’API : ouvrez Avancé pour saisir sa clé et son secret.</string>
+    <string name="scrobble_advanced">Avancé</string>
+    <string name="scrobble_fm_key">Clé d’API</string>
+    <string name="scrobble_fm_secret">Secret partagé</string>
+    <string name="scrobble_fm_key_hint">Créez un compte d’API sur last.fm/api/account/create (nom libre, sans URL de rappel), puis saisissez ici sa clé d’API et son secret partagé.</string>
+    <string name="scrobble_fm_waiting">Autorisez Wicaby sur Last.fm</string>
+    <string name="scrobble_fm_waiting_desc">Ouvrez la page Last.fm (ou scannez le code QR), connectez-vous et choisissez Oui, autoriser l’accès. Wicaby attend.</string>
+    <string name="scrobble_fm_open">Ouvrir Last.fm</string>
+    <string name="scrobble_fm_connected">Connecté à Last.fm</string>
+    <string name="scrobble_fm_connected_as">Last.fm : %1$s</string>
+    <string name="scrobble_connect">Se connecter</string>
+    <string name="scrobble_disconnect">Déconnecter</string>
+    <string name="scrobble_connected_desc">Les morceaux écoutés dans Wicaby sont scrobblés une fois la moitié ou 4 minutes entendues.</string>
+    <string name="scrobble_queued">Écoutes en attente d’envoi : %1$d</string>
+    <string name="scrobble_server_note">Si votre serveur scrobble déjà (plugin Last.fm ou ListenBrainz, ou Navidrome), laissez ceci désactivé pour éviter les doublons.</string>
+    <string name="scrobble_foot">Les jetons et secrets sont chiffrés par le Keystore Android sur cet appareil et ne sont jamais journalisés.</string>
+</resources>

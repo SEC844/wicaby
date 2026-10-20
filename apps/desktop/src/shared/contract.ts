@@ -5,6 +5,8 @@ import type { AppUpdate } from './app-update';
 import type { LensRef, ZapEntry } from './livetv/model';
 import type { Lyrics } from './music';
 import type { QualityRow } from './quality-presets';
+import type { ExternalRating } from './ratings';
+import type { SongMatch } from './song-id';
 
 export type { LensRef, ZapEntry } from './livetv/model';
 
@@ -109,6 +111,7 @@ export type HwDec = 'auto-safe' | 'd3d11va' | 'nvdec' | 'vaapi' | 'vulkan' | 'no
 // Plex-like auto-selection. manual: forced tracks only; foreign: full subtitles when the
 // audio is not in the subtitle language; always; default: the file/server default flag.
 export type SubtitleMode = 'manual' | 'foreign' | 'always' | 'default';
+export type AudioDescriptionPref = 'prefer' | 'avoid' | 'any';
 
 export const SUBTITLE_FONTS = ['Geist', 'Segoe UI', 'Arial', 'Verdana', 'Georgia'] as const;
 
@@ -240,6 +243,8 @@ export interface Settings {
     skipRecap: SkipMode;
     skipPreview: SkipMode;
     skipCommercial: SkipMode;
+    // Anime intro/credits from api.aniskip.com when the server has none (third party: off by default).
+    aniskip: boolean;
     // maxBitrateMbps applies on the LAN, this one when the server address is remote.
     maxBitrateRemoteMbps: number;
     defaultSpeed: number;
@@ -253,6 +258,9 @@ export interface Settings {
     audioDevice: string;
     normalize: boolean;
     alwaysForced: boolean;
+    // Accessibility: SDH subtitles first, and whether an audio-description track may be picked automatically.
+    preferSdh: boolean;
+    audioDescription: AudioDescriptionPref;
     // Extra mpv command-line options, space separated (--wid and the IPC options are refused).
     mpvArgs: string;
     // Picture format every item starts in; a choice in the player lasts for that item until restart.
@@ -405,6 +413,9 @@ export interface Track {
   isDefault: boolean;
   isForced: boolean;
   isExternal: boolean;
+  // Hearing-impaired subtitles / audio description (shared/track-selection.ts isSdh, isAd).
+  sdh?: boolean;
+  ad?: boolean;
 }
 
 export type PlayMethod = 'DirectPlay' | 'DirectStream' | 'Transcode';
@@ -453,6 +464,9 @@ export interface LrclibTrack {
   album: string;
   durationMs: number;
 }
+
+// "What's this song?" (main/playback/song-id.ts). unavailable: no mpv, or too little of the stream cached yet.
+export type SongIdResult = { song: SongMatch } | { error: 'unavailable' | 'nomatch' | 'rateLimited' | 'failed' };
 
 export type SkipMode = 'ask' | 'auto' | 'off';
 export type SkipSegmentType = 'recap' | 'preview' | 'commercial';
@@ -894,6 +908,18 @@ export type TorrentTestResult =
   | { ok: true; version: string; apiVersion: string; via?: 'direct' | 'mesh' }
   | { ok: false; error: string; certificate?: TorrentCertificate; path?: MeshPath };
 
+// ---- Music scrobbling (ListenBrainz, Last.fm) ----
+
+export interface ScrobbleState {
+  // ListenBrainz user name once a token is saved ('' when ListenBrainz did not say).
+  listenbrainz: { user: string | null };
+  // apiKey: '' until the user enters their Last.fm API key; user once authorized; authUrl while waiting for the user.
+  lastfm: { apiKey: string; user: string | null; authUrl: string | null };
+  // Listens waiting to be sent again.
+  queued: number;
+  error?: string;
+}
+
 // ---- Trakt (client-side scrobbling, OAuth device code) ----
 
 export interface TraktServer {
@@ -1022,6 +1048,7 @@ export interface AppUpdateState {
   // "Later" on this version: no notice, Settings still shows it.
   dismissed: boolean;
 }
+
 
 export interface Toast {
   kind: 'info' | 'success' | 'error';
@@ -1187,6 +1214,8 @@ export interface WicabyBridge {
     // serverId defaults to the primary server; disconnect() without it closes every session.
     publicUsers(serverId?: string): Promise<PublicUser[]>;
     login(username: string, password: string, serverId?: string): Promise<SessionState>;
+    // Jellyfin Quick Connect: starts a request (its code), then polls it until approved (the session). null: not offered.
+    quickConnect(serverId?: string): Promise<{ code: string } | { state: SessionState } | null>;
     logout(serverId?: string): Promise<SessionState>;
     disconnect(serverId?: string): Promise<SessionState>;
     onChange(cb: (state: SessionState) => void): Unsubscribe;
@@ -1206,6 +1235,8 @@ export interface WicabyBridge {
     command(command: PlaybackCommand): Promise<void>;
     getState(): Promise<PlaybackState>;
     onState(cb: (state: PlaybackState) => void): Unsubscribe;
+    // The music playing in the film or episode, recognised by Shazam from a fingerprint of the last seconds.
+    identifySong(): Promise<SongIdResult>;
   };
   music: {
     // MU-13: lyrics from lrclib.net for a track the server has none for; null when off, not found or failed.
@@ -1314,6 +1345,14 @@ export interface WicabyBridge {
     takeMagnet(): Promise<string | null>;
     onMagnet(cb: () => void): Unsubscribe;
   };
+  // External ratings (shared/ratings.ts): the MDBList key goes in once and never comes back out.
+  ratings: {
+    configured(): Promise<boolean>;
+    // '' turns them off; true when a key is set.
+    setKey(key: string): Promise<boolean>;
+    // path: mdblistPath(item). [] when off, unknown or unreachable.
+    get(path: string): Promise<ExternalRating[]>;
+  };
   trakt: {
     state(): Promise<TraktState>;
     onState(cb: (state: TraktState) => void): Unsubscribe;
@@ -1322,6 +1361,17 @@ export interface WicabyBridge {
     cancel(): Promise<TraktState>;
     // Revokes the token and forgets the account.
     disconnect(): Promise<TraktState>;
+  };
+  scrobble: {
+    state(): Promise<ScrobbleState>;
+    onState(cb: (state: ScrobbleState) => void): Unsubscribe;
+    // Validates the user token, then stores it.
+    connectListenBrainz(token: string): Promise<ScrobbleState>;
+    disconnectListenBrainz(): Promise<ScrobbleState>;
+    // Stores the API key and secret, then starts the web authorization (state.lastfm.authUrl).
+    connectLastfm(apiKey: string, secret: string): Promise<ScrobbleState>;
+    cancelLastfm(): Promise<ScrobbleState>;
+    disconnectLastfm(): Promise<ScrobbleState>;
   };
   reminders: {
     list(): Promise<LiveReminder[]>;
@@ -1344,6 +1394,18 @@ export interface WicabyBridge {
     getState(): Promise<CastState | null>;
     onState(cb: (state: CastState | null) => void): Unsubscribe;
   };
+  // Jellyfin SyncPlay (watch together). Optional: a platform without it hides the UI. Main (or the web TV app's
+  // own implementation) applies the group's pause, seek and play to the player; the renderer only picks a group.
+  // serverId: the Jellyfin server to use, the one playing (else the primary) when absent.
+  syncplay?: {
+    list(serverId?: string): Promise<SyncPlayGroup[]>;
+    // While something plays on that server, the new group starts with it.
+    create(name: string, serverId?: string): Promise<void>;
+    join(groupId: string, serverId?: string): Promise<void>;
+    leave(): Promise<void>;
+    current(): SyncPlayGroup | null;
+    onChange(cb: (g: SyncPlayGroup | null) => void): Unsubscribe;
+  };
   events: {
     onServerEvent(cb: (event: ServerEvent) => void): Unsubscribe;
     onNavigate(cb: (route: string) => void): Unsubscribe;
@@ -1365,6 +1427,14 @@ export interface ImmichTestResult {
   version?: string;
   error?: 'url' | 'network' | 'server' | 'version' | 'auth' | 'scope';
   missing: string[];
+}
+
+// A SyncPlay group (Jellyfin GroupInfoDto); members are user names.
+export interface SyncPlayGroup {
+  id: string;
+  name: string;
+  members: string[];
+  state: 'idle' | 'waiting' | 'paused' | 'playing';
 }
 
 // Channel names. Invoke channels return a promise; send channels are fire and forget.
@@ -1414,6 +1484,7 @@ export const Channels = {
   sessionGet: 'session:get',
   sessionPublicUsers: 'session:public-users',
   sessionLogin: 'session:login',
+  sessionQuickConnect: 'session:quick-connect',
   sessionLogout: 'session:logout',
   sessionDisconnect: 'session:disconnect',
   sessionChanged: 'session:changed',
@@ -1423,6 +1494,7 @@ export const Channels = {
   playbackCommand: 'playback:command',
   playbackGetState: 'playback:get-state',
   playbackState: 'playback:state',
+  playbackIdentifySong: 'playback:identify-song',
   htmlPlayerLoad: 'html-player:load',
   htmlPlayerCommand: 'html-player:command',
   htmlPlayerEvent: 'html-player:event',
@@ -1443,6 +1515,16 @@ export const Channels = {
   vpnEmbeddedChanged: 'vpn:embedded-changed',
   vpnEmbeddedTurnOff: 'vpn:embedded-turn-off',
   vpnDiagnostics: 'vpn:diagnostics',
+  ratingsConfigured: 'ratings:configured',
+  ratingsSetKey: 'ratings:set-key',
+  ratingsGet: 'ratings:get',
+  scrobbleState: 'scrobble:state',
+  scrobbleChanged: 'scrobble:changed',
+  scrobbleLbConnect: 'scrobble:lb-connect',
+  scrobbleLbDisconnect: 'scrobble:lb-disconnect',
+  scrobbleLastfmConnect: 'scrobble:lastfm-connect',
+  scrobbleLastfmCancel: 'scrobble:lastfm-cancel',
+  scrobbleLastfmDisconnect: 'scrobble:lastfm-disconnect',
   traktState: 'trakt:state',
   traktChanged: 'trakt:changed',
   traktConnect: 'trakt:connect',
@@ -1475,6 +1557,12 @@ export const Channels = {
   castTakeBack: 'cast:take-back',
   castGetState: 'cast:get-state',
   castState: 'cast:state',
+  syncplayList: 'syncplay:list',
+  syncplayCreate: 'syncplay:create',
+  syncplayJoin: 'syncplay:join',
+  syncplayLeave: 'syncplay:leave',
+  syncplayGet: 'syncplay:get',
+  syncplayChanged: 'syncplay:changed',
   serverEvent: 'events:server',
   navigate: 'events:navigate',
   toast: 'events:toast',

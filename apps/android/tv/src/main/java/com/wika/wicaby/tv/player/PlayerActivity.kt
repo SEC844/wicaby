@@ -2,6 +2,11 @@ package com.wika.wicaby.tv.player
 
 import com.wika.wicaby.tv.ui.TvFocus
 import com.wika.wicaby.tv.ui.dpadEdges
+import com.wika.wicaby.core.syncplay.SyncPlay
+import com.wika.wicaby.tv.ui.label
+import com.wika.wicaby.tv.ui.rememberSyncGroups
+import com.wika.wicaby.tv.ui.syncAct
+import com.wika.wicaby.tv.ui.syncGroupName
 import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -13,6 +18,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import android.content.Intent
+import android.net.Uri
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +28,7 @@ import androidx.compose.ui.res.pluralStringResource
 import com.wika.wicaby.core.data.AccessSchedules
 import com.wika.wicaby.core.data.RemoteSubtitle
 import com.wika.wicaby.core.data.SubtitleRules
+import com.wika.wicaby.core.player.TrackMemory
 import com.wika.wicaby.core.player.SubtitleSearch
 import com.wika.wicaby.core.player.SubtitleLook
 import com.wika.wicaby.core.player.setFontScale
@@ -158,6 +165,8 @@ import com.wika.wicaby.tv.goFullscreen
 import com.wika.wicaby.tv.hideSystemBars
 import com.wika.wicaby.tv.Wicaby
 import com.wika.wicaby.core.data.Item
+import com.wika.wicaby.core.songid.ShazamSignature
+import com.wika.wicaby.core.songid.SongId
 import com.wika.wicaby.core.data.MediaStream
 import com.wika.wicaby.core.data.TICKS_PER_MS
 import com.wika.wicaby.core.player.DisplaySwitcher
@@ -438,13 +447,16 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
     val sleepButton = remember { FocusRequester() }
     val qualityButton = remember { FocusRequester() }
     val queueButton = remember { FocusRequester() }
+    val togetherButton = remember { FocusRequester() }
+    val together = !pb.preview && !pb.trailer && SyncPlay.available(pb.api)
+    val songIdButton = remember { FocusRequester() }
     val queue = pb.queue
     val chapters = pb.chapters
     val chapterStarts = remember(chapters) { chapters.map { it.value.startPositionTicks / TICKS_PER_MS } }
     // The control bar, left to right (left/right move along it).
     val buttons = listOfNotNull(
-        tracksButton, chaptersButton.takeIf { chapters.isNotEmpty() }, speedButton, sleepButton, queueButton.takeIf { queue != null },
-        qualityButton.takeIf { pb.canSwitchQuality }, aspectButton,
+        tracksButton, chaptersButton.takeIf { chapters.isNotEmpty() }, speedButton, sleepButton, songIdButton.takeIf { pb.songIdSource != null }, queueButton.takeIf { queue != null },
+        togetherButton.takeIf { together }, qualityButton.takeIf { pb.canSwitchQuality }, aspectButton,
     )
     fun openPanel(kind: Int) {
         panelKind = kind
@@ -985,9 +997,11 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
                     chaptersButton = chaptersButton.takeIf { chapters.isNotEmpty() }, onChapters = { openPanel(PANEL_CHAPTERS) },
                     speed = pb.rate, speedButton = speedButton, onSpeed = { openPanel(PANEL_SPEED) },
                     sleepLeft = sleep?.endsAt?.let { (it - now).coerceAtLeast(0) }, sleepButton = sleepButton, onSleep = { openPanel(PANEL_SLEEP) },
+                    songIdButton = songIdButton.takeIf { pb.songIdSource != null }, onSongId = { openPanel(PANEL_SONGID) },
                     now = now,
                     qualityButton = qualityButton.takeIf { pb.canSwitchQuality }, qualityCap = pb.qualityCap, onQuality = { openPanel(PANEL_QUALITY) },
                     queueButton = queueButton.takeIf { queue != null }, queuePosition = queue?.let { it.index + 1 to it.ids.size }, onQueue = { openPanel(PANEL_QUEUE) },
+                    togetherButton = togetherButton.takeIf { together }, inGroup = SyncPlay.group != null, onTogether = { openPanel(PANEL_TOGETHER) },
                 )
             }
         }
@@ -1087,10 +1101,12 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
                 PANEL_SPEED -> SpeedPanel(pb.rate, onSelect = { sp -> pb.setSpeed(sp); close() }, onClose = close)
                 PANEL_SYNC -> SyncPanel(pb, onClose = close)
                 PANEL_SLEEP -> SleepPanel(sleep, onClose = close)
+                PANEL_SONGID -> SongIdPanel(pb, onClose = close)
                 PANEL_QUALITY -> QualityPanel(pb, onClose = close)
                 PANEL_SUBSEARCH -> SubtitleSearchPanel(pb, onClose = close)
                 PANEL_AUDIOFX -> AudioFxPanel(onClose = close)
                 PANEL_QUEUE -> QueuePanel(pb, onJump = { i -> close(); pb.jump(i) }, onClose = close)
+                PANEL_TOGETHER -> TogetherPanel(pb, onClose = close)
                 else -> TrackPanel(pb, onClose = close, onSearch = { panelKind = PANEL_SUBSEARCH }, onAudioFx = { panelKind = PANEL_AUDIOFX }, onSync = { panelKind = PANEL_SYNC })
             }
         }
@@ -1245,6 +1261,8 @@ private fun Osd(
     sleepLeft: Long?,
     sleepButton: FocusRequester,
     onSleep: () -> Unit,
+    songIdButton: FocusRequester?,
+    onSongId: () -> Unit,
     now: Long,
     qualityButton: FocusRequester?,
     qualityCap: Int?,
@@ -1252,6 +1270,9 @@ private fun Osd(
     queueButton: FocusRequester? = null,
     queuePosition: Pair<Int, Int>? = null,
     onQueue: () -> Unit = {},
+    togetherButton: FocusRequester? = null,
+    inGroup: Boolean = false,
+    onTogether: () -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.86f))))
@@ -1308,6 +1329,14 @@ private fun Osd(
                     Modifier.padding(start = 8.dp).focusRequester(sleepButton).onPreviewKeyEvent { onControlsKey(it, sleepButton) },
                     description = listOfNotNull(sleepName, sleepLeft?.let { clock(it) }).joinToString(", "),
                 )
+                // "What's this song?": a direct play or a downloaded file (core SongId reads the file again).
+                if (songIdButton != null) {
+                    OsdButton(
+                        MusicNoteIcon, stringResource(com.wika.wicaby.core.R.string.song_id_chip), onSongId,
+                        Modifier.padding(start = 8.dp).focusRequester(songIdButton).onPreviewKeyEvent { onControlsKey(it, songIdButton) },
+                        description = stringResource(com.wika.wicaby.core.R.string.song_id_title),
+                    )
+                }
                 // TP-04: the queue sheet, while a queue plays; "3/12" on the button.
                 if (queueButton != null && queuePosition != null) {
                     val (at, of) = queuePosition
@@ -1315,6 +1344,15 @@ private fun Osd(
                         QueueIcon, "$at/$of", onQueue,
                         Modifier.padding(start = 8.dp).focusRequester(queueButton).onPreviewKeyEvent { onControlsKey(it, queueButton) },
                         description = stringResource(com.wika.wicaby.core.R.string.queue) + ", " + stringResource(com.wika.wicaby.core.R.string.queue_position, at, of),
+                    )
+                }
+                // Jellyfin SyncPlay: "Regarder ensemble", selected while in a group.
+                if (togetherButton != null) {
+                    val name = stringResource(com.wika.wicaby.core.R.string.syncplay_title)
+                    OsdButton(
+                        Ic.Group, name, onTogether,
+                        Modifier.padding(start = 8.dp).focusRequester(togetherButton).onPreviewKeyEvent { onControlsKey(it, togetherButton) },
+                        value = SyncPlay.group?.participants?.size?.toString()?.takeIf { inGroup },
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -1570,7 +1608,7 @@ private fun subtitleMeta(r: RemoteSubtitle): String {
 
 @Composable
 private fun label(s: MediaStream): String =
-    s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index)
+    listOfNotNull(s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index), TrackMemory.badge(s)).joinToString(" · ")
 
 @Composable
 private fun TrackColumn(
@@ -1644,6 +1682,8 @@ private const val PANEL_SUBSEARCH = 5
 private const val PANEL_AUDIOFX = 6
 private const val PANEL_QUEUE = 7
 private const val PANEL_SYNC = 8
+private const val PANEL_TOGETHER = 9
+private const val PANEL_SONGID = 10
 
 // X-02 Quality sheet, laid out like the track panel: Version (2 or more sources, never live) and Quality
 // (Original, then the presets). OK reloads in place with a spinner on the row; the sheet closes once the
@@ -1707,6 +1747,42 @@ private fun QualityPanel(pb: Playback, onClose: () -> Unit) {
     }
 }
 
+// Jellyfin SyncPlay: in a group, who is in it and Leave; otherwise a new group on this video (at this
+// position) or one of the server's groups.
+@Composable
+private fun TogetherPanel(pb: Playback, onClose: () -> Unit) {
+    val first = remember { FocusRequester() }
+    FocusOnOpen(first)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val group = SyncPlay.group
+    val groups = rememberSyncGroups(pb.api).value
+    Sheet(stringResource(com.wika.wicaby.core.R.string.syncplay_title), onClose) {
+        if (group != null) {
+            Text(
+                stringResource(com.wika.wicaby.core.R.string.syncplay_members, group.participants.joinToString(", ")),
+                style = Type.callout, color = C.label2, modifier = Modifier.padding(start = 6.dp, bottom = 12.dp),
+            )
+        } else if (groups?.isEmpty() == true) {
+            Text(stringResource(com.wika.wicaby.core.R.string.syncplay_none), style = Type.callout, color = C.label2, modifier = Modifier.padding(start = 6.dp, bottom = 12.dp))
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.dpadEdges()) {
+            if (group != null) {
+                item { Pill(stringResource(com.wika.wicaby.core.R.string.syncplay_leave), icon = Ic.Logout, onClick = { SyncPlay.leave(); onClose() }, modifier = Modifier.focusRequester(first)) }
+            } else {
+                item {
+                    Pill(stringResource(com.wika.wicaby.core.R.string.syncplay_new), icon = Ic.Group, modifier = Modifier.focusRequester(first), onClick = {
+                        syncAct(scope, context, onClose) { SyncPlay.create(pb.api, syncGroupName(), pb.itemId, pb.player.currentPosition) }
+                    })
+                }
+                items(groups.orEmpty()) { g ->
+                    Pill(g.label(), icon = Ic.Person, onClick = { syncAct(scope, context, onClose) { SyncPlay.join(pb.api, g.id) } })
+                }
+            }
+        }
+    }
+}
+
 private val SLEEP_MINUTES = listOf(5, 10, 15, 30, 45, 60, 90, 120)
 
 // X-04 sleep timer sheet: +15 min and Cancel while a timer runs, then end of this video and the durations.
@@ -1731,6 +1807,95 @@ private fun SleepPanel(sleep: SleepTimer.State?, onClose: () -> Unit) {
         }
     }
 }
+
+// "What's this song?" (core SongId): the notice before the first use, then the card: cover, title, artist, album, search
+// links, and the track in this server's music with Play Later (queued after this video).
+@Composable
+private fun SongIdPanel(pb: Playback, onClose: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val first = remember { FocusRequester() }
+    var noticeSeen by remember { mutableStateOf(SongId.noticeSeen) }
+    var outcome by remember { mutableStateOf<SongId.Outcome?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    // null: not looked up yet; false: not in the library.
+    var found by remember { mutableStateOf<Any?>(null) }
+    var queued by remember { mutableStateOf(false) }
+    fun identify() {
+        if (!noticeSeen) {
+            SongId.noticeSeen = true
+            noticeSeen = true
+        }
+        busy = true
+        outcome = null
+        found = null
+        scope.launch {
+            outcome = SongId.identify(ctx, Core.http, pb.songIdSource, pb.player.currentPosition)
+            busy = false
+        }
+    }
+    LaunchedEffect(Unit) { if (noticeSeen) identify() }
+    FocusOnOpen(first)
+    Sheet(stringResource(com.wika.wicaby.core.R.string.song_id_title), onClose) {
+        val song = outcome?.song
+        when {
+            !noticeSeen -> Column {
+                Text(stringResource(com.wika.wicaby.core.R.string.song_id_notice), style = Type.body, color = C.label2, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
+                Pill(stringResource(com.wika.wicaby.core.R.string.song_id_identify), onClick = ::identify, modifier = Modifier.focusRequester(first), primary = true)
+            }
+            busy -> Text(stringResource(com.wika.wicaby.core.R.string.song_id_listening), style = Type.body, color = C.label2, modifier = Modifier.padding(start = 6.dp).focusRequester(first).focusable())
+            song != null -> Column {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp)) {
+                    if (song.coverUrl != null) AsyncImage(song.coverUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(Radius.md)))
+                    Column(Modifier.padding(start = 16.dp)) {
+                        Text(song.title, style = Type.title2, color = C.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(song.artist, style = Type.body, color = C.label2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        song.album?.let { Text(it, style = Type.caption, color = C.label3, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    }
+                }
+                // A TV may have no browser: a link is offered only when something opens it.
+                val links = remember(song) {
+                    ShazamSignature.links(song).map { (id, url) -> SONG_LINK_NAMES.getValue(id) to Intent(Intent.ACTION_VIEW, Uri.parse(url)) }
+                        .filter { it.second.resolveActivity(ctx.packageManager) != null }
+                }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.dpadEdges()) {
+                    item {
+                        val f = found
+                        when {
+                            f is Item -> Pill(
+                                stringResource(if (queued) com.wika.wicaby.core.R.string.song_id_queued else com.wika.wicaby.core.R.string.song_id_play_later),
+                                onClick = { if (!queued) queued = pb.enqueue(listOf(f.id), playNext = false) },
+                                modifier = Modifier.focusRequester(first), primary = true,
+                            )
+                            f == false -> Pill(stringResource(com.wika.wicaby.core.R.string.song_id_not_in_library), onClick = {}, modifier = Modifier.focusRequester(first))
+                            else -> Pill(
+                                stringResource(com.wika.wicaby.core.R.string.song_id_find_in_library),
+                                onClick = { scope.launch { found = runCatching { SongId.findInLibrary(pb.api, song) }.getOrNull() ?: false } },
+                                modifier = Modifier.focusRequester(first), icon = Ic.Search,
+                            )
+                        }
+                    }
+                    items(links) { (name, intent) ->
+                        Pill(name, onClick = { runCatching { ctx.startActivity(intent) } }, icon = Ic.External)
+                    }
+                }
+            }
+            else -> Column {
+                val err = when (outcome?.error) {
+                    SongId.Error.NOMATCH -> com.wika.wicaby.core.R.string.song_id_error_nomatch
+                    SongId.Error.RATE_LIMITED -> com.wika.wicaby.core.R.string.song_id_error_rate_limited
+                    SongId.Error.UNAVAILABLE -> com.wika.wicaby.core.R.string.song_id_error_unavailable
+                    else -> com.wika.wicaby.core.R.string.song_id_error_failed
+                }
+                Text(stringResource(err), style = Type.body, color = C.label2, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
+                Pill(stringResource(com.wika.wicaby.core.R.string.song_id_identify), onClick = ::identify, modifier = Modifier.focusRequester(first))
+            }
+        }
+    }
+}
+
+// Brand names, not translated.
+private val SONG_LINK_NAMES = mapOf("shazam" to "Shazam", "spotify" to "Spotify", "youtube" to "YouTube", "apple" to "Apple Music")
 
 private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
@@ -1982,5 +2147,6 @@ private fun QueuePanel(pb: Playback, onJump: (Int) -> Unit, onClose: () -> Unit)
     }
 }
 
+private val MusicNoteIcon = glyph("M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z")
 private val QueueIcon = glyph("M4 10h12v2H4zm0-4h12v2H4zm0 8h8v2H4zm10 0v6l5-3z")
 private val CloseIcon = glyph("M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z")

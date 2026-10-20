@@ -68,7 +68,13 @@
     "demo": "Démo",
     "demoConnect": "Connecter votre serveur",
     "notAvailable": "Indisponible dans l’app TV",
-    "blocked": "Le serveur a refusé cette app. Vérifiez son adresse, son certificat et qu’il accepte les autres apps web (CORS)."
+    "blocked": "Le serveur a refusé cette app. Vérifiez son adresse, son certificat et qu’il accepte les autres apps web (CORS).",
+    "syncPaused": "Regarder ensemble : en pause",
+    "syncResumed": "Regarder ensemble : lecture",
+    "syncSeeked": "Regarder ensemble : déplacé à {time}",
+    "syncJoined": "{name} a rejoint",
+    "syncLeft": "{name} est parti",
+    "syncJellyfinOnly": "Regarder ensemble demande un serveur Jellyfin"
   },
   "connection": {
     "timeout": "Délai dépassé",
@@ -138,6 +144,14 @@
     "tooLarge": "Image trop volumineuse (20 Mo au plus)",
     "notAnImage": "Le contenu du fichier ne correspond pas à une image"
   },
+  "scrobble": {
+    "invalidToken": "Jeton ListenBrainz invalide",
+    "invalidKey": "Clé d’API ou secret partagé Last.fm invalide",
+    "failed": "Le service de scrobbling n’a pas pu être joint : {error}",
+    "expired": "L’autorisation Last.fm a expiré. Reconnectez-vous.",
+    "listenbrainzReauthorize": "ListenBrainz a refusé le jeton. Reconnectez-vous.",
+    "lastfmReauthorize": "Last.fm a révoqué l’accès. Reconnectez-vous."
+  },
   "trakt": {
     "invalidClient": "Client ID ou Client Secret invalide",
     "failed": "Trakt n’a pas pu être joint : {error}",
@@ -166,5 +180,8 @@
     "tokenUnsupported": "Ce serveur refuse la connexion par jeton (comptes LDAP sur Navidrome) : Wicaby n’envoie jamais le mot de passe en clair.",
     "castNeedsRelay": "Pour diffuser depuis Navidrome, activez « Faire passer le flux par cet ordinateur » dans les réglages de diffusion : Wicaby ne met jamais le mot de passe Navidrome dans une adresse.",
     "notOwner": "Cette playlist appartient à un autre utilisateur : seul son propriétaire peut la modifier."
+  },
+  "ratings": {
+    "invalidKey": "Ceci ne ressemble pas à une clé API MDBList."
   }
 }

@@ -17,6 +17,7 @@ export interface PlexStream {
   selected?: boolean;
   forced?: boolean;
   hearingImpaired?: boolean;
+  visualImpaired?: boolean;
   key?: string; // sidecar subtitle: /library/streams/{id}
   language?: string;
   languageCode?: string;

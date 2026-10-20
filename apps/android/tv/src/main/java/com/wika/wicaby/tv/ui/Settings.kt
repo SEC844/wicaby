@@ -61,6 +61,7 @@ import android.widget.Toast
 import com.wika.wicaby.core.R as CoreR
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.photos.photoAlbums
+import com.wika.wicaby.core.player.AniSkip
 import com.wika.wicaby.core.player.ScopedPrefs
 import com.wika.wicaby.core.data.DeviceCaps
 import com.wika.wicaby.core.data.HomeRows
@@ -100,7 +101,7 @@ private enum class Section(val label: Int) {
     Playback(R.string.section_playback),
     Audio(R.string.section_audio),
     Subtitles(R.string.section_subtitles),
-    Accounts(R.string.section_accounts), // with Trakt (TP-09)
+    Accounts(R.string.section_accounts), // with Trakt (TP-09) and music scrobbling
     Files(R.string.sources_title), // FS-10 file sources, photo sources, music source
     Remote(R.string.section_remote),
     About(R.string.section_about),
@@ -301,6 +302,7 @@ private fun GeneralSection(api: Api) {
 
 private val MBPS = listOf(0, 120, 80, 60, 40, 20, 10, 8, 4, 2)
 private val LANGS = listOf("" to R.string.lang_auto, "fre" to R.string.lang_fre, "eng" to R.string.lang_eng, "jpn" to R.string.lang_jpn, "ger" to R.string.lang_ger, "spa" to R.string.lang_spa, "ita" to R.string.lang_ita, "kor" to R.string.lang_kor)
+private val AD_PREFS = listOf("prefer" to CoreR.string.ad_prefer, "avoid" to CoreR.string.ad_avoid, "any" to CoreR.string.ad_any)
 private val SUB_MODES = listOf("Default" to R.string.sub_mode_default, "Smart" to R.string.sub_mode_smart, "OnlyForced" to R.string.sub_mode_forced, "Always" to R.string.sub_mode_always, "None" to R.string.sub_mode_none)
 private val PASS_LABELS = mapOf("ac3" to "Dolby Digital (AC3)", "eac3" to "Dolby Digital Plus (E-AC3)", "dts" to "DTS, DTS-HD", "truehd" to "Dolby TrueHD")
 
@@ -370,6 +372,10 @@ private fun PlaybackSection(api: Api) {
             ).forEach { (label, s) -> ChoiceRow(stringResource(label), skipOptions, s.value, { s.value = it }) }
         }
     }
+    Group(stringResource(CoreR.string.aniskip), stringResource(CoreR.string.aniskip_hint)) {
+        var aniskip by remember { mutableStateOf(AniSkip.enabled) }
+        ToggleRow(stringResource(CoreR.string.aniskip), aniskip) { AniSkip.enabled = it; aniskip = it }
+    }
     Group(stringResource(R.string.group_picture), stringResource(R.string.display_mode_hint)) {
         ChoiceRow(
             stringResource(R.string.settings_display_mode),
@@ -418,6 +424,12 @@ private fun AudioSection(api: Api) {
         else ChoiceRow(
             stringResource(R.string.audio_language), LANGS.map { stringResource(it.second) }, LANGS.indexOfFirst { it.first == server.str("AudioLanguagePreference").orEmpty() }.coerceAtLeast(0),
             { i -> scope.launch { server.set("AudioLanguagePreference", LANGS[i].first) } },
+        )
+    }
+    Group(stringResource(CoreR.string.a11y_group), stringResource(CoreR.string.a11y_hint)) {
+        ChoiceRow(
+            stringResource(CoreR.string.audio_description), AD_PREFS.map { stringResource(it.second) },
+            AD_PREFS.indexOfFirst { it.first == TvSettings.audioDescription.value }.coerceAtLeast(0), { TvSettings.audioDescription.value = AD_PREFS[it].first },
         )
     }
     Group(stringResource(R.string.group_passthrough), stringResource(R.string.passthrough_hint)) {
@@ -482,6 +494,9 @@ private fun SubtitlesSection(api: Api) {
         )
         ToggleRow(stringResource(R.string.subtitle_override_ass), TvSettings.subtitleOverrideAss.value) { TvSettings.subtitleOverrideAss.value = it }
     }
+    Group(stringResource(CoreR.string.a11y_group), stringResource(CoreR.string.a11y_hint)) {
+        ToggleRow(stringResource(CoreR.string.prefer_sdh), TvSettings.preferSdh.value) { TvSettings.preferSdh.value = it }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -526,6 +541,27 @@ private fun AppearanceSection(api: Api) {
 private fun HomeSection(api: Api, tabs: List<TopTab>) {
     HomeGroup(api)
     TabBarGroup(api, tabs)
+    RatingsGroup()
+}
+
+// The MDBList key for IMDb, Rotten Tomatoes… on the detail pages (core/ratings). Off until set; sealed by the Keystore.
+@Composable
+private fun RatingsGroup() {
+    val context = LocalContext.current
+    val on by com.wika.wicaby.core.ratings.Ratings.configured.collectAsState()
+    var key by remember { mutableStateOf("") }
+    fun save(k: String) {
+        if (com.wika.wicaby.core.ratings.Ratings.setKey(k)) key = "" else Toast.makeText(context, CoreR.string.ratings_invalid, Toast.LENGTH_SHORT).show()
+    }
+    Group(stringResource(CoreR.string.ratings_title), stringResource(CoreR.string.ratings_desc)) {
+        TvTextField(
+            key, { key = it }, stringResource(if (on) CoreR.string.ratings_saved else CoreR.string.ratings_key), Modifier.fillMaxWidth(),
+            password = true, onSubmit = { if (key.isNotBlank()) save(key) }, label = stringResource(CoreR.string.ratings_key),
+        )
+        SettingRow(stringResource(CoreR.string.ratings_save), chevron = true, onClick = { if (key.isNotBlank()) save(key) })
+        if (on) SettingRow(stringResource(CoreR.string.ratings_remove), onClick = { save("") })
+    }
+    Text(stringResource(CoreR.string.ratings_hint), style = Type.footnote, color = C.label3, modifier = Modifier.padding(horizontal = 18.dp))
 }
 
 // The 8 accent circles, shared with the wizard's Look step. [onFocus]: the wizard applies a colour as soon as it is
@@ -750,6 +786,7 @@ private fun AccountsSection(api: Api, user: User?) {
     if (session.server.kind == "plex") PlexAccountGroup(session.server) { leave(Route.Servers, false) } else AddressesGroup(session.server)
     OtherServers()
     TraktSection()
+    ScrobbleSection()
 }
 
 // B09: the server's local and remote addresses; requests go to whichever answers (Core.addresses).

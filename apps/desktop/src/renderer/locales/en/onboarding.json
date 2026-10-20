@@ -58,6 +58,10 @@
     "passwordLead": "Enter your password.",
     "otherLead": "Sign in with your username.",
     "backToServers": "Back to Servers",
-    "switchServer": "Switch Server"
+    "switchServer": "Switch Server",
+    "quickConnect": "Quick Connect",
+    "quickTitle": "Sign In with Quick Connect",
+    "quickLead": "On a device already signed in to Jellyfin, open Settings > Quick Connect (or in Wicaby: Settings > Accounts) and enter this code.",
+    "quickOff": "Quick Connect is turned off on this server."
   }
 }

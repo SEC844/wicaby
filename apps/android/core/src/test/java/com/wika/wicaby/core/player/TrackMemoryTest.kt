@@ -88,4 +88,26 @@ class TrackMemoryTest {
         assertEquals(300, titles.size)
         assertEquals(false, "t0" in titles)
     }
+
+    // Accessibility: a server default of the wrong class gives way to its twin in the same language.
+    @Test
+    fun accessibleTwins() {
+        val a = { i: Int, lang: String, title: String? -> MediaStream(index = i, type = "Audio", language = lang, title = title) }
+        val s = { i: Int, lang: String, sdh: Boolean -> MediaStream(index = i, type = "Subtitle", language = lang, isHearingImpaired = sdh) }
+        val streams = listOf(
+            MediaStream(index = 0, type = "Video"), a(1, "eng", "English AD"), a(2, "eng", null), a(3, "fre", "Audiodescription"), a(4, "fre", null),
+            MediaStream(index = 5, type = "Audio", language = "ger", isVisualImpaired = true), s(6, "fre", false), s(7, "fre", true), s(8, "eng", false),
+        )
+        assertEquals(2, TrackMemory.accessible(streams, 1, false, "avoid"))
+        assertEquals(4, TrackMemory.accessible(streams, 4, false, "avoid"))
+        assertEquals(5, TrackMemory.accessible(streams, 5, false, "avoid")) // no plain twin
+        assertEquals(3, TrackMemory.accessible(streams, 4, false, "prefer"))
+        assertEquals(1, TrackMemory.accessible(streams, 1, false, "any"))
+        assertEquals(6, TrackMemory.accessible(streams, 6, false, "avoid"))
+        assertEquals(7, TrackMemory.accessible(streams, 6, true, "avoid"))
+        assertEquals(8, TrackMemory.accessible(streams, 8, true, "avoid")) // no SDH twin
+        assertEquals("AD", TrackMemory.badge(streams[1]))
+        assertEquals("SDH", TrackMemory.badge(streams[7]))
+        assertEquals(null, TrackMemory.badge(MediaStream(index = 9, type = "Audio", title = "Bad Audio")))
+    }
 }

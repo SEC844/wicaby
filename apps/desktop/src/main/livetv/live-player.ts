@@ -201,7 +201,9 @@ export class LivePlayback {
       log.warn(`tune ${item.Name} failed: ${e.kind} ${e.message}`);
       // Make-before-break: back to the channel that is still open.
       if (await this.restorePrev()) return this.notice('player.live.zapFailed', { channel: item.Name });
-      throw new Error(e.kind === 'failed' && e.message !== 'failed' ? e.message : t(liveErrorKey(e.kind)));
+      // mpv itself failed (stopped at startup, not running): say so rather than blame the server.
+      const mpvDied = e.kind === 'play' && ['mpvStartExit', 'mpvNotStarted', 'mpvExited'].some((k) => e.message === t(`errors.playback.${k}`));
+      throw new Error((e.kind === 'failed' && e.message !== 'failed') || mpvDied ? e.message : t(liveErrorKey(e.kind)));
     } finally {
       this.tuning--;
     }
@@ -426,7 +428,7 @@ export class LivePlayback {
     const picked = selectTracks(
       streams,
       { audio: o.source.DefaultAudioStreamIndex, subtitle: o.source.DefaultSubtitleStreamIndex },
-      { audioLanguage: pb.preferredAudioLanguage, subtitleLanguage: pb.preferredSubtitleLanguage, mode: pb.subtitleMode, forced: pb.alwaysForced },
+      { audioLanguage: pb.preferredAudioLanguage, subtitleLanguage: pb.preferredSubtitleLanguage, mode: pb.subtitleMode, forced: pb.alwaysForced, sdh: pb.preferSdh, audioDescription: pb.audioDescription },
       this.memory[`live:${sid}`],
     );
     const load: LoadParams & { live: true; timeshift: [string, string][] } = {

@@ -91,5 +91,9 @@
     "tray": {
       "nowPlaying": "{title} · {artist}"
     }
+  },
+  "syncplay": {
+    "unsupported": "Watch together needs a Jellyfin server",
+    "refused": "The server refused the watch-together group"
   }
 }

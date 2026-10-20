@@ -10,6 +10,7 @@
   let { data }: { data: SettingsData } = $props();
 
   const LANGUAGES = $derived(languageOptions());
+  const AD = $derived((['prefer', 'avoid', 'any'] as const).map((v) => ({ value: v, label: t(`settings.audio.audioDescription.${v}`) })));
   const SPDIF = $derived([
     { value: 'ac3', label: 'Dolby Digital', sub: 'AC3' },
     { value: 'eac3', label: 'Dolby Digital Plus', sub: 'E-AC3' },
@@ -66,6 +67,13 @@
         <div class="desc">{t('settings.audio.language.desc')}</div>
       </div>
       <Picker label={t('settings.audio.language.aria')} value={s.playback.preferredAudioLanguage} options={LANGUAGES} onchange={(v) => set({ playback: { preferredAudioLanguage: v } })} />
+    </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.audio.audioDescription.label')}</div>
+        <div class="desc">{t('settings.audio.audioDescription.desc')}</div>
+      </div>
+      <Picker label={t('settings.audio.audioDescription.label')} value={s.playback.audioDescription} options={AD} onchange={(v) => set({ playback: { audioDescription: v } })} />
     </div>
   </div>
 

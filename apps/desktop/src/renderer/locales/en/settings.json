@@ -72,6 +72,7 @@
         "sleep": "Sleep Timer",
         "quality": "Quality",
         "subtitleSearch": "Search Subtitles",
+        "songId": "What’s This Song? (mpv)",
         "subSeekBack": "Previous Subtitle Line (mpv)",
         "subSeekForward": "Next Subtitle Line (mpv)",
         "speedDown": "Slower by 0.25×",
@@ -370,6 +371,10 @@
       "label": "Skip Commercials",
       "desc": "Ad breaks in TV recordings."
     },
+    "aniskip": {
+      "label": "AniSkip for Anime",
+      "desc": "Fills in missing anime intro and credits times from aniskip.com (sends the MyAnimeList id and episode number)."
+    },
     "skip": {
       "ask": "Ask",
       "auto": "Auto",
@@ -456,6 +461,13 @@
       "saved": "Saved Device",
       "missing": "Device Not Connected",
       "title": "Output"
+    },
+    "audioDescription": {
+      "label": "Audio Description",
+      "desc": "Narrated tracks for the blind and visually impaired. Avoid never picks one automatically when a plain track exists in the same language.",
+      "prefer": "Prefer",
+      "avoid": "Avoid",
+      "any": "No Preference"
     },
     "language": {
       "label": "Preferred Language",
@@ -550,6 +562,10 @@
         "desc": "Follows the default track of the file and the server."
       }
     },
+    "preferSdh": {
+      "label": "Prefer SDH Subtitles",
+      "desc": "Subtitles for the deaf and hard of hearing (sounds, speakers) when the language has them."
+    },
     "alwaysForced": {
       "label": "Always Show Forced Subtitles",
       "desc": "Foreign-language passages and signs stay translated, even with subtitles off."
@@ -631,7 +647,18 @@
       "thumb": "Thumbnails"
     },
     "foot": "A sort chosen in a library’s toolbar applies only to that library.",
-    "home": "Home"
+    "home": "Home",
+    "ratings": {
+      "title": "Ratings",
+      "label": "MDBList API key",
+      "desc": "Shows IMDb, Rotten Tomatoes, Metacritic, Letterboxd and TMDb ratings on movie and series pages. Off until a key is set; then each page sends the title’s IMDb or TMDb ID to mdblist.com.",
+      "hint": "Free: sign in at mdblist.com, then Preferences → API Key.",
+      "get": "Get a Key",
+      "save": "Save",
+      "remove": "Remove",
+      "set": "Key saved. Ratings are on.",
+      "saved": "Saved (hidden)"
+    }
   },
   "downloads": {
     "folder": {
@@ -670,6 +697,12 @@
     },
     "foot": "Your access token is encrypted by Windows and never leaves this device.",
     "footLinux": "Your access token is encrypted by the system keyring and never leaves this device.",
+    "quickConnect": {
+      "label": "Authorize a Device",
+      "desc": "Enter the Quick Connect code another device shows to sign it in as you.",
+      "button": "Authorize",
+      "done": "Device authorized."
+    },
     "addTitle": "Add"
   },
   "windows": {
@@ -863,6 +896,31 @@
       "desc": "Magnet links opened in your browser go to Wicaby. Each link is confirmed before it’s added."
     },
     "magnetTitle": "Magnet Links"
+  },
+  "scrobble": {
+    "title": "Scrobbling",
+    "lbToken": "ListenBrainz Token",
+    "lbHint": "Off by default. Paste your user token from listenbrainz.org/settings to send the music you play in Wicaby to ListenBrainz.",
+    "lbConnected": "Connected to ListenBrainz",
+    "lbConnectedAs": "ListenBrainz: {user}",
+    "fmTitle": "Last.fm",
+    "fmHint": "Off by default. Last.fm needs your own API account: open Advanced to enter its key and secret.",
+    "advanced": "Advanced",
+    "fmKey": "API Key",
+    "fmSecret": "Shared Secret",
+    "fmKeyHint": "Create an API account at last.fm/api/account/create (any name, no callback URL), then paste its API key and shared secret here.",
+    "fmWaiting": "Allow Wicaby on Last.fm",
+    "fmWaitingDesc": "Sign in on the Last.fm page that opened and choose Yes, allow access. Wicaby is waiting.",
+    "fmOpen": "Open Last.fm",
+    "fmConnected": "Connected to Last.fm",
+    "fmConnectedAs": "Last.fm: {user}",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connectedDesc": "Tracks you play in Wicaby are scrobbled once you’ve heard half of them or 4 minutes.",
+    "queued": "Listens waiting to be sent: {count}",
+    "serverNote": "If your server already scrobbles (a Last.fm or ListenBrainz plugin, or Navidrome), leave this off to avoid duplicates.",
+    "foot": "Tokens and secrets are encrypted by Windows on this device and are never logged.",
+    "footLinux": "Tokens and secrets are encrypted by the system keyring on this device and are never logged."
   },
   "trakt": {
     "clientId": "Client ID",

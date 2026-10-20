@@ -55,7 +55,23 @@
   },
   "notFound": "Introuvable",
   "meta": {
-    "criticRating": "{value} %"
+    "criticRating": "{value} %",
+    "ratings": {
+      "imdb": "IMDb {value}",
+      "tomatoes": "RT {value} %",
+      "popcorn": "RT Public {value} %",
+      "metacritic": "Metacritic {value}",
+      "letterboxd": "Letterboxd {value}",
+      "tmdb": "TMDb {value} %"
+    },
+    "ratingTitles": {
+      "imdb": "Note IMDb (sur 10)",
+      "tomatoes": "Score des critiques Rotten Tomatoes",
+      "popcorn": "Score du public Rotten Tomatoes",
+      "metacritic": "Metascore (sur 100)",
+      "letterboxd": "Moyenne Letterboxd (sur 5)",
+      "tmdb": "Score des utilisateurs TMDb"
+    }
   },
   "actions": {
     "fromStart": "Depuis le début",

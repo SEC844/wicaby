@@ -91,5 +91,9 @@
     "tray": {
       "nowPlaying": "{title} · {artist}"
     }
+  },
+  "syncplay": {
+    "unsupported": "Regarder ensemble nécessite un serveur Jellyfin",
+    "refused": "Le serveur a refusé le groupe de visionnage"
   }
 }

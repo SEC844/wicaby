@@ -15,6 +15,7 @@
 //   /Command[/{name}] and /Message reach that socket as Play / Playstate / GeneralCommand; names outside
 //   Jellyfin's enums get a 400; SessionsStart pushes Sessions. MOCK_SHARED_DEVICE_CONTROL=0, MOCK_NON_ADMIN=1 and
 //   MOCK_NO_SESSIONS_PUSH=1 as described in sessions.mjs.
+// - SyncPlay (watch together): /GetUtcTime and a single /SyncPlay group, its updates and commands on every /socket.
 // Every rejected or unknown call is logged with a LEGACY / EMBY-ONLY / UNMAPPED tag, so a run's log is a bug list.
 //
 // Mock-only helpers (no auth): GET /Mock/State (sockets, reports, user data, remote[]), POST /Mock/Broadcast {MessageType, Data},
@@ -115,6 +116,44 @@ E.hooks.view = (out, item) => {
 const broadcast = (MessageType, Data) => store.broadcast(MessageType, Data);
 function userDataChanged(itemId) {
   broadcast('UserDataChanged', { UserId: USER_ID, UserDataList: [{ ...E.ud(itemId), Key: itemId, ItemId: itemId }] });
+}
+
+// ---- SyncPlay: one group that every /socket is in, enough for the desktop's "Watch together" flow ----
+// (GroupJoined, PlayQueue on SetNewQueue, Unpause once a member is Ready, Pause/Unpause/Seek as SyncPlayCommand.)
+let sp = null;
+const spInfo = () => ({ GroupId: sp.GroupId, GroupName: sp.GroupName, State: sp.State, Participants: [USER.Name], LastUpdatedAt: new Date().toISOString() });
+const spPos = () => sp.ticks + (sp.State === 'Playing' ? (Date.now() - sp.at) * 10_000 : 0);
+const spUpdate = (Type, Data) => broadcast('SyncPlayGroupUpdate', { GroupId: sp.GroupId, Type, Data });
+function spCommand(Command, ticks) {
+  [sp.ticks, sp.at] = [ticks, Date.now() + 500];
+  sp.State = Command === 'Unpause' ? 'Playing' : Command === 'Pause' ? 'Paused' : 'Waiting';
+  broadcast('SyncPlayCommand', { GroupId: sp.GroupId, PlaylistItemId: `pl-${sp.index}`, When: new Date(sp.at).toISOString(), EmittedAt: new Date().toISOString(), PositionTicks: ticks, Command });
+}
+async function syncPlay(req, res, lp) {
+  const b = req.method === 'POST' ? await E.body(req).catch(() => ({})) : {};
+  if (lp[1] === 'list') return send(res, 200, sp ? [spInfo()] : []);
+  if (lp[1] === 'new') {
+    sp = { GroupId: crypto.randomUUID(), GroupName: b.GroupName ?? 'Group', State: 'Idle', queue: [], index: -1, ticks: 0, at: Date.now() };
+    spUpdate('GroupJoined', spInfo());
+  } else if (!sp) {
+    broadcast('SyncPlayGroupUpdate', { GroupId: b.GroupId ?? '', Type: lp[1] === 'join' ? 'GroupDoesNotExist' : 'NotInGroup', Data: '' });
+  } else if (lp[1] === 'join') {
+    spUpdate('GroupJoined', spInfo());
+  } else if (lp[1] === 'leave') {
+    spUpdate('GroupLeft', sp.GroupId);
+    sp = null;
+  } else if (lp[1] === 'setnewqueue') {
+    Object.assign(sp, { queue: b.PlayingQueue ?? [], index: b.PlayingItemPosition ?? 0, ticks: b.StartPositionTicks ?? 0, State: 'Waiting' });
+    const Playlist = sp.queue.map((ItemId, i) => ({ ItemId, PlaylistItemId: `pl-${i}` }));
+    spUpdate('PlayQueue', { Reason: 'NewPlaylist', LastUpdate: new Date().toISOString(), Playlist, PlayingItemIndex: sp.index, StartPositionTicks: sp.ticks, IsPlaying: true });
+  } else if (lp[1] === 'ready') {
+    if (sp.State === 'Waiting') spCommand('Unpause', b.PositionTicks ?? sp.ticks);
+  } else if (lp[1] === 'pause' || lp[1] === 'unpause') {
+    spCommand(lp[1] === 'pause' ? 'Pause' : 'Unpause', spPos());
+  } else if (lp[1] === 'seek') {
+    spCommand('Seek', b.PositionTicks ?? 0);
+  }
+  return send(res, 204);
 }
 
 // ---- Auth ----
@@ -232,6 +271,7 @@ async function route(req, res) {
   if (p === '/System/Info/Public')
     return send(res, 200, { LocalAddress: `http://127.0.0.1:${PORT}`, ServerName: process.env.MOCK_NAME ?? 'Wicaby Mock Jellyfin', Version: `${JF_VERSION}.0`, ProductName: 'Jellyfin Server', OperatingSystem: '', Id: SERVER_ID, StartupWizardCompleted: true });
   if (p === '/System/Ping') return send(res, 200, 'Jellyfin Server', 'text/plain');
+  if (p === '/GetUtcTime') return send(res, 200, { RequestReceptionTime: new Date().toISOString(), ResponseTransmissionTime: new Date().toISOString() });
   if (p === '/Branding/Configuration') return send(res, 200, { LoginDisclaimer: '', CustomCss: '', SplashscreenEnabled: false });
   if (p === '/Users/Public') return send(res, 200, await Promise.all([USER, ...E.PROFILES].map(jfUserFull)));
   if (p === '/Users/AuthenticateByName' && M === 'POST') {
@@ -301,6 +341,7 @@ async function route(req, res) {
   // /Users/Me is the call that tells a refused saved account (core AccessSchedules.verify).
   const me = tokenUser.get(a.token) ?? USER;
   if ((await outsideHours(me.Id)) && !(M === 'GET' && lp[0] === 'users' && parts.length === 2 && lp[1] !== 'me')) return send(res, 403, '', 'text/plain');
+  if (lp[0] === 'syncplay') return syncPlay(req, res, lp);
   if (E.liveTv()?.claims(lp)) return forward(req, res, p, q);
   const uidQ = qget(q, 'userId');
   if (uidQ && uidQ !== USER_ID && !E.PROFILES.some((u) => u.Id === uidQ)) tag('WARN userId mismatch', req, url, uidQ);

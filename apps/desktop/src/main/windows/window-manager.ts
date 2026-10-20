@@ -188,9 +188,17 @@ export class WindowManager {
       if (hidden) win.once('show', () => win.maximize());
       else win.maximize();
     }
+    let ready = false;
     win.once('ready-to-show', () => {
+      ready = true;
       if (!hidden) win.show();
     });
+    // Some Linux GPU/compositor setups never fire ready-to-show: show it anyway after 3 s.
+    // Only then: once it came, a hidden window was hidden on purpose (mpv playback swaps it out).
+    if (!hidden)
+      setTimeout(() => {
+        if (!ready && !win.isDestroyed() && !win.isVisible() && !this.inTray) win.show();
+      }, 3000);
     const paintChrome = () => {
       if (win.isDestroyed()) return;
       const c = chromeColours(theme);

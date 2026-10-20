@@ -3,6 +3,7 @@ package com.wika.wicaby.core.data
 import android.content.Context
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.player.Quality
+import com.wika.wicaby.core.player.TrackMemory
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -112,15 +113,19 @@ object Versions {
         return n.ifEmpty { null }
     }
 
+    // The server's pick, unless an audio-description track has a plain twin (or the reverse, per Réglages).
     fun defaultAudioStream(s: MediaSource): MediaStream? {
         val audio = s.mediaStreams.filter { it.type == "Audio" }
-        return audio.firstOrNull { it.index == s.defaultAudioStreamIndex } ?: audio.firstOrNull { it.isDefault } ?: audio.firstOrNull()
+        val d = audio.firstOrNull { it.index == s.defaultAudioStreamIndex } ?: audio.firstOrNull { it.isDefault } ?: audio.firstOrNull() ?: return null
+        val i = TrackMemory.accessible(s.mediaStreams, d.index, Core.preferSdh, Core.audioDescription)
+        return audio.firstOrNull { it.index == i }
     }
 
     // -1 = off. The server's pick already applies the user's language, subtitle mode and forced
-    // rules, and it is what PlaybackInfo plays: no client-side guess (desktop: track-selection.ts).
+    // rules, and it is what PlaybackInfo plays; only "Préférer les sous-titres SDH" swaps it for its SDH twin.
     fun defaultSubtitleIndex(s: MediaSource): Int =
-        s.defaultSubtitleStreamIndex?.takeIf { d -> s.mediaStreams.any { it.type == "Subtitle" && it.index == d } } ?: -1
+        s.defaultSubtitleStreamIndex?.takeIf { d -> s.mediaStreams.any { it.type == "Subtitle" && it.index == d } }
+            ?.let { TrackMemory.accessible(s.mediaStreams, it, Core.preferSdh, Core.audioDescription) } ?: -1
 
     // ---- The choice, remembered per item.
 

@@ -258,6 +258,16 @@ Wicaby can scrobble what it plays to [Trakt](https://trakt.tv) itself, for serve
 - **Server plugin.** For an admin, Wicaby reads `GET /Plugins` (Emby and Jellyfin): a server with an active Trakt plugin is skipped and the pane says why. Without admin rights the plugin list is unreadable, so each server has a switch (`settings.trakt.offServers`).
 - **Testing.** `node tools/mock-server/mock-trakt.mjs 8940` and `WICABY_TRAKT_URL=http://127.0.0.1:8940` on an unpackaged build (a packaged build ignores the variable). The mock approves a device code after two polls; `GET /mock/state` lists the scrobbles. `node tools/checks/trakt-check.mjs` runs the flow headlessly.
 
+## Music scrobbling
+
+Wicaby can scrobble the music it plays, from any source, to ListenBrainz and Last.fm (`main/features/scrobble.ts`, `scrobble-client.ts`; Settings → Music → Scrobbling). Both are off until connected; a server that already scrobbles (plugin, Navidrome) would count every play twice.
+
+- **ListenBrainz.** Paste the user token from <https://listenbrainz.org/settings/>; it is checked with `GET /1/validate-token`.
+- **Last.fm.** Wicaby has no registered key: create an API account at <https://www.last.fm/api/account/create> and enter its API key and shared secret under Advanced. Connect calls `auth.getToken`, opens `last.fm/api/auth`, and polls `auth.getSession` until you allow it (10 min at most). Calls are signed (`api_sig`, md5) as the Last.fm docs say.
+- **Rule.** Playing now on a track's start (`playing_now`, `track.updateNowPlaying`); one listen at its stop once it was heard for 4 min or half its length, tracks of 30 s or more. Heard time is playback only: seeks and pauses add nothing.
+- **Offline queue.** A listen that fails for a reason worth retrying (network, 429, 5xx, Last.fm 8/11/16/29, a refused token) waits in `scrobble-queue.json` (500 at most, oldest dropped) and is sent again after the next listen that goes through, every 15 min, and 30 s after start-up. Disconnecting a service drops its waiting listens.
+- **Storage.** The token, secret and session key are in the vault (`scrobble:listenbrainz`, `scrobble:lastfm`), never logged. `node tools/checks/scrobble-check.mjs` runs the rule, payloads, signature, web auth and queue headlessly.
+
 ## i18n
 
 French is the reference language and the fallback; English is the other one. `ui.language` (`auto`, `fr` or `en`) defaults to `auto`, which follows Windows: `fr-*` gives French, anything else English. A change applies live in both processes. The full conventions are in [i18n.md](i18n.md).

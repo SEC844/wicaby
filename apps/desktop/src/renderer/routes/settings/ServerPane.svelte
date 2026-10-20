@@ -16,6 +16,20 @@
     }
   }
 
+  // Jellyfin Quick Connect, the approving side: the code another device shows signs it in as this user.
+  let codes = $state<Record<string, string>>({});
+  async function authorize(serverId: string): Promise<void> {
+    const code = codes[serverId]?.trim();
+    if (!code) return;
+    try {
+      await w.api.post('/QuickConnect/Authorize', { code }, undefined, serverId);
+      codes[serverId] = '';
+      toast('success', t('settings.server.quickConnect.done'));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  }
+
   async function switchServer(): Promise<void> {
     try {
       await w.session.disconnect();
@@ -58,6 +72,16 @@
           {/if}
           <button type="button" class="push" onclick={() => logout(srv.id)}>{t('settings.server.signOut')}</button>
         </div>
+        {#if srv.kind === 'jellyfin' && st === 'signed-in'}
+          <form class="row" onsubmit={(e) => (e.preventDefault(), void authorize(srv.id))}>
+            <div class="txt">
+              <div class="lbl">{t('settings.server.quickConnect.label')}</div>
+              <div class="desc">{t('settings.server.quickConnect.desc')}</div>
+            </div>
+            <input class="field code" bind:value={codes[srv.id]} inputmode="numeric" maxlength="12" spellcheck="false" autocomplete="off" placeholder="000000" aria-label={t('settings.server.quickConnect.label')} />
+            <button type="submit" class="push" disabled={!codes[srv.id]?.trim()}>{t('settings.server.quickConnect.button')}</button>
+          </form>
+        {/if}
       {/if}
     </div>
   {/each}
@@ -215,6 +239,10 @@
   }
   :global(.searching) .row:not([hidden]) ~ .row:not([hidden])::before {
     display: block;
+  }
+  .code {
+    flex: none;
+    width: 110px;
   }
   .push:disabled {
     color: var(--label-4);

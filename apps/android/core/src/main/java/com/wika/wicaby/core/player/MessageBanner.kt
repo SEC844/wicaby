@@ -25,7 +25,7 @@ object MessageBanner : Application.ActivityLifecycleCallbacks {
     private var front: WeakReference<Activity>? = null
     private var shown: View? = null
 
-    fun show(title: String, text: String) {
+    fun show(title: String, text: String, shownMs: Long = SHOWN_MS) {
         val a = front?.get()?.takeUnless { it.isFinishing }
         val root = a?.findViewById<ViewGroup>(android.R.id.content)
         if (a == null || root == null) {
@@ -65,7 +65,7 @@ object MessageBanner : Application.ActivityLifecycleCallbacks {
         )
         banner.animate().alpha(1f).setDuration(200).start()
         shown = banner
-        banner.postDelayed({ if (shown === banner) dismiss() }, SHOWN_MS)
+        banner.postDelayed({ if (shown === banner) dismiss() }, shownMs)
     }
 
     private fun dismiss() {

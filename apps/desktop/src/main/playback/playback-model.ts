@@ -13,6 +13,7 @@ import type { WindowManager } from '../windows/window-manager';
 import { isFilesId } from '../../shared/files/ids';
 import { hdrFromStream } from '../../shared/hdr';
 import { versionLabel, versionSignature } from '../../shared/quality-presets';
+import { isAd, isSdh } from '../../shared/track-selection';
 import type { ExternalSubtitle } from './player';
 import type { LiveCurrent, LiveRestart } from '../livetv/live-player';
 
@@ -24,6 +25,8 @@ export interface PlaybackDeps {
   display: DisplayModeSwitcher;
   hdr: HdrModeSwitcher;
   mpvExe: () => string | null;
+  // False when Electron runs native Wayland: mpv's --wid needs an X11 window, so video goes to the built-in player.
+  mpvEmbeds: boolean;
   mpvConfigDir: string;
   deviceId: string;
   onMessage: (kind: 'info' | 'error', message: string) => void;
@@ -131,6 +134,8 @@ export function toTrack(s: MediaStream): Track {
     isDefault: Boolean(s.IsDefault),
     isForced: Boolean(s.IsForced),
     isExternal: Boolean(s.IsExternal),
+    sdh: s.Type === 'Subtitle' && isSdh(s),
+    ad: s.Type === 'Audio' && isAd(s),
   };
 }
 

@@ -84,6 +84,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Api
+import com.wika.wicaby.core.data.AuthResult
 import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Found
 import com.wika.wicaby.core.data.Server
@@ -405,6 +406,10 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
     val api = remember(server) { Api.of(server, deviceId) }
     var reload by remember { mutableIntStateOf(0) }
     val users = rememberLoad("public-${server.id}", reload) { api.publicUsers() }
+    // Jellyfin with Quick Connect on: sign in by approving a code from another device instead of a password.
+    val quick = rememberLoad("quick-${server.id}") { api.quickConnectEnabled() }.value == true
+    var quickCode by remember { mutableStateOf<String?>(null) }
+    var quickOn by remember { mutableStateOf(false) }
     var picked by remember { mutableStateOf<User?>(null) }
     var manual by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -415,11 +420,35 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
     val unreachable = stringResource(R.string.server_unreachable)
     val passwordFocus = remember { FocusRequester() }
 
-    BackHandler(enabled = picked != null || manual) {
+    BackHandler(enabled = picked != null || manual || quickOn) {
         picked = null
         manual = false
+        quickOn = false
         password = ""
         error = null
+    }
+
+    suspend fun signedIn(r: AuthResult) {
+        Cache.map.clear()
+        if (add) Core.prefs.addAccount(Session(server, r.user.id, r.user.name, r.accessToken))
+        else Core.prefs.setSession(r.user.id, r.user.name, r.accessToken)
+        onSignedIn?.invoke()
+    }
+
+    // Polls until the code is approved; leaving Quick Connect (or the screen) cancels it.
+    if (quickOn) LaunchedEffect(Unit) {
+        try {
+            signedIn(api.quickConnect { quickCode = it })
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: ApiException) {
+            error = e.message
+        } catch (_: Exception) {
+            error = unreachable
+        } finally {
+            quickOn = false
+            quickCode = null
+        }
     }
 
     fun login(user: String, pw: String) {
@@ -428,11 +457,7 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
             busy = true
             error = null
             try {
-                val r = api.login(user, pw)
-                Cache.map.clear()
-                if (add) Core.prefs.addAccount(Session(server, r.user.id, r.user.name, r.accessToken))
-                else Core.prefs.setSession(r.user.id, r.user.name, r.accessToken)
-                onSignedIn?.invoke()
+                signedIn(api.login(user, pw))
             } catch (e: ApiException) {
                 error = if (e.status == 401 || e.status == 403) wrong else e.message
             } catch (e: Exception) {
@@ -459,6 +484,7 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
                 list.forEach { u ->
                     Avatar(u, api, u.name, picked?.id == u.id) {
                         manual = false
+                        quickOn = false
                         error = null
                         if (!u.hasPassword) login(u.name, "") else {
                             picked = u
@@ -467,6 +493,7 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
                     }
                 }
                 Avatar(null, api, stringResource(R.string.other_user), manual) {
+                    quickOn = false
                     picked = null
                     manual = true
                     error = null
@@ -494,6 +521,12 @@ fun LoginScreen(server: Server, deviceId: String, add: Boolean = false, title: S
                     if (busy) Spinner(Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).size(20.dp), onAccent(LocalAccent.current))
                 }
             }
+            if (quickOn) {
+                Text(stringResource(com.wika.wicaby.core.R.string.quick_connect_body), style = Type.callout, color = G.label2, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                quickCode?.let { Text(it, style = Type.largeTitle, color = G.label, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) } ?: Spinner(Modifier.align(Alignment.CenterHorizontally))
+            } else if (quick) PillButton(stringResource(com.wika.wicaby.core.R.string.quick_connect_title), {
+                picked = null; manual = false; error = null; quickOn = true
+            }, modifier = Modifier.fillMaxWidth())
             AnimatedVisibility(error != null, enter = fadeIn(), exit = fadeOut()) {
                 Text(error.orEmpty(), style = Type.callout, color = G.red, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }

@@ -42,7 +42,9 @@
     "sleep": "Minuterie de mise en veille",
     "sleepActive": "Veille dans {time}",
     "quality": "Qualité",
-    "qualityHint": "Qualité (Q)"
+    "qualityHint": "Qualité (Q)",
+    "songId": "Quel est ce morceau ?",
+    "songIdHint": "Quel est ce morceau ? (W)"
   },
   "error": {
     "title": "Lecture impossible"
@@ -74,6 +76,8 @@
     "off": "Désactivés",
     "forced": "Forcés",
     "external": "Externe",
+    "sdh": "SDH",
+    "ad": "AD",
     "applied": "Pistes de l’épisode précédent appliquées",
     "secondary": "Afficher comme second sous-titre",
     "secondaryBadge": "2",
@@ -117,7 +121,14 @@
     "segmentSkipped": "{type, select, recap {Résumé passé} preview {Aperçu passé} other {Publicité passée}}",
     "delay": "{kind, select, audio {Décalage audio} other {Décalage des sous-titres}} : {value} ms",
     "passthroughRefused": "Passthrough refusé par la sortie audio : son décodé",
-    "transcodeFallback": "Lecture directe impossible : conversion par le serveur"
+    "transcodeFallback": "Lecture directe impossible : conversion par le serveur",
+    "syncplay": {
+      "pause": "Mis en pause par le groupe",
+      "unpause": "Lecture avec le groupe",
+      "seek": "Le groupe a changé la position",
+      "joined": "{name} a rejoint le groupe",
+      "left": "{name} a quitté le groupe"
+    }
   },
   "reconnect": {
     "title": "Reconnexion…",
@@ -228,5 +239,41 @@
     "added": "Sous-titre ajouté",
     "failed": "Impossible d’ajouter le sous-titre",
     "machineTranslated": "Traduction automatique"
+  },
+  "syncplay": {
+    "button": "Regarder ensemble",
+    "title": "Regarder ensemble",
+    "intro": "Lecture synchronisée avec d’autres utilisateurs Jellyfin : pause, avance et lecture s’appliquent à tous.",
+    "create": "Nouveau groupe",
+    "defaultName": "Groupe de {name}",
+    "groups": "Groupes sur ce serveur",
+    "none": "Aucun groupe pour l’instant",
+    "join": "Rejoindre",
+    "members": "{count, plural, one {# spectateur} other {# spectateurs}}",
+    "leave": "Quitter le groupe",
+    "inGroup": "Dans « {name} »"
+  },
+  "songId": {
+    "title": "Quel est ce morceau ?",
+    "notice": "Wicaby envoie à Shazam une courte empreinte audio des dernières secondes (pas le son lui-même) pour identifier la musique.",
+    "identify": "Identifier",
+    "listening": "Écoute des dernières secondes…",
+    "links": {
+      "shazam": "Shazam",
+      "spotify": "Spotify",
+      "youtube": "YouTube",
+      "apple": "Apple Music"
+    },
+    "findInLibrary": "Chercher dans ma bibliothèque",
+    "inLibrary": "Dans votre bibliothèque",
+    "notInLibrary": "Absent de votre bibliothèque",
+    "playLater": "Lire plus tard",
+    "queued": "Ajouté à la file d’attente",
+    "errors": {
+      "unavailable": "Pas encore assez de flux chargé. Réessayez dans quelques secondes.",
+      "nomatch": "Aucun morceau reconnu.",
+      "rateLimited": "Shazam limite les requêtes. Réessayez plus tard.",
+      "failed": "Impossible de joindre Shazam."
+    }
   }
 }

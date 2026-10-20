@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.wika.wicaby.core.player.AniSkip
 import com.wika.wicaby.core.player.SegmentKind
 import com.wika.wicaby.core.ui.themeLabel
 import com.wika.wicaby.mobile.player.SkipSettings
@@ -191,6 +192,32 @@ private fun GeneralPage() {
             }
         }
     }
+    // The MDBList key for IMDb, Rotten Tomatoes… on the detail pages (core/ratings). Off until set; sealed by the Keystore.
+    Eyebrow(stringResource(com.wika.wicaby.core.R.string.ratings_title))
+    Group {
+        val on by com.wika.wicaby.core.ratings.Ratings.configured.collectAsState()
+        var key by remember { mutableStateOf("") }
+        var invalid by remember { mutableStateOf(false) }
+        fun save(k: String) {
+            invalid = !com.wika.wicaby.core.ratings.Ratings.setKey(k)
+            if (!invalid) key = ""
+        }
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(com.wika.wicaby.core.R.string.ratings_desc), style = Type.footnote, color = G.label2, modifier = Modifier.padding(bottom = 10.dp))
+            WicabyField(
+                key, { key = it; invalid = false }, stringResource(if (on) com.wika.wicaby.core.R.string.ratings_saved else com.wika.wicaby.core.R.string.ratings_key),
+                password = true, onSubmit = { if (key.isNotBlank()) save(key) },
+            )
+            if (invalid) Text(stringResource(com.wika.wicaby.core.R.string.ratings_invalid), style = Type.footnote, color = G.red, modifier = Modifier.padding(top = 6.dp))
+        }
+        GroupDivider()
+        GroupRow(stringResource(com.wika.wicaby.core.R.string.ratings_save), { if (key.isNotBlank()) save(key) }, chevron = false)
+        if (on) {
+            GroupDivider()
+            GroupRow(stringResource(com.wika.wicaby.core.R.string.ratings_remove), { save("") }, chevron = false)
+        }
+    }
+    Text(stringResource(com.wika.wicaby.core.R.string.ratings_hint), style = Type.footnote, color = G.label3, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
     Eyebrow(stringResource(R.string.settings_setup))
     Group {
         GroupRow(stringResource(com.wika.wicaby.core.R.string.onboarding_rerun), {
@@ -239,6 +266,22 @@ private fun PlaybackPage(api: Api) {
             SettingSwitch(snap.wifiOnlyDownloads, { v -> scope.launch { prefs.setWifiOnlyDownloads(v) } })
         }
     }
+    Eyebrow(stringResource(com.wika.wicaby.core.R.string.a11y_group))
+    Group {
+        GroupRow(
+            stringResource(com.wika.wicaby.core.R.string.prefer_sdh), { scope.launch { prefs.setPreferSdh(!snap.preferSdh) } }, chevron = false,
+        ) {
+            SettingSwitch(snap.preferSdh, { v -> scope.launch { prefs.setPreferSdh(v) } })
+        }
+        GroupDivider()
+        Text(stringResource(com.wika.wicaby.core.R.string.audio_description), style = Type.body, color = G.label, modifier = Modifier.padding(start = 16.dp, top = 14.dp))
+        FlowRow(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("prefer" to com.wika.wicaby.core.R.string.ad_prefer, "avoid" to com.wika.wicaby.core.R.string.ad_avoid, "any" to com.wika.wicaby.core.R.string.ad_any).forEach { (v, label) ->
+                Chip(stringResource(label), selected = snap.audioDescription == v) { scope.launch { prefs.setAudioDescription(v) } }
+            }
+        }
+        Text(stringResource(com.wika.wicaby.core.R.string.a11y_hint), style = Type.footnote, color = G.label2, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
+    }
     Eyebrow(stringResource(R.string.settings_skip))
     Group {
         // Recaps, previews and commercials are Jellyfin media segments: nothing to set on Emby.
@@ -259,6 +302,12 @@ private fun PlaybackPage(api: Api) {
                     }
                 }
             }
+        }
+        GroupDivider()
+        var aniskip by remember { mutableStateOf(AniSkip.enabled) }
+        val toggleAniskip = { v: Boolean -> AniSkip.enabled = v; aniskip = v }
+        GroupRow(stringResource(com.wika.wicaby.core.R.string.aniskip), { toggleAniskip(!aniskip) }, subtitle = stringResource(com.wika.wicaby.core.R.string.aniskip_hint), chevron = false) {
+            SettingSwitch(aniskip, toggleAniskip)
         }
     }
 }
@@ -299,6 +348,7 @@ private fun MusicPage() {
             SettingSwitch(MusicPrefs.lyricsOnline, { v -> MusicPrefs.setLyricsOnline(context, v) })
         }
     }
+    ScrobbleSettings()
 }
 
 // CA-08: SSDP search for TVs while the Cast picker is open; debug builds can name a renderer by hand.
@@ -376,6 +426,48 @@ private fun AccountsPage(api: Api, leave: (pickServer: Boolean, revoke: Boolean)
     if (session != null && pairable(session.server.kind)) {
         Eyebrow(stringResource(R.string.settings_other_devices))
         Group { PairTvRow(api, session.userName) }
+    }
+    if (session != null && session.server.kind == "jellyfin") QuickConnectAuthorize(api)
+}
+
+// Jellyfin Quick Connect, the approving side: the code another device shows signs it in as this user.
+@Composable
+private fun QuickConnectAuthorize(api: Api) {
+    val scope = rememberCoroutineScope()
+    var code by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf<String?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    val ok = stringResource(com.wika.wicaby.core.R.string.quick_connect_authorized)
+    val unknown = stringResource(com.wika.wicaby.core.R.string.quick_connect_unknown_code)
+    val unreachable = stringResource(R.string.server_unreachable)
+    fun send() {
+        if (code.isBlank()) return
+        scope.launch {
+            failed = false
+            result = try {
+                api.authorizeQuickConnect(code)
+                code = ""
+                ok
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: com.wika.wicaby.core.data.ApiException) {
+                failed = true
+                if (e.status == 404) unknown else e.message
+            } catch (_: Exception) {
+                failed = true
+                unreachable
+            }
+        }
+    }
+    Eyebrow(stringResource(com.wika.wicaby.core.R.string.quick_connect))
+    Group {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(com.wika.wicaby.core.R.string.quick_connect_authorize), style = Type.body, color = G.label, modifier = Modifier.padding(bottom = 8.dp))
+            WicabyField(code, { code = it; result = null }, stringResource(com.wika.wicaby.core.R.string.quick_connect_authorize_hint), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number, onSubmit = ::send)
+            result?.let { Text(it, style = Type.footnote, color = if (failed) G.red else G.label2, modifier = Modifier.padding(top = 6.dp)) }
+        }
+        GroupDivider()
+        GroupRow(stringResource(com.wika.wicaby.core.R.string.quick_connect_authorize), ::send, icon = Ic.Check, chevron = false)
     }
 }
 

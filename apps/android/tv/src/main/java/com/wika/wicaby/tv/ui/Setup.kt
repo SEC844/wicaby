@@ -66,6 +66,7 @@ import com.wika.wicaby.tv.Route
 import com.wika.wicaby.tv.Wicaby
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.data.AccessSchedules
+import com.wika.wicaby.core.data.AuthResult
 import com.wika.wicaby.core.data.ApiException
 import com.wika.wicaby.core.data.Found
 import com.wika.wicaby.core.data.Profile
@@ -301,6 +302,8 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
     // Plex: the account's Home users (plex-spec §5.5), each with their Plex PIN when protected.
     val plex = server.kind == "plex"
     val users by rememberLoad("public-${server.id}-$reload") { if (plex) plexUsers(server) else api.publicUsers() }
+    // Jellyfin with Quick Connect on: sign in by approving a code elsewhere, no password typed on the remote.
+    val quick by rememberLoad("quick-${server.id}") { api.quickConnectEnabled() }
     var picked by remember { mutableStateOf<User?>(null) }
     var manual by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -325,22 +328,25 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
 
     val plexSignIn = rememberPlexSignIn(server, add, onDone = { onSignedIn?.invoke() ?: nav.reset(Route.Main) }, onError = { error = it })
 
+    suspend fun signedIn(r: AuthResult) {
+        AccessSchedules.save(server.id, r.user.id, r.user.policy)
+        Cache.map.clear()
+        if (add) Wicaby.app.prefs.addAccount(Session(server, r.user.id, r.user.name, r.accessToken))
+        else {
+            // TP-10: the password (or a Quick Connect approval) opened it: this session may be used.
+            SessionGate.unlock(Session(server, r.user.id, r.user.name, r.accessToken))
+            Wicaby.app.prefs.setSession(r.user.id, r.user.name, r.accessToken, remember = true)
+        }
+        onSignedIn?.invoke() ?: nav.reset(Route.Main)
+    }
+
     fun login(user: String, pw: String) {
         if (busy) return
         scope.launch {
             busy = true
             error = null
             try {
-                val r = api.login(user, pw)
-                AccessSchedules.save(server.id, r.user.id, r.user.policy)
-                Cache.map.clear()
-                if (add) Wicaby.app.prefs.addAccount(Session(server, r.user.id, r.user.name, r.accessToken))
-                else {
-                    // TP-10: the password opened it: this session may be used.
-                    SessionGate.unlock(Session(server, r.user.id, r.user.name, r.accessToken))
-                    Wicaby.app.prefs.setSession(r.user.id, r.user.name, r.accessToken, remember = true)
-                }
-                onSignedIn?.invoke() ?: nav.reset(Route.Main)
+                signedIn(api.login(user, pw))
             } catch (e: ApiException) {
                 // TP-11: refused outside the parental hours (kept from an earlier sign-in, else the server's wording).
                 // Jellyfin lists the policy publicly and refuses with a bare 403 (see AccessSchedules.refused).
@@ -505,6 +511,9 @@ fun LoginScreen(server: Server, add: Boolean = false, onSignedIn: (() -> Unit)? 
                 if (onAddAnother == null && !add) TextButton(stringResource(R.string.switch_server), icon = Ic.Server, onClick = { nav.reset(Route.Servers) })
                 // A phone pairing replaces the primary account: not while adding one.
                 if (!add) PairWithPhoneButton(onSignedIn = onSignedIn)
+                if (quick.value == true) TextButton(stringResource(com.wika.wicaby.core.R.string.quick_connect), icon = Ic.Keyboard, onClick = {
+                    overlay.show { QuickConnectSheet(api, overlay::close) { r -> overlay.close(); scope.launch { signedIn(r) } } }
+                })
                 if (onAddAnother != null) TextButton(stringResource(com.wika.wicaby.core.R.string.onboarding_add_another), icon = Ic.Plus, onClick = onAddAnother)
             }
         }
@@ -524,6 +533,42 @@ private fun PairWithPhoneButton(modifier: Modifier = Modifier, onSignedIn: (() -
             }
         }
     })
+}
+
+// Quick Connect (Jellyfin): the code to approve from a signed-in device, renewed when it expires.
+@Composable
+private fun QuickConnectSheet(api: Api, onDismiss: () -> Unit, onSignedIn: (AuthResult) -> Unit) {
+    var code by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
+    val unreachable = stringResource(R.string.server_unreachable)
+    LaunchedEffect(Unit) {
+        try {
+            onSignedIn(api.quickConnect { code = it })
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: ApiException) {
+            message = e.message
+        } catch (_: Exception) {
+            message = unreachable
+        }
+    }
+    TvSheet(onDismiss, width = 460.dp) {
+        Text(stringResource(com.wika.wicaby.core.R.string.quick_connect_title), style = Type.title2, color = C.label, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(
+            stringResource(com.wika.wicaby.core.R.string.quick_connect_body), style = Type.callout, color = C.label2, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 18.dp),
+        )
+        val c = code
+        if (c != null) Text(c, style = Type.largeTitle, color = C.label, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        else if (message == null) Spinner(Modifier.align(Alignment.CenterHorizontally))
+        message?.let { Text(it, style = Type.callout, color = C.red, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) }
+        val first = remember { FocusRequester() }
+        LaunchedEffect(Unit) {
+            delay(60)
+            runCatching { first.requestFocus() }
+        }
+        SheetButton(stringResource(com.wika.wicaby.core.R.string.close), onClick = onDismiss, modifier = Modifier.padding(top = 18.dp).focusRequester(first))
+    }
 }
 
 // A server reachable only over Tailscale / NetBird: join the mesh before connecting (Réglages

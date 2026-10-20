@@ -167,6 +167,10 @@ class Playback(
     private var playSessionId: String? = null
     var playMethod by mutableStateOf("DirectPlay")
         private set
+    // "What's this song?" (songid/SongId.kt): the file a direct play or a downloaded copy reads; null for a transcode
+    // (MediaExtractor reads no HLS) and live TV.
+    var songIdSource by mutableStateOf<Uri?>(null)
+        private set
     // X-02: the bitrate cap picked in the player (Quality.ORIGINAL for Original), kept for the next
     // episodes of this player; null = the settings cap. switching: a reload is in flight.
     var qualityCap by mutableStateOf<Int?>(null)
@@ -315,6 +319,7 @@ class Playback(
         player.addListener(listener)
         player.addAnalyticsListener(probe)
         if (!preview && !trailer) RemoteControl.target = remoteTarget
+        com.wika.wicaby.core.syncplay.SyncPlay.attach(this)
         scope.launch { open(itemId, fromStart) }
         // A bitstream (HDMI passthrough) plays at 1x only: the sink cannot stretch it and the speed would
         // not apply. Back to 1x (the remembered speed is kept) when one starts; the speed sheets say why.
@@ -360,7 +365,10 @@ class Playback(
                 // X-05: the tracks picked earlier in this series, when nothing else asked for some.
                 val series = it.seriesId
                 val mem = if (remote == null && pick == null && !trailer && series != null) TrackMemory.pick(TrackMemory.get(series), streams) else null
-                if (copy != null) loadLocal(copy, start) else load(start, remote?.audio ?: pick?.audio ?: mem?.first, remote?.subtitle ?: pick?.subtitle ?: mem?.second)
+                // Accessibility: the server default swapped for its AD / plain / SDH twin (Versions); null leaves it to the server.
+                val a11yAudio = chosen?.let { c -> Versions.defaultAudioStream(c)?.index?.takeIf { i -> i != c.defaultAudioStreamIndex } }
+                val a11ySub = chosen?.let { c -> Versions.defaultSubtitleIndex(c).takeIf { i -> i >= 0 && i != c.defaultSubtitleStreamIndex } }
+                if (copy != null) loadLocal(copy, start) else load(start, remote?.audio ?: pick?.audio ?: mem?.first ?: a11yAudio, remote?.subtitle ?: pick?.subtitle ?: mem?.second ?: a11ySub)
                 val changed = chosen != null && ((mem?.first ?: chosen.defaultAudioStreamIndex) != chosen.defaultAudioStreamIndex ||
                     (mem?.second ?: Versions.defaultSubtitleIndex(chosen)) != Versions.defaultSubtitleIndex(chosen))
                 if (copy == null && changed && series != null && tracksToasted.add(series)) {
@@ -383,6 +391,14 @@ class Playback(
                 }
             }
             segments = if (api.server.isEmby) embySegments(it.chapters) else runCatching { jellyfinSegments(api.mediaSegments(it.id)) }.getOrDefault(Segments())
+            // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
+            val fromServer = segments
+            if (fromServer.introEnd == null && fromServer.credits == null && it.isEpisode && AniSkip.enabled) {
+                scope.launch {
+                    val a = runCatching { AniSkip.segments(api, it) }.getOrNull()
+                    if (a != null && item?.id == it.id) segments = AniSkip.merge(fromServer, a)
+                }
+            }
             next = nextFor(it)
         } catch (e: CancellationException) {
             throw e
@@ -396,6 +412,7 @@ class Playback(
     private fun refusal(e: Throwable?): String? = AccessSchedules.explain(context, api.server.id, api.userId, e)
 
     private fun startLive(ch: Item) {
+        songIdSource = null
         val mbps = Core.maxMbps
         val maxBitrate = qualityCap ?: if (mbps <= 0) 200_000_000 else mbps * 1_000_000
         // Read per tune: the Quality sheet changes the cap (X-02).
@@ -557,6 +574,7 @@ class Playback(
         source = it.mediaSources.firstOrNull() ?: MediaSource(id = it.id)
         playSessionId = null
         playMethod = "DirectPlay"
+        songIdSource = copy.uri
         audioIndex = source?.defaultAudioStreamIndex
         subtitleIndex = source?.defaultSubtitleStreamIndex
         play(MediaItem.Builder().setUri(copy.uri).setMediaId(it.id).setMediaMetadata(metadata(it)).build(), startMs)
@@ -643,6 +661,7 @@ class Playback(
         source = ps
         playSessionId = info.playSessionId
         playMethod = method
+        songIdSource = if (method == "DirectPlay") Uri.parse(url) else null
         streams = ps.mediaStreams.ifEmpty { streams }
         audioIndex = audio ?: ps.defaultAudioStreamIndex
         subtitleIndex = subtitle ?: ps.defaultSubtitleStreamIndex
@@ -1061,6 +1080,7 @@ class Playback(
         stopped = true
         recovery?.cancel()
         if (RemoteControl.target === remoteTarget) RemoteControl.target = null
+        com.wika.wicaby.core.syncplay.SyncPlay.detach(this)
         debugReceiver?.let { runCatching { context.unregisterReceiver(it) } }
         debugReceiver = null
         endSession()
@@ -1225,10 +1245,12 @@ internal fun fileStreams(tracks: Tracks, known: List<MediaStream>): List<MediaSt
                 index = audio++, type = "Audio", codec = f.sampleMimeType?.substringAfter('/'), language = f.language,
                 displayTitle = listOfNotNull(f.label ?: f.language, f.sampleMimeType?.substringAfter('/')?.uppercase(), f.channelCount.takeIf { it > 0 }?.let { "${it}ch" }).joinToString(" · "),
                 isDefault = (f.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0, channels = f.channelCount.takeIf { it > 0 },
+                isVisualImpaired = (f.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO) != 0,
             )
             g.type == C.TRACK_TYPE_TEXT && !f.id.orEmpty().contains(EXT_PREFIX) && !g.mediaTrackGroup.id.contains(EXT_PREFIX) -> MediaStream(
                 index = 500 + text++, type = "Subtitle", codec = (f.codecs ?: f.sampleMimeType)?.substringAfter('/'), language = f.language,
                 displayTitle = f.label ?: f.language ?: "#$text", isForced = (f.selectionFlags and C.SELECTION_FLAG_FORCED) != 0,
+                isHearingImpaired = (f.roleFlags and C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND) != 0,
             )
             else -> null
         }

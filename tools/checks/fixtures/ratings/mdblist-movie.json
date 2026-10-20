@@ -1,0 +1,28 @@
+{
+  "title": "The Shawshank Redemption",
+  "year": 1994,
+  "released": "1994-09-23",
+  "description": "Imprisoned in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank prison.",
+  "runtime": 142,
+  "score": 92,
+  "score_average": 91,
+  "ids": { "imdb": "tt0111161", "trakt": 234, "tmdb": 278, "tvdb": null, "mal": null },
+  "type": "movie",
+  "ratings": [
+    { "source": "imdb", "value": 9.3, "score": 93, "votes": 3051234, "popular": 1, "url": null },
+    { "source": "metacritic", "value": 82, "score": 82, "votes": 22, "url": "the-shawshank-redemption" },
+    { "source": "metacriticuser", "value": 9.1, "score": 91, "votes": 1890, "url": null },
+    { "source": "trakt", "value": 89, "score": 89, "votes": 61022, "url": null },
+    { "source": "tomatoes", "value": 89, "score": 89, "votes": 82, "url": "/m/shawshank_redemption" },
+    { "source": "popcorn", "value": "98", "score": 98, "votes": 250000, "url": null },
+    { "source": "tmdb", "value": 8.7, "score": 87, "votes": 28712, "url": null },
+    { "source": "rogerebert", "value": 4, "score": 100, "votes": null, "url": "shawshank-redemption-1994" },
+    { "source": "letterboxd", "value": 4.6, "score": 92, "votes": null, "url": "the-shawshank-redemption" },
+    { "source": "myanimelist", "value": null, "score": null, "votes": null, "url": null }
+  ],
+  "certification": "R",
+  "commonsense": false,
+  "age_rating": 0,
+  "poster": "https://image.tmdb.org/t/p/original/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
+  "backdrop": "https://image.tmdb.org/t/p/original/kXfqcdQKsToO0OUXHcrrNCHDBzO.jpg"
+}

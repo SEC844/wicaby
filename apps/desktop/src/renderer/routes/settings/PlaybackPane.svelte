@@ -238,6 +238,13 @@
         <Segmented label={t(`settings.playback.${k}.label`)} value={s.playback[k]} options={SKIP} onchange={(v) => set({ playback: { [k]: v } })} />
       </div>
     {/each}
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.aniskip.label')}</div>
+        <div class="desc">{t('settings.playback.aniskip.desc')}</div>
+      </div>
+      <Toggle label={t('settings.playback.aniskip.label')} checked={s.playback.aniskip} onchange={(v) => set({ playback: { aniskip: v } })} />
+    </div>
   </div>
 
   <h3 class="gh">{t('settings.playback.speedSeek')}</h3>

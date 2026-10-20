@@ -89,6 +89,9 @@ object TvSettings {
     val audioFx get() = listOf(R.string.audio_fx_normalize to audioNormalize, R.string.audio_fx_boost to audioBoost, R.string.audio_fx_night to audioNight, R.string.audio_fx_dialogue to audioDialogue)
     // "Play on" target for the official Emby/Jellyfin apps (X-06).
     val remoteControl = BoolSetting("remote_control", true)
+    // Accessibility (Core.preferSdh, Core.audioDescription).
+    val preferSdh = BoolSetting("prefer_sdh", false)
+    val audioDescription = StringSetting("audio_description", "avoid")
     // X-05 "Mémoriser les réglages": ScopedPrefs.Scope ordinals (off, global, library, title).
     val rememberSpeed = IntSetting("remember_speed", ScopedPrefs.Scope.Global.ordinal)
     val rememberAspect = IntSetting("remember_aspect", ScopedPrefs.Scope.Title.ordinal)
@@ -230,6 +233,8 @@ object TvSettings {
             }
         }
         Core.remoteControl = remoteControl.value
+        Core.preferSdh = preferSdh.value
+        Core.audioDescription = audioDescription.value
         AudioFx.config = AudioFx.Config(audioDialogue.value, audioNight.value, audioNormalize.value, audioBoost.value)
         fun scope(s: IntSetting) = ScopedPrefs.Scope.entries[s.value.coerceIn(0, ScopedPrefs.Scope.entries.lastIndex)]
         ScopedPrefs.scopes = mapOf(ScopedPrefs.SPEED to scope(rememberSpeed), ScopedPrefs.ASPECT to scope(rememberAspect))

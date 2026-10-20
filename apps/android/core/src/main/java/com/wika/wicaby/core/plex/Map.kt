@@ -123,6 +123,8 @@ object PlexMap {
         (s["extendedDisplayTitle"] ?: s["displayTitle"]).takeIf { it.truthy() }?.let { out["DisplayTitle"] = it }
         if (s["default"].truthy()) out["IsDefault"] = jb(true)
         if (s["forced"].truthy()) out["IsForced"] = jb(true)
+        if (s["hearingImpaired"].truthy()) out["IsHearingImpaired"] = jb(true)
+        if (s["visualImpaired"].truthy()) out["IsVisualImpaired"] = jb(true)
         if (type == "Video") {
             s["width"].takeIf { it.truthy() }?.let { out["Width"] = it }
             s["height"].takeIf { it.truthy() }?.let { out["Height"] = it }

@@ -1,4 +1,4 @@
-import type { SubtitleMode } from './contract';
+import type { AudioDescriptionPref, SubtitleMode } from './contract';
 import type { MediaStream } from './models';
 
 // The one place that picks the audio and subtitle tracks of every start: first play,
@@ -28,7 +28,9 @@ const words = (s: MediaStream) => `${s.Title ?? ''} ${s.DisplayTitle ?? ''}`.toL
 // Many releases only say "Forced" in the track title.
 export const isForced = (s: MediaStream): boolean => Boolean(s.IsForced) || /\bforced\b|\bforcé/.test(words(s));
 const isCommentary = (s: MediaStream) => /comment/.test(words(s));
-const isSdh = (s: MediaStream) => /\bsdh\b|\bcc\b|malentendant|hearing/.test(words(s));
+export const isSdh = (s: MediaStream): boolean => Boolean(s.IsHearingImpaired) || /\bsdh\b|\bcc\b|malentendant|hearing/.test(words(s));
+// Audio description: Plex visualImpaired, else the title.
+export const isAd = (s: MediaStream): boolean => Boolean(s.IsVisualImpaired) || /\bad\b|audio[ -]?description|description audio|\bdvs\b/.test(words(s));
 
 export interface TrackPrefs {
   audioLanguage: string;
@@ -36,6 +38,10 @@ export interface TrackPrefs {
   mode: SubtitleMode;
   // "Toujours afficher les sous-titres forcés"; false leaves forced tracks to a manual pick.
   forced?: boolean;
+  // "Préférer les sous-titres SDH".
+  sdh?: boolean;
+  // Audio description; absent = 'avoid' (an AD track is never auto-picked over a plain one in its language).
+  audioDescription?: AudioDescriptionPref;
 }
 
 // What the user picked by hand during an episode, replayed on the rest of the series (X-05).
@@ -77,17 +83,34 @@ export interface ServerDefaults {
 export function pickAudio(streams: MediaStream[], defaults: ServerDefaults, prefs: TrackPrefs, remembered?: SeriesChoice): number | null {
   const audio = streams.filter((s) => s.Type === 'Audio');
   if (audio.length === 0) return null;
+  const ad = prefs.audioDescription ?? 'avoid';
+  // 0 = the wanted AD class; ties keep the default track first, then file order (sort is stable).
+  const rank = (a: MediaStream) => (ad === 'any' || isAd(a) === (ad === 'prefer') ? 0 : 1);
   const byLang = (lang?: string) => {
     const c = audio.filter((a) => sameLang(a.Language, lang));
-    return c.find((a) => a.IsDefault && !isCommentary(a)) ?? c.find((a) => !isCommentary(a)) ?? c[0];
+    const main = c.filter((a) => !isCommentary(a)).sort((x, y) => rank(x) - rank(y) || Number(!!y.IsDefault) - Number(!!x.IsDefault));
+    return main[0] ?? c[0];
   };
   const intent = migrateChoice(remembered)?.audio;
   const mem = intent ? matchIntent(streams, 'Audio', intent) : undefined;
   if (mem !== undefined) return mem;
   const hit = byLang(prefs.audioLanguage);
   if (hit) return hit.Index;
-  if (defaults.audio !== undefined && audio.some((a) => a.Index === defaults.audio)) return defaults.audio;
-  return (audio.find((a) => a.IsDefault) ?? audio.find((a) => !isCommentary(a)) ?? audio[0]).Index;
+  const d = audio.find((a) => a.Index === defaults.audio) ?? audio.find((a) => a.IsDefault) ?? audio.find((a) => !isCommentary(a)) ?? audio[0];
+  return accessible(streams, d.Index, prefs);
+}
+
+// The track's twin (same type, language, forced and commentary class) that fits the accessibility
+// preferences when the track itself does not: the audio-description choice, and SDH when preferred.
+// Used on server defaults, which know nothing of them; the track itself when there is no twin.
+export function accessible(streams: MediaStream[], index: number, prefs: Pick<TrackPrefs, 'sdh' | 'audioDescription'>): number {
+  const s = streams.find((x) => x.Index === index);
+  if (!s || (s.Type !== 'Audio' && s.Type !== 'Subtitle')) return index;
+  const ad = prefs.audioDescription ?? 'avoid';
+  const fits = (x: MediaStream) => (x.Type === 'Audio' ? ad === 'any' || isAd(x) === (ad === 'prefer') : !prefs.sdh || isSdh(x));
+  if (fits(s)) return index;
+  const twin = streams.find((x) => x.Type === s.Type && fits(x) && sameLang(x.Language, s.Language) && isForced(x) === isForced(s) && isCommentary(x) === isCommentary(s));
+  return twin?.Index ?? index;
 }
 
 export function pickSubtitle(
@@ -104,7 +127,8 @@ export function pickSubtitle(
   const audioLang = streams.find((s) => s.Index === audioIndex && s.Type === 'Audio')?.Language;
   const full = (lang?: string) => {
     const c = subs.filter((s) => !isForced(s) && sameLang(s.Language, lang));
-    return c.find((s) => s.IsDefault && !isSdh(s)) ?? c.find((s) => !isSdh(s)) ?? c[0];
+    const want = (s: MediaStream) => isSdh(s) === Boolean(prefs.sdh);
+    return c.find((s) => s.IsDefault && want(s)) ?? c.find(want) ?? c[0];
   };
   const forcedIn = (lang?: string) => subs.find((s) => isForced(s) && sameLang(s.Language, lang));
   // Forced tracks translate the foreign passages (signs, alien dialogue) of the audio being played.
@@ -129,7 +153,7 @@ export function pickSubtitle(
     case 'always':
       return (full(mine) ?? forced ?? serverDefault ?? (mine ? undefined : (subs.find((s) => !isForced(s)) ?? subs[0])))?.Index ?? null;
     default:
-      return serverDefault?.Index ?? null;
+      return serverDefault ? accessible(streams, serverDefault.Index, prefs) : null;
   }
 }
 

@@ -158,6 +158,8 @@
     <string name="segment_recap">Recaps</string>
     <string name="segment_preview">Previews</string>
     <string name="segment_commercial">Commercials</string>
+    <string name="aniskip">AniSkip for anime</string>
+    <string name="aniskip_hint">Fills in missing anime intro and credits times from aniskip.com (sends the MyAnimeList id and episode number).</string>
     <string name="bonus">Extras</string>
     <string name="external_player_open">Open in External Player</string>
     <string name="voice_search">Voice Search</string>
@@ -191,6 +193,20 @@
     <string name="chapter_position">Chapter %1$d of %2$d, %3$s</string>
     <string name="speed">Playback Speed</string>
     <string name="remote_message">Message received</string>
+    <string name="syncplay_title">Watch Together</string>
+    <string name="syncplay_new">New Group</string>
+    <string name="syncplay_group_name">%1$s’s group</string>
+    <string name="syncplay_none">No groups on this server yet.</string>
+    <string name="syncplay_members">In the group: %1$s</string>
+    <string name="syncplay_leave">Leave Group</string>
+    <string name="syncplay_failed">Couldn’t join the group</string>
+    <string name="syncplay_joined">You joined %1$s</string>
+    <string name="syncplay_left">You left the group</string>
+    <string name="syncplay_user_joined">%1$s joined the group</string>
+    <string name="syncplay_user_left">%1$s left the group</string>
+    <string name="syncplay_paused">The group paused</string>
+    <string name="syncplay_resumed">The group resumed</string>
+    <string name="syncplay_seeked">The group jumped to %1$s</string>
     <string name="settings_remote_control">Control from Other Devices</string>
     <string name="settings_remote_control_summary">Wicaby shows up in the Emby and Jellyfin apps’ “Play on” list, which can start, pause, seek or stop playback.</string>
     <!-- X-01: merged Continue Watching -->
@@ -519,4 +535,33 @@
     <string name="navidrome_token_unsupported">This server refuses token sign-in (LDAP accounts on Navidrome): Wicaby never sends the password in clear.</string>
     <string name="navidrome_not_owner">This playlist belongs to another user: only its owner can change it.</string>
     <string name="navidrome_cast_unsupported">Casting Navidrome music works from Wicaby for PC (cast relay).</string>
+    <string name="quick_connect">Quick Connect</string>
+    <string name="quick_connect_title">Sign in with Quick Connect</string>
+    <string name="quick_connect_body">On a device already signed in to Jellyfin, open Settings > Quick Connect (or in Wicaby: Settings > Accounts > Authorize a device) and enter this code.</string>
+    <string name="quick_connect_authorize">Authorize a device</string>
+    <string name="quick_connect_authorize_hint">Quick Connect code shown by the other device</string>
+    <string name="quick_connect_authorized">Device authorized</string>
+    <string name="quick_connect_unknown_code">Unknown or expired code</string>
+    <string name="a11y_group">Accessibility</string>
+    <string name="a11y_hint">Automatic track choice, when none was picked by hand. Avoid never picks an audio-description track when a plain one exists in the same language.</string>
+    <string name="prefer_sdh">Prefer SDH Subtitles</string>
+    <string name="audio_description">Audio Description</string>
+    <string name="ad_prefer">Prefer</string>
+    <string name="ad_avoid">Avoid</string>
+    <string name="ad_any">No Preference</string>
+    <!-- "What's this song?" (core songid/SongId.kt) -->
+    <string name="song_id_title">What’s This Song?</string>
+    <string name="song_id_chip">Song</string>
+    <string name="song_id_notice">Wicaby sends a short audio fingerprint of the last seconds (not the sound itself) to Shazam to name the music.</string>
+    <string name="song_id_identify">Identify</string>
+    <string name="song_id_listening">Listening to the last seconds…</string>
+    <string name="song_id_find_in_library">Find in My Library</string>
+    <string name="song_id_in_library">In your library</string>
+    <string name="song_id_not_in_library">Not in your library</string>
+    <string name="song_id_play_later">Play Later</string>
+    <string name="song_id_queued">Added to Queue</string>
+    <string name="song_id_error_unavailable">Not available for this stream: direct play or a downloaded file only.</string>
+    <string name="song_id_error_nomatch">No song recognized.</string>
+    <string name="song_id_error_rate_limited">Shazam is limiting requests. Try again later.</string>
+    <string name="song_id_error_failed">Couldn’t reach Shazam.</string>
 </resources>

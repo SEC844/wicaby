@@ -28,6 +28,7 @@ import com.wika.wicaby.core.music.MusicSession
 import com.wika.wicaby.core.music.instantMix
 import com.wika.wicaby.core.music.lyrics
 import com.wika.wicaby.core.player.buildEngine
+import com.wika.wicaby.core.scrobble.ScrobbleService
 import com.wika.wicaby.tv.BuildConfig
 
 /**
@@ -67,7 +68,7 @@ object Music {
         }
         this.player = p
         // The session ending by itself (the queue emptied, a remote Stop) frees everything.
-        val s = MusicSession(api, p, items, start, onReleased = { if (session === it) release() })
+        val s = MusicSession(api, p, items, start, onReleased = { if (session === it) release() }, scrobbler = ScrobbleService.shared)
         session = s
         s.start()
         // Binding a controller starts MusicService (media session, foreground while playing), as mobile does.

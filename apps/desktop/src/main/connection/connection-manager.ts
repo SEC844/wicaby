@@ -178,6 +178,8 @@ export class ConnectionManager extends EventEmitter {
   private allowControl = true;
   // recheck() in flight, per server.
   private rechecks = new Map<string, Promise<boolean>>();
+  // Quick Connect requests waiting for approval, per server: the secret never leaves main.
+  private quick = new Map<string, string>();
   private readonly plexTv: PlexTv;
   // The PIN being linked (one at a time), and the Home users last read per account.
   private plexPin: { id: number; at: number; ttlMs: number; nextPoll: number; backoff: number } | null = null;
@@ -650,6 +652,39 @@ export class ConnectionManager extends EventEmitter {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) throw new Error(t('errors.connection.wrongCredentials'));
       throw err;
     }
+    return this.signedIn(conn, server, client, result);
+  }
+
+  // Jellyfin Quick Connect: the first call starts a request and returns its code; later calls poll it and sign in once
+  // another signed-in device approved the code (a fresh code once it expired). null: not offered on this server.
+  async quickConnect(serverId?: string): Promise<{ code: string } | { state: SessionState } | null> {
+    const id = serverId ?? [...this.conns].find(([, c]) => c.state.status === 'server-selected')?.[0] ?? this.primaryId;
+    const conn = id ? this.conns.get(id) : undefined;
+    const client = conn?.client;
+    const server = this.store.value.servers.find((s) => s.id === id);
+    if (!conn || !client || !server) throw new Error(t('errors.connection.noServerSelected'));
+    if (server.kind !== 'jellyfin') return null;
+    const secret = this.quick.get(server.id);
+    if (secret) {
+      const r = await client.get<{ Code: string; Authenticated?: boolean }>('/QuickConnect/Connect', { secret }).catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      });
+      if (r && !r.Authenticated) return { code: r.Code };
+      this.quick.delete(server.id);
+      if (r) return { state: await this.signedIn(conn, server, client, await client.post<AuthenticationResult>('/Users/AuthenticateWithQuickConnect', undefined, { Secret: secret })) };
+    }
+    if ((await client.get<unknown>('/QuickConnect/Enabled').catch(() => false)) !== true) return null;
+    // Jellyfin 10.8 only has GET Initiate (POST came in 10.9).
+    const init = await client.post<{ Code: string; Secret: string }>('/QuickConnect/Initiate').catch((err: unknown) => {
+      if (err instanceof ApiError && (err.status === 405 || err.status === 404)) return client.get<{ Code: string; Secret: string }>('/QuickConnect/Initiate');
+      throw err;
+    });
+    this.quick.set(server.id, init.Secret);
+    return { code: init.Code };
+  }
+
+  private async signedIn(conn: Conn, server: StoredServer, client: ApiClient, result: AuthenticationResult): Promise<SessionState> {
     client.token = result.AccessToken;
     client.userId = result.User.Id;
     // Signing in here binds the token to this origin (alongside the ones already trusted).

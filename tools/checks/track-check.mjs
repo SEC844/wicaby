@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { matchIntent, migrateChoice, normLang, pickAudio, pickSubtitle, rememberChoice, sameLang, selectTracks } from '../../apps/desktop/src/shared/track-selection.ts';
+import { accessible, isAd, isSdh, matchIntent, migrateChoice, normLang, pickAudio, pickSubtitle, rememberChoice, sameLang, selectTracks } from '../../apps/desktop/src/shared/track-selection.ts';
 import { readScoped, writeScoped } from '../../apps/desktop/src/main/playback/scoped-prefs.ts';
 
 const a = (Index, Language, extra = {}) => ({ Index, Type: 'Audio', Language, ...extra });
@@ -123,5 +123,41 @@ let sd = {};
 for (let i = 0; i < 305; i++) sd = writeScoped(sd, 'speed', 'title', { title: `t${i}` }, 1.5, i);
 assert.equal(Object.keys(sd.speed.title).length, 300);
 assert.ok(!('t0' in sd.speed.title) && 't304' in sd.speed.title);
+
+// Accessibility: audio description and SDH.
+const ad = [
+  { Index: 0, Type: 'Video' },
+  a(1, 'eng', { IsDefault: true, Title: 'English AD' }),
+  a(2, 'eng'),
+  a(3, 'fre', { Title: 'Audiodescription' }),
+  a(4, 'fre', { IsDefault: true }),
+  a(5, 'fre', { IsVisualImpaired: true }),
+  s(6, 'fre'),
+  s(7, 'fre', { IsHearingImpaired: true }),
+  s(8, 'eng', { Title: 'English (CC)' }),
+  s(9, 'eng'),
+];
+assert.ok(isAd(ad[1]) && isAd(ad[3]) && isAd(ad[5]) && !isAd(ad[2]) && !isAd(a(0, 'eng', { Title: 'Bad Audio' })));
+assert.ok(isSdh(ad[7]) && isSdh(ad[8]) && !isSdh(ad[6]));
+const acc = (mode, extra) => ({ ...prefs(mode), ...extra });
+// Avoid (the default): a default-flagged AD track never wins over a plain one in that language.
+assert.equal(pickAudio(ad, {}, prefs('manual', 'eng')), 2);
+assert.equal(pickAudio(ad, { audio: 1 }, prefs('manual', '')), 2, 'a server default AD track gives way');
+assert.equal(pickAudio(ad, {}, prefs('manual')), 4);
+assert.equal(pickAudio([a(1, 'eng', { Title: 'AD' })], {}, prefs('manual', 'eng')), 1, 'the only track still plays');
+// Prefer: the AD track of the preferred language (first in file order).
+assert.equal(pickAudio(ad, {}, acc('manual', { audioDescription: 'prefer' })), 3);
+assert.equal(pickAudio(ad, { audio: 2 }, acc('manual', { audioLanguage: '', audioDescription: 'prefer' })), 1);
+assert.equal(pickAudio([a(1, 'fre')], {}, acc('manual', { audioDescription: 'prefer' })), 1);
+// No preference: the old rule (the default track).
+assert.equal(pickAudio(ad, {}, acc('manual', { audioLanguage: 'eng', audioDescription: 'any' })), 1);
+// SDH: off keeps plain subtitles first; on picks the SDH track, also over a server default.
+assert.equal(pickSubtitle(ad, 2, {}, prefs('always')), 6);
+assert.equal(pickSubtitle(ad, 2, {}, acc('always', { sdh: true })), 7);
+assert.equal(pickSubtitle(ad, 2, {}, acc('always', { subtitleLanguage: 'eng', sdh: true })), 8);
+assert.equal(pickSubtitle(ad, 2, { subtitle: 9 }, acc('default', { sdh: true })), 8);
+assert.equal(pickSubtitle(ad, 2, { subtitle: 9 }, prefs('default')), 9);
+assert.equal(accessible(ad, 6, { sdh: true }), 7);
+assert.equal(accessible(ad, 99, {}), 99);
 
 console.log('track-selection: all checks passed');

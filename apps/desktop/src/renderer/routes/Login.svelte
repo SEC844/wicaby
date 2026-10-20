@@ -1,6 +1,6 @@
 <script lang="ts">
   import { kindLabel } from '../../shared/server-caps';
-  import { onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import type { PublicUser } from '../../shared/contract';
@@ -50,8 +50,12 @@
   let error = $state<string | null>(null);
   let selected = $state<string | null>(null);
   let failedImages = $state<Record<string, boolean>>({});
-  // The password sheet: a picked profile, or `null` for "another user".
-  let sheet = $state<{ user: PublicUser | null } | null>(null);
+  // The password sheet: a picked profile, or `null` for "another user"; [quick]: the Quick Connect code instead.
+  let sheet = $state<{ user: PublicUser | null; quick?: boolean } | null>(null);
+  // Jellyfin with Quick Connect on: sign in by approving a code from another device, no password typed.
+  let quickEnabled = $state(false);
+  let quickCode = $state<string | null>(null);
+  let quickRun = 0;
   let passwordEl = $state<HTMLInputElement>();
   let userEl = $state<HTMLInputElement>();
   let sheetEl = $state<HTMLDivElement>();
@@ -60,6 +64,7 @@
 
 
   onMount(async () => {
+    if (server?.kind === 'jellyfin') void w.api.get<unknown>('/QuickConnect/Enabled', undefined, sid).then((v) => (quickEnabled = v === true), () => undefined);
     try {
       users = await w.session.publicUsers(sid);
     } catch {
@@ -99,6 +104,40 @@
       passwordEl?.select();
     } finally {
       busy = false;
+    }
+  }
+
+  // Leaving the page ends a Quick Connect poll still running.
+  onDestroy(() => {
+    quickRun++;
+    sheet = null;
+  });
+
+  // Polls every 5 s while the sheet is open; main keeps the secret and renews an expired code.
+  async function quickConnect() {
+    returnFocus = document.activeElement as HTMLElement | null;
+    const run = ++quickRun;
+    sheet = { user: null, quick: true };
+    quickCode = null;
+    error = null;
+    // Stops once this sheet closes (a reopened one runs its own loop).
+    while (sheet?.quick && run === quickRun) {
+      try {
+        const r = await w.session.quickConnect(sid);
+        if (!sheet?.quick || run !== quickRun) return;
+        if (!r) throw new Error(t('onboarding.login.quickOff'));
+        if ('state' in r) {
+          sheet = null;
+          if (onsignedin) onsignedin();
+          else navigate('/home', { replace: true });
+          return;
+        }
+        quickCode = r.code;
+      } catch (err) {
+        error = errorMessage(err);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 5000));
     }
   }
 
@@ -256,7 +295,10 @@
       </div>
     {/if}
 
-    {#if !onsignedin}<button class="btn ghost switch" onclick={changeServer}><Icon name="server" size={15} /> {others ? t('onboarding.login.backToServers') : t('onboarding.login.switchServer')}</button>{/if}
+    {#if (quickEnabled && !confirmAddress) || !onsignedin}<div class="alt">
+      {#if quickEnabled && !confirmAddress}<button class="btn ghost switch" onclick={quickConnect} disabled={busy}><Icon name="key" size={15} /> {t('onboarding.login.quickConnect')}</button>{/if}
+      {#if !onsignedin}<button class="btn ghost switch" onclick={changeServer}><Icon name="server" size={15} /> {others ? t('onboarding.login.backToServers') : t('onboarding.login.switchServer')}</button>{/if}
+    </div>{/if}
   </div>
 </div>
 
@@ -264,7 +306,16 @@
   <div class="scrim" transition:fade={{ duration: dur('med') }} onclick={closeSheet} role="presentation"></div>
   <div class="sheet-wrap">
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" bind:this={sheetEl} in:sheetIn out:fly={{ y: 24, duration: dur('fast'), opacity: 0 }}>
-      {#if sheet.user}
+      {#if sheet.quick}
+        <span class="avatar other" style:--size="76px"><Icon name="key" size={30} /></span>
+        <h2 id="sheet-title">{t('onboarding.login.quickTitle')}</h2>
+        <p class="sheet-sub">{t('onboarding.login.quickLead')}</p>
+        {#if quickCode}<p class="quick-code" aria-live="polite">{quickCode}</p>{:else if !error}<span class="spinner"></span>{/if}
+        {#if error}
+          <p class="error" role="alert"><Icon name="exclamation" size={15} /> {error}</p>
+        {/if}
+        <div class="actions"><button class="btn ghost" type="button" onclick={closeSheet}>{t('common.actions.cancel')}</button></div>
+      {:else if sheet.user}
         {@render avatar(sheet.user, 76)}
         <h2 id="sheet-title">{sheet.user.name}</h2>
         <p class="sheet-sub">{plex ? t('plex.login.pinLead') : t('onboarding.login.passwordLead')}</p>
@@ -273,12 +324,20 @@
         <h2 id="sheet-title">{t('onboarding.login.otherUser')}</h2>
         <p class="sheet-sub">{t('onboarding.login.otherLead')}</p>
       {/if}
-      {@render credentials(!sheet.user)}
+      {#if !sheet.quick}{@render credentials(!sheet.user)}{/if}
     </div>
   </div>
 {/if}
 
 <style>
+  .quick-code {
+    margin: 6px 0;
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    font-variant-numeric: tabular-nums;
+    user-select: all;
+  }
   .login {
     view-transition-name: page;
     position: relative;
@@ -515,6 +574,12 @@
     margin: 0 0 16px;
     text-align: center;
     color: var(--label-2);
+  }
+  .alt {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
   .switch {
     color: var(--label-2);

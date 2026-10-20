@@ -21,6 +21,7 @@ import com.wika.wicaby.core.player.RemoteControl
 import com.wika.wicaby.core.player.RemoteTarget
 import com.wika.wicaby.core.player.SessionReporter
 import com.wika.wicaby.core.player.audioAttributes
+import com.wika.wicaby.core.scrobble.Scrobbler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -65,6 +66,8 @@ class MusicSession(
     startIndex: Int = 0,
     private val local: (String) -> LocalMedia? = { null },
     private val onReleased: (MusicSession) -> Unit = {},
+    // ListenBrainz / Last.fm (core/scrobble): off unless the user connected one.
+    private val scrobbler: Scrobbler? = null,
 ) {
     val queue = PlayQueue(items.map { it.id }, startIndex, fromStart = true)
 
@@ -88,6 +91,9 @@ class MusicSession(
     private var reported = false
     private var lastPosMs = 0L
     private var errors = 0
+    // The current track: when it started (Unix seconds) and how long it was heard (seeks and pauses not counted).
+    private var startedAt = 0L
+    private var heardMs = 0L
     private val albumGains = HashMap<String, Double?>()
 
     fun start() {
@@ -116,6 +122,7 @@ class MusicSession(
             while (isActive) {
                 delay(1_000)
                 if (!player.isPlaying) continue
+                heardMs += 1_000
                 lastPosMs = player.currentPosition
                 if (++n % 10 == 0) report("/Sessions/Playing/Progress", "TimeUpdate")
             }
@@ -312,6 +319,9 @@ class MusicSession(
         lastPosMs = 0
         reported = true
         report("/Sessions/Playing", null)
+        startedAt = System.currentTimeMillis() / 1000
+        heardMs = 0
+        current?.let { scrobbler?.nowPlaying(it) }
         applyGain()
     }
 
@@ -352,6 +362,7 @@ class MusicSession(
         if (!reported) return
         reported = false
         reporter.report("/Sessions/Playing/Stopped", body(it, posMs, null))
+        scrobbler?.listened(it, startedAt, heardMs)
     }
 
     // Server remote control (another client's Pause, Next, Play next…) while music plays.

@@ -122,6 +122,8 @@ export function toStream(s: PlexStream): MediaStream | null {
   if (display) out.DisplayTitle = display;
   if (s.default) out.IsDefault = true;
   if (s.forced) out.IsForced = true;
+  if (s.hearingImpaired) out.IsHearingImpaired = true;
+  if (s.visualImpaired) out.IsVisualImpaired = true;
   if (type === 'Video') {
     if (s.width) out.Width = s.width;
     if (s.height) out.Height = s.height;

@@ -55,12 +55,26 @@ assert.equal(autostartEnabled(`${plain}Hidden=true\n`), false);
 assert.equal(autostartEnabled(plain.replace('X-GNOME-Autostart-enabled=true', 'X-GNOME-Autostart-enabled=false')), false);
 
 // ---- Refresh-rate matching ----
-const { linuxDisplayTool, parseXrandr, parseKscreen, outputAt, pickRate } = await load('src/main/features/display-mode-linux.ts');
+const { linuxDisplayTool, parseXrandr, parseKscreen, outputAt, pickRate, ozonePlatform, nativeWayland } = await load('src/main/features/display-mode-linux.ts');
 assert.equal(linuxDisplayTool({ XDG_SESSION_TYPE: 'x11', DISPLAY: ':0' }), 'xrandr');
 assert.equal(linuxDisplayTool({ DISPLAY: ':0' }), 'xrandr');
 assert.equal(linuxDisplayTool({ XDG_SESSION_TYPE: 'wayland', DISPLAY: ':0', XDG_CURRENT_DESKTOP: 'KDE' }), 'kscreen-doctor');
 assert.equal(linuxDisplayTool({ WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0', XDG_CURRENT_DESKTOP: 'ubuntu:GNOME' }), null, 'GNOME on Wayland: no tool');
 assert.equal(linuxDisplayTool({ XDG_SESSION_TYPE: 'tty' }), null);
+
+// ---- Ozone backend (WICABY_OZONE) ----
+const kde = { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' };
+assert.equal(ozonePlatform(kde), 'x11', 'Wayland session with XWayland: X11 so mpv can embed');
+assert.equal(ozonePlatform({ XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' }), 'wayland', 'no X server: native Wayland');
+assert.equal(ozonePlatform({ DISPLAY: ':0' }), 'x11');
+assert.equal(ozonePlatform({}), 'x11');
+assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: ' Wayland ' }), 'wayland');
+assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'auto' }), 'auto');
+assert.equal(ozonePlatform({ ...kde, WICABY_OZONE: 'bogus' }), 'x11', 'unknown value: the default');
+assert.equal(nativeWayland(kde, 'x11'), false);
+assert.equal(nativeWayland(kde, 'wayland'), true);
+assert.equal(nativeWayland(kde, 'auto'), true);
+assert.equal(nativeWayland({ DISPLAY: ':0', XDG_SESSION_TYPE: 'x11' }, 'auto'), false);
 
 const xrandr = `Screen 0: minimum 320 x 200, current 4480 x 1440, maximum 16384 x 16384
 DP-1 connected primary 2560x1440+0+0 (normal left inverted right x axis y axis) 597mm x 336mm

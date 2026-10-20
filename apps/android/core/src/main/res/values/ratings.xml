@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <!-- Notes externes (MDBList) sur les pages des films et séries. -->
+    <string name="rating_imdb">IMDb %1$s</string>
+    <string name="rating_tomatoes">RT %1$s %%</string>
+    <string name="rating_popcorn">RT Public %1$s %%</string>
+    <string name="rating_metacritic">Metacritic %1$s</string>
+    <string name="rating_letterboxd">Letterboxd %1$s</string>
+    <string name="rating_tmdb">TMDb %1$s %%</string>
+    <string name="ratings_title">Notes</string>
+    <string name="ratings_key">Clé API MDBList</string>
+    <string name="ratings_desc">Affiche les notes IMDb, Rotten Tomatoes, Metacritic, Letterboxd et TMDb sur les pages des films et séries. Désactivé tant qu’aucune clé n’est saisie ; ensuite, chaque page envoie l’identifiant IMDb ou TMDb du titre à mdblist.com.</string>
+    <string name="ratings_hint">Gratuite : connectez-vous sur mdblist.com, puis Preferences → API Key.</string>
+    <string name="ratings_saved">Enregistrée (masquée)</string>
+    <string name="ratings_save">Enregistrer</string>
+    <string name="ratings_remove">Supprimer la clé</string>
+    <string name="ratings_invalid">Ceci ne ressemble pas à une clé API MDBList.</string>
+</resources>

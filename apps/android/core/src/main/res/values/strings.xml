@@ -160,6 +160,8 @@
     <string name="segment_recap">Récapitulatifs</string>
     <string name="segment_preview">Aperçus</string>
     <string name="segment_commercial">Publicités</string>
+    <string name="aniskip">AniSkip pour les animés</string>
+    <string name="aniskip_hint">Complète les génériques d’animés manquants depuis aniskip.com (envoie l’identifiant MyAnimeList et le numéro d’épisode).</string>
     <string name="bonus">Bonus</string>
     <string name="external_player_open">Ouvrir dans un lecteur externe</string>
     <string name="voice_search">Recherche vocale</string>
@@ -194,6 +196,20 @@
     <string name="speed">Vitesse de lecture</string>
     <string name="speed_value" translatable="false">%1$s×</string>
     <string name="remote_message">Message reçu</string>
+    <string name="syncplay_title">Regarder ensemble</string>
+    <string name="syncplay_new">Nouveau groupe</string>
+    <string name="syncplay_group_name">Groupe de %1$s</string>
+    <string name="syncplay_none">Aucun groupe sur ce serveur pour l’instant.</string>
+    <string name="syncplay_members">Dans le groupe : %1$s</string>
+    <string name="syncplay_leave">Quitter le groupe</string>
+    <string name="syncplay_failed">Impossible de rejoindre le groupe</string>
+    <string name="syncplay_joined">Vous avez rejoint %1$s</string>
+    <string name="syncplay_left">Vous avez quitté le groupe</string>
+    <string name="syncplay_user_joined">%1$s a rejoint le groupe</string>
+    <string name="syncplay_user_left">%1$s a quitté le groupe</string>
+    <string name="syncplay_paused">Le groupe a mis en pause</string>
+    <string name="syncplay_resumed">Le groupe reprend la lecture</string>
+    <string name="syncplay_seeked">Le groupe passe à %1$s</string>
     <string name="settings_remote_control">Contrôle depuis un autre appareil</string>
     <string name="settings_remote_control_summary">Wicaby apparaît dans « Lire sur » des applis Emby et Jellyfin, qui peuvent lancer, mettre en pause, avancer ou arrêter la lecture.</string>
     <!-- X-01: merged Continue Watching -->
@@ -528,4 +544,33 @@
     <string name="navidrome_token_unsupported">Ce serveur refuse la connexion par jeton (comptes LDAP sur Navidrome) : Wicaby n’envoie jamais le mot de passe en clair.</string>
     <string name="navidrome_not_owner">Cette playlist appartient à un autre utilisateur : seul son propriétaire peut la modifier.</string>
     <string name="navidrome_cast_unsupported">La diffusion de musique Navidrome se fait depuis Wicaby pour PC (relais de diffusion).</string>
+    <string name="quick_connect">Quick Connect</string>
+    <string name="quick_connect_title">Se connecter avec Quick Connect</string>
+    <string name="quick_connect_body">Sur un appareil déjà connecté à Jellyfin, ouvrez Paramètres > Quick Connect (ou dans Wicaby : Réglages > Comptes > Autoriser un appareil) et saisissez ce code.</string>
+    <string name="quick_connect_authorize">Autoriser un appareil</string>
+    <string name="quick_connect_authorize_hint">Code Quick Connect affiché par l’autre appareil</string>
+    <string name="quick_connect_authorized">Appareil autorisé</string>
+    <string name="quick_connect_unknown_code">Code inconnu ou expiré</string>
+    <string name="a11y_group">Accessibilité</string>
+    <string name="a11y_hint">Choix automatique des pistes, quand aucune n’a été choisie à la main. « Éviter » ne prend jamais une piste d’audiodescription s’il existe une piste normale dans la même langue.</string>
+    <string name="prefer_sdh">Préférer les sous-titres SDH</string>
+    <string name="audio_description">Audiodescription</string>
+    <string name="ad_prefer">Préférer</string>
+    <string name="ad_avoid">Éviter</string>
+    <string name="ad_any">Sans préférence</string>
+    <!-- "What's this song?" (core songid/SongId.kt) -->
+    <string name="song_id_title">Quel est ce morceau ?</string>
+    <string name="song_id_chip">Morceau</string>
+    <string name="song_id_notice">Wicaby envoie à Shazam une courte empreinte audio des dernières secondes (pas le son lui-même) pour identifier la musique.</string>
+    <string name="song_id_identify">Identifier</string>
+    <string name="song_id_listening">Écoute des dernières secondes…</string>
+    <string name="song_id_find_in_library">Chercher dans ma bibliothèque</string>
+    <string name="song_id_in_library">Dans votre bibliothèque</string>
+    <string name="song_id_not_in_library">Absent de votre bibliothèque</string>
+    <string name="song_id_play_later">Lire plus tard</string>
+    <string name="song_id_queued">Ajouté à la file d’attente</string>
+    <string name="song_id_error_unavailable">Indisponible pour ce flux : seulement en lecture directe ou pour un fichier téléchargé.</string>
+    <string name="song_id_error_nomatch">Aucun morceau reconnu.</string>
+    <string name="song_id_error_rate_limited">Shazam limite les requêtes. Réessayez plus tard.</string>
+    <string name="song_id_error_failed">Impossible de joindre Shazam.</string>
 </resources>

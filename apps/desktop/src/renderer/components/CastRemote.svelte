@@ -1,6 +1,7 @@
 <script lang="ts">
   import { TICKS_PER_MS, type CastCommand } from '../../shared/contract';
   import type { MediaStream } from '../../shared/models';
+  import { isAd, isSdh } from '../../shared/track-selection';
   import { apiFor } from '../lib/api';
   import { w } from '../lib/bridge';
   import { cast } from '../lib/cast.svelte';
@@ -46,7 +47,11 @@
     };
   });
 
-  const label = (m: MediaStream) => m.DisplayTitle || m.Title || m.Language || `#${m.Index}`;
+  // A plain-text picker: the SDH / AD badge goes in the label.
+  const label = (m: MediaStream) => {
+    const tag = m.Type === 'Audio' ? (isAd(m) ? t('player.tracks.ad') : '') : isSdh(m) ? t('player.tracks.sdh') : '';
+    return [m.DisplayTitle || m.Title || m.Language || `#${m.Index}`, tag].filter(Boolean).join(' · ');
+  };
   const audioOptions = $derived(streams.filter((m) => m.Type === 'Audio').map((m) => ({ value: m.Index, label: label(m) })));
   const subOptions = $derived([{ value: -1, label: t('player.tracks.off') }, ...streams.filter((m) => m.Type === 'Subtitle').map((m) => ({ value: m.Index, label: label(m) }))]);
 

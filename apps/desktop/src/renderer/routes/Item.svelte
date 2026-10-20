@@ -11,6 +11,7 @@
   import Icon from '../components/Icon.svelte';
   import Row from '../components/Row.svelte';
   import Sheet from '../components/Sheet.svelte';
+  import SyncPlaySheet from '../components/SyncPlaySheet.svelte';
   import { apiFor, fanOut, itemKey, itemPath, markPlayed, playQueueFor, sameTitle } from '../lib/api';
   import { w } from '../lib/bridge';
   import { castOptions, openCastPicker } from '../lib/cast.svelte';
@@ -24,16 +25,21 @@
   import { queue, queueModes } from '../lib/queue.svelte';
   import { resumeAt } from '../lib/resume.svelte';
   import { navigate } from '../lib/router.svelte';
-  import { dataVersion, downloads, errorMessage, multiServer, serverName, sessionFor, toast } from '../lib/stores.svelte';
+  import { dataVersion, downloads, errorMessage, multiServer, serverName, sessionFor, settings, toast } from '../lib/stores.svelte';
   import { caps } from '../../shared/server-caps';
+  import { accessible, isAd, isSdh } from '../../shared/track-selection';
   import { web } from '../lib/platform';
   import { releaseType } from '../../shared/music-ui';
+  import { mdblistPath, type ExternalRating } from '../../shared/ratings';
 
   // server: the item's server (absent in older links: the primary one).
   let { id, server }: { id: string; server?: string } = $props();
   const sid = untrack(() => server ?? sessionFor()?.server.id);
   const key = itemKey({ Id: untrack(() => id), ServerId: sid });
   const api = apiFor(sid);
+  // Jellyfin SyncPlay, where the platform's bridge has it.
+  const syncPlay = $derived(Boolean(w.syncplay) && sessionFor(sid)?.server.kind === 'jellyfin');
+  let syncOpen = $state(false);
   // What this item's source offers (file sources: no cast, favorites or downloads).
   // The web TV app cannot cast or download (no main process): castSend gates both buttons.
   const can = $derived(web ? { ...caps(sessionFor(sid)?.server.kind), castSend: false } : caps(sessionFor(sid)?.server.kind));
@@ -44,6 +50,8 @@
   let morphing = $state(untrack(() => takeMorph(key)));
   // The same film or series on other servers (matching provider ids), this one first.
   let copies = $state<BaseItem[]>([]);
+  // IMDb, Rotten Tomatoes…: [] until the user sets an MDBList key (Settings → Home & Libraries).
+  let external = $state<ExternalRating[]>([]);
   let loadedId = '';
   let error = $state('');
   let seasons = $state<BaseItem[]>([]);
@@ -149,8 +157,13 @@
     sourceId = src?.Id ?? '';
     const s = src?.MediaStreams ?? it.MediaStreams ?? [];
     const audio = s.filter((x) => x.Type === 'Audio');
-    audioIndex = src?.DefaultAudioStreamIndex ?? (audio.find((a) => a.IsDefault) ?? audio[0])?.Index ?? null;
-    subtitleIndex = src?.DefaultSubtitleStreamIndex ?? -1;
+    const pb = settings.value?.playback;
+    const prefs = { sdh: pb?.preferSdh, audioDescription: pb?.audioDescription };
+    // The server default, unless it is an audio-description (or non-SDH) track with a better twin.
+    const a = src?.DefaultAudioStreamIndex ?? (audio.find((x) => x.IsDefault) ?? audio[0])?.Index;
+    audioIndex = a === undefined ? null : accessible(s, a, prefs);
+    const sub = src?.DefaultSubtitleStreamIndex ?? -1;
+    subtitleIndex = sub >= 0 ? accessible(s, sub, prefs) : sub;
   }
 
   async function load(): Promise<void> {
@@ -163,9 +176,18 @@
       if (first) initSelection(it);
       void loadExtras(it, first);
       if (first) void findCopies(it);
+      if (first) void loadRatings(it);
     } catch (err) {
       error = errorMessage(err);
     }
+  }
+
+  async function loadRatings(it: BaseItem): Promise<void> {
+    external = [];
+    const path = mdblistPath(it);
+    if (!path) return;
+    const r = await w.ratings.get(path).catch(() => []);
+    if (loadedId === it.Id) external = r;
   }
 
   // Searched by name on the other servers, kept when a provider id matches; one copy per server.
@@ -561,6 +583,9 @@
             <span class="m rating"><Icon name="star" size={12} fill stroke={0} />{fmt.number(item.CommunityRating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
           {/if}
           {#if item.CriticRating}<span class="m">{t('item.meta.criticRating', { value: item.CriticRating })}</span>{/if}
+          {#each external as r (r.source)}
+            <span class="chip" title={t(`item.meta.ratingTitles.${r.source}`)}>{t(`item.meta.ratings.${r.source}`, { value: fmt.number(r.value, { maximumFractionDigits: 1 }) })}</span>
+          {/each}
           {#if item.OfficialRating}<span class="chip">{item.OfficialRating}</span>{/if}
           {#each quality as b (b)}<span class="chip">{b}</span>{/each}
         </div>
@@ -582,6 +607,11 @@
                 onclick={() => item && openCastPicker({ itemId: item.Id, serverId: sid, options: async () => castOptions(await playRequest(item!, false)) })}
               >
                 <Icon name="cast" size={18} stroke={1.9} />
+              </button>
+            {/if}
+            {#if !isBook && syncPlay}
+              <button class="btn lg icon glass" title={t('player.syncplay.button')} aria-label={t('player.syncplay.button')} aria-haspopup="dialog" onclick={() => (syncOpen = true)}>
+                <Icon name="users" size={18} stroke={1.9} />
               </button>
             {/if}
             {#if canResume || bookPage > 0}
@@ -682,7 +712,7 @@
               <BrowseMenu
                 label={streamLabel(audioStreams.find((s) => s.Index === audioIndex) ?? audioStreams[0])}
                 icon="audio"
-                options={audioStreams.map((s) => ({ value: String(s.Index), label: streamLabel(s), checked: s.Index === audioIndex }))}
+                options={audioStreams.map((s) => ({ value: String(s.Index), label: streamLabel(s), checked: s.Index === audioIndex, tags: isAd(s) ? [t('player.tracks.ad')] : undefined }))}
                 onselect={(v) => (audioIndex = Number(v))}
               />
             {/if}
@@ -696,6 +726,7 @@
                     value: String(s.Index),
                     label: s.IsForced ? t('item.streams.forced', { label: streamLabel(s) }) : streamLabel(s),
                     checked: s.Index === subtitleIndex,
+                    tags: isSdh(s) ? [t('player.tracks.sdh')] : undefined,
                     section: i === 0 ? (true as const) : undefined,
                   })),
                 ]}
@@ -922,6 +953,7 @@
   </article>
 {/if}
 
+<SyncPlaySheet open={syncOpen} serverId={sid} onclose={() => (syncOpen = false)} oncreated={() => void play(false)} />
 <Sheet open={youtubeOpen} onclose={() => (youtubeOpen = false)} label={t('item.trailer.title', { name: item?.Name ?? '' })} width={960}>
   {#if youtubeId}
     <div class="yt">

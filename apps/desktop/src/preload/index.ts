@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { Channels, type Query, type WicabyBridge } from '../shared/contract';
+import { Channels, type Query, type SyncPlayGroup, type WicabyBridge } from '../shared/contract';
 
 // Strips Electron's "Error invoking remote method 'x': Error: " wrapper so the
 // UI can show the main-process message as is.
@@ -17,6 +17,11 @@ function on<T>(channel: string, cb: (payload: T) => void): () => void {
   ipcRenderer.on(channel, listener);
   return () => ipcRenderer.removeListener(channel, listener);
 }
+
+// SyncPlay: current() answers synchronously from the last group main announced.
+let syncGroup: SyncPlayGroup | null = null;
+on<SyncPlayGroup | null>(Channels.syncplayChanged, (g) => (syncGroup = g));
+void invoke<SyncPlayGroup | null>(Channels.syncplayGet).then((g) => (syncGroup = g), () => undefined);
 
 const bridge: WicabyBridge = {
   app: {
@@ -74,6 +79,7 @@ const bridge: WicabyBridge = {
     get: () => invoke(Channels.sessionGet),
     publicUsers: (serverId) => invoke(Channels.sessionPublicUsers, serverId),
     login: (username, password, serverId) => invoke(Channels.sessionLogin, username, password, serverId),
+    quickConnect: (serverId) => invoke(Channels.sessionQuickConnect, serverId),
     logout: (serverId) => invoke(Channels.sessionLogout, serverId),
     disconnect: (serverId) => invoke(Channels.sessionDisconnect, serverId),
     onChange: (cb) => on(Channels.sessionChanged, cb),
@@ -109,6 +115,7 @@ const bridge: WicabyBridge = {
     command: (command) => invoke(Channels.playbackCommand, command),
     getState: () => invoke(Channels.playbackGetState),
     onState: (cb) => on(Channels.playbackState, cb),
+    identifySong: () => invoke(Channels.playbackIdentifySong),
   },
   music: {
     lrclib: (track) => invoke(Channels.musicLrclib, track),
@@ -172,6 +179,20 @@ const bridge: WicabyBridge = {
     takeMagnet: () => invoke(Channels.torrentsTakeMagnet),
     onMagnet: (cb) => on(Channels.torrentsMagnet, () => cb()),
   },
+  ratings: {
+    configured: () => invoke(Channels.ratingsConfigured),
+    setKey: (key) => invoke(Channels.ratingsSetKey, key),
+    get: (path) => invoke(Channels.ratingsGet, path),
+  },
+  scrobble: {
+    state: () => invoke(Channels.scrobbleState),
+    onState: (cb) => on(Channels.scrobbleChanged, cb),
+    connectListenBrainz: (token) => invoke(Channels.scrobbleLbConnect, token),
+    disconnectListenBrainz: () => invoke(Channels.scrobbleLbDisconnect),
+    connectLastfm: (apiKey, secret) => invoke(Channels.scrobbleLastfmConnect, apiKey, secret),
+    cancelLastfm: () => invoke(Channels.scrobbleLastfmCancel),
+    disconnectLastfm: () => invoke(Channels.scrobbleLastfmDisconnect),
+  },
   trakt: {
     state: () => invoke(Channels.traktState),
     onState: (cb) => on(Channels.traktChanged, cb),
@@ -194,6 +215,14 @@ const bridge: WicabyBridge = {
     takeBack: () => invoke(Channels.castTakeBack),
     getState: () => invoke(Channels.castGetState),
     onState: (cb) => on(Channels.castState, cb),
+  },
+  syncplay: {
+    list: (serverId) => invoke(Channels.syncplayList, serverId),
+    create: (name, serverId) => invoke(Channels.syncplayCreate, name, serverId),
+    join: (groupId, serverId) => invoke(Channels.syncplayJoin, groupId, serverId),
+    leave: () => invoke(Channels.syncplayLeave),
+    current: () => syncGroup,
+    onChange: (cb) => on(Channels.syncplayChanged, cb),
   },
   events: {
     onServerEvent: (cb) => on(Channels.serverEvent, cb),

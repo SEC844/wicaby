@@ -8,6 +8,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,6 +102,10 @@ data class MediaStream(
     val title: String? = null,
     val isDefault: Boolean = false,
     val isForced: Boolean = false,
+    // Jellyfin 10.9+ and Plex (hearingImpaired).
+    val isHearingImpaired: Boolean = false,
+    // Ours: Plex's visualImpaired and ExoPlayer's describes-video role (audio description).
+    val isVisualImpaired: Boolean = false,
     val isExternal: Boolean = false,
     val deliveryMethod: String? = null,
     val deliveryUrl: String? = null,
@@ -375,6 +380,12 @@ data class SessionInfo(
 @Serializable
 private data class Login(val username: String, val pw: String)
 
+// A Quick Connect request (Jellyfin): the code shown to the user, the secret only this device knows.
+@Serializable
+data class QuickConnect(val code: String = "", val secret: String = "", val authenticated: Boolean = false) {
+    override fun toString() = "QuickConnect(code=$code, authenticated=$authenticated, secret=<redacted>)"
+}
+
 open class ApiException(message: String, val status: Int) : IOException(message)
 
 // B29: the episode after [ep] in the server's order ([list], as /Shows/{id}/Episodes lists it from [ep] on).
@@ -465,6 +476,36 @@ open class Api(val server: Server, val deviceId: String, val token: String? = nu
 
     suspend fun login(name: String, pw: String): AuthResult =
         post("/Users/AuthenticateByName", json.encodeToString(Login.serializer(), Login(name, pw)))
+
+    // Quick Connect (Jellyfin only): sign in by approving a code from another signed-in device, no password typed.
+    suspend fun quickConnectEnabled(): Boolean = server.kind == "jellyfin" && runCatching { get<Boolean>("/QuickConnect/Enabled") }.getOrDefault(false)
+
+    // Shows each code through [onCode] and polls until it is approved; an expired code (Connect 404s) gets a fresh one.
+    suspend fun quickConnect(everyMs: Long = 5_000, onCode: (String) -> Unit): AuthResult {
+        while (true) {
+            val init = try {
+                post<QuickConnect>("/QuickConnect/Initiate", null)
+            } catch (e: ApiException) {
+                // Jellyfin 10.8 only answers GET here (10.9+ only POST).
+                if (e.status == 405 || e.status == 404) get<QuickConnect>("/QuickConnect/Initiate") else throw e
+            }
+            onCode(init.code)
+            while (true) {
+                delay(everyMs)
+                val s = try {
+                    get<QuickConnect>("/QuickConnect/Connect", "secret" to init.secret)
+                } catch (e: ApiException) {
+                    if (e.status == 404) break else throw e
+                }
+                if (s.authenticated) return post("/Users/AuthenticateWithQuickConnect", buildJsonObject { put("Secret", init.secret) }.toString())
+            }
+        }
+    }
+
+    // The other side: approves [code] shown by another device, for this signed-in user.
+    suspend fun authorizeQuickConnect(code: String) {
+        raw("POST", "/QuickConnect/Authorize", null, "code" to code.trim())
+    }
 
     // Jellyfin 10.9 moved these to /UserViews and /UserItems/Resume (?userId=); the per-user routes are obsolete.
     // A music library's album artists (both servers: /Artists/AlbumArtists, a plain item query).

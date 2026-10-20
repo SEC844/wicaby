@@ -29,11 +29,14 @@ import type { ImmichService } from './photos/immich';
 import { isSafeMpvPath, type SettingsService } from './core/settings';
 import type { SettingsExtras } from './core/settings-extras';
 import type { DownloadManager } from './downloads/download-manager';
+import type { RatingsService } from './features/ratings';
+import type { ScrobbleService } from './features/scrobble';
 import type { TraktService } from './features/trakt';
 import type { AppUpdates } from './features/app-updates';
 import type { Reminders } from './features/reminders';
 import { t } from './i18n';
 import type { PlaybackService } from './playback/playback-service';
+import type { SyncPlay } from './playback/syncplay';
 import { HASH_RE, MAGNET_RE, type TorrentService } from './torrents/torrent-service';
 import type { VpnService } from './vpn';
 import { EmbeddedMesh } from './vpn/embedded-mesh';
@@ -52,8 +55,11 @@ export interface IpcDeps {
   vpn: VpnService;
   torrents: TorrentService;
   trakt: TraktService;
+  ratings: RatingsService;
+  scrobble: ScrobbleService;
   reminders: Reminders;
   cast: CastManager;
+  syncplay: SyncPlay;
   appInfo: () => Promise<AppInfo>;
   updates: AppUpdates;
   openPath: (kind: 'logs' | 'downloads' | 'mpv-config' | 'data') => void;
@@ -318,6 +324,7 @@ export function registerIpc(deps: IpcDeps): void {
     if (!isString(username, 256) || !isString(password ?? '', 1024)) throw new Error(t('errors.ipc.invalidCredentials'));
     return connection.login(username, (password as string) ?? '', serverArg(serverId));
   });
+  handle(Channels.sessionQuickConnect, (_e, serverId: unknown) => connection.quickConnect(serverArg(serverId)));
   handle(Channels.sessionLogout, (_e, serverId: unknown) => connection.logout(serverArg(serverId)));
   handle(Channels.sessionDisconnect, async (_e, serverId: unknown) => {
     const id = serverArg(serverId);
@@ -437,6 +444,7 @@ export function registerIpc(deps: IpcDeps): void {
     return playback.command(cmd as PlaybackCommand);
   });
   handle(Channels.playbackGetState, () => playback.getState());
+  handle(Channels.playbackIdentifySong, () => playback.identifySong());
   // Live TV reminders (§9.6): toggle validates its argument.
   handle(Channels.remindersList, () => deps.reminders.list());
   handle(Channels.remindersToggle, (_e, r: unknown) => deps.reminders.toggle(r));
@@ -457,6 +465,18 @@ export function registerIpc(deps: IpcDeps): void {
   handle(Channels.castStop, () => deps.cast.stop());
   handle(Channels.castTakeBack, () => deps.cast.takeBack());
   handle(Channels.castGetState, () => deps.cast.state);
+  // SyncPlay (Jellyfin): a group name and a group id, both short strings.
+  handle(Channels.syncplayList, (_e, serverId: unknown) => deps.syncplay.list(serverArg(serverId)));
+  handle(Channels.syncplayCreate, (_e, name: unknown, serverId: unknown) => {
+    if (!isString(name, 100) || !name.trim()) throw new Error(t('errors.ipc.invalidCommand'));
+    return deps.syncplay.create(name.trim(), serverArg(serverId));
+  });
+  handle(Channels.syncplayJoin, (_e, groupId: unknown, serverId: unknown) => {
+    if (!isString(groupId, 64) || !/^[\w-]+$/.test(groupId)) throw new Error(t('errors.ipc.invalidId'));
+    return deps.syncplay.join(groupId, serverArg(serverId));
+  });
+  handle(Channels.syncplayLeave, () => deps.syncplay.leave());
+  handle(Channels.syncplayGet, () => deps.syncplay.current);
   ipcMain.on(Channels.htmlPlayerEvent, (event, ev: unknown) => {
     if (event.sender !== windows.main?.webContents || !ev || typeof ev !== 'object') return;
     playback.handleHtmlEvent(ev as HtmlPlayerEvent);
@@ -615,6 +635,23 @@ export function registerIpc(deps: IpcDeps): void {
   handle(Channels.torrentsClipboardMagnet, () => torrents.clipboardMagnet());
   handle(Channels.torrentsTakeMagnet, () => torrents.takeMagnet());
 
+  // External ratings (the service validates the key and the path)
+  handle(Channels.ratingsConfigured, () => deps.ratings.configured());
+  handle(Channels.ratingsSetKey, (_e, key: unknown) => deps.ratings.setKey(isString(key, 256) ? key : 'x'));
+  handle(Channels.ratingsGet, (_e, path: unknown) => deps.ratings.get(isString(path, 64) ? path : ''));
+  // Music scrobbling (the service validates the token, key and secret)
+  handle(Channels.scrobbleState, () => deps.scrobble.state());
+  handle(Channels.scrobbleLbConnect, (_e, token: unknown) => {
+    if (!isString(token, 256)) throw new Error(t('errors.scrobble.invalidToken'));
+    return deps.scrobble.connectListenBrainz(token);
+  });
+  handle(Channels.scrobbleLbDisconnect, () => deps.scrobble.disconnectListenBrainz());
+  handle(Channels.scrobbleLastfmConnect, (_e, key: unknown, secret: unknown) => {
+    if (!isString(key, 256) || !isString(secret, 256)) throw new Error(t('errors.scrobble.invalidKey'));
+    return deps.scrobble.connectLastfm(key, secret);
+  });
+  handle(Channels.scrobbleLastfmCancel, () => deps.scrobble.cancelLastfm());
+  handle(Channels.scrobbleLastfmDisconnect, () => deps.scrobble.disconnectLastfm());
   // Trakt (the service validates the client id and secret)
   handle(Channels.traktState, () => deps.trakt.state());
   handle(Channels.traktConnect, (_e, id: unknown, secret: unknown) => {

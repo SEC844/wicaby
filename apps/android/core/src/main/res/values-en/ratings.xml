@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- External ratings (MDBList) on movie and series pages. -->
+    <string name="rating_imdb">IMDb %1$s</string>
+    <string name="rating_tomatoes">RT %1$s%%</string>
+    <string name="rating_popcorn">RT Audience %1$s%%</string>
+    <string name="rating_metacritic">Metacritic %1$s</string>
+    <string name="rating_letterboxd">Letterboxd %1$s</string>
+    <string name="rating_tmdb">TMDb %1$s%%</string>
+    <string name="ratings_title">Ratings</string>
+    <string name="ratings_key">MDBList API key</string>
+    <string name="ratings_desc">Shows IMDb, Rotten Tomatoes, Metacritic, Letterboxd and TMDb ratings on movie and series pages. Off until a key is set; then each page sends the title’s IMDb or TMDb ID to mdblist.com.</string>
+    <string name="ratings_hint">Free: sign in at mdblist.com, then Preferences → API Key.</string>
+    <string name="ratings_saved">Saved (hidden)</string>
+    <string name="ratings_save">Save</string>
+    <string name="ratings_remove">Remove key</string>
+    <string name="ratings_invalid">This doesn’t look like an MDBList API key.</string>
+</resources>

@@ -5,6 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { app, screen, type BaseWindow } from 'electron';
 import type { Settings, SubtitleStyle, VideoAspect } from '../../shared/contract';
 import { mpvAtLeast, mpvOutputArgs, parseMpvArgs } from '../../shared/mpv-args';
+import { snippetWindow } from '../../shared/song-id';
 import { logger } from '../core/log';
 import { t } from '../i18n';
 import { LIVE_MPV_OPTIONS } from '../livetv/live-session';
@@ -274,6 +275,15 @@ export class MpvPlayer extends EventEmitter implements ActivePlayer {
   async mediaTitle(): Promise<string | undefined> {
     const v = await this.ctl.get<unknown>('metadata/by-key/title').catch(() => undefined);
     return typeof v === 'string' ? v : undefined;
+  }
+
+  // "What's this song?" (playback/song-id.ts): writes the cached seconds around the position to `file` as they came
+  // in (mpv dump-cache): no second download, no microphone. False when the cache holds too little there.
+  async dumpSnippet(file: string): Promise<boolean> {
+    const span = snippetWindow(this.position, this.cache?.ranges ?? []);
+    if (!span) return false;
+    await this.ctl.command('dump-cache', (span[0] / 1000).toFixed(3), (span[1] / 1000).toFixed(3), file);
+    return true;
   }
 
   async audioDevices(): Promise<{ name: string; description: string }[]> {

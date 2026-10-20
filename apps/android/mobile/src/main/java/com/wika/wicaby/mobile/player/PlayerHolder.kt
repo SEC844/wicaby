@@ -19,6 +19,7 @@ import com.wika.wicaby.core.player.Playback
 import com.wika.wicaby.core.player.STILL_WATCHING_AFTER
 import com.wika.wicaby.core.player.SleepTimer
 import com.wika.wicaby.core.player.buildEngine
+import com.wika.wicaby.core.scrobble.ScrobbleService
 import com.wika.wicaby.mobile.BuildConfig
 import com.wika.wicaby.mobile.cast.Casting
 import com.wika.wicaby.mobile.download.Downloads
@@ -53,7 +54,7 @@ object PlayerHolder {
         Casting.stopDirect()
         val eng = ensureEngine(app)
         val start = if (shuffle && items.isNotEmpty()) items.indices.random() else index
-        val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(api.server.id, id) }, onReleased = { if (music === it) music = null })
+        val s = MusicSession(api, eng.player, items, start, local = { id -> Downloads.local(api.server.id, id) }, onReleased = { if (music === it) music = null }, scrobbler = ScrobbleService.shared)
         s.start()
         if (shuffle) s.toggleShuffle()
         music = s

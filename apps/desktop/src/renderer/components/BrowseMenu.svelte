@@ -5,6 +5,8 @@
     checked?: boolean;
     // Draw a separator (and optional section title) above this option.
     section?: string | true;
+    // Small badges after the label (SDH, AD).
+    tags?: string[];
   }
 </script>
 
@@ -91,6 +93,7 @@
         <button class="opt" role="menuitemradio" aria-checked={Boolean(o.checked)} onclick={() => pick(o.value)}>
           <span class="tick">{#if o.checked}<Icon name="check" size={14} stroke={2.6} />{/if}</span>
           {o.label}
+          {#each o.tags ?? [] as tag (tag)}<span class="tag">{tag}</span>{/each}
         </button>
       {/each}
     </div>
@@ -188,6 +191,14 @@
     background: var(--fill-3);
     box-shadow: none;
     border-radius: var(--r-xs);
+  }
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--label-2);
+    background: var(--fill-2);
+    border-radius: 4px;
+    padding: 1px 5px;
   }
   .tick {
     display: grid;

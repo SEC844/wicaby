@@ -21,7 +21,7 @@ const stubs = {
     b.onLoad({ filter: /^router$/, namespace: 'stub' }, () => ({ contents: `export const back = () => {}; export const router = { route: { name: 'home' } };` }));
     // i18n.svelte.ts globs the catalogues through Vite: the key stands in for the text.
     b.onResolve({ filter: /i18n\.svelte$/ }, () => ({ path: 'i18n', namespace: 'stub' }));
-    b.onLoad({ filter: /^i18n$/, namespace: 'stub' }, () => ({ contents: `export const t = (k) => k;` }));
+    b.onLoad({ filter: /^i18n$/, namespace: 'stub' }, () => ({ contents: `export const t = (k) => k; export const fmt = {}; export const has = () => false;` }));
   },
 };
 async function load(rel) {

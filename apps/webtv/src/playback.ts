@@ -6,7 +6,7 @@
 import { TICKS_PER_MS, type HtmlPlayerCommand, type HtmlPlayerEvent, type HtmlPlayerLoad, type NowPlayingItem, type PlaybackCommand, type PlaybackState, type PlayMethod, type PlayRequest, type Settings, type Track } from '../../desktop/src/shared/contract';
 import { buildDeviceProfile } from '../../desktop/src/shared/device-profile';
 import type { BaseItem, MediaSource, MediaStream } from '../../desktop/src/shared/models';
-import { selectTracks } from '../../desktop/src/shared/track-selection';
+import { isAd, isSdh, selectTracks } from '../../desktop/src/shared/track-selection';
 import { t } from '../../desktop/src/renderer/lib/i18n.svelte';
 import { demoVideoUrl, DEMO_ADDRESS } from './demo';
 import { apiBase, buildQuery, request, type Identity, type StoredServer } from './http';
@@ -35,7 +35,7 @@ export function idle(volume = 100, muted = false): PlaybackState {
 }
 
 const label = (s: MediaStream) => s.DisplayTitle || [s.Language, s.Codec?.toUpperCase()].filter(Boolean).join(' · ') || `#${s.Index}`;
-const toTrack = (s: MediaStream): Track => ({ index: s.Index, label: label(s), language: s.Language, codec: s.Codec, isDefault: Boolean(s.IsDefault), isForced: Boolean(s.IsForced), isExternal: Boolean(s.IsExternal) });
+const toTrack = (s: MediaStream): Track => ({ index: s.Index, label: label(s), language: s.Language, codec: s.Codec, isDefault: Boolean(s.IsDefault), isForced: Boolean(s.IsForced), isExternal: Boolean(s.IsExternal), sdh: s.Type === 'Subtitle' && isSdh(s), ad: s.Type === 'Audio' && isAd(s) });
 
 // A server URL (absolute or relative to the API base) with the token in the query, as <video> and hls.js cannot
 // send headers. Only for the server's own origin; another origin gets no token.
@@ -127,7 +127,7 @@ export class WebPlayback {
     const picked = selectTracks(
       streams0,
       { audio: source?.DefaultAudioStreamIndex, subtitle: source?.DefaultSubtitleStreamIndex },
-      { audioLanguage: pb.preferredAudioLanguage, subtitleLanguage: pb.preferredSubtitleLanguage, mode: pb.subtitleMode, forced: pb.alwaysForced },
+      { audioLanguage: pb.preferredAudioLanguage, subtitleLanguage: pb.preferredSubtitleLanguage, mode: pb.subtitleMode, forced: pb.alwaysForced, sdh: pb.preferSdh, audioDescription: pb.audioDescription },
       undefined,
       o.audio,
       o.subtitle,

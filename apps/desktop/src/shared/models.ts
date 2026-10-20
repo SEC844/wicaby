@@ -20,6 +20,10 @@ export interface MediaStream {
   Title?: string;
   IsDefault?: boolean;
   IsForced?: boolean;
+  // Jellyfin 10.9+ and Plex (hearingImpaired).
+  IsHearingImpaired?: boolean;
+  // Ours: Plex's visualImpaired (audio description); the servers expose none.
+  IsVisualImpaired?: boolean;
   IsExternal?: boolean;
   IsTextSubtitleStream?: boolean;
   DeliveryMethod?: 'Encode' | 'Embed' | 'External' | 'Hls' | 'VideoSideData' | string;

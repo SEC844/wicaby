@@ -1,8 +1,11 @@
 // What the playback service loads after the first frame (loadExtras): Emby's intro skip mode and
-// trick-play thumbnails, as BIF (Emby) or tiles (Jellyfin).
-import type { SkipMode, Trickplay } from '../../shared/contract';
+// trick-play thumbnails, as BIF (Emby) or tiles (Jellyfin), and the AniSkip fallback for anime markers.
+import { net } from 'electron';
+import { aniskipMarkers, aniskipTarget, aniskipUrl } from '../../shared/aniskip';
+import type { MediaMarkers, SkipMode, Trickplay } from '../../shared/contract';
 import type { BaseItem, MediaSource } from '../../shared/models';
 import { buildQuery, type ApiClient } from '../connection/api-client';
+import { userItem } from '../connection/user-routes';
 import { mediaApiUrl } from './playback-model';
 
 export const EMBY_SKIP_MODE: Record<string, SkipMode> = { ShowButton: 'ask', AutoSkip: 'auto', None: 'off' };
@@ -36,4 +39,39 @@ export async function jellyfinTrickplay(api: ApiClient, item: BaseItem, source: 
   if (!t || t.sheets === 0) return null;
   const { sheets, ...rest } = t;
   return { kind: 'tiles', url: mediaApiUrl(`/Videos/${item.Id}/Trickplay/${t.width}/{n}.jpg${q}`, serverId), ...rest, count: sheets * t.tileWidth * t.tileHeight };
+}
+
+// In memory for the run: one AniSkip answer per (MAL id, episode), one MAL id per AniList id.
+const aniskipCache = new Map<string, MediaMarkers | null>();
+const malOfAnilist = new Map<number, number | null>();
+
+// AniSkip answers "not found" with a 404 and a JSON body.
+async function thirdParty(url: string, init: RequestInit = {}): Promise<unknown> {
+  const r = await net.fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+  if (!r.ok && r.status !== 404) throw new Error(`${new URL(url).host} ${r.status}`);
+  return r.json();
+}
+
+async function malOf(anilist: number): Promise<number | null> {
+  if (!malOfAnilist.has(anilist)) {
+    const body = { query: 'query($id:Int){Media(id:$id,type:ANIME){idMal}}', variables: { id: anilist } };
+    const r = (await thirdParty('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as {
+      data?: { Media?: { idMal?: number | null } };
+    };
+    malOfAnilist.set(anilist, r?.data?.Media?.idMal || null);
+  }
+  return malOfAnilist.get(anilist) ?? null;
+}
+
+// Settings > Playback > AniSkip: intro, credits and recap of an anime episode (its season or series has a
+// MyAnimeList or AniList id) from api.aniskip.com. Sends only the MAL id, episode number and length.
+export async function aniskipFallback(api: ApiClient, userId: string, item: BaseItem, durationMs: number): Promise<MediaMarkers | null> {
+  if (item.Type !== 'Episode' || !item.SeasonId || !item.SeriesId || durationMs <= 0) return null;
+  const [season, series] = await Promise.all([userItem<BaseItem>(api, userId, item.SeasonId), userItem<BaseItem>(api, userId, item.SeriesId)]);
+  const t = aniskipTarget(item, season?.ProviderIds, series?.ProviderIds);
+  const mal = t && (t.mal ?? (t.anilist ? await malOf(t.anilist) : null));
+  if (!t || !mal) return null;
+  const key = `${mal}:${t.episode}`;
+  if (!aniskipCache.has(key)) aniskipCache.set(key, aniskipMarkers(await thirdParty(aniskipUrl(mal, t.episode, durationMs))));
+  return aniskipCache.get(key) ?? null;
 }

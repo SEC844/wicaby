@@ -8,6 +8,7 @@ import {
   type PlaybackState,
   type PlayMethod,
   type PlayRequest,
+  type SongIdResult,
   type UpNext,
   type VideoAspect,
   ASPECT_MODES,
@@ -60,12 +61,13 @@ import {
   type PlaybackDeps,
   type StartOptions,
 } from './playback-model';
-import { EMBY_SKIP_MODE, jellyfinTrickplay } from './playback-extras';
+import { aniskipFallback, EMBY_SKIP_MODE, jellyfinTrickplay } from './playback-extras';
 import { cinemaTrailers, PlayQueue } from './play-queue';
 import { PlayerMemory } from './player-memory';
 import { handleRemote } from './remote-commands';
 import { SessionReporter } from './session-reporter';
 import { SleepTimer } from './sleep-timer';
+import { identifySong } from './song-id';
 import { StreamRecovery } from './stream-recovery';
 
 // The service's types and helpers live in playback-model.ts; live-player.ts imports them from here.
@@ -109,6 +111,8 @@ export class PlaybackService extends EventEmitter {
   private lastInputAt = Date.now();
   // Runs before anything plays here: a DLNA cast this sender reports for stops first (cast-spec §1, index.ts).
   beforePlay: (() => Promise<void>) | null = null;
+  // SyncPlay (syncplay.ts): true when the group takes this play request or command instead of this player.
+  divert: { play(req: PlayRequest): boolean; command(cmd: PlaybackCommand): boolean; grouped(): boolean } | null = null;
 
   // X-02: the bitrate cap picked in the player (ORIGINAL_BITRATE for Original), for this play request
   // and its up-next episodes; undefined = the settings cap. switching gates onEnded during a reload.
@@ -260,6 +264,11 @@ export class PlaybackService extends EventEmitter {
     return this.player instanceof MpvPlayer ? this.player : null;
   }
 
+  // "What's this song?" in a film or episode (mpv only: it reads mpv's cache).
+  identifySong(): Promise<SongIdResult> {
+    return identifySong(this.state.active ? this.mpv : null, this.deps.mpvExe());
+  }
+
   private publish(immediate = false): void {
     this.state.live = this.state.active ? this.zap.state() : undefined;
     this.state.reconnecting = this.state.active ? this.recovery.state : undefined;
@@ -292,6 +301,8 @@ export class PlaybackService extends EventEmitter {
     const pref = requested ?? (byType !== 'default' ? byType : pb.player);
     const hasMpv = Boolean(this.deps.mpvExe());
     if (pref === 'html') return 'html';
+    // Music plays windowless, so it keeps mpv on native Wayland.
+    if (!this.deps.mpvEmbeds && item.MediaType !== 'Audio') return 'html';
     if (pref === 'mpv' && !hasMpv) {
       this.deps.onMessage('info', t('main.playback.mpvMissing'));
       return 'html';
@@ -303,6 +314,7 @@ export class PlaybackService extends EventEmitter {
     // Queue ids end up in API paths (item, PlaybackInfo, Similar, up next).
     const ids = (req.itemIds ?? []).filter(validId).slice(0, 1000);
     if (ids.length === 0) throw new Error(t('errors.playback.nothingToPlay'));
+    if (this.divert?.play({ ...req, itemIds: ids })) return;
     // Play next / add to queue: spliced into the queue playing on the same server, else played now
     // (a live channel never ends, so over one it plays now too).
     if ((req.command === 'PlayNext' || req.command === 'PlayLast') && this.state.active && !this.current?.live && (!req.serverId || req.serverId === this.queue.serverId)) {
@@ -332,8 +344,8 @@ export class PlaybackService extends EventEmitter {
       subtitleStreamIndex: req.subtitleStreamIndex,
       player: req.player,
     };
-    // Cinema mode: never when resuming, only before a film.
-    if (this.deps.settings.value.playback.cinemaMode && !req.trailer && !req.startPositionTicks) {
+    // Cinema mode: never when resuming, only before a film, never in a SyncPlay group (the group plays its own queue).
+    if (this.deps.settings.value.playback.cinemaMode && !req.trailer && !req.startPositionTicks && !this.divert?.grouped()) {
       const intros = await cinemaTrailers(this.deps.connection.onlineApi(this.queue.serverId), this.queue.id).catch((err) => {
         log.debug(`cinema mode: ${String(err)}`);
         return [] as string[];
@@ -377,7 +389,7 @@ export class PlaybackService extends EventEmitter {
 
     // A file source cannot be transcoded (server-caps.ts transcode: false): mpv whenever there is one.
     const fileSource = session?.server.kind === 'files';
-    const kind = fileSource && opts.player !== 'html' && deps.mpvExe() ? 'mpv' : this.choosePlayer(opts.player, item);
+    const kind = fileSource && opts.player !== 'html' && deps.mpvExe() && deps.mpvEmbeds ? 'mpv' : this.choosePlayer(opts.player, item);
     if (online && item.Type === 'TvChannel') {
       this.memory.scopeCtx = { global: true };
       return this.lives.openLive(seq, item, kind, { ...opts, maxBitrate: this.qualityCap });
@@ -413,6 +425,8 @@ export class PlaybackService extends EventEmitter {
         subtitleLanguage: pb.preferredSubtitleLanguage || plexSubs?.language || '',
         mode: pb.subtitleMode === 'default' ? (plexSubs?.mode ?? 'default') : pb.subtitleMode,
         forced: pb.alwaysForced,
+        sdh: pb.preferSdh,
+        audioDescription: pb.audioDescription,
       },
       // B04: a film remembers its own pick (resume), an episode the series'.
       this.memory.tracksFor(item.SeriesId ?? item.Id),
@@ -954,6 +968,15 @@ export class PlaybackService extends EventEmitter {
     }
     await Promise.all(tasks.map((t) => t.catch((err) => log.debug(`playback extras: ${String(err)}`))));
     if (!stale()) this.publish(true);
+    // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
+    const m = this.state.markers;
+    if (api && userId && !caps(api.kind).localUserData && this.deps.settings.value.playback.aniskip && m?.introEndMs === undefined && m?.creditsStartMs === undefined && !stale()) {
+      const a = await aniskipFallback(api, userId, item, this.state.durationMs).catch((err) => (log.debug(`aniskip: ${String(err)}`), null));
+      if (a && !stale()) {
+        this.state.markers = { ...a, segments: m?.segments ?? a.segments };
+        this.publish(true);
+      }
+    }
   }
 
 
@@ -1110,6 +1133,7 @@ export class PlaybackService extends EventEmitter {
 
   private async advance(auto: boolean): Promise<void> {
     if (!this.queue.hasNext) return this.stop();
+    if (this.divert?.command({ type: 'next' })) return;
     const kind = this.current?.kind ?? this.player?.kind;
     this.clearUpNext();
     await this.reports.stopped();
@@ -1367,6 +1391,7 @@ export class PlaybackService extends EventEmitter {
     if (cmd.type === 'reconnect-retry') return this.recovery.retry();
     const p = this.player;
     if (!p || !this.state.active) return;
+    if (this.divert?.command(cmd)) return;
     this.lastInputAt = Date.now();
     this.autoAdvanced = 0;
     // Live mode: next / previous (SMTC, media keys, thumbar, remote) change channel.
@@ -1604,6 +1629,13 @@ export class PlaybackService extends EventEmitter {
   }
 
   // A Plex server stopped this client's session of `itemId` (its notifications socket, plex-spec §6.5).
+  // A brief OSD readout from outside the player (SyncPlay's "Paused by the group").
+  notify(key: string, params?: Record<string, string | number>): void {
+    if (!this.state.active) return;
+    this.state.notice = { key, params, at: Date.now() };
+    this.publish(true);
+  }
+
   serverEnded(serverId: string, itemId: string): Promise<void> {
     return this.reports.serverEnded(serverId, itemId);
   }

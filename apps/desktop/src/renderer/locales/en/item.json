@@ -55,7 +55,23 @@
   },
   "notFound": "Not Found",
   "meta": {
-    "criticRating": "{value}%"
+    "criticRating": "{value}%",
+    "ratings": {
+      "imdb": "IMDb {value}",
+      "tomatoes": "RT {value}%",
+      "popcorn": "RT Audience {value}%",
+      "metacritic": "Metacritic {value}",
+      "letterboxd": "Letterboxd {value}",
+      "tmdb": "TMDb {value}%"
+    },
+    "ratingTitles": {
+      "imdb": "IMDb rating (out of 10)",
+      "tomatoes": "Rotten Tomatoes critics score",
+      "popcorn": "Rotten Tomatoes audience score",
+      "metacritic": "Metascore (out of 100)",
+      "letterboxd": "Letterboxd average (out of 5)",
+      "tmdb": "TMDb user score"
+    }
   },
   "actions": {
     "fromStart": "Start Over",

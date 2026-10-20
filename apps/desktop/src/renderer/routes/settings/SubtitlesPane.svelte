@@ -65,6 +65,13 @@
       </div>
       <Toggle label={t('settings.subtitles.alwaysForced.label')} checked={s.playback.alwaysForced} onchange={(v) => set({ playback: { alwaysForced: v } })} />
     </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.subtitles.preferSdh.label')}</div>
+        <div class="desc">{t('settings.subtitles.preferSdh.desc')}</div>
+      </div>
+      <Toggle label={t('settings.subtitles.preferSdh.label')} checked={s.playback.preferSdh} onchange={(v) => set({ playback: { preferSdh: v } })} />
+    </div>
   </div>
   <p class="foot">{t('settings.subtitles.forcedFoot')}</p>
 

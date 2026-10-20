@@ -17,6 +17,8 @@
   import CastPicker from './CastPicker.svelte';
   import Icon from './Icon.svelte';
   import SleepTimerSheet from './SleepTimerSheet.svelte';
+  import SyncPlaySheet from './SyncPlaySheet.svelte';
+  import SongIdSheet from './SongIdSheet.svelte';
   import QualitySheet, { qualityLabel } from './QualitySheet.svelte';
   import SubtitleSearchSheet, { subtitleSearchable, subtitleSearchAllowed } from './SubtitleSearchSheet.svelte';
   import LiveOverlay from './live/LiveOverlay.svelte';
@@ -68,8 +70,15 @@
   let held = false;
   let sleepOpen = $state(false);
   let qualityOpen = $state(false); // X-02
+  // "What's this song?": mpv only, it reads mpv's cache (main/playback/song-id.ts).
+  let songIdOpen = $state(false);
   // X-03 subtitle search: offered for server VOD unless the user's policy is known to forbid it.
   let subSearchOpen = $state(false);
+  // Jellyfin SyncPlay: the group's members stay in the top bar; main applies the group's commands.
+  let syncOpen = $state(false);
+  let syncGroup = $state(w.syncplay?.current() ?? null);
+  $effect(() => w.syncplay?.onChange((g) => (syncGroup = g)));
+  const syncPlay = $derived(Boolean(w.syncplay) && Boolean(s?.item) && !s?.trailer && !s?.live && sessionFor(s?.item?.serverId)?.server.kind === 'jellyfin');
   let subSearchAllowed = $state(true);
   const subSearchServer = $derived(s?.item?.serverId);
   $effect(() => void subtitleSearchAllowed(subSearchServer).then((v) => (subSearchAllowed = v)));
@@ -97,7 +106,7 @@
     if (wasPaused && !p) quietPause = false;
     wasPaused = p;
   });
-  const uiShown = $derived(visible || !s?.active || (Boolean(s?.paused) && !quietPause) || panel !== null || dragging || sleepOpen || qualityOpen || subSearchOpen || Boolean(cast.picker));
+  const uiShown = $derived(visible || !s?.active || (Boolean(s?.paused) && !quietPause) || panel !== null || dragging || sleepOpen || qualityOpen || subSearchOpen || syncOpen || songIdOpen || Boolean(cast.picker));
   const volume = $derived(volDraft ?? (s?.muted ? 0 : (s?.volume ?? 100)));
   // mpv amplifies up to 150 % with the boost on; <video> stops at 100 %.
   const volMax = $derived(mode === 'mpv' && settings.value?.playback.volumeBoost ? 150 : 100);
@@ -498,7 +507,7 @@
   function onKey(e: KeyboardEvent): void {
     const target = e.target as HTMLElement | null;
     if (target && target.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'range') return;
-    if (!s?.active || sleepOpen || qualityOpen || subSearchOpen || cast.picker) return;
+    if (!s?.active || sleepOpen || qualityOpen || subSearchOpen || syncOpen || songIdOpen || cast.picker) return;
     if (s.live && overlay?.onKey(e)) {
       e.preventDefault();
       return;
@@ -614,6 +623,11 @@
         if (!st.qualityOptions) return false;
         qualityOpen = true;
         break;
+      case 'songId':
+        if (mode !== 'mpv') return false;
+        panel = null;
+        songIdOpen = true;
+        break;
       case 'subtitleSearch':
         if (!subSearch) return false;
         panel = null;
@@ -690,6 +704,18 @@
       {#if titleTop}<div class="t1">{titleTop}</div>{/if}
       {#if titleSub}<div class="t2">{titleSub}</div>{/if}
     </div>
+    {#if syncPlay}
+      {#if syncGroup}
+        <button class="sync glass no-drag" title={t('player.syncplay.inGroup', { name: syncGroup.name })} aria-haspopup="dialog" onclick={() => (syncOpen = true)}>
+          <Icon name="users" size={16} />
+          <span class="names">{syncGroup.members.join(', ')}</span>
+        </button>
+      {:else}
+        <button class="round glass no-drag" title={t('player.syncplay.button')} aria-label={t('player.syncplay.button')} aria-haspopup="dialog" onclick={() => (syncOpen = true)}>
+          <Icon name="users" size={18} />
+        </button>
+      {/if}
+    {/if}
     <!-- Cast (cast-spec CA-04): top-level, top right. Hands off what plays here. -->
     {#if s?.item && !s.offline && !s.trailer && caps(sessionFor(s.item.serverId)?.server.kind).castSend}
       <button class="round glass no-drag" title={t('cast.button')} aria-label={t('cast.button')} aria-haspopup="dialog" onclick={() => s?.item && openCastPicker({ itemId: s.item.id, serverId: s.item.serverId })}>
@@ -998,6 +1024,7 @@
                   <button role="menuitemradio" aria-checked={track.index === s?.audioIndex} onclick={() => { cmd({ type: 'audio', index: track.index }); panel = null; }}>
                     <span class="check">{#if track.index === s?.audioIndex}<Icon name="check" size={14} stroke={2.4} />{/if}</span>
                     <span class="lbl">{track.label}</span>
+                    {#if track.ad}<span class="tag">{t('player.tracks.ad')}</span>{/if}
                   </button>
                 {:else}
                   <div class="none">{t('player.tracks.noTracks')}</div>
@@ -1019,6 +1046,7 @@
                     <span class="check">{#if track.index === s?.subtitleIndex}<Icon name="check" size={14} stroke={2.4} />{/if}</span>
                     <span class="lbl">{track.label}</span>
                     {#if track.isForced}<span class="tag">{t('player.tracks.forced')}</span>{/if}
+                    {#if track.sdh}<span class="tag">{t('player.tracks.sdh')}</span>{/if}
                     {#if track.isExternal}<span class="tag">{t('player.tracks.external')}</span>{/if}
                     {#if track.index === s?.secondarySubtitleIndex}<span class="tag">{t('player.tracks.secondaryBadge')}</span>{/if}
                   </button>
@@ -1070,6 +1098,20 @@
             <Icon name="moon" size={19} />
             {#if sleepLeft !== null}<span class="badge mono">{clock(sleepLeft)}</span>{/if}
           </button>
+
+          {#if mode === 'mpv'}
+            <button
+              class="ctl"
+              title={t('player.osd.songIdHint')}
+              aria-label={t('player.osd.songId')}
+              onclick={(e) => {
+                e.stopPropagation();
+                songIdOpen = true;
+              }}
+            >
+              <Icon name="music" size={19} />
+            </button>
+          {/if}
 
           {#if s?.qualityOptions}
             {@const cap = s.currentQuality?.maxBitrate ?? null}
@@ -1136,8 +1178,10 @@
 </div>
 
 <SleepTimerSheet open={sleepOpen} {sleep} live={Boolean(s?.live)} now={wall} onclose={() => (sleepOpen = false)} oncommand={cmd} />
+<SongIdSheet open={songIdOpen} serverId={s?.item?.serverId} onclose={() => (songIdOpen = false)} />
 <QualitySheet open={qualityOpen && Boolean(s?.qualityOptions)} state={s} onclose={() => (qualityOpen = false)} oncommand={cmd} />
 <SubtitleSearchSheet open={subSearchOpen && subSearch} state={s} onclose={() => (subSearchOpen = false)} oncommand={cmd} />
+<SyncPlaySheet open={syncOpen} serverId={s?.item?.serverId} onclose={() => (syncOpen = false)} />
 <CastPicker />
 
 <style>
@@ -1247,6 +1291,22 @@
   }
   .round:active {
     transform: scale(0.92);
+  }
+  .sync {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    max-width: 280px;
+    padding: 0 14px;
+    border-radius: 20px;
+    font-size: var(--fs-footnote);
+  }
+  .sync .names {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .title {
     min-width: 0;

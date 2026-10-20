@@ -127,6 +127,8 @@ fun WicabyRoot() {
     Core.remoteControl = snap.remoteControl
     val api = remember(snap.session) { snap.session?.let { Api.of(it.server, snap.deviceId, it.token, it.userId) }.also { Core.api = it } }
     LaunchedEffect(snap.maxMbps) { Core.maxMbps = snap.maxMbps }
+    Core.preferSdh = snap.preferSdh
+    Core.audioDescription = snap.audioDescription
     LaunchedEffect(api) { if (api != null) WicabyApp.syncPending() }
     // TP-06: the other signed-in servers, set before the screens below load their rows (none while signed out).
     // D-10: a hidden plex server stays signed in, out of the merged views (PlexUi.hidden: toggled in Réglages).

@@ -18,7 +18,34 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-20
+
+Android TV 0.11.0 (versionCode 37), Android mobile 0.11.0 (versionCode 34).
+
+### Added
+
+- Quick Connect sign-in on Jellyfin (all apps): the login screen shows a 6-digit code to approve from a device that
+  is already signed in, so no password has to be typed with a remote. Desktop, mobile and the TV web app can also
+  approve another device's code from Settings > Accounts.
+- AniSkip for anime (desktop, Android): when the server has no intro or credits markers, the opening, ending and
+  recap times come from the community AniSkip database (needs a MyAnimeList or AniList id; off by default).
+- External ratings (all apps): IMDb, Rotten Tomatoes, Metacritic, Letterboxd and TMDb scores on movie and series
+  pages, with a free MDBList API key (off until a key is set; answers cached for 7 days).
+- Accessibility tracks (all apps): SDH and AD badges in the track pickers, a "Prefer SDH subtitles" setting, and an
+  audio description setting (Prefer / Avoid / No preference). With Avoid, the default, an audio description track is
+  never picked automatically when a normal track exists in the same language.
+- Music scrobbling to ListenBrainz and Last.fm (desktop, Android), for every music source, with an offline queue.
+  Off until an account is connected.
+- Watch together with Jellyfin SyncPlay (all apps): create or join a group; play, pause and seek apply to everyone.
+- "What's this song?" (desktop with mpv, Android in direct play): identifies the music playing in a film or series
+  through Shazam, with links and "Find in my library". Only a short audio fingerprint is sent.
+
 ### Fixed
+
+- Linux (AppImage) on Wayland ([#14](https://github.com/WicaebethTheo/wicaby/issues/14)): the window icon loads,
+  the window is shown even if it never reports ready, `WICABY_OZONE=x11|wayland|auto` picks the display backend,
+  `WICABY_DISABLE_GPU=1` turns off GPU acceleration of the interface, and on native Wayland video falls back to the
+  built-in player because mpv cannot be embedded there. mpv start-up failures no longer blame the server.
 
 - Android TV: the focused tab's pill in the top bar keeps its rounded ends on the first and last text tabs (Home,
   the last library) instead of being cut flat by the scrolling row

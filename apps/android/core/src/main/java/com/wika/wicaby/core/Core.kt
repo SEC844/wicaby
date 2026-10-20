@@ -140,6 +140,14 @@ object Core {
     @Volatile
     var maxMbps: Int = 0
 
+    // Réglages > Accessibilité: SDH subtitles first, and audio description "avoid" | "prefer" | "any"
+    // (TrackMemory.accessible; mobile keeps them in Prefs, the TV in TvSettings).
+    @Volatile
+    var preferSdh: Boolean = false
+
+    @Volatile
+    var audioDescription: String = "avoid"
+
     // Per-codec HDMI passthrough override, keyed by server codec name ("ac3", "eac3", "dts",
     // "truehd"): true forces it on in the DeviceProfile, false turns it off (decoded instead).
     @Volatile

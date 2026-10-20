@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 
 // Refresh-rate matching on Linux. X11 sessions switch with xrandr; KDE Plasma on Wayland with
 // kscreen-doctor. Elsewhere (GNOME or another compositor on Wayland) there is no tool: Wicaby itself
-// runs under XWayland (index.ts), whose xrandr cannot change the real output.
+// runs under XWayland by default (index.ts), whose xrandr cannot change the real output.
 
 export type LinuxDisplayTool = 'xrandr' | 'kscreen-doctor';
 
@@ -10,6 +10,19 @@ export function linuxDisplayTool(env: NodeJS.ProcessEnv): LinuxDisplayTool | nul
   const wayland = env.XDG_SESSION_TYPE === 'wayland' || (!env.XDG_SESSION_TYPE && Boolean(env.WAYLAND_DISPLAY));
   if (!wayland) return env.DISPLAY ? 'xrandr' : null;
   return (env.XDG_CURRENT_DESKTOP ?? '').split(':').some((d) => d.toUpperCase() === 'KDE') ? 'kscreen-doctor' : null;
+}
+
+// Electron's display backend, from WICABY_OZONE (x11 | wayland | auto). Default X11, which mpv's --wid
+// embedding needs (XWayland in a Wayland session); native Wayland only when there is no X server at all.
+export function ozonePlatform(env: NodeJS.ProcessEnv): 'x11' | 'wayland' | 'auto' {
+  const v = env.WICABY_OZONE?.trim().toLowerCase();
+  if (v === 'x11' || v === 'wayland' || v === 'auto') return v;
+  return !env.DISPLAY && env.WAYLAND_DISPLAY ? 'wayland' : 'x11';
+}
+
+// Whether Electron's windows end up native Wayland ones ('auto': Chromium picks Wayland in a Wayland session).
+export function nativeWayland(env: NodeJS.ProcessEnv, ozone: 'x11' | 'wayland' | 'auto'): boolean {
+  return ozone === 'wayland' || (ozone === 'auto' && (env.XDG_SESSION_TYPE === 'wayland' || Boolean(env.WAYLAND_DISPLAY)));
 }
 
 // One output, in screen pixels, with the modes at its current resolution and the tool arguments

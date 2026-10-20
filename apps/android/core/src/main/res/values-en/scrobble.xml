@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Music scrobbling (core/scrobble): ListenBrainz and Last.fm. -->
+<resources>
+    <string name="scrobble_title">Scrobbling</string>
+    <string name="scrobble_error_invalid_token">Invalid ListenBrainz token</string>
+    <string name="scrobble_error_invalid_key">Invalid Last.fm API key or shared secret</string>
+    <string name="scrobble_error_failed">Couldn’t reach the scrobbling service: %1$s</string>
+    <string name="scrobble_error_expired">The Last.fm authorization expired. Connect again.</string>
+    <string name="scrobble_error_listenbrainz_reauthorize">ListenBrainz refused the token. Connect again.</string>
+    <string name="scrobble_error_lastfm_reauthorize">Last.fm revoked access. Connect again.</string>
+    <string name="scrobble_lb_token">ListenBrainz Token</string>
+    <string name="scrobble_lb_hint">Off by default. Enter your user token from listenbrainz.org/settings to send the music you play in Wicaby to ListenBrainz.</string>
+    <string name="scrobble_lb_connected">Connected to ListenBrainz</string>
+    <string name="scrobble_lb_connected_as">ListenBrainz: %1$s</string>
+    <string name="scrobble_fm_title">Last.fm</string>
+    <string name="scrobble_fm_hint">Off by default. Last.fm needs your own API account: open Advanced to enter its key and secret.</string>
+    <string name="scrobble_advanced">Advanced</string>
+    <string name="scrobble_fm_key">API Key</string>
+    <string name="scrobble_fm_secret">Shared Secret</string>
+    <string name="scrobble_fm_key_hint">Create an API account at last.fm/api/account/create (any name, no callback URL), then enter its API key and shared secret here.</string>
+    <string name="scrobble_fm_waiting">Allow Wicaby on Last.fm</string>
+    <string name="scrobble_fm_waiting_desc">Open the Last.fm page (or scan the QR code), sign in, and choose Yes, allow access. Wicaby is waiting.</string>
+    <string name="scrobble_fm_open">Open Last.fm</string>
+    <string name="scrobble_fm_connected">Connected to Last.fm</string>
+    <string name="scrobble_fm_connected_as">Last.fm: %1$s</string>
+    <string name="scrobble_connect">Connect</string>
+    <string name="scrobble_disconnect">Disconnect</string>
+    <string name="scrobble_connected_desc">Tracks you play in Wicaby are scrobbled once you’ve heard half of them or 4 minutes.</string>
+    <string name="scrobble_queued">Listens waiting to be sent: %1$d</string>
+    <string name="scrobble_server_note">If your server already scrobbles (a Last.fm or ListenBrainz plugin, or Navidrome), leave this off to avoid duplicates.</string>
+    <string name="scrobble_foot">Tokens and secrets are encrypted by the Android Keystore on this device and are never logged.</string>
+</resources>

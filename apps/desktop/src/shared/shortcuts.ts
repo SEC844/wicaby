@@ -52,6 +52,8 @@ export const VOD_SHORTCUTS: readonly Shortcut[] = [
   vod('sleep', ['T']),
   vod('quality', ['Q']),
   vod('subtitleSearch', ['Shift+S']),
+  // "What's this song?" (Shazam, mpv only).
+  vod('songId', ['W']),
   vod('subSeekBack', ['Ctrl+ArrowLeft'], true),
   vod('subSeekForward', ['Ctrl+ArrowRight'], true),
   vod('speedDown', ['['], true, { noLive: true }),

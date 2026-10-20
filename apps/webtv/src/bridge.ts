@@ -1,5 +1,5 @@
 // window.wicaby for the web TV app: what the desktop's main process answers over IPC (preload/index.ts), answered
-// in the page instead. Real: app, settings, servers, session, api, playback, htmlPlayer, events. Everything that
+// in the page instead. Real: app, settings, servers, session, api, playback, htmlPlayer, events, ratings. Everything that
 // needs the desktop (downloads, torrents, VPN, cast, file sources, IPTV, Plex, admin uploads) is a stub: lists come
 // back empty, actions fail with "Not available in the TV app", and the UI hides them (lib/platform.ts `web`).
 import type {
@@ -18,16 +18,23 @@ import type {
   WicabyBridge,
 } from '../../desktop/src/shared/contract';
 import { defaultSettings, merge } from '../../desktop/src/shared/default-settings';
+import { MDBLIST_API, MDBLIST_KEY_RE, MDBLIST_PATH_RE, parseMdblist, RATINGS_TTL_MS, type ExternalRating } from '../../desktop/src/shared/ratings';
 import { t } from '../../desktop/src/renderer/lib/i18n.svelte';
 import { DEMO_ADDRESS, DEMO_BASE, DEMO_ID, demoAvailable, loadDemo } from './demo';
 import { apiBase, HttpError, probe, redact, request, type Identity, type StoredServer } from './http';
 import { WebPlayback } from './playback';
+import { SyncPlay } from './syncplay';
 import { exitApp, onTv, platform } from './tv';
+
+type AuthResult = { AccessToken: string; User: { Id: string; Name: string; Policy?: { IsAdministrator?: boolean }; PrimaryImageTag?: string } };
 
 const SERVERS_KEY = 'wicaby.web.servers';
 const SETTINGS_KEY = 'wicaby.web.settings';
 const DEVICE_KEY = 'wicaby.web.device';
 const PRIMARY_KEY = 'wicaby.web.primary';
+// The MDBList key sits with the server tokens (localStorage, the TV app's own origin); answers are cached a week.
+const RATINGS_KEY = 'wicaby.web.mdblist';
+const RATINGS_CACHE = 'wicaby.web.ratings';
 
 function read<T>(key: string, fallback: T, store: () => Storage = () => localStorage): T {
   try {
@@ -130,6 +137,15 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
     write(SERVERS_KEY, servers.filter((s) => !isDemo(s)), session);
   };
   const find = (id?: string) => servers.find((s) => s.id === (id ?? primary));
+  // Quick Connect requests waiting for approval, per server (the secret stays here).
+  const quick = new Map<string, string>();
+  const signedIn = (s: StoredServer, res: AuthResult) => {
+    Object.assign(s, { token: res.AccessToken, userId: res.User.Id, userName: res.User.Name });
+    saveServers();
+    setPrimary(s.id);
+    setSession(s, { status: 'signed-in', user: { id: res.User.Id, name: res.User.Name, isAdmin: Boolean(res.User.Policy?.IsAdministrator), imageTag: res.User.PrimaryImageTag } });
+    return state();
+  };
   const info = (s: StoredServer): ServerInfo => ({
     id: s.id,
     name: s.name,
@@ -197,7 +213,18 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
     publish: (s) => {
       playbackHub.emit(s);
       if (s.error) toastHub.emit({ kind: 'error', message: s.error });
+      syncplay.onState(s);
     },
+    log,
+  });
+  // Jellyfin watch together, on the item's server (the primary when none), whose socket SyncPlay then owns.
+  const syncplay = new SyncPlay({
+    server: (id) => find(id),
+    identity,
+    state: () => playback.value,
+    play: (req) => playback.play(req),
+    local: (c) => playback.command(c),
+    toast: (message) => toastHub.emit({ kind: 'info', message }),
     log,
   });
 
@@ -347,18 +374,38 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
       login: async (username: string, password: string, serverId?: string) => {
         const s = find(serverId);
         if (!s) throw new Error(t('errors.connection.noServerSelected'));
-        let res: { AccessToken: string; User: { Id: string; Name: string; Policy?: { IsAdministrator?: boolean }; PrimaryImageTag?: string } };
+        let res: AuthResult;
         try {
           res = await request(s, identity, 'POST', '/Users/AuthenticateByName', undefined, { Username: username, Pw: password });
         } catch (err) {
           if (err instanceof HttpError && (err.status === 401 || err.status === 400)) throw new Error(t('errors.connection.wrongCredentials'));
           throw err;
         }
-        Object.assign(s, { token: res.AccessToken, userId: res.User.Id, userName: res.User.Name });
-        saveServers();
-        setPrimary(s.id);
-        setSession(s, { status: 'signed-in', user: { id: res.User.Id, name: res.User.Name, isAdmin: Boolean(res.User.Policy?.IsAdministrator), imageTag: res.User.PrimaryImageTag } });
-        return state();
+        return signedIn(s, res);
+      },
+      // Jellyfin Quick Connect: starts a request (its code), then polls it and signs in once approved elsewhere.
+      quickConnect: async (serverId?: string) => {
+        const s = find(serverId);
+        if (!s) throw new Error(t('errors.connection.noServerSelected'));
+        if (s.kind !== 'jellyfin') return null;
+        const secret = quick.get(s.id);
+        if (secret) {
+          const r = await request<{ Code: string; Authenticated?: boolean }>(s, identity, 'GET', '/QuickConnect/Connect', { secret }).catch((err: unknown) => {
+            if (err instanceof HttpError && err.status === 404) return null;
+            throw err;
+          });
+          if (r && !r.Authenticated) return { code: r.Code };
+          quick.delete(s.id);
+          if (r) return { state: signedIn(s, await request<AuthResult>(s, identity, 'POST', '/Users/AuthenticateWithQuickConnect', undefined, { Secret: secret })) };
+        }
+        if ((await request<unknown>(s, identity, 'GET', '/QuickConnect/Enabled').catch(() => false)) !== true) return null;
+        // Jellyfin 10.9+ wants POST, older servers only answer GET.
+        const init = await request<{ Code: string; Secret: string }>(s, identity, 'POST', '/QuickConnect/Initiate').catch((err: unknown) => {
+          if (err instanceof HttpError && (err.status === 405 || err.status === 404)) return request<{ Code: string; Secret: string }>(s, identity, 'GET', '/QuickConnect/Initiate');
+          throw err;
+        });
+        quick.set(s.id, init.Secret);
+        return { code: init.Code };
       },
       logout: async (serverId?: string) => {
         const s = find(serverId);
@@ -386,8 +433,9 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
       uploadImage: notAvailable,
     },
     playback: {
-      play: (req: Parameters<WicabyBridge['playback']['play']>[0]) => playback.play(req),
-      command: (c: Parameters<WicabyBridge['playback']['command']>[0]) => playback.command(c),
+      // In a watch-together group, playing and the remote's play/pause/seek go through the group.
+      play: (req: Parameters<WicabyBridge['playback']['play']>[0]) => (syncplay.current() && !req.trailer ? syncplay.queue(req) : playback.play(req)),
+      command: (c: Parameters<WicabyBridge['playback']['command']>[0]) => syncplay.command(c) ?? playback.command(c),
       getState: async () => playback.value,
       onState: playbackHub.on,
     },
@@ -401,6 +449,7 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
       onNavigate: () => () => undefined,
       onToast: toastHub.on,
     },
+    syncplay: { list: (serverId?: string) => syncplay.list(serverId), create: (name: string, serverId?: string) => syncplay.create(name, serverId), join: (id: string, serverId?: string) => syncplay.join(id, serverId), leave: () => syncplay.leave(), current: syncplay.current, onChange: syncplay.onChange },
     // Lists the shared UI reads on its own (sidebar, sources page, live TV): empty.
     downloads: { list: async () => [], onChange: () => () => undefined },
     files: { list: async () => [] },
@@ -411,6 +460,34 @@ export function createWebBridge(): { bridge: WicabyBridge; mediaBase: (serverId?
     photos: { immich: { sources: async () => [], onSources: () => () => undefined } },
     torrents: { state: async () => ({ status: 'unconfigured' as const, torrents: [] }) },
     trakt: { state: async () => ({ clientId: '', user: null, pending: null }) },
+    ratings: {
+      configured: async () => Boolean(read<string>(RATINGS_KEY, '')),
+      setKey: async (key: string) => {
+        const k = key.trim();
+        if (k && !MDBLIST_KEY_RE.test(k)) throw new Error(t('errors.ratings.invalidKey'));
+        write(RATINGS_KEY, k);
+        write(RATINGS_CACHE, {});
+        return Boolean(k);
+      },
+      get: async (path: string): Promise<ExternalRating[]> => {
+        const key = read<string>(RATINGS_KEY, '');
+        if (!key || !MDBLIST_PATH_RE.test(path)) return [];
+        const cache = read<Record<string, { at: number; ratings: ExternalRating[] }>>(RATINGS_CACHE, {});
+        const hit = cache[path];
+        if (hit && Date.now() - hit.at < RATINGS_TTL_MS) return hit.ratings;
+        try {
+          const res = await fetch(`${MDBLIST_API}/${path}?apikey=${encodeURIComponent(key)}`);
+          if (!res.ok && res.status !== 404) return [];
+          const ratings = res.ok ? parseMdblist(await res.json()) : [];
+          // shortcut: keeps the newest 300 titles in localStorage; a TV browses far fewer in a week.
+          const kept = Object.entries(cache).filter(([p]) => p !== path).slice(-299);
+          write(RATINGS_CACHE, Object.fromEntries([...kept, [path, { at: Date.now(), ratings }]]));
+          return ratings;
+        } catch {
+          return [];
+        }
+      },
+    },
   };
   return {
     bridge: stubbed(real, true) as unknown as WicabyBridge,

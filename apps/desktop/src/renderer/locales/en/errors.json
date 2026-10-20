@@ -68,7 +68,13 @@
     "demo": "Demo",
     "demoConnect": "Connect your server",
     "notAvailable": "Not available in the TV app",
-    "blocked": "The server didn’t let this app in. Check its address, its certificate and that it accepts other web apps (CORS)."
+    "blocked": "The server didn’t let this app in. Check its address, its certificate and that it accepts other web apps (CORS).",
+    "syncPaused": "Watch together: paused",
+    "syncResumed": "Watch together: playing",
+    "syncSeeked": "Watch together: moved to {time}",
+    "syncJoined": "{name} joined",
+    "syncLeft": "{name} left",
+    "syncJellyfinOnly": "Watch together needs a Jellyfin server"
   },
   "connection": {
     "timeout": "The request timed out",
@@ -138,6 +144,14 @@
     "tooLarge": "The image is too large (20 MB maximum)",
     "notAnImage": "The file isn’t an image"
   },
+  "scrobble": {
+    "invalidToken": "Invalid ListenBrainz token",
+    "invalidKey": "Invalid Last.fm API key or shared secret",
+    "failed": "Couldn’t reach the scrobbling service: {error}",
+    "expired": "The Last.fm authorization expired. Connect again.",
+    "listenbrainzReauthorize": "ListenBrainz refused the token. Connect again.",
+    "lastfmReauthorize": "Last.fm revoked access. Connect again."
+  },
   "trakt": {
     "invalidClient": "Invalid Client ID or Client Secret",
     "failed": "Couldn’t reach Trakt: {error}",
@@ -166,5 +180,8 @@
     "tokenUnsupported": "This server refuses token sign-in (LDAP accounts on Navidrome): Wicaby never sends the password in clear.",
     "castNeedsRelay": "To cast from Navidrome, turn on “Stream through this computer” in the casting settings: Wicaby never puts the Navidrome password in an address.",
     "notOwner": "This playlist belongs to another user: only its owner can change it."
+  },
+  "ratings": {
+    "invalidKey": "This doesn’t look like an MDBList API key."
   }
 }

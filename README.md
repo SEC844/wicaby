@@ -255,6 +255,8 @@ Get the files from the [latest release](https://github.com/WicaebethTheo/wicaby/
 
 Known limits on Linux: video runs in an X11 window (XWayland in a Wayland session) and is SDR only; refresh-rate matching needs X11 or KDE Plasma; without a system keyring (GNOME Keyring, KWallet) sign-ins last until Wicaby closes unless you choose to keep them unencrypted; the tray icon needs a desktop that shows one (on GNOME, the AppIndicator extension). Updates are not installed for you: Wicaby says when one is out, then install the new package.
 
+Linux environment variables: `WICABY_OZONE=wayland` runs Wicaby as a native Wayland app (`x11`, the default when XWayland is there, or `auto`); video then plays in the built-in player, since mpv can only embed into an X11 window. `WICABY_DISABLE_GPU=1` turns off GPU acceleration of the interface, for GPU process crashes (seen on hybrid Intel + NVIDIA laptops); mpv keeps its own hardware decoding.
+
 **Android TV** (Android 6.0 or later): `Wicaby-TV-foss-<version>-<abi>.apk`
 
 | APK | Pick it for |

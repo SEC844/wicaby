@@ -16,11 +16,19 @@ const checks = [
   ['i18n-check.mjs', '--self-test'],
   ['livetv-a11y-check.mjs'],
   ['hdr-check.mjs'],
+  // "What's this song?": the Shazam signature against SongRec's reference.
+  ['song-id-check.mjs'],
   ['track-check.mjs'],
   // Web TV app (docs/webtv.md): the 'tv' device profile, mediaBase, TV Back keys, the web bridge and its demo server.
   ['webtv-check.mjs'],
+  // Web TV Jellyfin SyncPlay: server clock offset, command scheduling, 2 s drift.
+  ['syncplay-webtv-check.mjs'],
   ['parity-check.mjs'],
   ['skip-check.mjs'],
+  // AniSkip fallback: response parsing and the MAL id + episode a season resolves to (fixtures/aniskip.json).
+  ['aniskip-check.mjs'],
+  // External ratings: MDBList route and parser (saved sample answer).
+  ['ratings-check.mjs'],
   ['home-rows-check.mjs'],
   // Sidebar sections by media type (sidebar redesign spec §3.2).
   ['sidebar-groups-check.mjs'],
@@ -34,6 +42,7 @@ const checks = [
   ['cast-mock-check.mjs'],
   ['cast-sender-check.mjs'],
   ['remote-check.mjs'],
+  ['syncplay-check.mjs'],
   ['message-check.mjs'],
   ['cast-check.mjs'],
   ['cast-dlna-check.mjs'],
@@ -59,6 +68,7 @@ const checks = [
   ['token-binding-check.mjs'],
   ['vault-check.mjs'],
   ['trakt-check.mjs'],
+  ['scrobble-check.mjs'],
   ['mpv-args-check.mjs'],
   ['desktop-comfort-check.mjs'],
   ['linux-desktop-check.mjs'],

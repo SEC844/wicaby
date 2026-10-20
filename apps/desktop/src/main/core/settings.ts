@@ -189,6 +189,8 @@ function sanitizeExtras(s: Settings, d: Settings): void {
   p.pauseOnMinimize = p.pauseOnMinimize === true;
   p.normalize = p.normalize === true;
   p.alwaysForced = p.alwaysForced !== false;
+  p.preferSdh = p.preferSdh === true;
+  p.audioDescription = oneOf(p.audioDescription, ['prefer', 'avoid', 'any'] as const, 'avoid');
   const types = ['default', 'mpv', 'html'] as const;
   const byType = p.playerByType ?? d.playback.playerByType;
   p.playerByType = {
@@ -202,6 +204,7 @@ function sanitizeExtras(s: Settings, d: Settings): void {
   p.mpvArgs = typeof p.mpvArgs === 'string' ? p.mpvArgs.replace(/[\r\n\0]+/g, ' ').slice(0, 2000) : '';
   p.aspect = oneOf(p.aspect, ASPECT_MODES, 'fit');
   p.cinemaMode = p.cinemaMode === true;
+  p.aniskip = p.aniskip === true;
   const scopes = ['off', 'global', 'library', 'title'] as const;
   const rs = { ...d.playback.rememberScopes, ...(p.rememberScopes ?? {}) };
   p.rememberScopes = {

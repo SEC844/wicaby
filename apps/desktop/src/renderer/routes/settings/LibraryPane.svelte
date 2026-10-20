@@ -7,10 +7,30 @@
   import { libraryRef } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import { navigate } from '../../lib/router.svelte';
-  import { libraries, multiServer, serverName, settings } from '../../lib/stores.svelte';
+  import { errorMessage, libraries, multiServer, serverName, settings, toast } from '../../lib/stores.svelte';
   import { set } from './shared.svelte';
+  import { MDBLIST_KEY_URL } from '../../../shared/ratings';
+  import { w } from '../../lib/bridge';
 
   const s = $derived(settings.value);
+
+  // External ratings: the MDBList key lives in main's vault and never comes back to the page.
+  let ratingsOn = $state(false);
+  let ratingsKey = $state('');
+  let ratingsBusy = $state(false);
+  void w.ratings.configured().then((v) => (ratingsOn = v), () => undefined);
+  async function saveRatingsKey(key: string): Promise<void> {
+    ratingsBusy = true;
+    try {
+      ratingsOn = await w.ratings.setKey(key);
+      ratingsKey = '';
+      if (ratingsOn) toast('success', t('settings.library.ratings.set'));
+    } catch (err) {
+      toast('error', errorMessage(err));
+    } finally {
+      ratingsBusy = false;
+    }
+  }
 
   const browsable = $derived(libraries.list.filter((l) => !['playlists', 'livetv', 'folders'].includes(l.CollectionType ?? '')));
   const startPages = $derived([
@@ -105,6 +125,34 @@
     </div>
   </div>
   <p class="foot">{t('settings.library.foot')}</p>
+
+  <h3 class="gh">{t('settings.library.ratings.title')}</h3>
+  <div class="group">
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.library.ratings.label')}</div>
+        <div class="desc">{t('settings.library.ratings.desc')}</div>
+      </div>
+      <button type="button" class="btn sm" onclick={() => w.app.openExternal(MDBLIST_KEY_URL)}>{t('settings.library.ratings.get')}</button>
+    </div>
+    <div class="row">
+      <input
+        class="field key"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label={t('settings.library.ratings.label')}
+        placeholder={ratingsOn ? t('settings.library.ratings.saved') : ''}
+        bind:value={ratingsKey}
+        onkeydown={(e) => e.key === 'Enter' && ratingsKey.trim() && void saveRatingsKey(ratingsKey)}
+      />
+      {#if ratingsOn}
+        <button type="button" class="btn sm" disabled={ratingsBusy} onclick={() => saveRatingsKey('')}>{t('settings.library.ratings.remove')}</button>
+      {/if}
+      <button type="button" class="btn sm primary" disabled={ratingsBusy || !ratingsKey.trim()} onclick={() => saveRatingsKey(ratingsKey)}>{t('settings.library.ratings.save')}</button>
+    </div>
+  </div>
+  <p class="foot">{t('settings.library.ratings.hint')}</p>
 {/if}
 
 <style>
@@ -164,6 +212,15 @@
     font-size: var(--fs-footnote);
     color: var(--label-3);
     line-height: 1.45;
+  }
+  .key {
+    flex: 1;
+    min-width: 0;
+  }
+  .btn.sm {
+    height: 30px;
+    padding: 0 12px;
+    font-size: var(--fs-footnote);
   }
   .link-row {
     width: 100%;

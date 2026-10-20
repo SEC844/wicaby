@@ -86,6 +86,7 @@ import com.wika.wicaby.core.comics.Comics
 import com.wika.wicaby.mobile.reader.ReaderActivity
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.FlowRow
+import com.wika.wicaby.core.ratings.Ratings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.res.pluralStringResource
@@ -93,7 +94,9 @@ import com.wika.wicaby.core.data.MediaSource
 import com.wika.wicaby.core.data.MediaStream
 import com.wika.wicaby.core.data.Versions
 import com.wika.wicaby.core.data.VideoRange
+import com.wika.wicaby.core.player.TrackMemory
 import com.wika.wicaby.core.player.Trailers
+import com.wika.wicaby.core.syncplay.SyncPlay
 import com.wika.wicaby.core.player.ExternalPlayer
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.previousEpisodes
@@ -188,6 +191,9 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
             // Making-of, deleted scenes…: none for books, and none when the server lacks the route.
             val extras = if (book) emptyList() else rememberLoad("extras-$id") { api.specialFeatures(id) }.value.orEmpty()
             val external = remember(api) { ExternalPlayer.available(context, api) }
+            // IMDb, Rotten Tomatoes…: only once the user set an MDBList key (Réglages > Général).
+            val ratingsOn by Ratings.configured.collectAsState()
+            val ratings = rememberLoad("ratings-$id-$ratingsOn") { if (ratingsOn) Ratings.default.get(item) else emptyList() }.value.orEmpty()
             // The id survives process death while VLC/MX is open: the result may then arrive before
             // [target] is loaded again, so the item is refetched (as PlayerActivity.openExternal does).
             var externalId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -283,6 +289,12 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                         Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                             if ((if (book) bookPage != null else resumeMs > 0) && target != null) ActionIcon(Ic.Restart, stringResource(R.string.from_start), { if (book) ReaderActivity.start(context, item.id, fromStart = true, server = Servers.extraOf(api.server.id)?.server?.id) else play(context, target, fromStart = true) })
                             if (Trailers.has(item)) TrailerAction(api, item)
+                            // Jellyfin SyncPlay: watch this with others, or join a group.
+                            if (!book && target != null && SyncPlay.available(api)) {
+                                var together by remember { mutableStateOf(false) }
+                                ActionIcon(Ic.Users, stringResource(com.wika.wicaby.core.R.string.syncplay_title), { together = true }, active = SyncPlay.group != null)
+                                if (together) TogetherSheet(api, target.id, { resumeMs }) { together = false }
+                            }
                             // A file source sends nothing off the device (caps castSend): no cast, no download, and no heart
                             // without favorites (§2.2).
                             val caps = api.server.caps
@@ -319,7 +331,7 @@ fun DetailScreen(api: Api, id: String, nav: NavController) {
                     Column(Modifier.padding(horizontal = 20.dp).padding(top = 18.dp).widthIn(max = 720.dp)) {
                         item.taglines.firstOrNull()?.let { Text(it, style = Type.headline, color = G.label, modifier = Modifier.padding(bottom = 6.dp)) }
                         item.overview?.takeIf { it.isNotBlank() }?.let { Overview(it) }
-                        val tags = badges(item, source)
+                        val tags = ratings.map { Ratings.label(context.resources, it) } + badges(item, source)
                         if (tags.isNotEmpty()) {
                             FlowRow(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 tags.forEach {
@@ -550,7 +562,7 @@ internal fun SelectorRow(title: String, options: List<String>, selected: Int, un
 }
 
 @Composable
-internal fun trackName(s: MediaStream): String = s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index)
+internal fun trackName(s: MediaStream): String = listOfNotNull(s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index), TrackMemory.badge(s)).joinToString(" · ")
 
 // "Bande-annonce": a local trailer plays in the player (reporting nothing), a remote one opens
 // in the YouTube app or the browser.

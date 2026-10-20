@@ -1,11 +1,16 @@
 package com.wika.wicaby.mobile.player
 
+import com.wika.wicaby.core.syncplay.SyncPlay
+import com.wika.wicaby.mobile.ui.TogetherSheet
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.pluralStringResource
 import com.wika.wicaby.core.data.RemoteSubtitle
 import com.wika.wicaby.core.data.SubtitleRules
+import com.wika.wicaby.core.player.TrackMemory
 import com.wika.wicaby.core.player.SubtitleSearch
 import com.wika.wicaby.mobile.ui.WicabyField
 import android.content.Context
@@ -113,6 +118,8 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.data.Item
+import com.wika.wicaby.core.songid.ShazamSignature
+import com.wika.wicaby.core.songid.SongId
 import com.wika.wicaby.core.data.MediaStream
 import com.wika.wicaby.core.data.TICKS_PER_MS
 import com.wika.wicaby.core.data.clock
@@ -158,7 +165,7 @@ private const val TAP_SEEK_MS = 10_000L
 // A full-width horizontal swipe moves this far.
 private const val SWIPE_SPAN_MS = 100_000f
 
-private enum class Sheet { Tracks, Speed, Sleep, Quality, SubSearch, Sync }
+private enum class Sheet { Tracks, Speed, Sleep, Quality, SubSearch, Sync, SongId }
 private enum class Drag { None, Ignore, Seek, Brightness, Volume, Pinch, Zap, MiniGuide }
 private class TapSeek(val side: Int, val seconds: Int, val at: Offset, val nonce: Int)
 // Text as resource ids: resolved in composition, so they follow the app language.
@@ -226,6 +233,8 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
         }
     }
     var castSheet by remember { mutableStateOf(false) }
+    // Jellyfin SyncPlay sheet: outside the controls, so their auto-hide leaves it open.
+    var together by remember { mutableStateOf(false) }
     LaunchedEffect(nonce, playing, sheet, preview, castSheet) {
         if (playing && sheet == null && preview == null && !castSheet) {
             delay(3_500)
@@ -559,6 +568,7 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
                     item, playing, { position.longValue }, { duration.longValue }, { buffered.longValue },
                     onBack = onExit, onTracks = { sheet = Sheet.Tracks }, onSpeed = { sheet = Sheet.Speed }, onPip = onPip,
                     onSleep = if (live) null else { { sheet = Sheet.Sleep } },
+                    onSongId = if (pb.songIdSource != null) { { sheet = Sheet.SongId } } else null,
                     onQuality = if (pb.canSwitchQuality) { { sheet = Sheet.Quality } } else null, qualityCap = pb.qualityCap,
                     sleepLeft = sleep?.endsAt?.let { (it - now.longValue).coerceAtLeast(0) },
                     now = { now.longValue }, speed = { player.playbackParameters.speed }, live = live,
@@ -578,6 +588,7 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
                     },
                     offline = pb.offline,
                     cast = castButton,
+                    together = if (!pb.preview && !pb.trailer && !live && SyncPlay.available(pb.api)) { { together = true } } else null,
                 )
             }
         }
@@ -614,6 +625,7 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
             upNext?.let { UpNextCard(pb.api, it, countdown, onPlay = { pb.advance(auto = false) }, onDismiss = { pb.upNextDismissed = true }) }
         }
 
+        if (together) TogetherSheet(pb.api, pb.itemId, { player.currentPosition }) { together = false }
         PlayerSheet(sheet == Sheet.Tracks, { sheet = null }) { TracksSheet(pb, onSearch = { sheet = Sheet.SubSearch }, onSync = { sheet = Sheet.Sync }) }
         PlayerSheet(sheet == Sheet.Sync, { sheet = null }) { SyncSheet(pb) }
         PlayerSheet(sheet == Sheet.SubSearch, { sheet = null }) { SubtitleSearchSheet(pb) { sheet = null } }
@@ -627,6 +639,7 @@ fun PlayerScreen(pb: Playback, engine: Engine, inPip: Boolean, onExit: () -> Uni
         PlayerSheet(sheet == Sheet.Sleep, { sheet = null }) {
             SleepSheet(sleep) { sheet = null }
         }
+        PlayerSheet(sheet == Sheet.SongId, { sheet = null }) { SongIdSheet(pb) }
         PlayerSheet(sheet == Sheet.Quality, { sheet = null }) {
             QualitySheet(pb) { sheet = null }
         }
@@ -765,6 +778,7 @@ private fun Osd(
     aspect: Aspect,
     onAspect: () -> Unit,
     onSleep: (() -> Unit)?,
+    onSongId: (() -> Unit)?,
     sleepLeft: Long?,
     now: () -> Long,
     speed: () -> Float,
@@ -772,6 +786,7 @@ private fun Osd(
     onQuality: (() -> Unit)?,
     qualityCap: Int?,
     cast: (@Composable () -> Unit)?,
+    together: (() -> Unit)? = null,
 ) {
     Box(Modifier.fillMaxSize()) {
         // Video scrims (content, not chrome): keep the white controls legible on bright frames.
@@ -810,6 +825,9 @@ private fun Osd(
                 val name = stringResource(com.wika.wicaby.core.R.string.sleep_timer)
                 RoundIcon(MoonIcon, listOfNotNull(name, sleepLeft?.let { clock(it) }).joinToString(", "), onSleep, label = sleepLeft?.let { clock(it) })
             }
+            if (together != null) RoundIcon(Ic.Users, stringResource(com.wika.wicaby.core.R.string.syncplay_title), together, on = SyncPlay.group != null)
+            // "What's this song?": a direct play or a downloaded file (core SongId reads the file again).
+            if (onSongId != null) RoundIcon(Ic.Music, stringResource(com.wika.wicaby.core.R.string.song_id_title), onSongId)
             cast?.invoke()
             RoundIcon(Ic.Pip, stringResource(R.string.pip), onPip)
         }
@@ -1109,7 +1127,7 @@ private fun subtitleMeta(r: RemoteSubtitle): String {
 }
 
 @Composable
-private fun label(s: MediaStream): String = s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index)
+private fun label(s: MediaStream): String = listOfNotNull(s.displayTitle ?: s.title ?: s.language ?: stringResource(R.string.track_unknown, s.index), TrackMemory.badge(s)).joinToString(" · ")
 
 @Composable
 private fun TrackColumn(title: String, options: List<Pair<Int, String>>, selected: Int?, onSelect: (Int) -> Unit, modifier: Modifier, busy: Int? = null) {
@@ -1182,6 +1200,90 @@ private fun QualitySheet(pb: Playback, onDone: () -> Unit) {
         )
     }
 }
+
+// "What's this song?" (core SongId): the notice before the first use, then the card: cover, title, artist, album, search
+// links, and the track in this server's music with Play Later (queued after this video).
+@Composable
+private fun SongIdSheet(pb: Playback) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var noticeSeen by remember { mutableStateOf(SongId.noticeSeen) }
+    var outcome by remember { mutableStateOf<SongId.Outcome?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    // null: not looked up yet; false: not in the library.
+    var found by remember { mutableStateOf<Any?>(null) }
+    var queued by remember { mutableStateOf(false) }
+    fun identify() {
+        if (!noticeSeen) {
+            SongId.noticeSeen = true
+            noticeSeen = true
+        }
+        busy = true
+        outcome = null
+        found = null
+        scope.launch {
+            outcome = SongId.identify(ctx, Core.http, pb.songIdSource, pb.player.currentPosition)
+            busy = false
+        }
+    }
+    LaunchedEffect(Unit) { if (noticeSeen) identify() }
+    Text(stringResource(com.wika.wicaby.core.R.string.song_id_title).uppercase(), style = Type.eyebrow, color = G.label3, modifier = Modifier.padding(start = 12.dp, bottom = 8.dp))
+    val song = outcome?.song
+    Column(Modifier.padding(horizontal = 12.dp)) {
+        when {
+            !noticeSeen -> {
+                Text(stringResource(com.wika.wicaby.core.R.string.song_id_notice), style = Type.body, color = G.label2, modifier = Modifier.padding(bottom = 12.dp))
+                PillButton(stringResource(com.wika.wicaby.core.R.string.song_id_identify), ::identify, primary = true)
+            }
+            busy -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Spinner(Modifier.size(18.dp))
+                Text(stringResource(com.wika.wicaby.core.R.string.song_id_listening), style = Type.body, color = G.label2)
+            }
+            song != null -> {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                    if (song.coverUrl != null) AsyncImage(song.coverUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.size(72.dp).clip(RoundedCornerShape(Radius.sm)))
+                    Column(Modifier.padding(start = 14.dp)) {
+                        Text(song.title, style = Type.headline, color = G.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(song.artist, style = Type.body, color = G.label2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        song.album?.let { Text(it, style = Type.caption, color = G.label3, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    }
+                }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(ShazamSignature.links(song)) { (id, url) ->
+                        PillButton(SONG_LINK_NAMES.getValue(id), { runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }, icon = Ic.External, compact = true)
+                    }
+                }
+                val f = found
+                Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    when {
+                        f is Item -> PillButton(
+                            stringResource(if (queued) com.wika.wicaby.core.R.string.song_id_queued else com.wika.wicaby.core.R.string.song_id_play_later),
+                            { if (!queued) queued = pb.enqueue(listOf(f.id), playNext = false) }, primary = true,
+                        )
+                        f == false -> Text(stringResource(com.wika.wicaby.core.R.string.song_id_not_in_library), style = Type.body, color = G.label2)
+                        else -> PillButton(
+                            stringResource(com.wika.wicaby.core.R.string.song_id_find_in_library),
+                            { scope.launch { found = runCatching { SongId.findInLibrary(pb.api, song) }.getOrNull() ?: false } }, icon = Ic.Search,
+                        )
+                    }
+                }
+            }
+            else -> {
+                val err = when (outcome?.error) {
+                    SongId.Error.NOMATCH -> com.wika.wicaby.core.R.string.song_id_error_nomatch
+                    SongId.Error.RATE_LIMITED -> com.wika.wicaby.core.R.string.song_id_error_rate_limited
+                    SongId.Error.UNAVAILABLE -> com.wika.wicaby.core.R.string.song_id_error_unavailable
+                    else -> com.wika.wicaby.core.R.string.song_id_error_failed
+                }
+                Text(stringResource(err), style = Type.body, color = G.label2, modifier = Modifier.padding(bottom = 12.dp))
+                PillButton(stringResource(com.wika.wicaby.core.R.string.song_id_identify), ::identify)
+            }
+        }
+    }
+}
+
+// Brand names, not translated.
+private val SONG_LINK_NAMES = mapOf("shazam" to "Shazam", "spotify" to "Spotify", "youtube" to "YouTube", "apple" to "Apple Music")
 
 // X-04 sleep timer sheet: +15 min and Cancel while a timer runs, then end of this video and the durations.
 @Composable

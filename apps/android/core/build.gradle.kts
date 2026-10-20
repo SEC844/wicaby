@@ -96,6 +96,8 @@ val copyCastFixtures = tasks.register<Copy>("copyCastFixtures") {
 val copyFilesFixtures = tasks.register<Copy>("copyFilesFixtures") {
     from(rootProject.file("../../tools/checks/fixtures/files")) { into("files") }
     from(rootProject.file("../../tools/checks/fixtures/server-caps.json"))
+    // The saved MDBList answer ratings-check.mjs reads too (RatingsTest), as /ratings/*.
+    from(rootProject.file("../../tools/checks/fixtures/ratings")) { into("ratings") }
     // The mock's TEST ONLY certificate pairs (the pin tests: FilesApiTest).
     from(rootProject.file("../../tools/mock-server/fixtures/webdav-tls")) { into("webdav-tls") }
     into(layout.buildDirectory.dir("filesFixtures"))

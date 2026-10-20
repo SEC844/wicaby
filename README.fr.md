@@ -255,6 +255,8 @@ Les fichiers sont dans la [dernière version](https://github.com/WicaebethTheo/w
 
 Limites connues sous Linux : la vidéo s'affiche dans une fenêtre X11 (XWayland dans une session Wayland) et uniquement en SDR ; l'adaptation de la fréquence d'affichage nécessite X11 ou KDE Plasma ; sans trousseau système (GNOME Keyring, KWallet), les connexions durent jusqu'à la fermeture de Wicaby, sauf si vous choisissez de les garder non chiffrées ; l'icône de notification nécessite un bureau qui l'affiche (sous GNOME, l'extension AppIndicator). Les mises à jour ne s'installent pas toutes seules : Wicaby signale la nouvelle version, installez ensuite le nouveau paquet.
 
+Variables d'environnement sous Linux : `WICABY_OZONE=wayland` lance Wicaby en application Wayland native (`x11`, le choix par défaut quand XWayland est présent, ou `auto`) ; la vidéo passe alors par le lecteur intégré, car mpv ne s'intègre que dans une fenêtre X11. `WICABY_DISABLE_GPU=1` désactive l'accélération GPU de l'interface, en cas de plantage du processus GPU (vu sur les portables hybrides Intel + NVIDIA) ; mpv garde son propre décodage matériel.
+
 **Android TV** (Android 6.0 ou plus récent) : `Wicaby-TV-foss-<version>-<abi>.apk`
 
 | APK | À choisir pour |

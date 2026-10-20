@@ -369,6 +369,13 @@ Wicaby works with Plex Media Server through its publicly documented HTTP API
 No Plex software, code, logo or icon ships with Wicaby, and none was decompiled or reverse engineered. Features that
 Plex reserves to Plex Pass or a Remote Watch Pass are detected and explained, never worked around.
 
+## SongRec ("What's this song?")
+
+The Shazam audio signature (`apps/desktop/src/shared/song-id.ts`, `apps/android/core/.../songid/ShazamSignature.kt`)
+and the recognition request are ported from [SongRec](https://github.com/marin-m/SongRec) by Marin M. and
+contributors, GNU General Public License v3.0, the same licence as Wicaby. Shazam is a trademark of Apple Inc.;
+Wicaby is not affiliated with or endorsed by Shazam or Apple.
+
 ## Immich
 
 Wicaby can connect to an Immich server through its public REST API. No Immich code is included: the requests are

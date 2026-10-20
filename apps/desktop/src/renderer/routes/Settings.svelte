@@ -10,6 +10,7 @@
   import { onMount, untrack, type Component } from 'svelte';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import LogoLoader from '../components/LogoLoader.svelte';
+  import ScrobbleSettings from '../components/ScrobbleSettings.svelte';
   import ShortcutEditor from '../components/ShortcutEditor.svelte';
   import { locale, t } from '../lib/i18n.svelte';
   import { web } from '../lib/platform';
@@ -262,6 +263,7 @@
       <SubtitlesPane />
     {:else if id === 'music'}
       <MusicPane />
+      {#if !web}<ScrobbleSettings />{/if}
     {:else if id === 'cast'}
       <CastPane />
     {:else if id === 'server'}

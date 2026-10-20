@@ -60,7 +60,29 @@ object TrackMemory {
     fun isForced(s: MediaStream): Boolean = s.isForced || forcedRe.containsMatchIn(words(s))
     fun isCommentary(s: MediaStream): Boolean = words(s).contains("comment")
     private val sdhRe = Regex("""\bsdh\b|\bcc\b|malentendant|hearing""")
-    fun isSdh(s: MediaStream): Boolean = sdhRe.containsMatchIn(words(s))
+    fun isSdh(s: MediaStream): Boolean = s.isHearingImpaired || sdhRe.containsMatchIn(words(s))
+    private val adRe = Regex("""\bad\b|audio[ -]?description|description audio|\bdvs\b""")
+    // Audio description.
+    fun isAd(s: MediaStream): Boolean = s.isVisualImpaired || adRe.containsMatchIn(words(s))
+
+    // The picker badge: "SDH" on a subtitle, "AD" on an audio track (one string in every language).
+    fun badge(s: MediaStream): String? = when {
+        s.type == "Subtitle" && isSdh(s) -> "SDH"
+        s.type == "Audio" && isAd(s) -> "AD"
+        else -> null
+    }
+
+    // The track's twin (same type, language, forced and commentary class) that fits the accessibility
+    // preferences when the track itself does not; the track itself when there is none. [ad]: "avoid"
+    // (an AD track gives way to a plain one), "prefer" or "any". As track-selection.ts accessible().
+    fun accessible(streams: List<MediaStream>, index: Int, sdh: Boolean, ad: String): Int {
+        val s = streams.firstOrNull { it.index == index && (it.type == "Audio" || it.type == "Subtitle") } ?: return index
+        fun fits(x: MediaStream) = if (x.type == "Audio") ad == "any" || isAd(x) == (ad == "prefer") else !sdh || isSdh(x)
+        if (fits(s)) return index
+        return streams.firstOrNull {
+            it.type == s.type && fits(it) && sameLang(it.language, s.language) && isForced(it) == isForced(s) && isCommentary(it) == isCommentary(s)
+        }?.index ?: index
+    }
 
     private val nonWord = Regex("""[^\p{L}\p{N}]+""")
     private fun normTitle(t: String?) = t.orEmpty().lowercase().replace(nonWord, " ").trim()
