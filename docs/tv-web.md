@@ -18,13 +18,16 @@ Why a separate app rather than the desktop renderer in a TV shell:
 ## What it does
 
 Home (hero, continue watching, next up, upcoming, Live TV now, recently added per library, on this day, because
-you watched), search, libraries with an A–Z rail, details pages with versions, tracks, seasons and extras, and
-settings. The player: direct play or HLS with a fallback to the server's conversion, audio and subtitle tracks, its
-own WebVTT renderer, quality presets, chapters, trickplay thumbnails, skip intro and credits, up next, speed,
-sleep timer and playback info. Music (library rows, albums, artists, now playing with synced lyrics and an editable
-queue), Live TV (the guide, channel zapping, number entry, mini-guide, recordings and scheduled ones), photos (the
-timeline, albums, a viewer with a slideshow and EXIF), a comic reader (CBZ, ZIP and image EPUB), several servers at
-once, and Trakt scrobbling.
+you watched), search, libraries with an A–Z rail, details pages with versions, tracks, seasons, extras and external
+ratings, watch history, and settings in the categories every Wicaby app shares. The player: direct play or HLS with a
+fallback to the server's conversion, audio and subtitle tracks (SDH and AD marked, remembered per series), its own
+WebVTT renderer, quality presets, chapters, trickplay thumbnails, skip intro and credits (AniSkip for anime), up next,
+speed, sleep timer, playback info and watch together (Jellyfin SyncPlay). Music (library rows, albums, artists, now
+playing with synced lyrics and an editable queue, an ambient layout, ListenBrainz and Last.fm scrobbling), Live TV
+(the guide, channel zapping, number entry, mini-guide, recordings and scheduled ones), photos (the timeline, albums,
+a viewer with a slideshow and EXIF), a comic reader (CBZ, ZIP and image EPUB), the screensaver, several servers at
+once with their local and remote addresses, "Who is watching?" with profile PINs, Quick Connect on Jellyfin, "Play on
+Wicaby" and remote control from the Emby and Jellyfin apps, and Trakt scrobbling.
 
 Code it shares rather than copies: the desktop's pure modules (`apps/desktop/src/shared` as `$shared`, the
 renderer's `lib` as `$desktop`: Live TV logic, music queue, photo dates and EXIF, quality presets, merges), the
@@ -50,6 +53,12 @@ npm run engines -w apps/tv-web      # once: Chromium 53, 56 and 69 into .dev/eng
 npm run build:tv
 node apps/tv-web/scripts/smoke.mjs --engine 53 --steps "text:127.0.0.1:8096,13,wait:4000,13,wait:800,text:wicaby,13"
 ```
+
+To try the app on the computer against a real server (no TV at hand), open the build in a desktop browser that has
+H.264 and AAC (Chrome, Edge or Brave; the Chromium snapshots have neither), for example
+`brave --app=file:///…/apps/tv-web/dist/index.html --allow-file-access-from-files`: the arrows are the remote, Enter
+is OK, Escape or Backspace is Back. Without HLS in the engine, the app asks the server for progressive MP4
+conversions instead.
 
 `smoke.mjs` loads the build from `file://` like a packaged app, sends remote keys (key codes, `text:`, `wait:`),
 saves a screenshot after each step in `.dev/smoke/<engine>`, prints `--probe` (a JavaScript expression), and fails
@@ -101,8 +110,11 @@ stream URLs carry the token only to the server's own address.
 
 - **Comics:** CBZ, ZIP and image EPUB only. RAR, 7z, tar and PDF need decoders the TV engines do not have.
 - **Speed:** Tizen's AVPlay only plays whole speeds without sound (trick play), so there is no speed menu there.
-- **Not on TVs:** the mesh VPN, downloads, qBittorrent, file sources and the external player (Android only).
-- **Still to come:** the photo screensaver, remote control from the phone, Plex and IPTV sources, profile PINs.
+- **Not on TVs:** the mesh VPN, downloads, qBittorrent, file sources, the external player and the audio effects
+  (Android only), "What's this song?" (it needs the decoded audio), and setting the volume from a controller on
+  webOS (no API for apps).
+- **Still to come:** Live TV's channel manager, series rules and guide search, the first-run wizard, Plex and IPTV
+  sources.
 
 ## Replacing apps/webtv
 

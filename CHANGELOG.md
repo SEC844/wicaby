@@ -26,8 +26,15 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   device profile built from what the TV reports, tracks, its own subtitles, quality presets, chapters, trickplay,
   skip intro and credits, up next, speed, sleep timer and playback info; music with synced lyrics; Live TV with the
   guide, zapping, number entry and recordings; photos; a comic reader for CBZ and image EPUB; several servers at
-  once; Trakt scrobbling. It installs under the web TV app's ids and is meant to replace `apps/webtv`. Test builds
-  only: the unsigned `.wgt` and the `.ipk` are workflow artifacts. See docs/tv-web.md.
+  once; Trakt scrobbling. Also, as on Android TV: the settings in the shared categories, the profile menu and watch
+  history, "Who is watching?" with profile PINs, local and remote server addresses, "Play on Wicaby" and remote
+  control, the screensaver and the music ambient layout, series track memory, remembered speed and picture
+  format, and the rows reloading on return, on server changes and every 5 minutes; and 0.11.0's Quick Connect,
+  AniSkip, external ratings, SDH and AD tracks, ListenBrainz and Last.fm scrobbling and SyncPlay. It installs under
+  the web TV app's ids and is meant to replace `apps/webtv`. Test builds only: the unsigned `.wgt` and the `.ipk`
+  are workflow artifacts. See docs/tv-web.md.
+- Settings > Home & libraries > "Episodes in Search" (Android TV, TV web app): off, typing a series' name lists the
+  series without every one of its episodes.
 
 ## [0.11.2] - 2026-10-20
 
