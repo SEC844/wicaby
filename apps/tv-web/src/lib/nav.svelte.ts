@@ -11,7 +11,7 @@ export type Route =
   | { name: 'detail'; id: string; serverId?: string }
   | { name: 'folder'; id: string; title: string; serverId?: string }
   // The player: [queue] for a shuffle (ids in play order, [id] first), [trailer] plays and reports nothing.
-  | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[] }
+  | { name: 'player'; id: string; serverId?: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; startMs?: number }
   // Music: an album or audio playlist, an artist, a music library's whole grid, and the now-playing screen.
   | { name: 'musicAlbum'; id: string; title: string; serverId?: string }
   | { name: 'musicArtist'; id: string; title: string; serverId?: string }

@@ -12,6 +12,7 @@
   import ItemActions from '../components/ItemActions.svelte';
   import Pill from '../components/Pill.svelte';
   import Spinner from '../components/Spinner.svelte';
+  import TogetherSheet from '../components/TogetherSheet.svelte';
   import { focusable } from '../lib/focus';
   import { episodeLine, runtimeText, TICKS_PER_MS } from '../lib/format';
   import { t } from '../lib/i18n.svelte';
@@ -22,6 +23,7 @@
   import { dp } from '../lib/screen';
   import { clamp, heroDelta } from '../lib/scroll';
   import { externalRatings, ratingLabel, ratings } from '../lib/ratings.svelte';
+  import { syncAvailable } from '../lib/syncplay.svelte';
   import * as Trakt from '../lib/trakt.svelte';
   import { apiOf } from '../lib/session.svelte';
   import { trackName } from '../lib/track-memory';
@@ -122,6 +124,8 @@
     }
   }
 
+  let together = $state(false);
+
   // "Bande-annonce": a local trailer plays in the app's player (reporting nothing); a remote one opens elsewhere.
   async function trailer(): Promise<void> {
     if (!item) return;
@@ -207,6 +211,8 @@
           {#if series || item.Type === 'Season'}
             <Pill text={t('shuffle')} icon="Shuffle" onclick={() => shuffle(item)} />
           {/if}
+          <!-- Jellyfin SyncPlay: watch this with others, or join a group. -->
+          {#if !book && target && syncAvailable(client)}<Pill icon="Group" description={t('syncplay_title')} onclick={() => (together = true)} />{/if}
           {#if hasTrailer(item)}<Pill text={t('trailer')} icon="Movie" onclick={trailer} />{/if}
           <Pill icon={favorite ? 'Heart' : 'HeartOutline'} description={t('favorite')} onclick={toggleFavorite} />
           <!-- The icon carries the state, like the heart: a focused pill is white whatever `selected` says. -->
@@ -274,6 +280,10 @@
     </div>
   {/if}
 </div>
+
+{#if together && target}
+  <TogetherSheet api={client} itemId={target.Id} startMs={resume} onclose={() => (together = false)} />
+{/if}
 
 <style>
   .detail {

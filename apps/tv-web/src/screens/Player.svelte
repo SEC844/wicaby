@@ -19,6 +19,7 @@
   import Icon from '../components/Icon.svelte';
   import Pill from '../components/Pill.svelte';
   import ColumnsPanel, { type PanelColumn } from '../components/player/ColumnsPanel.svelte';
+  import TogetherSheet from '../components/TogetherSheet.svelte';
   import Osd, { type OsdButton } from '../components/player/Osd.svelte';
   import StatsOverlay from '../components/player/StatsOverlay.svelte';
   import SubtitleLayer from '../components/player/SubtitleLayer.svelte';
@@ -41,6 +42,7 @@
   import { keyOf } from '../platform/keys';
   import type { Aspect } from '../platform/player';
   import { recall, remember } from '../lib/remembered';
+  import { syncAvailable, syncplay } from '../lib/syncplay.svelte';
   import { trackName } from '../lib/track-memory';
 
   let {
@@ -49,7 +51,8 @@
     trailer = false,
     queue,
     serverId,
-  }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string } = $props();
+    startMs,
+  }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string; startMs?: number } = $props();
 
   // Android's own glyph for the chapters button (PlayerActivity.kt ChaptersIcon).
   const CHAPTERS_ICON = 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z';
@@ -71,7 +74,7 @@
   let osd = $state(true);
   let nonce = $state(0);
   let controlsFocused = $state(false);
-  type Panel = 'tracks' | 'quality' | 'chapters' | 'speed' | 'sleep';
+  type Panel = 'tracks' | 'quality' | 'chapters' | 'speed' | 'sleep' | 'together';
   let panel = $state<Panel | null>(null);
   let now = $state(Date.now());
   function poke(): void {
@@ -383,6 +386,10 @@
     ...(pb && !pb.trailer
       ? [{ key: 'sleep', icon: '', path: MOON_ICON, text: t('sleep_timer'), value: sleepLeft !== null ? clock(sleepLeft) : sleep.state ? t('sleep_end_of_video') : undefined, run: () => openPanel('sleep') }]
       : []),
+    // Jellyfin SyncPlay: "Watch together", with the group's size while in one.
+    ...(pb && !pb.trailer && syncAvailable(client)
+      ? [{ key: 'together', icon: 'Group', text: t('syncplay_title'), value: syncplay.group ? String(syncplay.group.participants.length) : undefined, run: () => openPanel('together') }]
+      : []),
     { key: 'aspect', icon: 'Aspect', text: t(ASPECT_LABEL[aspect]), run: cycleAspect },
     { key: 'stats', icon: 'Info', text: t('stats_title'), value: session.stats ? '✓' : undefined, run: () => (session.stats = !session.stats) },
   ]);
@@ -467,7 +474,7 @@
     keepAwake(true);
     document.documentElement.classList.toggle('avplay', avplay);
     const player = createPlayer(video);
-    const p = new Playback(client, player, id, { fromStart, trailer, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
+    const p = new Playback(client, player, id, { fromStart, trailer, startMs, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
     pb = p;
     p.start();
     setFocus(sink);
@@ -572,6 +579,8 @@
       <ColumnsPanel columns={speedColumns} height={300} />
     {:else if panel === 'sleep'}
       <ColumnsPanel columns={sleepColumns} height={320} />
+    {:else if panel === 'together' && pb.item}
+      <TogetherSheet api={client} itemId={pb.item.Id} startMs={pb.positionMs} onclose={closePanel} />
     {:else if panel === 'chapters' && pb.item}
       {@const item = pb.item}
       {@const current = Math.max(0, chapterStarts.filter((s) => s <= (pb?.positionMs ?? 0)).length - 1)}

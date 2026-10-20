@@ -81,7 +81,8 @@ export class AvPlayer extends Emitter implements VideoPlayer {
 
   play(): void { this.av.play(); }
   pause(): void { this.av.pause(); }
-  seek(ms: number): void { this.av.seekTo(Math.max(0, Math.round(ms))); }
+  // Ready once the seek has landed, paused or not (SyncPlay's Ready waits for it).
+  seek(ms: number): void { this.av.seekTo(Math.max(0, Math.round(ms)), () => this.emit('buffering', false)); }
 
   stop(): void {
     try { this.av.stop(); } finally { this.av.close(); }

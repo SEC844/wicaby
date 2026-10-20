@@ -1,8 +1,18 @@
-// The server's realtime channel (Android core ServerSocket, desktop main/connection/server-socket.ts), for its
-// LibraryChanged and UserDataChanged messages. The capabilities go first: Emby only delivers LibraryChanged to a
-// session whose capabilities arrived before its socket connected. Reconnects with a backoff while open.
+// The server's realtime channel (Android core ServerSocket, desktop main/connection/server-socket.ts): its
+// LibraryChanged and UserDataChanged messages, and SyncPlay's group updates and commands (onSocket). The capabilities
+// go first: Emby only delivers LibraryChanged to a session whose capabilities arrived before its socket connected.
+// Reconnects with a backoff while open.
 import type { Api } from './api';
 import { deviceId } from './identity';
+
+type Listener = (type: string, data: unknown) => void;
+const listeners = new Set<Listener>();
+
+// Every message of the signed-in session's socket (Core.socketMessages), while one is open.
+export function onSocket(cb: Listener): () => void {
+  listeners.add(cb);
+  return () => void listeners.delete(cb);
+}
 
 export class ServerSocket {
   private ws: WebSocket | null = null;
@@ -55,7 +65,10 @@ export class ServerSocket {
         return;
       }
       if (msg.MessageType === 'ForceKeepAlive') this.startKeepAlive(Number(msg.Data) || 60);
-      else if (msg.MessageType && msg.MessageType !== 'KeepAlive') this.onMessage(msg.MessageType);
+      else if (msg.MessageType && msg.MessageType !== 'KeepAlive') {
+        this.onMessage(msg.MessageType);
+        for (const cb of listeners) cb(msg.MessageType, msg.Data);
+      }
     };
     ws.onclose = () => {
       clearInterval(this.keepAlive);

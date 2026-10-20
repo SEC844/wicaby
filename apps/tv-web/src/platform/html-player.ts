@@ -7,6 +7,8 @@ export class HtmlPlayer extends Emitter implements VideoPlayer {
     video.addEventListener('timeupdate', () => this.emit('time', this.positionMs));
     video.addEventListener('waiting', () => this.emit('buffering', true));
     video.addEventListener('playing', () => this.emit('buffering', false));
+    // Ready while paused too, once a seek has landed (SyncPlay's Ready waits for it).
+    video.addEventListener('seeked', () => !video.paused || this.emit('buffering', false));
     video.addEventListener('ended', () => this.emit('ended'));
     video.addEventListener('error', () => this.emit('error', video.error?.message || `media error ${video.error?.code ?? ''}`));
   }
@@ -26,7 +28,8 @@ export class HtmlPlayer extends Emitter implements VideoPlayer {
     if (startMs > 0) this.video.currentTime = startMs / 1000;
   }
 
-  play(): void { void this.video.play(); }
+  // A pause right after (SyncPlay waiting for its group) rejects the play() promise: not an error.
+  play(): void { this.video.play()?.catch(() => {}); }
   pause(): void { this.video.pause(); }
   seek(ms: number): void { this.video.currentTime = Math.max(0, ms / 1000); }
 

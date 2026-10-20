@@ -19,6 +19,7 @@ import { recall, remember, scopeCtx, type ScopeCtx } from './remembered';
 import { showToast } from './toast.svelte';
 import { memoryPick, recordTrack } from './track-memory';
 import { reporter } from './reporter';
+import { syncBuffering, syncLoaded, syncPlayPause, syncSeek, syncStopped } from './syncplay.svelte';
 import * as Trakt from './trakt.svelte';
 import { loadPreview, type Preview } from './trickplay';
 import * as Versions from './versions';
@@ -40,8 +41,9 @@ export interface PlaybackOptions {
   // A trailer or bonus: from the start, nothing reported, no watched state, no next episode.
   trailer?: boolean;
   queue?: Queue;
+  // Where to start, whatever the resume point (a SyncPlay group's position).
+  startMs?: number;
 }
-
 
 // The series whose remembered tracks were announced this session (once each, as Android's tracksToasted).
 const toasted = new Set<string>();
@@ -94,6 +96,7 @@ export class Playback {
   private timer = 0;
   private offs: (() => void)[] = [];
   private readonly fromStart: boolean;
+  private startAt: number | undefined;
   readonly trailer: boolean;
   queue: Queue | null;
 
@@ -105,6 +108,7 @@ export class Playback {
   ) {
     this.itemId = itemId;
     this.fromStart = !!opts.fromStart;
+    this.startAt = opts.startMs;
     this.trailer = !!opts.trailer;
     this.queue = opts.queue ?? null;
   }
@@ -120,7 +124,10 @@ export class Playback {
         this.positionMs = ms + this.offsetMs;
         if (!this.progressive) this.durationMs = this.player.durationMs || this.durationMs;
       }),
-      this.player.on('buffering', (on) => (this.buffering = on)),
+      this.player.on('buffering', (on) => {
+        this.buffering = on;
+        syncBuffering(this, on);
+      }),
       this.player.on('ended', () => {
         this.ended = true;
         this.playing = false;
@@ -146,7 +153,9 @@ export class Playback {
       const chosen = Versions.selected(it);
       this.sourceId = chosen?.Id;
       this.streams = chosen?.MediaStreams ?? [];
-      const start = fromStart || this.trailer ? 0 : resumeFrom((it.UserData?.PlaybackPositionTicks ?? 0) / TICKS_PER_MS, (it.RunTimeTicks ?? 0) / TICKS_PER_MS);
+      const asked = this.startAt;
+      this.startAt = undefined;
+      const start = asked ?? (fromStart || this.trailer ? 0 : resumeFrom((it.UserData?.PlaybackPositionTicks ?? 0) / TICKS_PER_MS, (it.RunTimeTicks ?? 0) / TICKS_PER_MS));
       if (!this.trailer) {
         this.scopeCtx = await scopeCtx(this.api, it);
         if (seq !== this.seq) return;
@@ -170,6 +179,7 @@ export class Playback {
         toasted.add(series);
         showToast(t('tracks_applied'));
       }
+      if (seq === this.seq) syncLoaded(this);
       if (this.trailer || seq !== this.seq) return;
       // Off the open path: a large BIF must not delay the segments or the next episode.
       void loadPreview(this.api, it, this.sourceId).then((p) => {
@@ -329,6 +339,7 @@ export class Playback {
     else this.player.pause();
     this.playing = play;
     this.report('/Sessions/Playing/Progress', play ? 'Unpause' : 'Pause');
+    syncPlayPause(this, play);
   }
 
   setSpeed(rate: number): void {
@@ -341,6 +352,7 @@ export class Playback {
     const target = Math.max(0, Math.min(ms, this.durationMs || ms));
     this.positionMs = target;
     this.ended = false;
+    syncSeek(this, target);
     if (this.progressive) return this.reload();
     this.player.seek(target);
   }
@@ -547,6 +559,7 @@ export class Playback {
     if (this.stopped) return;
     this.stopped = true;
     this.seq++;
+    syncStopped(this);
     clearInterval(this.timer);
     this.offs.forEach((off) => off());
     this.dropPreview();
