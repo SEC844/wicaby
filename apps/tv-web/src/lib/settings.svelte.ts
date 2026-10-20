@@ -73,6 +73,8 @@ export const settings = {
   // X-01: "Continuer" and "À suivre" as one "Continuer à regarder" row.
   mergeContinue: new Setting('merge_continue', true),
   rowLatest: new Setting('row_latest', true),
+  // Episodes among the search results; off, a series' episodes stay on its page.
+  searchEpisodes: new Setting('search_episodes', true),
 };
 
 // TP-07: home rows order, hidden and thumbnail rows per `serverId/userId`. Until the user changes them, the older

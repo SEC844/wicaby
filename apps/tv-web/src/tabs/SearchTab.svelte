@@ -12,6 +12,7 @@
   import { t } from '../lib/i18n.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
   import { merged } from '../lib/servers';
+  import { settings } from '../lib/settings.svelte';
   import { dp } from '../lib/screen';
   import { clamp, edgeDelta } from '../lib/scroll';
 
@@ -34,7 +35,9 @@
     let stale = false;
     const timer = setTimeout(() => {
       // Every signed-in server (TP-06), one copy of a title found on several.
-      merged((a) => a.items({ SearchTerm: term, IncludeItemTypes: 'Movie,Series,Episode', Recursive: true, Limit: 60 }).then((r) => r.Items)).then(
+      // Settings > Home: episodes among the results, or only films and series.
+      const types = settings.searchEpisodes.value ? 'Movie,Series,Episode' : 'Movie,Series';
+      merged((a) => a.items({ SearchTerm: term, IncludeItemTypes: types, Recursive: true, Limit: 60 }).then((r) => r.Items)).then(
         (r) => !stale && (results = r),
         () => !stale && (results = []),
       );

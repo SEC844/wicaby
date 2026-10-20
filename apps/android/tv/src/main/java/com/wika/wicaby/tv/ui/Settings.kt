@@ -542,6 +542,9 @@ private fun HomeSection(api: Api, tabs: List<TopTab>) {
     HomeGroup(api)
     TabBarGroup(api, tabs)
     RatingsGroup()
+    Group(stringResource(R.string.tab_search), stringResource(R.string.search_episodes_hint)) {
+        ToggleRow(stringResource(R.string.search_episodes), TvSettings.searchEpisodes.value) { TvSettings.searchEpisodes.value = it }
+    }
 }
 
 // The MDBList key for IMDb, Rotten Tomatoes… on the detail pages (core/ratings). Off until set; sealed by the Keystore.

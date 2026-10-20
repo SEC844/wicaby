@@ -965,14 +965,15 @@ private fun SearchTab(api: Api, live: Boolean) {
     val multi = Servers.multi
     var query by rememberSaveable { mutableStateOf("") }
     val q = query.trim()
-    val results by produceState<List<Item>?>(null, q) {
+    val types = if (TvSettings.searchEpisodes.value) "Movie,Series,Episode" else "Movie,Series"
+    val results by produceState<List<Item>?>(null, q, types) {
         if (q.length < 2) {
             value = null
             return@produceState
         }
         delay(350)
         value = runCatching {
-            Servers.merged(api) { it.items("SearchTerm" to q, "IncludeItemTypes" to "Movie,Series,Episode", "Recursive" to true, "Limit" to 60).items }
+            Servers.merged(api) { it.items("SearchTerm" to q, "IncludeItemTypes" to types, "Recursive" to true, "Limit" to 60).items }
         }.getOrDefault(emptyList())
     }
     // Voice search: the remote's microphone through the system recognizer; no mic without one.

@@ -232,6 +232,8 @@
     <string name="tab_shown">Affiché</string>
     <string name="tab_hidden">Masqué</string>
     <string name="tab_bar_reset">Rétablir les onglets par défaut</string>
+    <string name="search_episodes">Épisodes dans la recherche</string>
+    <string name="search_episodes_hint">Désactivé, une recherche ne liste que les films et les séries ; les épisodes restent sur la page de leur série.</string>
     <string name="group_screensaver">Économiseur d’écran</string>
     <string name="screensaver_after">Démarrer après</string>
     <string name="never">Jamais</string>

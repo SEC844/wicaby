@@ -121,6 +121,8 @@ object TvSettings {
     // X-01: "Continuer" and "À suivre" as one "Continuer à regarder" row (ContinueWatching.kt).
     val mergeContinue = BoolSetting("merge_continue", true)
     val rowLatest = BoolSetting("row_latest", true)
+    // Episodes among the search results; off, a series' episodes stay on its page.
+    val searchEpisodes = BoolSetting("search_episodes", true)
     val screensaverMin = IntSetting("screensaver_min", 0) // 0 = off
     // Photos spec PH-07: SCREENSAVER_BACKDROPS (the default: film and series artwork), SCREENSAVER_PHOTOS or
     // SCREENSAVER_MEMORIES ("Ce jour-là"), from screensaverAlbum (an album or library id; "" = every photo).

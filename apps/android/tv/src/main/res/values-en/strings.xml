@@ -227,6 +227,8 @@
     <string name="tab_shown">Shown</string>
     <string name="tab_hidden">Hidden</string>
     <string name="tab_bar_reset">Reset Tab Bar</string>
+    <string name="search_episodes">Episodes in Search</string>
+    <string name="search_episodes_hint">When off, a search lists only movies and series; episodes stay on their series page.</string>
     <string name="group_screensaver">Screen Saver</string>
     <string name="screensaver_after">Start After</string>
     <string name="never">Never</string>
