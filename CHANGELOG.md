@@ -18,6 +18,15 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-10-20
+
+Android TV 0.11.2 (versionCode 39), Android mobile 0.11.2 (versionCode 36); no Android change.
+
+### Fixed
+
+- Desktop: resuming the same title again in one session started from the position it had before the last
+  viewing (#14). Pages now reload the position as soon as the server has the stop report.
+
 ## [0.11.1] - 2026-10-20
 
 Android TV 0.11.1 (versionCode 38), Android mobile 0.11.1 (versionCode 35); no Android change.

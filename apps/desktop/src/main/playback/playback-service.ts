@@ -12,6 +12,7 @@ import {
   type UpNext,
   type VideoAspect,
   ASPECT_MODES,
+  Channels,
   ZOOM_STEPS,
 } from '../../shared/contract';
 import type { BaseItem, MediaSource, MediaStream, PlaybackInfoResponse } from '../../shared/models';
@@ -1184,7 +1185,11 @@ export class PlaybackService extends EventEmitter {
     this.lives.cancel();
     // The report takes its figures now but must not hold up the local cleanup (quit has a 4 s budget);
     // the channel a make-before-break zap was leaving goes after it, as it did before.
+    const serverId = this.state.item?.serverId;
     const report = this.reports.stopped()
+      // Pages reload the position once the server has it, without waiting for a socket UserDataChanged that
+      // may come before the save, late or never (#14: resuming again in the same session used the old one).
+      .then(() => serverId && this.deps.windows.broadcast(Channels.serverEvent, { type: 'UserDataChanged', serverId }))
       .then(() => this.lives.releasePrev())
       .catch((err) => log.warn('report stopped failed', err));
     this.clearTimers();
