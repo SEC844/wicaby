@@ -11,6 +11,7 @@ import { buildQuery } from './api';
 import { deviceId } from './identity';
 import { nav } from './nav.svelte';
 import { reporter } from './reporter';
+import { scrobbleListened, scrobbleNowPlaying } from './scrobble.svelte';
 
 const TICKS_PER_MS = 10_000;
 const PROGRESS_MS = 10_000;
@@ -34,6 +35,10 @@ export class MusicSession {
   // The next track's URL as prefetched: loading it reuses the bytes already fetched.
   private aheadUrl: { id: string; url: string } | null = null;
   private reported = false;
+  // Scrobbling: when the track started (Unix s) and how long it was heard (pauses and seeks not counted).
+  private startedAt = 0;
+  private heardMs = 0;
+  private lastTime = -1;
   private errors = 0;
   private timer = 0;
 
@@ -42,6 +47,10 @@ export class MusicSession {
     this.queue = { ids: items.map((i) => i.Id), index: Math.max(0, Math.min(start, items.length - 1)), repeat: 'off', unshuffled: null };
     this.ahead.preload = 'auto';
     this.audio.addEventListener('timeupdate', () => {
+      const t = this.audio.currentTime * 1000;
+      // Played time only: a jump (a seek) or a stall does not count.
+      if (this.lastTime >= 0 && t > this.lastTime && t - this.lastTime < 2000) this.heardMs += t - this.lastTime;
+      this.lastTime = t;
       this.positionMs = this.audio.currentTime * 1000;
       if (isFinite(this.audio.duration)) this.durationMs = this.audio.duration * 1000;
     });
@@ -171,6 +180,11 @@ export class MusicSession {
     void this.audio.play().catch(() => {});
     this.reported = true;
     this.report('/Sessions/Playing', null);
+    this.startedAt = Math.floor(Date.now() / 1000);
+    this.heardMs = 0;
+    this.lastTime = -1;
+    const it = this.known.get(id);
+    if (it) scrobbleNowPlaying(it);
     this.prefetch();
   }
 
@@ -253,6 +267,7 @@ export class MusicSession {
     const it = this.current;
     if (!it || !this.reported) return;
     this.reported = false;
+    scrobbleListened(it, this.startedAt, this.heardMs);
     const body = this.body(it, posMs, null);
     void reporter.send(() => this.api.report('/Sessions/Playing/Stopped', body));
   }

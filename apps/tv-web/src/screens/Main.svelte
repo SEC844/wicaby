@@ -8,6 +8,7 @@
   import TopBar from '../components/TopBar.svelte';
   import { focused, setFocus } from '../lib/focus';
   import { runHomeRefresh } from '../lib/auto-refresh';
+  import { runScrobbleRetries } from '../lib/scrobble.svelte';
   import { t } from '../lib/i18n.svelte';
   import { clearCache, useLoad } from '../lib/load.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
@@ -82,10 +83,12 @@
       return true;
     });
     const refresh = runHomeRefresh(client);
+    const retries = runScrobbleRetries();
     return () => {
       document.removeEventListener('tvfocus', track);
       stop();
       refresh();
+      retries();
     };
   });
 </script>

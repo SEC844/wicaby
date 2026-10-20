@@ -1,12 +1,13 @@
 <script lang="ts">
   // Android TV AccountsSection (Settings.kt): who is signed in, Switch User / Switch Server / Sign Out, then the
   // other servers signed in at once (TP-06): OK on one offers to remove it, "Add a server" signs another in; then
-  // Trakt (TP-09). On Jellyfin, "Authorize a device" approves another device's Quick Connect code.
+  // Trakt (TP-09) and music scrobbling. On Jellyfin, "Authorize a device" approves another device's Quick Connect code.
   import SettingRow from '../../components/settings/SettingRow.svelte';
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
   import { confirm } from '../../components/settings/rows';
   import TextField from '../../components/TextField.svelte';
   import { showToast } from '../../lib/toast.svelte';
+  import ScrobbleSection from './ScrobbleSection.svelte';
   import TraktSection from './TraktSection.svelte';
   import type { Api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
@@ -92,6 +93,7 @@
 {/if}
 
 <TraktSection />
+<ScrobbleSection />
 
 <style>
   .who {

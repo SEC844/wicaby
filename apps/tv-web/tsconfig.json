@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "types": ["vite/client"],
-    "paths": { "$shared/*": ["../desktop/src/shared/*"], "$desktop/*": ["../desktop/src/renderer/lib/*"] }
+    "paths": { "$shared/*": ["../desktop/src/shared/*"], "$desktop/*": ["../desktop/src/renderer/lib/*"], "node:crypto": ["./src/platform/node-crypto.ts"] }
   },
   "include": ["src/**/*.ts", "src/**/*.svelte", "../desktop/src/shared/**/*.ts"]
 }

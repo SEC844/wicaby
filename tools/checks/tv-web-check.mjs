@@ -1,8 +1,9 @@
 // Self-check for the TV web app (apps/tv-web, docs/tv-web.md): its own DEFLATE decoder against zlib, the ZIP reader
 // over Range requests on a real CBZ (stored and deflated pages, ComicInfo flags, deleted pages), the comic page order
-// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, and, when
-// apps/tv-web/dist holds a build, that the bundle parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018
-// models). No network: the book and the AniSkip answers are served from memory.
+// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, its MD5 against
+// node:crypto, scrobbling's queue, and, when apps/tv-web/dist holds a build, that the bundle parses as ES2016 (the
+// Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the book and the services' answers are served
+// from memory.
 // Run: node tools/checks/tv-web-check.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ const app = path.join(repo, 'apps', 'tv-web');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wicaby-tv-web-'));
 async function load(rel) {
   const out = path.join(dir, `${path.basename(rel).replace(/\W/g, '_')}.mjs`);
-  await build({ entryPoints: [path.join(app, rel)], bundle: true, platform: 'node', format: 'esm', outfile: out, logLevel: 'error' });
+  await build({ entryPoints: [path.join(app, rel)], bundle: true, platform: 'node', format: 'esm', outfile: out, logLevel: 'error', define: { __APP_VERSION__: '"0.0.0-check"' } });
   return import(pathToFileURL(out).href);
 }
 
@@ -134,6 +135,47 @@ for (const [n, c] of aniskipFx.cases.filter((x) => x.response).entries()) {
 assert.ok(asked.every((u) => u.startsWith('https://api.aniskip.com/v2/skip-times/5114/')), 'aniskip: the season MAL id and episode');
 const merged = mergeAniskip({ ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }] }, { credits: 9, ranges: [{ kind: 'Intro', startMs: 3, endMs: 4 }, { kind: 'Recap', startMs: 5, endMs: 6 }] });
 assert.deepEqual(merged, { credits: 9, ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }, { kind: 'Intro', startMs: 3, endMs: 4 }] }, 'aniskip: the server recap wins');
+
+// --- MD5 (Last.fm's api_sig on a TV) against node:crypto ---
+const { md5 } = await load('src/platform/node-crypto.ts');
+const crypto = await import('node:crypto');
+for (const s of ['', 'a', 'abc', 'message digest', 'é😀 Wicaby', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), 'y'.repeat(1000)])
+  assert.equal(md5(s), crypto.createHash('md5').update(s, 'utf8').digest('hex'), `md5 of ${s.length} chars`);
+
+// --- Scrobbling: a listen sent, a failed one queued then sent with the next (no network: fetch answers) ---
+// The module's $state is Svelte's; outside the compiler it is the plain value.
+globalThis.$state = (v) => v;
+const store = new Map();
+globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+const sc = await load('src/lib/scrobble.svelte.ts');
+const sent = [];
+let lbDown = false;
+globalThis.fetch = async (url, init) => {
+  const u = String(url);
+  if (u.endsWith('/1/validate-token')) return new Response(JSON.stringify({ valid: true, user_name: 'nora' }), { status: 200 });
+  if (u.endsWith('/1/submit-listens')) {
+    if (lbDown) return new Response('', { status: 503 });
+    sent.push(JSON.parse(init.body));
+    return new Response('{"status":"ok"}', { status: 200 });
+  }
+  return new Response('{}', { status: 404 });
+};
+assert.equal(await sc.connectListenBrainz('abcdefgh-1234'), true, 'scrobble: ListenBrainz connects');
+assert.equal(sc.scrobble.lbUser, 'nora', 'scrobble: the user name');
+const song = (n) => ({ Id: `t${n}`, Type: 'Audio', Name: `Fil ${n}`, Artists: ['Nora Vale'], Album: 'Lignes claires', RunTimeTicks: 200 * 10_000_000 });
+sc.scrobbleListened(song(1), 1_700_000_000, 10_000);
+lbDown = true;
+sc.scrobbleListened(song(2), 1_700_000_200, 150_000);
+await new Promise((r) => setTimeout(r, 50));
+assert.equal(sent.length, 0, 'scrobble: under half a track is no listen');
+assert.equal(sc.scrobble.queued, 1, 'scrobble: a listen the service refused waits');
+lbDown = false;
+sc.scrobbleListened(song(3), 1_700_000_400, 120_000);
+await new Promise((r) => setTimeout(r, 50));
+assert.deepEqual(sent.map((b) => b.payload[0].track_metadata.track_name), ['Fil 3', 'Fil 2'], 'scrobble: the next listen, then the waiting one');
+assert.equal(sc.scrobble.queued, 0, 'scrobble: the queue is empty again');
+await sc.disconnectListenBrainz();
+assert.equal(sc.scrobble.lbUser, null, 'scrobble: disconnected');
 
 // --- The bundle, when built ---
 const assets = path.join(app, 'dist', 'assets');

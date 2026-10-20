@@ -54,6 +54,8 @@ export default defineConfig({
       $desktop: fileURLToPath(new URL('../desktop/src/renderer/lib', import.meta.url)),
       // Assets shared with the Android TV app (the Geist fonts).
       $android: fileURLToPath(new URL('../android', import.meta.url)),
+      // The desktop's scrobble client signs Last.fm calls with node:crypto's MD5: a pure one on a TV.
+      'node:crypto': fileURLToPath(new URL('./src/platform/node-crypto.ts', import.meta.url)),
     },
   },
   build: {
