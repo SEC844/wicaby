@@ -155,7 +155,7 @@ class ScrobbleTest {
         svc.nowPlaying(song)
         svc.listened(song, 100, 40_000)
         delay(200)
-        assertTrue(f.sent.isEmpty())
+        assertTrue("nothing sent: ${f.sent}", f.sent.isEmpty())
 
         assertFalse(svc.connectListenBrainz("bad token!"))
         assertFalse("refused", svc.connectListenBrainz("wrong-token-123456"))
@@ -163,7 +163,7 @@ class ScrobbleTest {
         assertEquals("wika", svc.state.value.lbUser)
         assertFalse(svc.connectLastfm("short", "x"))
         assertTrue(svc.connectLastfm(FM_KEY, FM_SECRET))
-        assertTrue(svc.state.value.authUrl!!.startsWith("https://www.last.fm/api/auth/?api_key=$FM_KEY&token=tok"))
+        assertTrue("auth url", svc.state.value.authUrl!!.startsWith("https://www.last.fm/api/auth/?api_key=$FM_KEY&token=tok"))
         until { svc.state.value.fmUser == "wika" }
         assertNull(svc.state.value.authUrl)
 
@@ -174,7 +174,7 @@ class ScrobbleTest {
         until { f.sent.size == 4 }
         delay(200)
         assertEquals(listOf("lb:playing_now", "fm:track.updateNowPlaying", "lb:single", "fm:track.scrobble"), f.sent.toList())
-        assertTrue(f.bodies.last().contains("\"listened_at\":1700000000"))
+        assertTrue("listened_at: ${f.bodies}", f.bodies.last().contains("\"listened_at\":1700000000"))
 
         // Offline: both kept (persisted in the store), and sent with the next listen that goes through.
         f.down = true
@@ -196,7 +196,7 @@ class ScrobbleTest {
         assertEquals("the oldest went", 2L, store.q.first().at)
         // Disconnecting drops a service's waiting listens.
         svc.disconnectLastfm()
-        assertTrue(store.q.all { it.to == "listenbrainz" })
+        assertTrue("only ListenBrainz left: ${store.q.map { it.to to it.at }.takeLast(3)}", store.q.all { it.to == "listenbrainz" })
         assertNull(svc.state.value.fmUser)
         assertFalse("no secret in the accounts' text", store.accounts.toString().contains(LB_TOKEN))
     }

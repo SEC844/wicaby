@@ -127,7 +127,8 @@ class Ratings(
         // The key, sealed by the Android Keystore (data/Prefs.kt Vault); opened once.
         @Volatile
         private var openKey: String? = null
-        private val _configured by lazy { MutableStateFlow(prefs.contains("key")) }
+        // Off when the app is not set up (Compose UI tests render detail pages without Core.app).
+        private val _configured by lazy { MutableStateFlow(runCatching { prefs.contains("key") }.getOrDefault(false)) }
         val configured: StateFlow<Boolean> get() = _configured
 
         /** "" turns ratings off. False when [key] does not look like an MDBList key. */
