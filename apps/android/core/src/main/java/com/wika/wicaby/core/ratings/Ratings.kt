@@ -1,6 +1,7 @@
 package com.wika.wicaby.core.ratings
 
 import android.content.Context
+import android.os.Build
 import android.content.res.Resources
 import com.wika.wicaby.core.Core
 import com.wika.wicaby.core.R
@@ -111,7 +112,7 @@ class Ratings(
 
         /** "IMDb 7,8", "RT 91 %"… in the UI's language. */
         fun label(res: Resources, r: ExternalRating): String {
-            val nf = NumberFormat.getInstance(res.configuration.locales[0]).apply { maximumFractionDigits = 1 }
+            val nf = NumberFormat.getInstance(res.configuration.let { if (Build.VERSION.SDK_INT >= 24) it.locales[0] else @Suppress("DEPRECATION") it.locale }).apply { maximumFractionDigits = 1 }
             val id = when (r.source) {
                 "imdb" -> R.string.rating_imdb
                 "tomatoes" -> R.string.rating_tomatoes
