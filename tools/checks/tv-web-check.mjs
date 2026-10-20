@@ -1,7 +1,8 @@
 // Self-check for the TV web app (apps/tv-web, docs/tv-web.md): its own DEFLATE decoder against zlib, the ZIP reader
 // over Range requests on a real CBZ (stored and deflated pages, ComicInfo flags, deleted pages), the comic page order
-// and spreads, and, when apps/tv-web/dist holds a build, that the bundle parses as ES2016 (the Chromium 53 floor:
-// webOS 4 and Tizen 4, 2018 models). No network: the book is served from memory.
+// and spreads, when the home rows reload by themselves, and, when apps/tv-web/dist holds a build, that the bundle
+// parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the book is served from
+// memory.
 // Run: node tools/checks/tv-web-check.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -80,6 +81,36 @@ const portrait = { width: 2, height: 3 };
 const wide = { width: 3, height: 2 };
 assert.deepEqual(spreads([portrait, portrait, portrait, wide, portrait, portrait, portrait], 7, true), [[0], [1, 2], [3], [4, 5], [6]], 'spreads: cover, pairs, wide alone, last alone');
 assert.deepEqual(spreads([], 3, false), [[0], [1], [2]], 'spreads: single pages');
+
+// --- When the rows reload by themselves (Android HomeRefreshTest) ---
+const { HomeRefresh, PERIOD_MS } = await load('src/lib/home-refresh.ts');
+let clock = 0;
+const r = new HomeRefresh(() => clock);
+clock = 60_000;
+r.onMessage('SessionsStart');
+clock += 10_000;
+assert.equal(r.due(), false, 'refresh: other messages do nothing');
+r.onMessage('UserDataChanged');
+clock += 1_000;
+r.onMessage('LibraryChanged');
+assert.equal(r.due(), false, 'refresh: 2 s debounce');
+clock += 1_000;
+assert.equal(r.due(), true, 'refresh: after the debounce');
+assert.equal(r.due(), false, 'refresh: one reload per burst');
+clock += 2_000;
+r.onMessage('UserDataChanged');
+clock += 10_000;
+assert.equal(r.due(), false, 'refresh: at most every 30 s');
+clock += 18_000;
+assert.equal(r.due(), true, 'refresh: held, not lost');
+clock += PERIOD_MS - 1;
+assert.equal(r.due(), false, 'refresh: not before 5 min');
+clock += 1;
+assert.equal(r.due(), true, 'refresh: every 5 min');
+clock += PERIOD_MS - 1;
+r.done();
+clock += 1;
+assert.equal(r.due(), false, 'refresh: a return restarts the period');
 
 // --- The bundle, when built ---
 const assets = path.join(app, 'dist', 'assets');

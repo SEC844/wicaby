@@ -10,7 +10,7 @@ import type { Api } from './api';
 import { deviceProfile } from './device-profile';
 import { t } from './i18n.svelte';
 import { changed } from './load.svelte';
-import { embySegments, isWatched, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
+import { embySegments, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
 import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows, type QualityRow } from '$shared/quality-presets';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
@@ -473,7 +473,8 @@ export class Playback {
       if (this.item && !switching) Trakt.scrobble('stop', this.api, this.item, pos, dur);
       void reporter.send(() => this.api.report('/Sessions/Playing/Stopped', body)).then(async (sent) => {
         if (sent && !switching && markPlayedByCredits(pos, dur, credits)) await this.api.setPlayed(id, true).catch(() => {});
-        if (!switching && (sent || isWatched(pos, dur, credits))) changed();
+        // Whatever the report did (Android onSessionEnd): the rows on show refetch the new resume point.
+        if (!switching) changed();
       });
     }
     // A conversion keeps running on the server until it notices; end it now.
