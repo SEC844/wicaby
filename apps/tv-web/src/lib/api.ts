@@ -110,6 +110,11 @@ export class Api {
     return this.get('/Users/Public');
   }
 
+  // The signed-in user: their avatar tag (PrimaryImageTag), which the session does not keep.
+  me(): Promise<UserDto> {
+    return this.get(`/Users/${this.userId}`);
+  }
+
   async signIn(username: string, password: string): Promise<AuthenticationResult> {
     const r = await this.post<AuthenticationResult>('/Users/AuthenticateByName', { Username: username, Pw: password });
     this.token = r.AccessToken;

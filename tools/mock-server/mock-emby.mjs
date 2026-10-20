@@ -958,6 +958,8 @@ export async function handler(req, res) {
   if (req.method === 'POST' && /^\/Sessions\/Playing(\/Progress|\/Stopped)?$/.test(p)) {
     const b = await body(req).catch(() => ({}));
     if (b?.ItemId && items.has(b.ItemId)) Object.assign(ud(b.ItemId), { LastPlayedDate: new Date().toISOString(), HideFromResume: false });
+    // MOCK_KEEP_POSITION=1: the reported position is kept, as a real server does, so Resume follows what was played.
+    if (process.env.MOCK_KEEP_POSITION === '1' && b?.ItemId && items.has(b.ItemId) && b.PositionTicks > 0) ud(b.ItemId).PlaybackPositionTicks = b.PositionTicks;
     hooks.log('Report', p.split('/')[3] ?? 'Start', b?.ItemId, 'MediaSourceId=' + b?.MediaSourceId, 'PlaySessionId=' + b?.PlaySessionId, 'PlayMethod=' + b?.PlayMethod);
     return send(res, 204);
   }
@@ -1033,7 +1035,8 @@ export async function handler(req, res) {
 
   if (parts[0] === 'Users' && (parts[1] === USER.Id || PROFILES.some((u) => u.Id === parts[1]))) {
     const rest = parts.slice(2);
-    if (rest.length === 0) return send(res, 200, USER);
+    // A profile answers as itself (its name and avatar tag) with Wika's policy.
+    if (rest.length === 0) return send(res, 200, { ...USER, ...PROFILES.find((u) => u.Id === parts[1]) });
     if (rest[0] === 'Views') return send(res, 200, list([items.get('lib-movies'), items.get('lib-shows'), items.get('lib-books')], q));
     if ((rest[0] === 'FavoriteItems' || rest[0] === 'PlayedItems') && rest[1]) {
       const d = ud(rest[1]);

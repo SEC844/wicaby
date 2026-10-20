@@ -5,14 +5,15 @@
   import SettingsGroup from '../../components/settings/SettingsGroup.svelte';
   import type { Api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
-  import { clearCache } from '../../lib/load.svelte';
+  import { clearCache, useLoad } from '../../lib/load.svelte';
   import { nav } from '../../lib/nav.svelte';
   import { closeAlert, showAlert } from '../../lib/overlay.svelte';
   import { prefs, removeExtra, signOut } from '../../lib/session.svelte';
 
   let { api }: { api: Api } = $props();
   const session = prefs.session!;
-  const image = $derived(api.userImage({ Id: session.userId }, 160));
+  const me = useLoad(() => 'me', () => api.me(), { persist: true });
+  const image = $derived(me.value ? api.userImage(me.value, 160) : undefined);
 
   // Navigate first, then forget: signing out drops the client this screen uses. Sign out revokes the token on the
   // server and forgets the saved profile (TP-10); Switch User keeps both.

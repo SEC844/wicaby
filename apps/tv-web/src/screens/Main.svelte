@@ -21,6 +21,8 @@
   const client = api()!;
   const session = prefs.session!;
   const views = useLoad(() => 'views', () => client.views(), { persist: true });
+  // The avatar needs the user's image tag (Chrome.kt UserAvatar).
+  const me = useLoad(() => 'me', () => client.me(), { persist: true });
   const tabViews = $derived((views.value ?? []).filter((v) => browsable(v.CollectionType)));
 
   // Every destination in its default order; Settings > Interface > Tab bar lists the movable ones.
@@ -111,7 +113,7 @@
     visible={barFocused || !scrolled}
     showClock={settings.clock.value}
     userName={session.userName}
-    userImage={client.userImage({ Id: session.userId }, 160)}
+    userImage={me.value ? client.userImage(me.value, 160) : undefined}
     onselect={select}
     onavatar={openProfile}
   />
