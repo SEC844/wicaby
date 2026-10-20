@@ -293,6 +293,8 @@
     <string name="reader_zoom">Zoom ×2</string>
     <string name="reader_rtl">Manga Order</string>
     <string name="reader_webtoon">Vertical Scroll</string>
+    <!-- TV web app (apps/tv-web): its reader opens ZIP books only, unlike reader_unsupported (core), which lists CBR, CB7, CBT and PDF. -->
+    <string name="reader_unsupported_tv_web">Unsupported format or unreadable file. On this TV, the reader opens CBZ, ZIP, and image EPUB books.</string>
     <string name="pair_with_phone">Use My Phone</string>
     <string name="pair_title">Sign In with Your Phone</string>
     <string name="pair_body">In Wicaby on your phone, open Settings > Accounts > Connect a TV and scan this code. The phone must be on the same network.</string>

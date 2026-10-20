@@ -302,6 +302,8 @@
     <string name="reader_zoom">Zoom ×2</string>
     <string name="reader_rtl">Sens manga</string>
     <string name="reader_webtoon">Défilement vertical</string>
+    <!-- App TV web (apps/tv-web) : son lecteur n’ouvre que les livres ZIP, pas reader_unsupported (core) qui liste CBR, CB7, CBT et PDF. -->
+    <string name="reader_unsupported_tv_web" tools:ignore="UnusedResources">Format non pris en charge ou fichier illisible. Sur cette TV, le lecteur ouvre les CBZ, les ZIP et les EPUB d’images.</string>
     <string name="pair_with_phone">Utiliser mon téléphone</string>
     <string name="pair_title">Connexion avec le téléphone</string>
     <string name="pair_body">Dans Wicaby sur votre téléphone, ouvrez Réglages > Comptes > Connecter une TV et scannez ce code. Le téléphone doit être sur le même réseau.</string>

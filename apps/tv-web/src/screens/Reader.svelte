@@ -24,7 +24,7 @@
   const client = apiOf(serverId)!;
 
   const FAILURE: Record<ComicFailure, string> = {
-    unsupported: 'reader_unsupported',
+    unsupported: 'reader_unsupported_tv_web',
     encrypted: 'reader_encrypted',
     'text-book': 'reader_text_book',
     'too-large': 'reader_too_large',
