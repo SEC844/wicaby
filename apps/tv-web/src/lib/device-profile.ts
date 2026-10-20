@@ -55,6 +55,8 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
       { Container: 'ogg,oga,opus,webm', Type: 'Audio', AudioCodec: 'opus,vorbis' },
     ],
     TranscodingProfiles: [
+      // No HLS in the engine (a desktop browser, development): a progressive MP4 the <video> element plays.
+      ...(c.hls ? [] : [{ Container: 'mp4', Type: 'Video', VideoCodec: 'h264', AudioCodec: 'aac', Context: 'Streaming', Protocol: 'http', MaxAudioChannels: '2' }]),
       {
         Container: 'ts',
         Type: 'Video',

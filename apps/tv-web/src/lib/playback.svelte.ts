@@ -78,6 +78,10 @@ export class Playback {
   // The WebVTT file could not be fetched (a server without CORS on it): text subtitles are burnt in instead.
   private burnText = false;
   private seq = 0;
+  // A progressive conversion (an engine without HLS: a desktop browser) starts at the asked position: its time 0 is
+  // offsetMs, it has no duration of its own, and a seek asks the server again.
+  private progressive = false;
+  private offsetMs = 0;
   private timer = 0;
   private offs: (() => void)[] = [];
   private readonly fromStart: boolean;
@@ -104,8 +108,8 @@ export class Playback {
   start(): void {
     this.offs.push(
       this.player.on('time', (ms) => {
-        this.positionMs = ms;
-        this.durationMs = this.player.durationMs || this.durationMs;
+        this.positionMs = ms + this.offsetMs;
+        if (!this.progressive) this.durationMs = this.player.durationMs || this.durationMs;
       }),
       this.player.on('buffering', (on) => (this.buffering = on)),
       this.player.on('ended', () => {
@@ -202,6 +206,7 @@ export class Playback {
     let url: string | null = null;
     let from = startMs;
     let method: 'DirectPlay' | 'DirectStream' | 'Transcode' = 'DirectPlay';
+    let progressive = false;
     if (ps.SupportsDirectPlay && !force) {
       url = this.api.streamUrl(it, ps.Id, info.PlaySessionId);
     } else if (ps.TranscodingUrl) {
@@ -209,6 +214,8 @@ export class Playback {
       method = /videocodec=copy/i.test(ps.TranscodingUrl) ? 'DirectStream' : 'Transcode';
       // Emby and Jellyfin HLS playlists cover the whole runtime; a server that echoes StartTimeTicks starts there.
       if (ps.StartTimeTicks) from = Math.max(0, startMs - ps.StartTimeTicks / TICKS_PER_MS);
+      progressive = (ps.TranscodingSubProtocol ?? '').toLowerCase() !== 'hls' && !/\.m3u8/i.test(ps.TranscodingUrl);
+      if (progressive) from = 0;
     }
     if (!url) throw new Error(t('no_playable_source'));
     switchFrom?.();
@@ -221,10 +228,13 @@ export class Playback {
     this.subtitleIndex = subtitle ?? ps.DefaultSubtitleStreamIndex ?? -1;
     this.started = false;
     this.buffering = true;
+    this.progressive = progressive;
+    this.offsetMs = progressive ? startMs : 0;
     await this.player.open(url, from);
     if (seq !== this.seq) return;
     if (this.rate !== 1) this.player.setRate(this.rate);
-    this.durationMs = this.player.durationMs || (it.RunTimeTicks ?? 0) / TICKS_PER_MS;
+    const runtime = (it.RunTimeTicks ?? 0) / TICKS_PER_MS;
+    this.durationMs = progressive ? runtime : this.player.durationMs || runtime;
     this.positionMs = startMs;
     this.player.play();
     this.playing = true;
@@ -289,9 +299,10 @@ export class Playback {
 
   seek(ms: number): void {
     const target = Math.max(0, Math.min(ms, this.durationMs || ms));
-    this.player.seek(target);
     this.positionMs = target;
     this.ended = false;
+    if (this.progressive) return this.reload();
+    this.player.seek(target);
   }
 
   audio(): MediaStream[] {

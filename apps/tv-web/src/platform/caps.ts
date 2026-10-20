@@ -17,6 +17,8 @@ export interface Caps {
   dts: boolean;
   // Containers the pipeline opens as files (MKV is the common case for a library).
   mkv: boolean;
+  // HLS in the engine itself: every TV; a desktop browser (development) gets progressive conversions instead.
+  hls: boolean;
   // The panel: its height (2160 on a 4K TV) and its dynamic ranges.
   maxHeight: number;
   hdr10: boolean;
@@ -91,7 +93,7 @@ async function detect(): Promise<Caps> {
   const tv = platform !== 'dev';
   const hevc = can('video/mp4; codecs="hvc1.1.6.L120.90"') || can('video/mp4; codecs="hev1.1.6.L120.90"');
   return {
-    h264: true,
+    h264: tv || can('video/mp4; codecs="avc1.640028"'),
     hevc,
     hevc10: can('video/mp4; codecs="hvc1.2.4.L153.B0"') || (tv && hevc),
     av1: can('video/mp4; codecs="av01.0.08M.08"'),
@@ -102,6 +104,7 @@ async function detect(): Promise<Caps> {
     // Samsung dropped DTS from 2018 and LG from 2020 to 2022: only when the engine claims it.
     dts: can('audio/mp4; codecs="dtsc"') || can('audio/vnd.dts'),
     mkv: tv || can('video/x-matroska') || can('video/webm; codecs="avc1.640028"'),
+    hls: tv || can('application/vnd.apple.mpegurl') || can('application/x-mpegURL'),
     ...(await panel()),
   };
 }
