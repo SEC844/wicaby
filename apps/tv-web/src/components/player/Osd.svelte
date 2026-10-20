@@ -171,15 +171,12 @@
     font-family: 'Geist Mono', monospace;
     font-size: 15rem;
   }
+  /* Always room for the target time above the bar: growing while scrubbing pushed the title and clocks up on every
+     seek (Android TV 0.10.15). */
   .bar {
     position: relative;
     margin-top: 8rem;
-    padding: 12rem 0;
-    transition: padding-top var(--t-fast) var(--ease-out);
-  }
-  /* Room for the target time above the bar: the title row moves up instead of under it. */
-  .bar.scrubbing {
-    padding-top: 44rem;
+    padding: 44rem 0 12rem;
   }
   .track {
     position: relative;
@@ -259,8 +256,10 @@
     width: 16rem;
     height: 16rem;
   }
+  /* Tabular digits: the sleep countdown would otherwise shift the centred button group every second. */
   .value {
     color: var(--label-3);
+    font-variant-numeric: tabular-nums;
   }
   /* Many buttons: at rest the icon and the value, the name too once focused (the row stays on one line). */
   .button.compact:not(:global(.focused)) .text {
