@@ -4,6 +4,7 @@
   import type { BaseItem } from '$shared/models';
   import type { Api } from '$tv/api';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import type { ItemMenuContext } from '../lib/item-menu.svelte';
   import Card from './Card.svelte';
 
   let {
@@ -12,6 +13,7 @@
     api,
     wide = false,
     subtitle,
+    menu,
     onopen,
     onall,
   }: {
@@ -20,6 +22,7 @@
     api: Api;
     wide?: boolean;
     subtitle?: (item: BaseItem) => string | undefined;
+    menu?: ItemMenuContext;
     onopen: (item: BaseItem) => void;
     onall?: () => void;
   } = $props();
@@ -39,7 +42,7 @@
   {/if}
   <div class="shelf-row">
     {#each items as item (`${item.ServerId ?? ''}:${item.Id}`)}
-      <Card {item} {api} {wide} titled={!wide} {width} subtitle={subtitle?.(item)} onclick={() => onopen(item)} />
+      <Card {item} {api} {wide} titled={!wide} {width} subtitle={subtitle?.(item)} {menu} onclick={() => onopen(item)} />
     {/each}
   </div>
 </section>

@@ -94,7 +94,8 @@
 <style>
   .hero {
     position: relative;
-    height: min(calc(100vw * 1.3), 620px);
+    /* Short enough that Continue watching shows under it at first sight. */
+    height: min(calc(100vw * 1.12), 560px);
     transform-origin: 50% 100%;
     transform: scale(var(--stretch, 1));
   }

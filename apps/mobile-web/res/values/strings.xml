@@ -23,4 +23,21 @@
     <string name="web_type_movie">Film</string>
     <string name="web_type_series">Série</string>
     <string name="web_type_episode">Épisode</string>
+    <string name="web_go_series">Aller à la série</string>
+    <string name="web_go_season">Aller à la saison</string>
+    <string name="web_favorite_add">Ajouter aux favoris</string>
+    <string name="web_favorite_remove">Retirer des favoris</string>
+    <string name="web_refresh">Actualiser les métadonnées</string>
+    <string name="web_refresh_started">Actualisation lancée sur le serveur</string>
+    <string name="web_delete_title">Supprimer « %1$s » ?</string>
+    <string name="web_delete_body">Le média sera effacé du serveur et de son disque. Cette action est définitive.</string>
+    <string name="web_deleted">« %1$s » supprimé</string>
+    <string name="web_action_failed">Le serveur a refusé l’action.</string>
+    <string name="web_open">Ouvrir</string>
+    <string name="web_admin_badge">Administrateur</string>
+    <string name="web_audio">Son</string>
+    <string name="web_theme_preview">Aperçu</string>
+    <string name="web_categories_title">Réglages</string>
+    <string name="web_speed_short">Vitesse</string>
+    <string name="web_pip_unavailable">iOS bloque encore l’image dans l’image dans une app installée sur l’écran d’accueil (bug WebKit 303885).</string>
 </resources>

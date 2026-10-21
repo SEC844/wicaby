@@ -1,6 +1,9 @@
 <script lang="ts">
   // The signed-in shell's tab roots (Android MainShell): each tab is mounted on its first visit and kept, so a tab
   // shows again where it was left. The tab bar lives in App.svelte, over the tabs' pushed pages too.
+  import { runHomeRefresh } from '$tv/auto-refresh';
+  import { api } from '$tv/session.svelte';
+  import { onMount } from 'svelte';
   import { shell, TABS, type TabId } from '../lib/nav.svelte';
   import HomeTab from '../tabs/HomeTab.svelte';
   import LibrariesTab from '../tabs/LibrariesTab.svelte';
@@ -12,6 +15,9 @@
   $effect.pre(() => {
     visited[shell.tab] = true;
   });
+  // The rows reload by themselves (TV web Main, Android HomeRefresh): back in the app, on the server's changes
+  // (another device playing, a library scan), every 5 min; after a video, once its Stopped report is in.
+  onMount(() => runHomeRefresh(api()!));
 </script>
 
 {#each TABS as tab (tab)}

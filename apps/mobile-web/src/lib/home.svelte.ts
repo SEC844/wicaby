@@ -4,6 +4,7 @@
 // (persisted) and refresh behind. Live TV now and photo memories join with M3.
 // Call useHome() from a component's script: it sets up the component's loads.
 import type { BaseItem } from '$shared/models';
+import type { SeriesDates } from '$desktop/continue';
 import type { Api } from '$tv/api';
 import { continueSubtitle, loadContinueAll } from '$tv/continue-watching';
 import { BECAUSE, becauseSeeds, defaults, latestViewId, NEXT_UP, RESUME, UPCOMING, unseen } from '$tv/home-rows';
@@ -22,6 +23,8 @@ export interface HomeRow {
   // A tap plays (Continue watching, Next up); elsewhere it opens the title's page.
   playable: boolean;
   subtitle?: (item: BaseItem) => string | undefined;
+  // The merged Continue watching row's series dates: its cards' menu can remove them.
+  continueRow?: SeriesDates;
 }
 
 // The libraries with a Recently added row: all but playlists, Live TV and folders (HomeLayout.kt latestViews).
@@ -105,8 +108,8 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     const out: HomeRow[] = [];
     for (const id of shown) {
       if (id === RESUME) {
-        if (merged && cont.value?.items.length) out.push({ key: 'continue', title: t('continue_watching_merged'), items: cont.value.items, wide: true, playable: true, subtitle: continueSubtitle });
-        if (!merged && resume.value?.length) out.push({ key: 'resume', title: t('continue_watching'), items: resume.value, wide: true, playable: true });
+        if (merged && cont.value?.items.length) out.push({ key: 'continue', title: t('continue_watching_merged'), items: cont.value.items, wide: true, playable: true, subtitle: continueSubtitle, continueRow: cont.value.series });
+        if (!merged && resume.value?.length) out.push({ key: 'resume', title: t('continue_watching'), items: resume.value, wide: true, playable: true, continueRow: new Map() });
       } else if (id === NEXT_UP) {
         if (nextUp.value?.length) out.push({ key: 'nextup', title: t('next_up'), items: nextUp.value, wide: true, playable: true });
       } else if (id === UPCOMING) {

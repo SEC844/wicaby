@@ -22,4 +22,21 @@
     <string name="web_type_movie">Movie</string>
     <string name="web_type_series">Series</string>
     <string name="web_type_episode">Episode</string>
+    <string name="web_go_series">Go to series</string>
+    <string name="web_go_season">Go to season</string>
+    <string name="web_favorite_add">Add to favourites</string>
+    <string name="web_favorite_remove">Remove from favourites</string>
+    <string name="web_refresh">Refresh metadata</string>
+    <string name="web_refresh_started">Refresh started on the server</string>
+    <string name="web_delete_title">Delete “%1$s”?</string>
+    <string name="web_delete_body">The media will be erased from the server and its disk. This cannot be undone.</string>
+    <string name="web_deleted">“%1$s” deleted</string>
+    <string name="web_action_failed">The server refused the action.</string>
+    <string name="web_open">Open</string>
+    <string name="web_admin_badge">Administrator</string>
+    <string name="web_audio">Sound</string>
+    <string name="web_theme_preview">Preview</string>
+    <string name="web_categories_title">Settings</string>
+    <string name="web_speed_short">Speed</string>
+    <string name="web_pip_unavailable">iOS still blocks picture in picture in a Home Screen app (WebKit bug 303885).</string>
 </resources>

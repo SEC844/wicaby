@@ -1,25 +1,34 @@
 <script lang="ts">
-  // The app shell (Android MainActivity + MainShell): the page layer, the tab bar while signed in, the dialog layer,
-  // the toasts and the update banner.
+  // The app shell (Android MainActivity + MainShell): the page layer, the tab bar while signed in, a title's menu,
+  // the dialog layer, the toasts and snackbars, and the update banner.
   import { skipPicker } from '$tv/profiles.svelte';
   import { prefs } from '$tv/session.svelte';
+  import { settings } from '$tv/settings.svelte';
   import AlertSheet from './components/AlertSheet.svelte';
+  import ItemMenu from './components/ItemMenu.svelte';
   import Pages from './components/Pages.svelte';
   import TabBar from './components/TabBar.svelte';
+  import Snackbar from './components/Snackbar.svelte';
   import Toast from './components/Toast.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
+  import { itemMenu } from './lib/item-menu.svelte';
   import { isFullScreen, nav, stack } from './lib/nav.svelte';
   import { overlay } from './lib/overlay.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
   import Pending from './screens/Pending.svelte';
   import Servers from './screens/Servers.svelte';
+  import { applyTheme } from './lib/theme';
 
   // Pages past Home load on first use, each in its own chunk (the player brings the remux engine); the service
   // worker has them all precached, so opening one never waits on the network.
   const Detail = () => import('./screens/Detail.svelte');
   const Folder = () => import('./screens/Folder.svelte');
   const Player = () => import('./screens/Player.svelte');
+  const SettingsPage = () => import('./screens/SettingsPage.svelte');
+
+  // The theme and accent follow Settings at once, on every page.
+  $effect(() => applyTheme(settings.theme.value, settings.accent.value));
 
   // MainActivity's start route: the session, else the saved server's sign-in, else the server page.
   // TP-10: "Who's watching?" first, unless this phone has one account without a PIN and the picker is skipped.
@@ -48,12 +57,17 @@
     {:else if e.route.name === 'folder'}
       {@const r = e.route}
       {#await Folder() then m}<m.default id={r.id} title={r.title} serverId={r.serverId} />{/await}
+    {:else if e.route.name === 'settings'}
+      {@const r = e.route}
+      {#await SettingsPage() then m}<m.default page={r.page} />{/await}
     {:else}
       <Pending route={e.route} />
     {/if}
   {/snippet}
 </Pages>
 {#if tabs}<TabBar />{/if}
+{#if itemMenu.item}{#key itemMenu.item}<ItemMenu item={itemMenu.item} ctx={itemMenu.ctx} />{/key}{/if}
 {#if overlay.alert}<AlertSheet alert={overlay.alert} />{/if}
 <Toast />
+<Snackbar />
 <UpdateBanner />

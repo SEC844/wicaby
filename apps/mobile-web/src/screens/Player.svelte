@@ -3,10 +3,11 @@
   // - a tap shows or hides the controls; a double tap on a side (the outer 40 %) skips 10 s, and single taps right
   //   after keep skipping; a double tap in the middle plays or pauses; a sideways swipe seeks (100 s across the
   //   screen) with the time and the trickplay frame in the middle; a pinch steps the picture Fit → Fill → Zoom;
-  // - the controls: back, the series (or the year) and how it plays over the title, then next, audio and subtitles, playback info,
-  //   speed, picture format, quality, sleep timer, PiP and AirPlay; −10 s, play/pause, +10 s in the middle; the bar
-  //   (buffer, accent progress, knob), the times and "Ends at" at the bottom;
-  // - sheets from the bottom for the tracks, speed, quality, chapters and the sleep timer.
+  // - the controls: back, the series (or the year) and how it plays over the title, AirPlay and PiP at the top;
+  //   −10 s, play/pause, +10 s in the middle; the bar (buffer, accent progress, knob), the times and "Ends at", then
+  //   Netflix's row: audio and subtitles, speed, episodes (or chapters), next, and More (format, quality, sleep
+  //   timer, playback info);
+  // - sheets from the bottom for each of them.
   // Skip intro, the up-next card with its countdown, "Still watching?" and the sleep timer are the TV web app's rules
   // (shared Playback session, lib/sleep); the lock screen and Control Center drive it through Media Session. No
   // brightness or volume swipes: a web page can set neither on iOS.
@@ -27,20 +28,18 @@
   import type { Aspect } from '$tvplatform/player';
   import Airplay from '@lucide/svelte/icons/airplay';
   import Captions from '@lucide/svelte/icons/captions';
+  import Ellipsis from '@lucide/svelte/icons/ellipsis';
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
   import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
   import Gauge from '@lucide/svelte/icons/gauge';
-  import Info from '@lucide/svelte/icons/info';
   import ListVideo from '@lucide/svelte/icons/list-video';
-  import Moon from '@lucide/svelte/icons/moon';
   import Pause from '@lucide/svelte/icons/pause';
   import PictureInPicture from '@lucide/svelte/icons/picture-in-picture-2';
   import Play from '@lucide/svelte/icons/play';
   import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
   import RotateCw from '@lucide/svelte/icons/rotate-cw';
   import Scan from '@lucide/svelte/icons/scan';
-  import Settings from '@lucide/svelte/icons/settings';
   import SkipForward from '@lucide/svelte/icons/skip-forward';
   import X from '@lucide/svelte/icons/x';
   import { getContext, onMount } from 'svelte';
@@ -51,7 +50,7 @@
   import Stats from '../components/player/Stats.svelte';
   import Subtitles from '../components/player/Subtitles.svelte';
   import { video as sharedVideo } from '../lib/media-element';
-  import { handleBack, onBack, SCREEN } from '../lib/nav.svelte';
+  import { handleBack, nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { createPlayer, keepAwake } from '../platform';
   import type { RemuxPlayer } from '../platform/remux-player.svelte';
 
@@ -77,7 +76,7 @@
   let host: HTMLDivElement;
   let pb = $state<Playback | null>(null);
 
-  type Sheet = 'tracks' | 'speed' | 'quality' | 'chapters' | 'sleep';
+  type Sheet = 'tracks' | 'speed' | 'quality' | 'chapters' | 'sleep' | 'episodes' | 'more';
   let sheet = $state<Sheet | null>(null);
   // Playback info stays on for the next videos (Android PlaybackStats.visible).
   let stats = $state(false);
@@ -519,16 +518,68 @@
     const current = chapters.findLastIndex((c) => c.ms <= position);
     return [{ title: t('chapters'), rows: chapters.map((c, i) => ({ text: `${clock(c.ms)} · ${c.name || i + 1}`, selected: i === current, run: () => (seekTo(c.ms), (sheet = null)) })) }];
   });
-  const columns = $derived(
-    sheet === 'tracks' ? trackColumns : sheet === 'speed' ? speedColumns : sheet === 'quality' ? qualityColumns : sheet === 'chapters' ? chapterColumns : sheet === 'sleep' ? sleepColumns : [],
-  );
+  // An episode's season (Netflix "Episodes"): read when the sheet opens; a tap plays that one from its resume point.
+  let seasonEpisodes = $state<BaseItem[] | null>(null);
+  $effect(() => {
+    const it = pb?.item;
+    if (sheet !== 'episodes' || !it?.SeriesId) return;
+    seasonEpisodes = null;
+    void client.episodes(it.SeriesId, it.SeasonId).then((list) => (seasonEpisodes = list), () => (seasonEpisodes = []));
+  });
+  function playEpisode(ep: BaseItem): void {
+    sheet = null;
+    if (ep.Id === pb?.item?.Id) return;
+    handleBack();
+    nav.push({ name: 'player', id: ep.Id, serverId: ep.ServerId ?? serverId });
+  }
+  const episodeColumns = $derived.by<Column[]>(() => {
+    const it = pb?.item;
+    const season = it?.ParentIndexNumber !== undefined ? t('season_n', it.ParentIndexNumber) : t('episodes');
+    const rows = (seasonEpisodes ?? []).map((ep) => ({ text: `${ep.IndexNumber ?? ''}. ${ep.Name}`, selected: ep.Id === it?.Id, run: () => playEpisode(ep) }));
+    return [{ title: season, rows }];
+  });
+
+  // "More": what the bottom row leaves out.
+  const moreColumns = $derived.by<Column[]>(() => {
+    if (!pb) return [];
+    const rows: Column['rows'] = [{ text: t('aspect_value', t(ASPECT_LABEL[aspect])), selected: false, run: cycleAspect }];
+    if (!pb.trailer) {
+      rows.push({ text: `${t('quality')} · ${qualityShort}`, selected: false, run: () => (sheet = 'quality') });
+      rows.push({ text: [t('sleep_timer'), sleepLeft !== null ? clock(sleepLeft) : sleep.state ? t('sleep_end_of_video') : ''].filter(Boolean).join(' · '), selected: false, run: () => (sheet = 'sleep') });
+    }
+    if (pb.item?.Type === 'Episode' && chapters.length > 1) rows.push({ text: t('chapters'), selected: false, run: () => (sheet = 'chapters') });
+    rows.push({ text: t('stats_title'), selected: stats, run: () => ((stats = !stats), (sheet = null)) });
+    if (airplayOk && !remuxed) rows.push({ text: t('web_airplay'), selected: false, run: () => ((sheet = null), airplay()) });
+    return [{ title: t('more'), rows }];
+  });
+  const SHEETS = $derived<Record<Sheet, Column[]>>({
+    tracks: trackColumns,
+    speed: speedColumns,
+    quality: qualityColumns,
+    chapters: chapterColumns,
+    sleep: sleepColumns,
+    episodes: episodeColumns,
+    more: moreColumns,
+  });
+  const columns = $derived(sheet ? SHEETS[sheet] : []);
 
   // ---- Picture in picture, AirPlay ----
-  const pipOk = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
+  // iOS reports PiP as enabled in a Home Screen app where it refuses it (WebKit bug 303885): WebKit's own check,
+  // once the video has data, says whether this video may go; the button shows only then, and comes back by itself
+  // once iOS allows it.
+  type PresentableVideo = HTMLVideoElement & { webkitSupportsPresentationMode?(m: string): boolean; webkitSetPresentationMode?(m: string): void; webkitPresentationMode?: string };
+  const pipOk = $derived.by(() => {
+    void pb?.playing;
+    const v = video as PresentableVideo;
+    if (typeof v.webkitSupportsPresentationMode === 'function') return v.readyState >= 2 && v.webkitSupportsPresentationMode('picture-in-picture');
+    return typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
+  });
   let airplayOk = $state(false);
   function pip(): void {
+    const v = video as PresentableVideo;
+    if (v.webkitSetPresentationMode) return v.webkitSetPresentationMode(v.webkitPresentationMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
     if (document.pictureInPictureElement) void document.exitPictureInPicture();
-    else void video.requestPictureInPicture().catch(() => {});
+    else void video.requestPictureInPicture().catch(() => showToast(t('web_pip_unavailable')));
   }
   function airplay(): void {
     (video as HTMLVideoElement & { webkitShowPlaybackTargetPicker?(): void }).webkitShowPlaybackTargetPicker?.();
@@ -652,23 +703,8 @@
             <p class="footnote dim ellipsis">{[eyebrow, mode].filter(Boolean).join(' · ')}</p>
             <p class="headline ellipsis">{title}</p>
           </div>
-          <div class="tools">
-            {#if pb.next}<button class="icon" aria-label={t('up_next')} onclick={() => advance(false)}><SkipForward size={18} fill="currentColor" aria-hidden="true" /></button>{/if}
-            <button class="icon" aria-label={t('subtitles')} onclick={() => (sheet = 'tracks')}><Captions size={22} aria-hidden="true" /></button>
-            {#if chapters.length > 1}<button class="icon" aria-label={t('chapters')} onclick={() => (sheet = 'chapters')}><ListVideo size={22} aria-hidden="true" /></button>{/if}
-            <button class="icon" class:on={stats} aria-label={t('stats_title')} aria-pressed={stats} onclick={() => (stats = !stats)}><Info size={22} aria-hidden="true" /></button>
-            {#if pb.player.speeds.length > 1}<button class="icon" aria-label={t('speed')} onclick={() => (sheet = 'speed')}><Gauge size={22} aria-hidden="true" /></button>{/if}
-            <button class="icon" aria-label={t('aspect_value', t(ASPECT_LABEL[aspect]))} onclick={cycleAspect}><Scan size={22} aria-hidden="true" /></button>
-            {#if !pb.trailer}
-              <button class="icon wide" aria-label={t('quality')} onclick={() => (sheet = 'quality')}><Settings size={22} aria-hidden="true" /><span class="footnote">{qualityShort}</span></button>
-              <button class="icon" aria-label={[t('sleep_timer'), sleepLeft !== null ? clock(sleepLeft) : ''].filter(Boolean).join(', ')} onclick={() => (sheet = 'sleep')}>
-                <Moon size={22} aria-hidden="true" />
-                {#if sleepLeft !== null}<span class="badge mono">{clock(sleepLeft)}</span>{/if}
-              </button>
-            {/if}
-            {#if pipOk}<button class="icon" aria-label={t('pip')} onclick={pip}><PictureInPicture size={22} aria-hidden="true" /></button>{/if}
-            {#if airplayOk && !remuxed}<button class="icon" aria-label={t('web_airplay')} onclick={airplay}><Airplay size={22} aria-hidden="true" /></button>{/if}
-          </div>
+          {#if airplayOk && !remuxed}<button class="icon" aria-label={t('web_airplay')} onclick={airplay}><Airplay size={22} aria-hidden="true" /></button>{/if}
+          {#if pipOk}<button class="icon" aria-label={t('pip')} onclick={pip}><PictureInPicture size={22} aria-hidden="true" /></button>{/if}
         </div>
 
         <div class="middle">
@@ -707,9 +743,25 @@
           </div>
           <div class="times mono footnote">
             <span>{clock(shown)}</span>
-            <span>{t('seek_delta_back', clock(Math.max(0, duration - shown)))}</span>
+            <span>{[t('seek_delta_back', clock(Math.max(0, duration - shown))), endsAt].filter(Boolean).join(' · ')}</span>
           </div>
-          {#if endsAt}<p class="times ends mono footnote">{endsAt}</p>{/if}
+          <!-- Netflix's row under the bar: what one reaches for while watching; the rest in More. -->
+          <div class="actions-row">
+            <button class="act" onclick={() => (sheet = 'tracks')}><Captions size={22} aria-hidden="true" /><span>{t('tracks_hint_touch')}</span></button>
+            {#if pb.player.speeds.length > 1}
+              <button class="act" onclick={() => (sheet = 'speed')}><Gauge size={22} aria-hidden="true" /><span>{pb.rate === 1 ? t('web_speed_short') : speedText(pb.rate)}</span></button>
+            {/if}
+            {#if pb.item?.Type === 'Episode' && pb.item.SeriesId}
+              <button class="act" onclick={() => (sheet = 'episodes')}><ListVideo size={22} aria-hidden="true" /><span>{t('episodes')}</span></button>
+            {:else if chapters.length > 1}
+              <button class="act" onclick={() => (sheet = 'chapters')}><ListVideo size={22} aria-hidden="true" /><span>{t('chapters')}</span></button>
+            {/if}
+            {#if pb.next}<button class="act" onclick={() => advance(false)}><SkipForward size={22} aria-hidden="true" /><span>{t('up_next')}</span></button>{/if}
+            <button class="act" onclick={() => (sheet = 'more')}>
+              <Ellipsis size={22} aria-hidden="true" /><span>{t('more')}</span>
+              {#if sleepLeft !== null}<span class="sleep-dot mono">{clock(sleepLeft)}</span>{/if}
+            </button>
+          </div>
         </div>
       </div>
     {/if}
@@ -895,15 +947,6 @@
   .icon:active {
     transform: scale(0.9);
   }
-  .icon.on {
-    background: rgb(255 255 255 / 0.22);
-  }
-  .icon.wide {
-    width: auto;
-    padding: 0 11px;
-    gap: 6px;
-    border-radius: 22px;
-  }
   .badge {
     position: absolute;
     font-size: 9px;
@@ -923,19 +966,6 @@
     flex: 1;
     min-width: 0;
     padding: 0 12px 0 6px;
-  }
-  .tools {
-    display: flex;
-    align-items: center;
-  }
-  /* Portrait: the buttons under the title, to the right. */
-  @media (max-width: 640px) {
-    .tools {
-      order: 3;
-      width: 100%;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
   }
   .middle {
     position: absolute;
@@ -1013,8 +1043,54 @@
     justify-content: space-between;
     color: rgb(255 255 255 / 0.7);
   }
-  .times.ends {
-    justify-content: flex-end;
+  .actions-row {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 8px;
+  }
+  .act {
+    position: relative;
+    min-width: 0;
+    flex: 1;
+    max-width: 150px;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: var(--r-sm);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    transition: background-color var(--t-fast);
+  }
+  .act:active {
+    background: rgb(255 255 255 / 0.12);
+  }
+  .act span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sleep-dot {
+    position: absolute;
+    top: 2px;
+    right: 8px;
+    font-size: 9px;
+    color: var(--accent);
+  }
+  /* On its side: the icon beside its label, as Netflix's landscape row. */
+  @media (orientation: landscape) {
+    .act {
+      flex-direction: row;
+      flex: none;
+      max-width: none;
+      padding: 0 14px;
+      gap: 8px;
+      font-size: var(--fs-subhead);
+    }
   }
 
   /* ---- Feedback ---- */
@@ -1111,7 +1187,7 @@
     transition: bottom var(--t-med) var(--ease-out);
   }
   .corner.up {
-    bottom: calc(var(--safe-bottom) + 104px);
+    bottom: calc(var(--safe-bottom) + 150px);
   }
   .action {
     display: inline-flex;

@@ -1,12 +1,14 @@
 <script lang="ts">
-  // Accueil, as the Apple TV app's Home: the hero first, full bleed under the status bar, then the user's rows
-  // (lib/home.svelte.ts). Once the hero scrolls away, a bar of the floating chrome's material takes the top. Pulling down at the
-  // top stretches the hero's artwork. Continue watching and Next up play on a tap; other cards open their page.
+  // Accueil, as the TV app's Home: the hero first, full bleed under the status bar, Continue watching in large
+  // right under it (components/ContinueShelf.svelte), then the user's other rows (lib/home.svelte.ts). Once the hero
+  // scrolls away, a bar of the floating chrome's material takes the top. Pulling down at the top stretches the hero's
+  // artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
   import { play } from '$tv/playback';
   import { api } from '$tv/session.svelte';
+  import ContinueShelf from '../components/ContinueShelf.svelte';
   import Hero from '../components/Hero.svelte';
   import ProfileButton from '../components/ProfileButton.svelte';
   import Shelf from '../components/Shelf.svelte';
@@ -46,7 +48,11 @@
       <h1 class="large-title plain">{t('tab_home')}</h1>
     {/if}
     {#each home.rows as row (row.key)}
-      <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} onopen={row.playable ? (i) => play(i) : open} />
+      {#if row.continueRow}
+        <ContinueShelf title={row.title} items={row.items} api={a} subtitle={row.subtitle} continueRow={row.continueRow} onplay={(i) => play(i)} />
+      {:else}
+        <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} onopen={row.playable ? (i) => play(i) : open} />
+      {/if}
     {/each}
     {#if home.loading}<div class="loading"><Spinner /></div>{/if}
   </div>

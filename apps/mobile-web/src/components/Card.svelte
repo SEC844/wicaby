@@ -9,6 +9,8 @@
   import { episodeLine, progress } from '$tv/format';
   import { placeholder } from '$tv/images';
   import Check from '@lucide/svelte/icons/check';
+  import { openItemMenu, type ItemMenuContext } from '../lib/item-menu.svelte';
+  import { longpress } from '../lib/press';
 
   let {
     item,
@@ -17,8 +19,9 @@
     titled = false,
     width,
     subtitle,
+    menu = {},
     onclick,
-  }: { item: BaseItem; api: Api; wide?: boolean; titled?: boolean; width: number; subtitle?: string; onclick?: () => void } = $props();
+  }: { item: BaseItem; api: Api; wide?: boolean; titled?: boolean; width: number; subtitle?: string; menu?: ItemMenuContext; onclick?: () => void } = $props();
 
   const dpr = Math.min(3, window.devicePixelRatio || 2);
   const height = $derived(wide ? Math.round((width * 9) / 16) : Math.round((width * 3) / 2));
@@ -31,7 +34,8 @@
   let failed = $state(false);
 </script>
 
-<button class="card pressable" class:wide style:width="{width}px" aria-label={title} {onclick}>
+<!-- A long press opens the title's menu (components/ItemMenu.svelte). -->
+<button class="card pressable" class:wide style:width="{width}px" aria-label={title} {onclick} use:longpress={() => openItemMenu(item, menu)}>
   <span class="art" style:height="{height}px" style:background-color={tint}>
     {#if src && !failed}
       <img {src} alt="" loading="lazy" decoding="async" class:loaded onload={() => (loaded = true)} onerror={() => (failed = true)} />

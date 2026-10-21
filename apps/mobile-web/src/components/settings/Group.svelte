@@ -1,5 +1,6 @@
 <script lang="ts">
-  // A settings group as iOS draws it: a small caps title, rounded rows on the elevated fill, a hint under them.
+  // A settings group (Android Group with its Eyebrow): a small caps title, rounded rows on the elevated fill, a hint
+  // under them.
   import type { Snippet } from 'svelte';
 
   let { title, hint, children }: { title?: string; hint?: string; children: Snippet } = $props();
@@ -17,11 +18,14 @@
   }
   .title {
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 0 0 7px 16px;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    color: var(--label-3);
+    margin: 0 0 8px 16px;
   }
   .rows {
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     background: var(--bg-elevated);
     overflow: hidden;
   }

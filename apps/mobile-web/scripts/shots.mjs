@@ -77,6 +77,16 @@ const SCENES = {
     await page.locator('nav button[aria-label]').last().click();
     await page.waitForTimeout(500);
   },
+  // A long press on the first Continue card: the title's menu.
+  async itemMenu(page) {
+    const card = page.locator('[data-screen-top] section.shelf').first().locator('button.card').first();
+    const box = await card.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+    await page.mouse.down();
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+    await page.waitForTimeout(900);
+  },
   // A Continue card plays; the controls stay up for the screenshot (a tap shows them).
   async player(page) {
     await page.locator('[data-screen-top] section.shelf').first().locator('button.card').first().click();
@@ -93,8 +103,19 @@ const SCENES = {
     await page.locator('.osd button.wide').click();
     await page.waitForTimeout(600);
   },
+  // Settings > Appearance (the theme cards, the accent swatches), and Playback.
+  async appearance(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.row').nth(1).click();
+    await page.waitForTimeout(800);
+  },
+  async playback(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.row').nth(3).click();
+    await page.waitForTimeout(800);
+  },
   async settings(page) {
-    await page.locator('nav button').nth(3).click();
+    await page.locator('nav button').last().click();
     await page.waitForTimeout(500);
   },
 };
