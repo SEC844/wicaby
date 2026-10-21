@@ -9,7 +9,14 @@ import type { Route as TvRoute } from '$tv/nav.svelte';
 // A settings category's page (tabs/SettingsTab.svelte lists them).
 export type SettingsPageId = 'general' | 'appearance' | 'playback' | 'subtitles' | 'home' | 'accounts' | 'about';
 // The TV's routes, plus the phone's own pages.
-export type Route = TvRoute | { name: 'settings'; page: SettingsPageId } | { name: 'admin'; section?: string };
+export type Route =
+  | TvRoute
+  | { name: 'settings'; page: SettingsPageId }
+  | { name: 'admin'; section?: string }
+  | { name: 'person'; id: string; serverId?: string; title?: string }
+  | { name: 'favorites' }
+  // A grid of what a server query returns (collections, playlists, history, a genre, a kind of favourites).
+  | { name: 'browse'; title: string; query: Record<string, string>; serverId?: string };
 export type RouteName = Route['name'];
 export type TabId = 'home' | 'libraries' | 'search' | 'downloads' | 'settings';
 

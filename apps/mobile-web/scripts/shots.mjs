@@ -73,6 +73,27 @@ const SCENES = {
     await page.locator('[data-screen-top] button.lib').first().click();
     await page.waitForTimeout(1500);
   },
+  // Libraries' tiles: favourites, collections; a person from a title's cast.
+  async favorites(page) {
+    await SCENES.library(page);
+    await page.locator('[data-screen-top] button.tile').first().click();
+    await page.waitForTimeout(1500);
+  },
+  async collections(page) {
+    await SCENES.library(page);
+    await page.locator('[data-screen-top] button.tile').nth(1).click();
+    await page.waitForTimeout(1500);
+  },
+  async movie(page) {
+    await SCENES.folder(page);
+    await page.locator('[data-screen-top] button.card').first().click();
+    await page.waitForTimeout(1500);
+  },
+  async person(page) {
+    await SCENES.movie(page);
+    await page.locator('[data-screen-top] button.person').first().click();
+    await page.waitForTimeout(1500);
+  },
   async search(page) {
     await page.locator('nav button[aria-label]').last().click();
     await page.waitForTimeout(500);

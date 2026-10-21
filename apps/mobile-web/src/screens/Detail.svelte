@@ -202,7 +202,15 @@
     solid = y > (art ? art.offsetHeight - 60 : 60);
   }
 
-  const people = $derived((item?.People ?? []).filter((p) => p.Type === 'Actor' || !p.Type).slice(0, 20));
+  // Cast and crew, as Emby lists them: the actors first (in the server's order), then directors, writers and the rest,
+  // whose job stands where an actor's role does.
+  const CREW: Record<string, string> = { Director: 'web_director', Writer: 'web_writer', Producer: 'web_producer', Composer: 'web_composer', GuestStar: 'web_guest_star' };
+  const people = $derived.by(() => {
+    const all = item?.People ?? [];
+    const actors = all.filter((p) => p.Type === 'Actor' || !p.Type);
+    const crew = all.filter((p) => p.Type && p.Type !== 'Actor').map((p) => ({ ...p, Role: p.Role || (CREW[p.Type!] ? t(CREW[p.Type!]) : p.Type) }));
+    return [...actors, ...crew].slice(0, 40);
+  });
   const backdrop = $derived(item ? (client.backdrop(item, Math.round(1100 * dpr)) ?? client.poster(item, Math.round(900 * dpr))) : undefined);
   const poster = $derived(item ? client.poster(item, Math.round(162 * dpr)) : undefined);
   const seasonPlayed = $derived(shownEpisodes.length > 0 && shownEpisodes.every((e) => e.UserData?.Played));
@@ -337,17 +345,17 @@
 
       {#if people.length}
         <section class="people">
-          <h2 class="title-3 head">{t('cast')}</h2>
+          <h2 class="title-3 head">{t('web_cast_crew')}</h2>
           <div class="shelf-row">
             {#each people as p (p.Id + (p.Role ?? ''))}
               {@const face = p.PrimaryImageTag ? client.image(p.Id, 'Primary', p.PrimaryImageTag, { maxHeight: Math.round(96 * dpr) }) : undefined}
-              <div class="person">
+              <button class="person pressable" onclick={() => nav.push({ name: 'person', id: p.Id, serverId: item?.ServerId, title: p.Name })}>
                 <span class="face">
                   {#if face}<img src={face} alt="" loading="lazy" decoding="async" />{:else}<span class="initial">{p.Name.slice(0, 1)}</span>{/if}
                 </span>
                 <span class="footnote ellipsis">{p.Name}</span>
                 {#if p.Role}<span class="caption label-2 ellipsis">{p.Role}</span>{/if}
-              </div>
+              </button>
             {/each}
           </div>
         </section>
@@ -668,6 +676,8 @@
     padding: 0 max(var(--gutter), var(--safe-right)) 10px max(var(--gutter), var(--safe-left));
   }
   .person {
+    flex: none;
+    color: var(--label);
     width: 84px;
     display: flex;
     flex-direction: column;

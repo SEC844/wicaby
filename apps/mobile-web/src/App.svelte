@@ -27,6 +27,8 @@
   const Player = () => import('./screens/Player.svelte');
   const SettingsPage = () => import('./screens/SettingsPage.svelte');
   const Admin = () => import('./screens/Admin.svelte');
+  const Person = () => import('./screens/Person.svelte');
+  const Favorites = () => import('./screens/Favorites.svelte');
   const ItemAdminHost = () => import('./components/ItemAdminHost.svelte');
 
   // The theme and accent follow Settings at once, on every page.
@@ -62,6 +64,14 @@
     {:else if e.route.name === 'settings'}
       {@const r = e.route}
       {#await SettingsPage() then m}<m.default page={r.page} />{/await}
+    {:else if e.route.name === 'browse'}
+      {@const r = e.route}
+      {#await Folder() then m}<m.default id="" title={r.title} query={r.query} serverId={r.serverId} />{/await}
+    {:else if e.route.name === 'person'}
+      {@const r = e.route}
+      {#await Person() then m}<m.default id={r.id} serverId={r.serverId} name={r.title} />{/await}
+    {:else if e.route.name === 'favorites'}
+      {#await Favorites() then m}<m.default />{/await}
     {:else if e.route.name === 'admin'}
       {@const r = e.route}
       {#await Admin() then m}<m.default section={r.section} />{/await}

@@ -45,4 +45,27 @@
     <string name="web_admin_identify">Identifier</string>
     <string name="web_admin_images">Modifier les images</string>
     <string name="web_admin_subtitles">Rechercher des sous-titres</string>
+    <string name="web_born">Né(e) le %1$s</string>
+    <string name="web_died">mort(e) le %1$s</string>
+    <string name="web_collections">Collections</string>
+    <string name="web_playlists">Playlists</string>
+    <string name="web_people">Personnes</string>
+    <string name="web_favorites">Favoris</string>
+    <string name="web_favorites_empty">Aucun favori pour l’instant. Appuyez longuement sur un titre puis « Ajouter aux favoris ».</string>
+    <string name="web_sort_critic">Note critique</string>
+    <string name="web_sort_release">Date de sortie</string>
+    <string name="web_sort_played">Date de lecture</string>
+    <string name="web_sort_runtime">Durée</string>
+    <string name="web_sort_plays">Nombre de lectures</string>
+    <string name="web_sort_random">Aléatoire</string>
+    <string name="web_filter_played">Vus</string>
+    <string name="web_filter_resumable">En cours</string>
+    <string name="web_genre">Genre</string>
+    <string name="web_genre_all">Tous les genres</string>
+    <string name="web_director">Réalisation</string>
+    <string name="web_writer">Scénario</string>
+    <string name="web_producer">Production</string>
+    <string name="web_composer">Musique</string>
+    <string name="web_guest_star">Invité(e)</string>
+    <string name="web_cast_crew">Distribution et équipe</string>
 </resources>

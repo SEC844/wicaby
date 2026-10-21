@@ -44,4 +44,27 @@
     <string name="web_admin_identify">Identify</string>
     <string name="web_admin_images">Edit images</string>
     <string name="web_admin_subtitles">Search for subtitles</string>
+    <string name="web_born">Born %1$s</string>
+    <string name="web_died">died %1$s</string>
+    <string name="web_collections">Collections</string>
+    <string name="web_playlists">Playlists</string>
+    <string name="web_people">People</string>
+    <string name="web_favorites">Favourites</string>
+    <string name="web_favorites_empty">No favourites yet. Long-press a title, then “Add to favourites”.</string>
+    <string name="web_sort_critic">Critic rating</string>
+    <string name="web_sort_release">Release date</string>
+    <string name="web_sort_played">Date played</string>
+    <string name="web_sort_runtime">Runtime</string>
+    <string name="web_sort_plays">Play count</string>
+    <string name="web_sort_random">Random</string>
+    <string name="web_filter_played">Watched</string>
+    <string name="web_filter_resumable">In progress</string>
+    <string name="web_genre">Genre</string>
+    <string name="web_genre_all">All genres</string>
+    <string name="web_director">Director</string>
+    <string name="web_writer">Writer</string>
+    <string name="web_producer">Producer</string>
+    <string name="web_composer">Composer</string>
+    <string name="web_guest_star">Guest star</string>
+    <string name="web_cast_crew">Cast &amp; crew</string>
 </resources>
