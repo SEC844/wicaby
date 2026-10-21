@@ -7,7 +7,8 @@
   "type": "module",
   "workspaces": [
     "apps/desktop",
-    "apps/tv-web"
+    "apps/tv-web",
+    "apps/mobile-web"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/desktop --",
@@ -24,6 +25,9 @@
     "build:tv": "npm run build -w apps/tv-web",
     "check:tv": "npm run check -w apps/tv-web",
     "package:tv": "npm run package:tizen -w apps/tv-web && node apps/tv-web/scripts/package-ipk.mjs",
+    "dev:mobile": "npm run dev -w apps/mobile-web",
+    "build:mobile": "npm run build -w apps/mobile-web",
+    "check:mobile": "npm run check -w apps/mobile-web",
     "build:mesh": "node packages/mesh/scripts/build-vpn-helper.mjs",
     "build:mesh-aar": "powershell -NoProfile -ExecutionPolicy Bypass -File packages/mesh/scripts/build-mesh-aar.ps1"
   },

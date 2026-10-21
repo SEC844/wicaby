@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="web_https_required">HTTPS address required: a web app can only reach a server over HTTPS.</string>
+    <string name="web_update_body">The new version opens when the app restarts.</string>
+    <string name="web_install_title">Install Wicaby</string>
+    <string name="web_install_body">Tap Share, then “Add to Home Screen”: Wicaby opens full screen, like an app.</string>
+    <string name="web_coming">Coming soon on iPhone</string>
+</resources>

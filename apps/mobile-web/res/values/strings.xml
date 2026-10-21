@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Words only the web app says (installing it, HTTPS); every other string comes from the Android apps. -->
+<resources>
+    <string name="web_https_required">Adresse HTTPS requise : une app web ne peut joindre qu’un serveur en HTTPS.</string>
+    <string name="web_update_body">La nouvelle version s’ouvre en relançant l’app.</string>
+    <string name="web_install_title">Installer Wicaby</string>
+    <string name="web_install_body">Touchez Partager, puis « Sur l’écran d’accueil » : Wicaby s’ouvrira en plein écran, comme une app.</string>
+    <string name="web_coming">Bientôt sur iPhone</string>
+</resources>

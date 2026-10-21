@@ -1,0 +1,189 @@
+/* The phone's base styles. Colours come from the shared Graphite tokens (the desktop's generated tokens.css: every
+   theme as [data-theme], accents as [data-accent]); shape and motion follow docs/design.md; type follows iOS sizes
+   (17 pt body) in Geist. Only transform and opacity animate. */
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
+@import '../../../desktop/src/renderer/tokens.css';
+
+:root {
+  --font: 'Geist Variable', -apple-system, system-ui, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --blur: blur(30px) saturate(180%);
+
+  --fs-large-title: 34px;
+  --fs-title-1: 28px;
+  --fs-title-2: 22px;
+  --fs-title-3: 20px;
+  --fs-headline: 17px;
+  --fs-body: 17px;
+  --fs-callout: 16px;
+  --fs-subhead: 15px;
+  --fs-footnote: 13px;
+  --fs-caption: 12px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --tempo: 1;
+  --t-fast: calc(160ms * var(--tempo));
+  --t-med: calc(320ms * var(--tempo));
+  --t-slow: calc(560ms * var(--tempo));
+  --t-spin: 0.8s;
+
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 40px rgb(0 0 0 / 0.45);
+
+  /* The page gutter, and the system's insets (notch, Dynamic Island, home indicator) in standalone mode. */
+  --gutter: 20px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --tabbar: calc(56px + var(--safe-bottom));
+
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tempo: 0.001;
+  }
+}
+:root[data-reduce-motion] {
+  --tempo: 0.001;
+}
+:root[data-reduce-transparency] {
+  --blur: none;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  /* The pages scroll, never the document: no rubber band of the whole app, and the bars stay put. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--label);
+  font: 400 var(--fs-body) / 1.35 var(--font);
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  /* 16px or more: iOS zooms the page into a smaller field on focus. */
+  font: inherit;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.large-title { font-size: var(--fs-large-title); font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
+.title-1 { font-size: var(--fs-title-1); font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; }
+.title-2 { font-size: var(--fs-title-2); font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
+.title-3 { font-size: var(--fs-title-3); font-weight: 600; letter-spacing: -0.015em; }
+.headline { font-size: var(--fs-headline); font-weight: 600; }
+.callout { font-size: var(--fs-callout); }
+.subhead { font-size: var(--fs-subhead); }
+.footnote { font-size: var(--fs-footnote); letter-spacing: 0; }
+.caption { font-size: var(--fs-caption); letter-spacing: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label-2 { color: var(--label-2); }
+.label-3 { color: var(--label-3); }
+
+.material {
+  background: var(--material);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+/* Press feedback on any tappable surface: an instant dim, a scale on cards. */
+.pressable {
+  transition: transform var(--t-fast) var(--ease-out);
+}
+.pressable:active {
+  transform: scale(0.97);
+  transition-duration: calc(var(--t-fast) / 2);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A home row: a title, then cards that scroll sideways and settle on a card's edge. */
+.shelf {
+  margin-top: 22px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+.shelf-title {
+  padding: 0 max(var(--gutter), var(--safe-right)) 10px max(var(--gutter), var(--safe-left));
+}
+.shelf-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 max(var(--gutter), var(--safe-right)) 4px max(var(--gutter), var(--safe-left));
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: max(var(--gutter), var(--safe-left));
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.shelf-row > * {
+  scroll-snap-align: start;
+}
