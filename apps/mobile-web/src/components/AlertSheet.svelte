@@ -56,13 +56,13 @@
 
 <style>
   .scrim {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: var(--scrim);
     z-index: 50;
   }
   .sheet {
-    position: fixed;
+    position: absolute;
     left: max(8px, var(--safe-left));
     right: max(8px, var(--safe-right));
     bottom: max(8px, var(--safe-bottom));
@@ -109,7 +109,7 @@
     border-top: 0;
   }
   .alert {
-    position: fixed;
+    position: absolute;
     left: 50%;
     top: 50%;
     width: 270px;

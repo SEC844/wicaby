@@ -7,6 +7,7 @@
   import type { Snippet } from 'svelte';
   import { t } from '$tv/i18n.svelte';
   import { handleBack, shell, type TabId } from '../lib/nav.svelte';
+  import ProfileButton from './ProfileButton.svelte';
 
   let {
     title,
@@ -32,6 +33,8 @@
     <header class="head">
       <h1 class="large-title">{title}</h1>
       {#if trailing}<div class="trailing">{@render trailing()}</div>{/if}
+      <!-- The account, on every tab's root but Settings (which opens with it). -->
+      {#if tab && tab !== 'settings'}<ProfileButton />{/if}
     </header>
     {@render header?.()}
     {@render children()}

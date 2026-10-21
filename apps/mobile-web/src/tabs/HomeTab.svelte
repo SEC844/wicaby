@@ -8,6 +8,7 @@
   import { play } from '$tv/playback';
   import { api } from '$tv/session.svelte';
   import Hero from '../components/Hero.svelte';
+  import ProfileButton from '../components/ProfileButton.svelte';
   import Shelf from '../components/Shelf.svelte';
   import Spinner from '../components/Spinner.svelte';
   import { useHome } from '../lib/home.svelte';
@@ -53,6 +54,7 @@
   <div class="bar" class:solid>
     <span class="headline title">{t('tab_home')}</span>
   </div>
+  <ProfileButton floating onMedia={!solid && home.hero.length > 0} />
 </div>
 
 <style>

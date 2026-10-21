@@ -20,7 +20,7 @@
 
 <style>
   .banner {
-    position: fixed;
+    position: absolute;
     top: calc(var(--safe-top) + 8px);
     left: max(8px, var(--safe-left));
     right: max(8px, var(--safe-right));

@@ -50,6 +50,10 @@ const SCENES = {
     await page.locator('[data-screen-top] .scroller, [data-screen-top] [data-scroll]').first().evaluate((el) => el.scrollTo(0, 700));
     await page.waitForTimeout(500);
   },
+  async profile(page) {
+    await page.locator('[data-screen-top] button.me').first().click();
+    await page.waitForTimeout(400);
+  },
   async detail(page) {
     await page.locator('[data-screen-top] button.card').nth(2).click();
     await page.waitForTimeout(1200);

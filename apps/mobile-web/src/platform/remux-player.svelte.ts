@@ -35,7 +35,8 @@ export function remuxSupports(mime: string): boolean {
 
 const isMatroska = (b: Uint8Array) => b.length >= 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
 const BEHIND_S = 30;
-const STREAMING_FLOOR_S = 10;
+// Above WebKit's own startstreaming level (10 s), for headroom on a 4K remux.
+const STREAMING_FLOOR_S = 15;
 
 export class RemuxPlayer extends HtmlPlayer {
   // Reactive: the player screen shows how the title plays.
@@ -196,7 +197,7 @@ export class RemuxPlayer extends HtmlPlayer {
       if (gen !== this.generation) return;
       const ahead = this.bufferedAhead();
       // ManagedMediaSource asks for data (startstreaming) only below about 10 s buffered, and only once it has some:
-      // under that, feed regardless; above it, follow its endstreaming as well as the cap.
+      // under STREAMING_FLOOR_S, feed regardless; above it, follow its endstreaming as well as the cap.
       const paused = this.ms?.streaming === false && ahead >= STREAMING_FLOOR_S;
       if (ahead < this.aheadS && !paused) return;
       await new Promise<void>((resolve) => {

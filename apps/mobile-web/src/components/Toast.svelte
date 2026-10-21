@@ -12,7 +12,7 @@
 
 <style>
   .toast {
-    position: fixed;
+    position: absolute;
     left: 50%;
     bottom: calc(var(--tabbar) + 16px);
     translate: -50% 0;

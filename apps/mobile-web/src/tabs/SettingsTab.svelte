@@ -3,12 +3,13 @@
   // servers, playback (quality, resume, skipping, Dolby), subtitles, Home, appearance and language, about.
   import { setLanguage, t } from '$tv/i18n.svelte';
   import { clearCache } from '$tv/load.svelte';
-  import { api, prefs, removeExtra, signOut } from '$tv/session.svelte';
+  import { api, prefs, removeExtra } from '$tv/session.svelte';
   import { settings, type Setting } from '$tv/settings.svelte';
   import Avatar from '../components/Avatar.svelte';
   import LargeTitlePage from '../components/LargeTitlePage.svelte';
   import Group from '../components/settings/Group.svelte';
   import Row from '../components/settings/Row.svelte';
+  import { leave } from '../lib/account';
   import { VERSION } from '../lib/identity';
   import { nav } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
@@ -37,6 +38,9 @@
   ] as const;
 
   $effect(() => applyTheme(settings.theme.value, settings.accent.value));
+
+  const css = getComputedStyle(document.documentElement);
+  const display = `${window.innerHeight}/${screen.height} · ${css.getPropertyValue('--app-height').trim() || 'auto'} · ${standalone ? 'app' : 'web'}`;
   $effect(() => setLanguage(settings.language.value));
 
   // A row showing the chosen option; a tap opens the sheet with every option.
@@ -56,16 +60,6 @@
   const sizes = $derived([t('size_small'), t('size_normal'), t('size_large'), t('size_xlarge')]);
   const styles = $derived([t('style_outline'), t('style_shadow'), t('style_box')]);
   const positions = $derived([t('sub_pos_bottom'), t('sub_pos_slightly_raised'), t('sub_pos_raised')]);
-
-  // Switching user keeps the token for the profile picker. Signing out forgets the profile and revokes its token on
-  // the server too, so a copy of this phone's storage opens nothing.
-  function leave(forget: boolean): void {
-    const server = prefs.session?.server;
-    if (forget) void api()?.post('/Sessions/Logout').catch(() => {});
-    signOut(forget);
-    clearCache();
-    nav.reset(server ? { name: 'login', server } : { name: 'servers' });
-  }
 
   function confirm(title: string, label: string, run: () => void): void {
     showAlert({ title, actions: [{ label, destructive: true, run }, { label: t('cancel'), run: () => {} }] });
@@ -158,6 +152,8 @@
 
   <Group title={t('about')}>
     <Row label={t('version')} value={VERSION} />
+    <!-- The heights lib/viewport.ts works with, for a report from the phone. -->
+    <Row label={t('web_display')} value={display} />
   </Group>
 </LargeTitlePage>
 

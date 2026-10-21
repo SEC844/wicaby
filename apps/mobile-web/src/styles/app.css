@@ -88,12 +88,17 @@
   box-sizing: border-box;
 }
 
-html,
+/* The pages scroll, never the document: no rubber band of the whole app, and the bars stay put. The viewport does
+   not scroll (overflow on html); the body does not clip, so the app can be taller than iOS's short viewport
+   (lib/viewport.ts). */
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 body {
   margin: 0;
   height: 100%;
-  /* The pages scroll, never the document: no rubber band of the whole app, and the bars stay put. */
-  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -110,15 +115,15 @@ body {
   -webkit-user-select: none;
 }
 
-/* The whole screen. Not inset: 0, whose box iOS 26+ measures short in a Home Screen app (a band under the tab bar):
-   the large viewport's height is the screen's. */
+/* The whole screen, at the height lib/viewport.ts measures (iOS 26+ lays a Home Screen app out short): absolute,
+   since fixed boxes are clipped to that short viewport. */
 #app {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 100vh;
-  height: 100lvh;
+  height: var(--app-height, 100%);
+  overflow: hidden;
 }
 
 input,
