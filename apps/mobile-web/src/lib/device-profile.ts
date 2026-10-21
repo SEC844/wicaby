@@ -1,10 +1,15 @@
 // The DeviceProfile sent with PlaybackInfo, for Safari on iPhone and iPad (same signature as the TV's,
-// apps/tv-web/src/lib/device-profile.ts). Safari's own rules decide it, more than the codecs:
-// - Matroska never plays: an MKV is remuxed by the server, its video copied when the HLS segments can carry it.
-// - HEVC and Dolby Vision play from MP4/MOV files and from fMP4 HLS segments only, never from MPEG-TS, and only
-//   tagged hvc1/dvh1. Jellyfin segments fMP4; Emby segments MPEG-TS, so its transcodes are H.264.
-// - AC3 and EAC3 (Dolby Digital, Dolby Digital Plus with Atmos) pass through to AirPlay receivers and decode on the
-//   device: 5.1 stays 5.1. DTS and TrueHD do not: the server converts them.
+// apps/tv-web/src/lib/device-profile.ts). The aim is the lightest work for the server, in this order:
+// 1. Direct play of MP4/MOV files Safari opens itself.
+// 2. Direct play of Matroska (MKV, WebM): the phone remuxes it (platform/remux-player.ts) for every codec its
+//    ManagedMediaSource takes (caps.remux), text subtitles included (read from the file: Embed). The server only
+//    reads the file.
+// 3. A conversion the phone still remuxes: Matroska over HTTP with the video copied, only the audio converted
+//    (DTS, TrueHD, Vorbis…).
+// 4. Without ManagedMediaSource (iOS < 17.1): the server's HLS. HEVC and Dolby Vision play from fMP4 segments only,
+//    never MPEG-TS: Jellyfin segments fMP4, Emby MPEG-TS, so Emby's HLS transcodes are H.264 there.
+// AC3 and EAC3 (Dolby Digital, Dolby Digital Plus with Atmos) are kept: 5.1 stays 5.1. Image subtitles (PGS,
+// VobSub) are burnt in by the server.
 import type { Caps } from '../platform/caps';
 import type { ServerKind } from '$tv/api';
 import { PASS_OFF, PASS_ON, settings } from '$tv/settings.svelte';
@@ -32,6 +37,10 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
   const fileAudio = ['aac', 'mp3', 'alac', 'flac', ...surround].join(',');
   const hlsAudio = ['aac', ...surround].join(',');
   const fmp4 = server === 'jellyfin';
+  const remux = c.remux ?? { video: [], audio: [] };
+  const mkv = c.mkv && remux.video.length > 0;
+  // The audio the phone takes when it remuxes, Dolby passthrough choices applied.
+  const remuxAudio = remux.audio.filter((a) => (a === 'ac3' || a === 'eac3' ? surround.includes(a) : true));
   const height = maxHeight ? Math.min(maxHeight, c.maxHeight) : c.maxHeight;
   const width = Math.round((height * 16) / 9);
   return {
@@ -41,12 +50,26 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
     MusicStreamingTranscodingBitrate: 320_000,
     DirectPlayProfiles: [
       { Container: 'mp4,m4v,mov', Type: 'Video', VideoCodec: video, AudioCodec: fileAudio },
+      ...(mkv ? [{ Container: 'mkv,webm', Type: 'Video', VideoCodec: remux.video.join(','), AudioCodec: remuxAudio.join(',') }] : []),
       { Container: 'mp3', Type: 'Audio' },
       { Container: 'aac,m4a,m4b', Type: 'Audio', AudioCodec: 'aac,alac' },
       { Container: 'flac', Type: 'Audio' },
       { Container: 'wav', Type: 'Audio' },
     ],
     TranscodingProfiles: [
+      // Matroska over HTTP: the video copied when the phone decodes it, the audio converted to what it takes.
+      ...(mkv
+        ? [{
+            Container: 'mkv',
+            Type: 'Video',
+            VideoCodec: remux.video.join(','),
+            AudioCodec: ['aac', ...remuxAudio.filter((a) => a === 'ac3' || a === 'eac3')].join(','),
+            Context: 'Streaming',
+            Protocol: 'http',
+            MaxAudioChannels: surround.length ? '6' : '2',
+            CopyTimestamps: true,
+          }]
+        : []),
       {
         Container: fmp4 ? 'mp4' : 'ts',
         Type: 'Video',
@@ -81,9 +104,12 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
         : []),
     ],
     ResponseProfiles: [],
-    // As on the TV: text subtitles come as WebVTT the app draws (lib/subtitles.ts); image subtitles are burnt in.
+    // Text subtitles inside a Matroska file are read by the phone (Embed); others come as WebVTT the app draws
+    // (lib/subtitles.ts); image subtitles are burnt in.
     SubtitleProfiles: [
-      ...(burnText ? ['srt', 'subrip', 'ass', 'ssa', 'vtt', 'webvtt', 'mov_text'].map((Format) => ({ Format, Method: 'Encode' })) : [{ Format: 'vtt', Method: 'External' }]),
+      ...(burnText
+        ? ['srt', 'subrip', 'ass', 'ssa', 'vtt', 'webvtt', 'mov_text'].map((Format) => ({ Format, Method: 'Encode' }))
+        : [...(mkv ? ['srt', 'subrip', 'ass', 'ssa', 'webvtt'].map((Format) => ({ Format, Method: 'Embed' })) : []), { Format: 'vtt', Method: 'External' }]),
       ...['pgs', 'pgssub', 'dvdsub', 'dvbsub', 'vobsub', 'sub', 'idx'].map((Format) => ({ Format, Method: 'Encode' })),
     ],
   };

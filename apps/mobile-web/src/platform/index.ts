@@ -1,8 +1,9 @@
 // The phone platform, behind the exports the TV web logic expects of its own (apps/tv-web/src/platform/index.ts):
-// a <video> player, the Screen Wake Lock, links in a new browsing context. Volume, the network type and quitting
+// a <video> player that remuxes Matroska itself (platform/remux-player.ts), the Screen Wake Lock, links in a new
+// browsing context. Volume, the network type and quitting
 // belong to the system on iOS: a web app reads or sets none of them.
-import { HtmlPlayer } from '$tvplatform/html-player';
 import type { VideoPlayer } from '$tvplatform/player';
+import { RemuxPlayer } from './remux-player.svelte';
 
 export type PlatformName = 'ios' | 'web';
 
@@ -56,7 +57,7 @@ export const canSetVolume = (): boolean => false;
 export function setVolume(_command: string, _level?: number): void {}
 
 export function createPlayer(video: HTMLVideoElement): VideoPlayer {
-  return new HtmlPlayer(video);
+  return new RemuxPlayer(video);
 }
 
 // Safari exposes no connection type: Settings' single cap applies everywhere.
