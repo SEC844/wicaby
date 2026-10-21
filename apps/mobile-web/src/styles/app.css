@@ -44,13 +44,28 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --tabbar: calc(56px + var(--safe-bottom));
+  /* The floating tab bar: 62px high, its bottom edge just above the home indicator; --tabbar is what a page keeps
+     clear under its content. */
+  --tabbar-gap: max(10px, calc(var(--safe-bottom) - 14px));
+  --tabbar: calc(62px + var(--tabbar-gap) + 16px);
+
+  /* Glass (iOS 26's material, in the theme's own tones): a tinted, blurred fill, a light rim along the top edge and
+     a hairline all round, floating on a soft shadow. Over artwork (heroes, the player) it is always dark. */
+  --glass-fill: color-mix(in srgb, var(--bg-elevated-2) 58%, transparent);
+  --glass-rim: rgb(255 255 255 / 0.2);
+  --glass-edge: rgb(255 255 255 / 0.08);
+  --glass-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  --glass-blur: blur(22px) saturate(190%);
 
   color-scheme: dark;
 }
 
 [data-theme='light'] {
   color-scheme: light;
+  --glass-fill: rgb(255 255 255 / 0.62);
+  --glass-rim: rgb(255 255 255 / 0.9);
+  --glass-edge: rgb(0 0 0 / 0.08);
+  --glass-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -63,6 +78,8 @@
 }
 :root[data-reduce-transparency] {
   --blur: none;
+  --glass-blur: none;
+  --glass-fill: var(--bg-elevated-2);
 }
 
 *,
@@ -128,10 +145,10 @@ p {
   margin: 0;
 }
 
-.large-title { font-size: var(--fs-large-title); font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
-.title-1 { font-size: var(--fs-title-1); font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; }
-.title-2 { font-size: var(--fs-title-2); font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
-.title-3 { font-size: var(--fs-title-3); font-weight: 600; letter-spacing: -0.015em; }
+.large-title { font-size: var(--fs-large-title); font-weight: 800; letter-spacing: -0.035em; line-height: 1.12; }
+.title-1 { font-size: var(--fs-title-1); font-weight: 800; letter-spacing: -0.03em; line-height: 1.18; }
+.title-2 { font-size: var(--fs-title-2); font-weight: 750; letter-spacing: -0.025em; line-height: 1.22; }
+.title-3 { font-size: var(--fs-title-3); font-weight: 700; letter-spacing: -0.02em; }
 .headline { font-size: var(--fs-headline); font-weight: 600; }
 .callout { font-size: var(--fs-callout); }
 .subhead { font-size: var(--fs-subhead); }
@@ -145,6 +162,44 @@ p {
   background: var(--material);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
+}
+
+.glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 0.5px 0 var(--glass-rim), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
+}
+/* Glass over artwork: dark in every theme, white content. */
+.glass-media {
+  background: rgb(28 28 31 / 0.42);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.25), inset 0 0 0 0.5px rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+
+/* The Apple TV pair: a light pill for Play (as the desktop's .btn.light) and round glass buttons beside it. */
+.btn-light {
+  height: 50px;
+  padding: 0 26px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  color: #000;
+  font-size: var(--fs-headline);
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-round {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
 }
 
 /* Press feedback on any tappable surface: an instant dim, a scale on cards. */
@@ -165,15 +220,7 @@ p {
   white-space: nowrap;
 }
 
-/* A home row: a title, then cards that scroll sideways and settle on a card's edge. */
-.shelf {
-  margin-top: 22px;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 240px;
-}
-.shelf-title {
-  padding: 0 max(var(--gutter), var(--safe-right)) 10px max(var(--gutter), var(--safe-left));
-}
+/* A row of cards that scrolls sideways and settles on a card's edge (components/Shelf.svelte). */
 .shelf-row {
   display: flex;
   gap: 12px;

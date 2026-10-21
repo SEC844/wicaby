@@ -1,60 +1,107 @@
 <script lang="ts">
-  // Accueil (M0): "Continue watching" and each library's latest, through the shared TV web logic. Rows paint from
-  // the last visit at once (persisted cache) and refresh behind. The full Home (hero, row settings) is M1.
+  // Accueil, as the Apple TV app's Home: the hero first, full bleed under the status bar, then the user's rows
+  // (lib/home.svelte.ts). Once the hero scrolls away, a glass bar with the title takes the top. Pulling down at the
+  // top stretches the hero's artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
-  import { continueSubtitle, loadContinue } from '$tv/continue-watching';
   import { t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
+  import { play } from '$tv/playback';
   import { api, prefs } from '$tv/session.svelte';
-  import LatestShelf from '../components/LatestShelf.svelte';
-  import PosterCard from '../components/PosterCard.svelte';
+  import Avatar from '../components/Avatar.svelte';
+  import Hero from '../components/Hero.svelte';
+  import Shelf from '../components/Shelf.svelte';
   import Spinner from '../components/Spinner.svelte';
+  import { useHome } from '../lib/home.svelte';
   import { itemRoute, nav, shell } from '../lib/nav.svelte';
 
   const a = api()!;
-  const VIDEO = new Set(['movies', 'tvshows', 'homevideos', 'musicvideos', undefined]);
-
-  const resume = useLoad<BaseItem[]>(() => 'm.home.continue', async () => (await loadContinue(a, prefs.session!.server.id)).items, { persist: true });
-  const views = useLoad<BaseItem[]>(() => 'm.home.views', () => a.views(), { persist: true });
-  const shelves = $derived((views.value ?? []).filter((v) => VIDEO.has(v.CollectionType)));
+  const session = prefs.session!;
+  const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
+  const home = useHome(a, () => views.value ?? []);
 
   let scroller: HTMLElement;
-  // A tap on the current tab's icon at its root: back to the top.
+  let heroBox = $state<HTMLElement>();
+  let solid = $state(false);
+
+  function onScroll(): void {
+    const y = scroller.scrollTop;
+    // iOS reports the rubber band above the top as a negative offset.
+    if (heroBox) heroBox.style.setProperty('--stretch', String(1 + Math.max(0, -y) / heroBox.offsetHeight));
+    solid = y > (heroBox ? heroBox.offsetHeight - 120 : 40);
+  }
+
   let seen = shell.reselect;
   $effect(() => {
     if (shell.reselect !== seen && shell.tab === 'home') scroller.scrollTo({ top: 0, behavior: 'smooth' });
     seen = shell.reselect;
   });
+
+  const open = (item: BaseItem) => nav.push(itemRoute(item));
 </script>
 
-<div class="page" bind:this={scroller}>
-  <h1 class="large-title head">{t('tab_home')}</h1>
-  {#if resume.value?.length}
-    <section class="shelf">
-      <h2 class="title-3 shelf-title">{t('continue_watching')}</h2>
-      <div class="shelf-row">
-        {#each resume.value as item (item.Id)}
-          <PosterCard {item} api={a} thumb width={260} subtitle={continueSubtitle(item)} onclick={() => nav.push(itemRoute(item))} />
-        {/each}
-      </div>
-    </section>
-  {/if}
-  {#each shelves as view (view.Id)}
-    <LatestShelf {view} api={a} />
-  {/each}
-  {#if views.loading}<div class="loading"><Spinner /></div>{/if}
-</div>
+<div class="page">
+  <div class="scroller" data-scroll bind:this={scroller} onscroll={onScroll}>
+    {#if home.hero.length}
+      <div bind:this={heroBox}><Hero items={home.hero} api={a} /></div>
+    {:else}
+      <h1 class="large-title plain">{t('tab_home')}</h1>
+    {/if}
+    {#each home.rows as row (row.key)}
+      <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} onopen={row.playable ? (i) => play(i) : open} />
+    {/each}
+    {#if home.loading}<div class="loading"><Spinner /></div>{/if}
+  </div>
 
+  <div class="bar" class:solid>
+    <span class="headline title">{t('tab_home')}</span>
+  </div>
+  <button class="me" aria-label={t('settings_account')} onclick={() => nav.selectTab('settings')}>
+    <Avatar user={{ Id: session.userId, Name: session.userName }} api={a} size={36} />
+  </button>
+</div>
 
 <style>
   .page {
+    position: relative;
+    height: 100%;
+  }
+  .scroller {
     height: 100%;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: calc(var(--safe-top) + 12px) 0 calc(var(--tabbar) + 24px);
+    padding-bottom: calc(var(--tabbar) + 12px);
   }
-  .head {
-    padding: 0 max(var(--gutter), var(--safe-right)) 12px max(var(--gutter), var(--safe-left));
+  .plain {
+    padding: calc(var(--safe-top) + 10px) var(--gutter) 0;
+  }
+  .bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--safe-top) + 44px);
+    padding-top: var(--safe-top);
+    display: grid;
+    place-items: center;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 0.5px solid var(--separator);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-fast) linear;
+    z-index: 4;
+  }
+  .bar.solid {
+    opacity: 1;
+  }
+  .me {
+    position: absolute;
+    top: calc(var(--safe-top) + 4px);
+    right: max(16px, var(--safe-right));
+    z-index: 5;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.35), 0 0 0 0.5px rgb(255 255 255 / 0.2);
   }
   .loading {
     display: grid;

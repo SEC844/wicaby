@@ -10,6 +10,8 @@
   import UpdateBanner from './components/UpdateBanner.svelte';
   import { isFullScreen, nav, stack } from './lib/nav.svelte';
   import { overlay } from './lib/overlay.svelte';
+  import Detail from './screens/Detail.svelte';
+  import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
   import Pending from './screens/Pending.svelte';
@@ -33,6 +35,10 @@
       <Login server={e.route.server} add={e.route.add} />
     {:else if e.route.name === 'main'}
       <Main />
+    {:else if e.route.name === 'detail'}
+      <Detail id={e.route.id} serverId={e.route.serverId} />
+    {:else if e.route.name === 'folder'}
+      <Folder id={e.route.id} title={e.route.title} serverId={e.route.serverId} />
     {:else}
       <Pending route={e.route} />
     {/if}

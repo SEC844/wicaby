@@ -3,6 +3,8 @@
   // shows again where it was left. The tab bar lives in App.svelte, over the tabs' pushed pages too.
   import { shell, TABS, type TabId } from '../lib/nav.svelte';
   import HomeTab from '../tabs/HomeTab.svelte';
+  import LibrariesTab from '../tabs/LibrariesTab.svelte';
+  import SearchTab from '../tabs/SearchTab.svelte';
   import Placeholder from '../tabs/Placeholder.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
 
@@ -16,6 +18,8 @@
   {#if visited[tab]}
     <div class="tab" class:on={shell.tab === tab} inert={shell.tab !== tab}>
       {#if tab === 'home'}<HomeTab />
+      {:else if tab === 'libraries'}<LibrariesTab />
+      {:else if tab === 'search'}<SearchTab />
       {:else if tab === 'settings'}<SettingsTab />
       {:else}<Placeholder {tab} />{/if}
     </div>

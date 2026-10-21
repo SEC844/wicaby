@@ -5,4 +5,20 @@
     <string name="web_install_title">Install Wicaby</string>
     <string name="web_install_body">Tap Share, then “Add to Home Screen”: Wicaby opens full screen, like an app.</string>
     <string name="web_coming">Coming soon on iPhone</string>
+    <string name="web_info">Information</string>
+    <string name="web_genres">Genres</string>
+    <string name="web_studio">Studio</string>
+    <string name="web_released">Released</string>
+    <string name="web_runtime">Runtime</string>
+    <string name="web_rated">Rated</string>
+    <string name="web_directed">Directed by</string>
+    <string name="web_sort">Sort</string>
+    <string name="web_filter">Filter</string>
+    <string name="web_movies">Movies</string>
+    <string name="web_series">Shows</string>
+    <string name="web_recent">Recent searches</string>
+    <string name="web_dolby">Dolby audio</string>
+    <string name="web_dolby_hint">Auto: the iPhone keeps Dolby Digital and Dolby Digital Plus (Atmos) as they are, with no conversion on the server, and decodes them or passes them to the Apple TV, AirPods or receiver over AirPlay.</string>
+    <string name="web_servers">Servers</string>
+    <string name="web_accounts">Account</string>
 </resources>
