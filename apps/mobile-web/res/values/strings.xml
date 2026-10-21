@@ -22,4 +22,13 @@
     <string name="web_dolby_hint">Auto : l’iPhone garde le Dolby Digital et Dolby Digital Plus (Atmos) tels quels, sans conversion par le serveur, et les décode ou les transmet à l’Apple TV, aux AirPods ou à l’ampli via AirPlay.</string>
     <string name="web_servers">Serveurs</string>
     <string name="web_accounts">Compte</string>
+    <string name="web_mode_direct">Lecture directe</string>
+    <string name="web_mode_remux">Lecture directe · remux iPhone</string>
+    <string name="web_mode_audio">Vidéo d’origine · audio converti</string>
+    <string name="web_mode_transcode">Transcodage par le serveur</string>
+    <string name="web_still_body">La lecture est en pause.</string>
+    <string name="web_continue">Continuer</string>
+    <string name="web_airplay">AirPlay</string>
+    <string name="web_back10">Reculer de 10 s</string>
+    <string name="web_fwd10">Avancer de 10 s</string>
 </resources>

@@ -10,12 +10,16 @@
   import UpdateBanner from './components/UpdateBanner.svelte';
   import { isFullScreen, nav, stack } from './lib/nav.svelte';
   import { overlay } from './lib/overlay.svelte';
-  import Detail from './screens/Detail.svelte';
-  import Folder from './screens/Folder.svelte';
   import Login from './screens/Login.svelte';
   import Main from './screens/Main.svelte';
   import Pending from './screens/Pending.svelte';
   import Servers from './screens/Servers.svelte';
+
+  // Pages past Home load on first use, each in its own chunk (the player brings the remux engine); the service
+  // worker has them all precached, so opening one never waits on the network.
+  const Detail = () => import('./screens/Detail.svelte');
+  const Folder = () => import('./screens/Folder.svelte');
+  const Player = () => import('./screens/Player.svelte');
 
   // MainActivity's start route: the session, else the saved server's sign-in, else the server page.
   // TP-10: "Who's watching?" first, unless this phone has one account without a PIN and the picker is skipped.
@@ -36,9 +40,14 @@
     {:else if e.route.name === 'main'}
       <Main />
     {:else if e.route.name === 'detail'}
-      <Detail id={e.route.id} serverId={e.route.serverId} />
+      {@const r = e.route}
+      {#await Detail() then m}<m.default id={r.id} serverId={r.serverId} />{/await}
+    {:else if e.route.name === 'player'}
+      {@const r = e.route}
+      {#await Player() then m}<m.default id={r.id} fromStart={r.fromStart} trailer={r.trailer} queue={r.queue} serverId={r.serverId} startMs={r.startMs} tracks={r.tracks} />{/await}
     {:else if e.route.name === 'folder'}
-      <Folder id={e.route.id} title={e.route.title} serverId={e.route.serverId} />
+      {@const r = e.route}
+      {#await Folder() then m}<m.default id={r.id} title={r.title} serverId={r.serverId} />{/await}
     {:else}
       <Pending route={e.route} />
     {/if}

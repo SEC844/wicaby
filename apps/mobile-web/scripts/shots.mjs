@@ -5,7 +5,7 @@
 //
 //   npm run shots -w apps/mobile-web [-- scene…]      scenes: login home homeScrolled detail series library folder
 //                                                      search settings
-//   SHOTS_DARK=0 for the light scheme first; SHOTS_EVAL='<js expression>' prints its value on each scene (debug).
+//   SHOTS_VIDEO=.dev/media/x.mkv for the player scene; SHOTS_DARK=0 for the light scheme first; SHOTS_EVAL='<js expression>' prints its value on each scene (debug).
 //   Output in .dev/shots/
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -28,7 +28,9 @@ const freePort = () =>
   });
 
 async function startMock(port) {
-  const child = spawn(process.execPath, [path.join(ROOT, 'tools/mock-server/mock-emby.mjs'), String(port)], {
+  // SHOTS_VIDEO: the file the mock serves for every title (the player scenes).
+  const video = process.env.SHOTS_VIDEO ? [path.resolve(ROOT, process.env.SHOTS_VIDEO)] : [];
+  const child = spawn(process.execPath, [path.join(ROOT, 'tools/mock-server/mock-emby.mjs'), String(port), ...video], {
     env: { ...process.env, MOCK_DATASET: 'demo' },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
@@ -69,6 +71,11 @@ const SCENES = {
   async search(page) {
     await page.locator('nav button[aria-label]').last().click();
     await page.waitForTimeout(500);
+  },
+  // A Continue card plays; the controls stay up for the screenshot (a tap shows them).
+  async player(page) {
+    await page.locator('[data-screen-top] section.shelf').first().locator('button.card').first().click();
+    await page.waitForTimeout(6000);
   },
   async settings(page) {
     await page.locator('nav button').nth(3).click();
