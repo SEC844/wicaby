@@ -2,5 +2,5 @@
 export { familyMime } from './codecs';
 export { clusters, cueBefore, readHeader } from './matroska';
 export { LEAD_MS, Remuxer } from './remux';
-export { RangeSource, StreamSource } from './source';
+export { BlobSource, RangeSource, StreamSource } from './source';
 export { subtitleCue } from './subtitles';

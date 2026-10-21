@@ -19,6 +19,7 @@
   import Pending from './screens/Pending.svelte';
   import Servers from './screens/Servers.svelte';
   import { applyTheme } from './lib/theme';
+  import { startDownloads } from './lib/downloads.svelte';
 
   // Pages past Home load on first use, each in its own chunk (the player brings the remux engine); the service
   // worker has them all precached, so opening one never waits on the network.
@@ -30,6 +31,9 @@
   const Person = () => import('./screens/Person.svelte');
   const Favorites = () => import('./screens/Favorites.svelte');
   const ItemAdminHost = () => import('./components/ItemAdminHost.svelte');
+
+  // The offline answers for downloaded titles, and the download queue where it stopped.
+  startDownloads();
 
   // The theme and accent follow Settings at once, on every page.
   $effect(() => applyTheme(settings.theme.value, settings.accent.value));

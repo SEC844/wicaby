@@ -68,4 +68,21 @@
     <string name="web_composer">Musique</string>
     <string name="web_guest_star">Invité(e)</string>
     <string name="web_cast_crew">Distribution et équipe</string>
+    <string name="web_gb">%1$s Go</string>
+    <string name="web_mb">%1$s Mo</string>
+    <string name="web_space">%1$s utilisés · %2$s disponibles</string>
+    <string name="web_downloads_empty">Aucun téléchargement</string>
+    <string name="web_downloads_hint">Appuyez longuement sur un film ou un épisode, puis « Télécharger » : il se regarde ensuite sans connexion, depuis l’iPhone.</string>
+    <string name="web_downloads_open">Gardez Wicaby ouverte pendant le téléchargement : iOS met en pause les apps web en arrière-plan.</string>
+    <string name="web_download_queued">En attente</string>
+    <string name="web_download_failed">Échec du téléchargement</string>
+    <string name="web_download_conversion">Ce fichier doit être converti par le serveur pour l’iPhone : il ne peut pas être téléchargé.</string>
+    <string name="web_download_quota">Plus assez d’espace sur l’iPhone</string>
+    <string name="web_download_delete">Supprimer le téléchargement</string>
+    <string name="web_download_cancel">Annuler le téléchargement</string>
+    <string name="web_retry">Réessayer</string>
+    <string name="web_download">Télécharger</string>
+    <string name="web_downloaded">Téléchargé</string>
+    <string name="web_downloading">Téléchargement en cours</string>
+    <string name="web_download_started">Téléchargement lancé</string>
 </resources>

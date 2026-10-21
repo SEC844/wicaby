@@ -6,6 +6,8 @@
 // - the player says it remuxes on the phone (no server conversion),
 // - the picture advances, then a seek far ahead plays on from there,
 // - no page error was raised.
+// PLAYER_OFFLINE=1: the film is downloaded first, the server is then stopped, and it plays from the Downloads tab
+// (lib/downloads: the file from the phone, the page and PlaybackInfo from what was kept).
 //   node apps/mobile-web/scripts/player-check.mjs [file.mkv…]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -88,9 +90,24 @@ try {
       await page.keyboard.press('Enter');
       await page.locator('nav').waitFor();
       await page.waitForTimeout(800);
-      // A film from its page, from the start (a resume point could lie past the end of the short test file).
-      await page.locator('[data-screen-top] section.shelf', { hasText: 'Movies' }).locator('button.card').first().click();
-      await page.locator('[data-screen-top] button.play').click();
+      const card = page.locator('[data-screen-top] section.shelf', { hasText: 'Movies' }).locator('button.card').first();
+      if (process.env.PLAYER_OFFLINE) {
+        await card.scrollIntoViewIfNeeded();
+        const box = await card.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(700);
+        await page.mouse.up();
+        await page.locator('.sheet button.row', { hasText: 'Télécharger' }).click();
+        await page.waitForFunction(() => JSON.parse(localStorage.getItem('wicaby.downloads') ?? '[]')[0]?.status === 'done', null, { timeout: 60_000 });
+        mock.kill();
+        await page.locator('nav button').nth(3).click();
+        await page.locator('[data-screen-top] button.main').first().click();
+      } else {
+        // A film from its page, from the start (a resume point could lie past the end of the short test file).
+        await card.click();
+        await page.locator('[data-screen-top] button.play').click();
+      }
       await page.getByText(/Depuis le début|From the start/).click({ timeout: 2000 }).catch(() => {});
       await page.waitForTimeout(5000);
       // The controls hide while playing: a tap brings them (mode line, bar) back.
@@ -113,7 +130,7 @@ try {
       console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}: "${a.mode}" · t ${a.t.toFixed(1)} s → after seek ${b.t.toFixed(1)} s${a.err || b.err ? ` · ${a.err ?? b.err}` : ''}${a.msg ? ` · ${a.msg}` : ''}${errors.length ? ` · ${errors.join(' | ')}` : ''}`);
     } catch (e) {
       failed++;
-      console.log(`FAIL ${name}: ${e.message.split('\n')[0]}`);
+      console.log(`FAIL ${name}: ${e.message.split('\n').slice(0, 3).join(' ')}`);
     } finally {
       await page.close();
       mock.kill();

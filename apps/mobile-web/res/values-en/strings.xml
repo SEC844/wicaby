@@ -67,4 +67,21 @@
     <string name="web_composer">Composer</string>
     <string name="web_guest_star">Guest star</string>
     <string name="web_cast_crew">Cast &amp; crew</string>
+    <string name="web_gb">%1$s GB</string>
+    <string name="web_mb">%1$s MB</string>
+    <string name="web_space">%1$s used · %2$s available</string>
+    <string name="web_downloads_empty">No downloads</string>
+    <string name="web_downloads_hint">Long-press a film or an episode, then “Download”: it then plays without a connection, from the iPhone.</string>
+    <string name="web_downloads_open">Keep Wicaby open while it downloads: iOS pauses web apps in the background.</string>
+    <string name="web_download_queued">Waiting</string>
+    <string name="web_download_failed">Download failed</string>
+    <string name="web_download_conversion">This file needs the server’s conversion for the iPhone: it cannot be downloaded.</string>
+    <string name="web_download_quota">Not enough space on the iPhone</string>
+    <string name="web_download_delete">Delete download</string>
+    <string name="web_download_cancel">Cancel download</string>
+    <string name="web_retry">Retry</string>
+    <string name="web_download">Download</string>
+    <string name="web_downloaded">Downloaded</string>
+    <string name="web_downloading">Downloading</string>
+    <string name="web_download_started">Download started</string>
 </resources>

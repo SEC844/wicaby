@@ -8,7 +8,7 @@
   import HomeTab from '../tabs/HomeTab.svelte';
   import LibrariesTab from '../tabs/LibrariesTab.svelte';
   import SearchTab from '../tabs/SearchTab.svelte';
-  import Placeholder from '../tabs/Placeholder.svelte';
+  import DownloadsTab from '../tabs/DownloadsTab.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
 
   const visited = $state<Record<TabId, boolean>>({ home: true, libraries: false, search: false, downloads: false, settings: false });
@@ -26,8 +26,8 @@
       {#if tab === 'home'}<HomeTab />
       {:else if tab === 'libraries'}<LibrariesTab />
       {:else if tab === 'search'}<SearchTab />
-      {:else if tab === 'settings'}<SettingsTab />
-      {:else}<Placeholder {tab} />{/if}
+      {:else if tab === 'downloads'}<DownloadsTab />
+      {:else}<SettingsTab />{/if}
     </div>
   {/if}
 {/each}

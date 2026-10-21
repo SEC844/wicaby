@@ -25,6 +25,7 @@
   import ListPlus from '@lucide/svelte/icons/list-plus';
   import Play from '@lucide/svelte/icons/play';
   import Plus from '@lucide/svelte/icons/plus';
+  import ArrowDownToLine from '@lucide/svelte/icons/arrow-down-to-line';
   import Captions from '@lucide/svelte/icons/captions';
   import Image from '@lucide/svelte/icons/image';
   import Pencil from '@lucide/svelte/icons/pencil';
@@ -41,6 +42,7 @@
   import { itemRoute, nav } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { showSnack } from '../lib/snackbar.svelte';
+  import { canDownload, download, downloadOf } from '../lib/downloads.svelte';
   import { isAdmin } from '../lib/user.svelte';
   import Spinner from './Spinner.svelte';
   import TextField from './TextField.svelte';
@@ -167,6 +169,15 @@
     const mine: Row[] = [{ icon: Check, label: t(played ? 'mark_unplayed' : 'mark_played'), on: played, run: () => void act(() => client.setPlayed(item.Id, !played)) }];
     mine.push({ icon: Heart, label: t(favorite ? 'web_favorite_remove' : 'web_favorite_add'), on: favorite, run: () => void act(() => client.setFavorite(item.Id, !favorite)) });
     if (ctx.continueRow || at > 0) mine.push({ icon: EyeOff, label: t('remove_from_continue'), run: removeContinue });
+    if (canDownload(item)) {
+      const kept = downloadOf(item.Id);
+      mine.push({
+        icon: ArrowDownToLine,
+        label: t(kept?.status === 'done' ? 'web_downloaded' : kept ? 'web_downloading' : 'web_download'),
+        on: kept?.status === 'done',
+        run: () => (done(), kept ? nav.selectTab('downloads') : (download(item), showToast(t('web_download_started')))),
+      });
+    }
     if (acceptsList('playlist', item)) mine.push({ icon: ListPlus, label: t('add_to_playlist'), run: () => void chooseList('playlist') });
     if (acceptsList('collection', item)) mine.push({ icon: FolderPlus, label: t('add_to_collection'), run: () => void chooseList('collection') });
     g.push(mine);

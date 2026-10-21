@@ -161,6 +161,14 @@ const SCENES = {
     await page.locator('.sheet button.row', { hasText: 'Modifier les images' }).click();
     await page.waitForTimeout(1500);
   },
+  // A title downloaded from its menu, then the Downloads tab.
+  async downloads(page) {
+    await SCENES.itemMenu(page);
+    await page.locator('.sheet button.row', { hasText: 'Télécharger' }).click();
+    await page.waitForTimeout(4000);
+    await page.locator('nav button').nth(3).click();
+    await page.waitForTimeout(1200);
+  },
   async settings(page) {
     await page.locator('nav button').last().click();
     await page.waitForTimeout(500);

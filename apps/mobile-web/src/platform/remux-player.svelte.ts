@@ -12,6 +12,7 @@ import type { Cue } from '$tv/subtitles';
 import type { Frame, Header, Track } from '../media/matroska';
 import type { Output, Remuxer } from '../media/remux';
 import type { ByteSource } from '../media/source';
+import { localMedia } from '../lib/downloads.svelte';
 
 type Engine = typeof import('../media/engine');
 let engine: Promise<Engine> | null = null;
@@ -64,6 +65,17 @@ export class RemuxPlayer extends HtmlPlayer {
 
   override async open(url: string, startMs = 0): Promise<void> {
     this.teardown();
+    // A downloaded title plays from the phone, online or not (lib/downloads).
+    const local = await localMedia(url);
+    if (local) {
+      const head = new Uint8Array(await local.slice(0, 64).arrayBuffer());
+      if (!isMatroska(head) || !remuxAvailable()) {
+        this.objectUrl = URL.createObjectURL(local);
+        return super.open(this.objectUrl, startMs);
+      }
+      const E = (this.E = await loadEngine());
+      return this.openRemux(new E.BlobSource(local), startMs);
+    }
     // The server's HLS and plain files: Safari's own pipeline.
     if (/\.m3u8(\?|$)/i.test(url) || !remuxAvailable()) return super.open(url, startMs);
     const progressive = !/[?&]static=true/i.test(url);

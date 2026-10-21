@@ -214,3 +214,27 @@ export class BufferSource implements ByteSource {
     } as Cursor & { offset: number };
   }
 }
+
+// A file on the phone (a download): random access by slicing it, nothing read before it is asked for.
+export class BlobSource implements ByteSource {
+  readonly seekable = true;
+  constructor(private readonly blob: Blob) {}
+  get size(): number {
+    return this.blob.size;
+  }
+  open(offset: number): Cursor {
+    const blob = this.blob;
+    return {
+      offset,
+      async read(n: number) {
+        const out = new Uint8Array(await blob.slice(this.offset, this.offset + n).arrayBuffer());
+        this.offset += out.length;
+        return out;
+      },
+      async skip(n: number) {
+        this.offset += n;
+      },
+      close() {},
+    } as Cursor & { offset: number };
+  }
+}
