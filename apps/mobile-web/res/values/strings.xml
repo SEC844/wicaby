@@ -6,13 +6,6 @@
     <string name="web_install_title">Installer Wicaby</string>
     <string name="web_install_body">Touchez Partager, puis « Sur l’écran d’accueil » : Wicaby s’ouvrira en plein écran, comme une app.</string>
     <string name="web_coming">Bientôt sur iPhone</string>
-    <string name="web_info">Informations</string>
-    <string name="web_genres">Genres</string>
-    <string name="web_studio">Studio</string>
-    <string name="web_released">Sortie</string>
-    <string name="web_runtime">Durée</string>
-    <string name="web_rated">Classification</string>
-    <string name="web_directed">Réalisation</string>
     <string name="web_sort">Trier</string>
     <string name="web_filter">Filtrer</string>
     <string name="web_movies">Films</string>
@@ -20,17 +13,14 @@
     <string name="web_recent">Recherches récentes</string>
     <string name="web_dolby">Son Dolby</string>
     <string name="web_dolby_hint">Auto : l’iPhone garde le Dolby Digital et Dolby Digital Plus (Atmos) tels quels, sans conversion par le serveur, et les décode ou les transmet à l’Apple TV, aux AirPods ou à l’ampli via AirPlay.</string>
-    <string name="web_servers">Serveurs</string>
     <string name="web_accounts">Compte</string>
     <string name="web_mode_direct">Lecture directe</string>
     <string name="web_mode_remux">Lecture directe · remux iPhone</string>
     <string name="web_mode_audio">Vidéo d’origine · audio converti</string>
     <string name="web_mode_transcode">Transcodage par le serveur</string>
-    <string name="web_still_body">La lecture est en pause.</string>
-    <string name="web_continue">Continuer</string>
     <string name="web_airplay">AirPlay</string>
-    <string name="web_back10">Reculer de 10 s</string>
-    <string name="web_fwd10">Avancer de 10 s</string>
-    <string name="web_playback_info">Infos de lecture</string>
     <string name="web_display">Affichage</string>
+    <string name="web_type_movie">Film</string>
+    <string name="web_type_series">Série</string>
+    <string name="web_type_episode">Épisode</string>
 </resources>

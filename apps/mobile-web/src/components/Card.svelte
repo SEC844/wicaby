@@ -1,6 +1,6 @@
 <script lang="ts">
-  // A title's card, as the Apple TV app draws them: a poster (2:3) with no text under it (titled: its name in a
-  // grid), or a 16:9 card with its
+  // A title's card (Android PosterCard / ThumbCard): a poster (2:3) with its name under it (titled), or a 16:9 card
+  // with its
   // progress over the picture and two lines under it. The image is asked for at the device's pixel size (the
   // server resizes once), fades in over the BlurHash's average colour, and decodes off the main thread; without an
   // image the card shows the title on its tint.
@@ -8,6 +8,7 @@
   import type { Api } from '$tv/api';
   import { episodeLine, progress } from '$tv/format';
   import { placeholder } from '$tv/images';
+  import Check from '@lucide/svelte/icons/check';
 
   let {
     item,
@@ -37,6 +38,12 @@
     {/if}
     {#if !src || failed}<span class="fallback subhead">{title}</span>{/if}
     {#if done}<span class="bar"><span style:transform="scaleX({done})"></span></span>{/if}
+    <!-- Watched tick or unplayed count (Android CardBadge): neutral, the accent stays for progress. -->
+    {#if item.UserData?.Played}
+      <span class="badge tick"><Check size={13} strokeWidth={3} aria-label="✓" /></span>
+    {:else if (item.UserData?.UnplayedItemCount ?? 0) > 0}
+      <span class="badge count">{item.UserData!.UnplayedItemCount}</span>
+    {/if}
   </span>
   {#if wide}
     <span class="subhead strong text">{title}</span>
@@ -104,8 +111,26 @@
   .bar span {
     display: block;
     height: 100%;
-    background: #fff;
+    background: var(--accent);
     transform-origin: left;
+  }
+  .badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 6px;
+  }
+  .badge.tick {
+    padding: 0;
   }
   .strong {
     font-weight: 600;

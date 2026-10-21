@@ -5,13 +5,6 @@
     <string name="web_install_title">Install Wicaby</string>
     <string name="web_install_body">Tap Share, then “Add to Home Screen”: Wicaby opens full screen, like an app.</string>
     <string name="web_coming">Coming soon on iPhone</string>
-    <string name="web_info">Information</string>
-    <string name="web_genres">Genres</string>
-    <string name="web_studio">Studio</string>
-    <string name="web_released">Released</string>
-    <string name="web_runtime">Runtime</string>
-    <string name="web_rated">Rated</string>
-    <string name="web_directed">Directed by</string>
     <string name="web_sort">Sort</string>
     <string name="web_filter">Filter</string>
     <string name="web_movies">Movies</string>
@@ -19,17 +12,14 @@
     <string name="web_recent">Recent searches</string>
     <string name="web_dolby">Dolby audio</string>
     <string name="web_dolby_hint">Auto: the iPhone keeps Dolby Digital and Dolby Digital Plus (Atmos) as they are, with no conversion on the server, and decodes them or passes them to the Apple TV, AirPods or receiver over AirPlay.</string>
-    <string name="web_servers">Servers</string>
     <string name="web_accounts">Account</string>
     <string name="web_mode_direct">Direct play</string>
     <string name="web_mode_remux">Direct play · iPhone remux</string>
     <string name="web_mode_audio">Original video · audio converted</string>
     <string name="web_mode_transcode">Transcoded by the server</string>
-    <string name="web_still_body">Playback is paused.</string>
-    <string name="web_continue">Continue</string>
     <string name="web_airplay">AirPlay</string>
-    <string name="web_back10">Back 10 s</string>
-    <string name="web_fwd10">Forward 10 s</string>
-    <string name="web_playback_info">Playback info</string>
     <string name="web_display">Display</string>
+    <string name="web_type_movie">Movie</string>
+    <string name="web_type_series">Series</string>
+    <string name="web_type_episode">Episode</string>
 </resources>

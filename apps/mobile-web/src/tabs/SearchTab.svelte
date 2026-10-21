@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Recherche, as the Apple TV app's: a glass field that stays under the status bar, the recent searches before
+  // Recherche (Android SearchScreen, the desktop's search field): the field under the title, the recent searches before
   // typing, then the results grouped (films, series, episodes) on every signed-in server, one copy of a title found
   // on several. Queries of 2 characters or more run 300 ms after the last keystroke; the previous results stay
   // until the new ones arrive (the TV web app's rules).
@@ -84,7 +84,7 @@
 <LargeTitlePage title={t('tab_search')} tab="search">
   {#snippet header()}
     <div class="field-wrap">
-      <label class="field glass">
+      <label class="field">
         <SearchIcon size={19} aria-hidden="true" />
         <input bind:this={field} bind:value={query} type="search" placeholder={t('search_hint')} enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label={t('tab_search')} />
         {#if query}<button class="clear" aria-label={t('clear')} onclick={() => ((query = ''), field?.focus())}><X size={16} strokeWidth={2.6} aria-hidden="true" /></button>{/if}
@@ -125,7 +125,8 @@
     gap: 8px;
     height: 46px;
     padding: 0 12px 0 14px;
-    border-radius: 23px;
+    border-radius: var(--r-md);
+    background: var(--fill-2);
     color: var(--label-2);
   }
   input {

@@ -1,6 +1,6 @@
 <script lang="ts">
   // Accueil, as the Apple TV app's Home: the hero first, full bleed under the status bar, then the user's rows
-  // (lib/home.svelte.ts). Once the hero scrolls away, a glass bar with the title takes the top. Pulling down at the
+  // (lib/home.svelte.ts). Once the hero scrolls away, a bar of the floating chrome's material takes the top. Pulling down at the
   // top stretches the hero's artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
@@ -80,9 +80,9 @@
     padding-top: var(--safe-top);
     display: grid;
     place-items: center;
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    background: var(--material);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     border-bottom: 0.5px solid var(--separator);
     opacity: 0;
     pointer-events: none;

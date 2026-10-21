@@ -37,12 +37,12 @@
 </script>
 
 {#if session}
-  <button class="me" class:floating class:glass-media={onMedia} class:glass={!onMedia} aria-label={t('settings_account')} aria-expanded={open} onclick={() => (open = !open)}>
+  <button class="me pressable" class:floating class:on-art={onMedia} aria-label={t('settings_account')} aria-expanded={open} onclick={() => (open = !open)}>
     <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={34} />
   </button>
   {#if open}
     <div class="scrim" role="presentation" onclick={() => (open = false)} transition:fade={{ duration: 120 }}></div>
-    <div class="menu glass" role="menu" transition:scale={{ start: 0.85, duration: 220, opacity: 0 }}>
+    <div class="menu" role="menu" transition:scale={{ start: 0.9, duration: 180, opacity: 0 }}>
       <div class="who">
         <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={44} />
         <span class="text">
@@ -50,27 +50,35 @@
           <span class="footnote label-2 ellipsis">{session.server.name}</span>
         </span>
       </div>
-      <button class="item" role="menuitem" onclick={() => run(() => nav.selectTab('settings'))}><span>{t('tab_settings')}</span><Settings size={19} aria-hidden="true" /></button>
-      <button class="item" role="menuitem" onclick={() => run(() => leave(false))}><span>{t('switch_user')}</span><Users size={19} aria-hidden="true" /></button>
-      <button class="item" role="menuitem" onclick={() => run(() => nav.push({ name: 'servers', add: true }))}><span>{t('add_server')}</span><ServerIcon size={19} aria-hidden="true" /></button>
-      <button class="item destructive" role="menuitem" onclick={() => run(signOut)}><span>{t('sign_out')}</span><LogOut size={19} aria-hidden="true" /></button>
+      <button class="item" role="menuitem" onclick={() => run(() => nav.selectTab('settings'))}><Settings size={19} aria-hidden="true" /><span>{t('tab_settings')}</span></button>
+      <button class="item" role="menuitem" onclick={() => run(() => leave(false))}><Users size={19} aria-hidden="true" /><span>{t('switch_user')}</span></button>
+      <button class="item" role="menuitem" onclick={() => run(() => nav.push({ name: 'servers', add: true }))}><ServerIcon size={19} aria-hidden="true" /><span>{t('add_server')}</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="item destructive" role="menuitem" onclick={() => run(signOut)}><LogOut size={19} aria-hidden="true" /><span>{t('sign_out')}</span></button>
     </div>
   {/if}
 {/if}
 
 <style>
+  /* The user's picture in a ring: the canvas's fill, or the dark fill over artwork. */
   .me {
     width: 42px;
     height: 42px;
+    padding: 3px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     flex: none;
+    background: var(--fill-3);
   }
+  .me.on-art {
+    background: var(--on-art);
+  }
+  /* Over Home's hero: under the status bar and the Dynamic Island, with the same margin as the page's sides. */
   .floating {
     position: absolute;
-    top: calc(var(--safe-top) + 2px);
-    right: max(14px, var(--safe-right));
+    top: calc(var(--safe-top) + 10px);
+    right: max(var(--gutter), var(--safe-right));
     z-index: 5;
   }
   .scrim {
@@ -78,23 +86,24 @@
     inset: 0;
     z-index: 40;
   }
+  /* A menu as the desktop's and Android's: the raised surface, rounded, icon then label. */
   .menu {
     position: absolute;
-    top: calc(var(--safe-top) + 52px);
-    right: max(14px, var(--safe-right));
-    width: 270px;
+    top: calc(var(--safe-top) + 64px);
+    right: max(var(--gutter), var(--safe-right));
+    width: 260px;
+    padding: 6px;
     border-radius: var(--r-lg);
-    overflow: hidden;
+    background: var(--bg-elevated-2);
+    box-shadow: var(--shadow-2);
     z-index: 41;
     transform-origin: top right;
-    background: var(--material-thick);
   }
   .who {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
-    border-bottom: 6px solid var(--fill-1);
+    padding: 10px 10px 12px;
   }
   .text {
     min-width: 0;
@@ -108,22 +117,30 @@
   }
   .item {
     width: 100%;
-    min-height: 46px;
+    min-height: 44px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    font-size: 17px;
+    gap: 12px;
+    padding: 0 10px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-callout);
     color: var(--label);
     text-align: left;
   }
-  .item + .item {
-    border-top: 0.5px solid var(--separator);
+  .item :global(svg) {
+    color: var(--label-2);
   }
   .item:active {
     background: var(--fill-2);
   }
-  .destructive {
+  .sep {
+    display: block;
+    height: 0.5px;
+    margin: 6px 10px;
+    background: var(--separator);
+  }
+  .destructive,
+  .destructive :global(svg) {
     color: var(--red);
   }
 </style>

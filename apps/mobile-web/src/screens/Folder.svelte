@@ -1,6 +1,6 @@
 <script lang="ts">
   // A library or folder as a poster grid (Android GridScreen), under a large title with the count, Sort and Filter
-  // as glass buttons, and Shuffle for libraries that play. The sort and filter are remembered per library.
+  // as compact pills, and Shuffle for libraries that play. The sort and filter are remembered per library.
   import type { BaseItem } from '$shared/models';
   import { plural, t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
@@ -74,10 +74,10 @@
     <div class="tools">
       <span class="footnote label-2 count">{total > 0 ? plural('items_count', total, total.toLocaleString()) : ''}</span>
       {#if playable && total > 0}
-        <button class="tool glass" aria-label={t('shuffle')} onclick={() => shuffle(folder.value as BaseItem)}><ShuffleIcon size={18} aria-hidden="true" /></button>
+        <button class="round small" aria-label={t('shuffle')} onclick={() => shuffle(folder.value as BaseItem)}><ShuffleIcon size={18} aria-hidden="true" /></button>
       {/if}
-      <button class="tool glass" class:on={filter > 0} aria-label={t('web_filter')} onclick={pickFilter}><ListFilter size={18} aria-hidden="true" /></button>
-      <button class="tool glass wide" onclick={pickSort}><ArrowUpDown size={16} aria-hidden="true" /><span class="subhead">{t(SORTS[sort].key)}</span></button>
+      <button class="round small" class:on={filter > 0} aria-label={t('web_filter')} onclick={pickFilter}><ListFilter size={18} aria-hidden="true" /></button>
+      <button class="pill compact" onclick={pickSort}><ArrowUpDown size={16} aria-hidden="true" /><span class="subhead">{t(SORTS[sort].key)}</span></button>
     </div>
   {/snippet}
   {#if folder.value}
@@ -95,20 +95,11 @@
   .count {
     flex: 1;
   }
-  .tool {
-    height: 36px;
-    min-width: 36px;
-    border-radius: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: var(--label);
+  .round.small {
+    width: 38px;
+    height: 38px;
   }
-  .tool.wide {
-    padding: 0 14px;
-  }
-  .tool.on {
+  .round.on {
     color: var(--accent);
   }
 </style>

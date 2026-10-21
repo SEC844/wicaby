@@ -1,39 +1,57 @@
 <script lang="ts">
-  // The video player, full screen on black, driven by touch as the iOS player is: a tap shows or hides the controls,
-  // a double tap on either side skips 10 s, the bar follows the finger with the trickplay still above it. Glass
-  // controls over the picture: close, the title and how it plays (direct, remuxed on the iPhone, audio converted,
-  // transcoded), PiP and AirPlay; play/pause between ±10 s; the bar and the times; audio, subtitles, speed, quality
-  // and chapters in sheets. Skip intro, the next episode with its countdown and "Still watching?" are the TV web
-  // app's rules (shared Playback session); the lock screen and Control Center drive it through Media Session.
+  // The video player, as the Android mobile app's (player/PlayerScreen.kt), full screen on black and driven by touch:
+  // - a tap shows or hides the controls; a double tap on a side (the outer 40 %) skips 10 s, and single taps right
+  //   after keep skipping; a double tap in the middle plays or pauses; a sideways swipe seeks (100 s across the
+  //   screen) with the time and the trickplay frame in the middle; a pinch steps the picture Fit → Fill → Zoom;
+  // - the controls: back, the series (or the year) and how it plays over the title, then next, audio and subtitles, playback info,
+  //   speed, picture format, quality, sleep timer, PiP and AirPlay; −10 s, play/pause, +10 s in the middle; the bar
+  //   (buffer, accent progress, knob), the times and "Ends at" at the bottom;
+  // - sheets from the bottom for the tracks, speed, quality, chapters and the sleep timer.
+  // Skip intro, the up-next card with its countdown, "Still watching?" and the sleep timer are the TV web app's rules
+  // (shared Playback session, lib/sleep); the lock screen and Control Center drive it through Media Session. No
+  // brightness or volume swipes: a web page can set neither on iOS.
   import type { BaseItem } from '$shared/models';
   import { ORIGINAL_BITRATE } from '$shared/quality-presets';
   import { clock, episodeLine } from '$tv/format';
   import { locale, t } from '$tv/i18n.svelte';
   import { stopMusic } from '$tv/music.svelte';
   import { Playback } from '$tv/playback.svelte';
+  import { recall, remember } from '$tv/remembered';
   import { skippableAt, STILL_WATCHING_AFTER, upNextAt, type SegmentKind } from '$tv/segments';
   import { apiOf } from '$tv/session.svelte';
   import { SKIP_AUTO, SKIP_OFF, settings } from '$tv/settings.svelte';
+  import { cancelSleep, checkSleep, endOfVideo, extendSleep, restartSleep, sleep, sleepAtEnd, SLEEP_MINUTES, startSleep } from '$tv/sleep.svelte';
   import { showToast } from '$tv/toast.svelte';
   import { trackName } from '$tv/track-memory';
   import * as Versions from '$tv/versions';
+  import type { Aspect } from '$tvplatform/player';
   import Airplay from '@lucide/svelte/icons/airplay';
-  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Captions from '@lucide/svelte/icons/captions';
-  import Ellipsis from '@lucide/svelte/icons/ellipsis';
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+  import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
+  import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
+  import Gauge from '@lucide/svelte/icons/gauge';
+  import Info from '@lucide/svelte/icons/info';
+  import ListVideo from '@lucide/svelte/icons/list-video';
+  import Moon from '@lucide/svelte/icons/moon';
   import Pause from '@lucide/svelte/icons/pause';
   import PictureInPicture from '@lucide/svelte/icons/picture-in-picture-2';
   import Play from '@lucide/svelte/icons/play';
   import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
   import RotateCw from '@lucide/svelte/icons/rotate-cw';
+  import Scan from '@lucide/svelte/icons/scan';
+  import Settings from '@lucide/svelte/icons/settings';
   import SkipForward from '@lucide/svelte/icons/skip-forward';
+  import X from '@lucide/svelte/icons/x';
   import { getContext, onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
+  import { fade, fly } from 'svelte/transition';
   import Spinner from '../components/Spinner.svelte';
+  import OptionRow from '../components/player/OptionRow.svelte';
+  import PlayerSheet from '../components/player/PlayerSheet.svelte';
+  import Stats from '../components/player/Stats.svelte';
   import Subtitles from '../components/player/Subtitles.svelte';
   import { video as sharedVideo } from '../lib/media-element';
   import { handleBack, onBack, SCREEN } from '../lib/nav.svelte';
-  import { showAlert } from '../lib/overlay.svelte';
   import { createPlayer, keepAwake } from '../platform';
   import type { RemuxPlayer } from '../platform/remux-player.svelte';
 
@@ -47,6 +65,10 @@
     tracks,
   }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string; startMs?: number; tracks?: { audio?: number; subtitle?: number } } = $props();
 
+  const TAP_SEEK_MS = 10_000;
+  const SWIPE_SPAN_MS = 100_000;
+  const DOUBLE_TAP_MS = 300;
+
   // svelte-ignore state_referenced_locally
   const client = apiOf(serverId)!;
   const screen = getContext<number>(SCREEN);
@@ -55,90 +77,212 @@
   let host: HTMLDivElement;
   let pb = $state<Playback | null>(null);
 
+  type Sheet = 'tracks' | 'speed' | 'quality' | 'chapters' | 'sleep';
+  let sheet = $state<Sheet | null>(null);
+  // Playback info stays on for the next videos (Android PlaybackStats.visible).
+  let stats = $state(false);
+
+  // The wall clock, for "Ends at" and the sleep timer.
+  let now = $state(Date.now());
+
   // ---- Controls: shown on a tap, hidden 3.5 s after the last one while playing ----
   let controls = $state(true);
   let nonce = $state(0);
   function poke(): void {
     controls = true;
     nonce++;
+    skipNonce++;
+    if (pb) pb.autoCount = 0;
   }
+  // Where a swipe or the bar would land, shown big in the middle; a bar drag keeps the controls up.
+  let preview = $state<number | null>(null);
+  let scrubbing = $state(false);
   $effect(() => {
     void nonce;
-    if (!controls || !pb?.playing || scrub !== null) return;
+    if (!controls || !pb?.playing || sheet || preview !== null) return;
     const timer = setTimeout(() => (controls = false), 3500);
     return () => clearTimeout(timer);
   });
 
-  // ---- Taps: one shows or hides the controls, two on a side skip 10 s (more taps add up) ----
-  let lastTap = { t: 0, side: 0 };
-  let tapTimer = 0;
-  let ripple = $state<{ side: -1 | 1; secs: number; key: number } | null>(null);
-  function onSurface(e: PointerEvent): void {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const side = e.clientX < window.innerWidth / 2 ? -1 : 1;
-    const now = performance.now();
-    if (now - lastTap.t < 280 && lastTap.side === side) {
-      clearTimeout(tapTimer);
-      skipBy(side * 10_000, side as -1 | 1);
-    } else {
-      clearTimeout(tapTimer);
-      tapTimer = window.setTimeout(() => (controls ? (controls = false) : poke()), 260);
-    }
-    lastTap = { t: now, side };
-  }
-  function skipBy(ms: number, side?: -1 | 1): void {
+  function seekTo(ms: number): void {
     if (!pb) return;
     pb.autoCount = 0;
-    pb.seek(Math.max(0, (scrub ?? pb.positionMs) + ms));
-    if (side) ripple = { side, secs: (ripple?.side === side ? ripple.secs : 0) + Math.abs(ms) / 1000, key: Date.now() };
+    pb.seek(Math.max(0, Math.min(ms, pb.durationMs || ms)));
   }
-  $effect(() => {
-    if (!ripple) return;
-    const timer = setTimeout(() => (ripple = null), 700);
-    return () => clearTimeout(timer);
-  });
-
   function togglePlay(): void {
     if (!pb) return;
-    pb.autoCount = 0;
     pb.togglePlay(!pb.playing);
     poke();
   }
 
-  // ---- The bar: follows the finger, seeks on release ----
-  let scrub = $state<number | null>(null);
+  // ---- Gestures on the picture ----
+  // x: the finger, from the lobe's left edge (the ring grows from there).
+  let tapSeek = $state<{ side: -1 | 1; secs: number; x: number; y: number; nonce: number } | null>(null);
+  $effect(() => {
+    void tapSeek?.nonce;
+    if (!tapSeek) return;
+    const timer = setTimeout(() => (tapSeek = null), 800);
+    return () => clearTimeout(timer);
+  });
+  function sideOf(x: number): -1 | 0 | 1 {
+    const w = host.clientWidth;
+    return x < w * 0.4 ? -1 : x > w * 0.6 ? 1 : 0;
+  }
+  function tapSeekAt(side: -1 | 1, x: number, y: number): void {
+    seekTo((pb?.positionMs ?? 0) + side * TAP_SEEK_MS);
+    const s = tapSeek;
+    tapSeek = { side, secs: s?.side === side ? s.secs + 10 : 10, x: side < 0 ? x : x - host.clientWidth * 0.6, y, nonce: (s?.nonce ?? 0) + 1 };
+  }
+  let lastTap = { at: 0, x: 0 };
+  let singleTimer = 0;
+  function onTap(x: number, y: number): void {
+    const side = sideOf(x);
+    const at = performance.now();
+    // Right after a double tap, single taps on the same side keep seeking (YouTube).
+    if (tapSeek && side === tapSeek.side) {
+      clearTimeout(singleTimer);
+      tapSeekAt(side, x, y);
+    } else if (at - lastTap.at < DOUBLE_TAP_MS && Math.abs(x - lastTap.x) < 80) {
+      clearTimeout(singleTimer);
+      if (side === 0) togglePlay();
+      else tapSeekAt(side, x, y);
+      lastTap = { at: 0, x };
+      return;
+    } else {
+      clearTimeout(singleTimer);
+      singleTimer = window.setTimeout(() => (controls && pb?.playing ? (controls = false) : poke()), DOUBLE_TAP_MS);
+    }
+    lastTap = { at, x };
+  }
+
+  // One finger: a tap, or a sideways swipe that seeks (a vertical one does nothing). Two: a pinch.
+  type Drag = { mode: 'none' | 'ignore' | 'seek' | 'pinch'; x: number; y: number; startPos: number; dist: number; zoom: number };
+  const pointers = new Map<number, { x: number; y: number }>();
+  let drag: Drag | null = null;
+  const spread = () => {
+    const [a, b] = [...pointers.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+  };
+  function onDown(e: PointerEvent): void {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) drag = { mode: 'none', x: e.clientX, y: e.clientY, startPos: pb?.positionMs ?? 0, dist: 1, zoom: 1 };
+    else if (pointers.size === 2 && drag && (drag.mode === 'none' || drag.mode === 'ignore')) {
+      drag.mode = 'pinch';
+      drag.dist = spread();
+      preview = null;
+    }
+  }
+  function onMove(e: PointerEvent): void {
+    if (!drag || !pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (drag.mode === 'pinch') {
+      if (pointers.size === 2) drag.zoom = spread() / drag.dist;
+      return;
+    }
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (drag.mode === 'none' && Math.hypot(dx, dy) > 10) {
+      drag.mode = Math.abs(dx) > Math.abs(dy) && pb?.durationMs ? 'seek' : 'ignore';
+      drag.startPos = pb?.positionMs ?? 0;
+    }
+    if (drag.mode === 'seek' && pb) preview = Math.max(0, Math.min(pb.durationMs, drag.startPos + (dx / host.clientWidth) * SWIPE_SPAN_MS));
+  }
+  function onUp(e: PointerEvent): void {
+    if (!pointers.delete(e.pointerId) || !drag) return;
+    const d = drag;
+    if (d.mode === 'pinch') {
+      if (pointers.size) return;
+      if (d.zoom > 1.08 || d.zoom < 0.92) setAspect(pinchStep(d.zoom > 1));
+    } else if (d.mode === 'seek') {
+      if (preview !== null) seekTo(preview);
+      preview = null;
+    } else if (d.mode === 'none' && e.type === 'pointerup') onTap(e.clientX, e.clientY);
+    if (!pointers.size) drag = null;
+  }
+
+  // ---- Picture format: the button cycles all four, a pinch steps Fit → Fill → Zoom; both flash the name ----
+  let aspect = $state<Aspect>('fit');
+  const ASPECT_LABEL: Record<Aspect, string> = { fit: 'aspect_fit', fill: 'aspect_fill', stretch: 'aspect_stretch', zoom: 'aspect_zoom' };
+  const PINCH: Aspect[] = ['fit', 'fill', 'zoom'];
+  function pinchStep(out: boolean): Aspect {
+    const i = PINCH.indexOf(aspect);
+    if (i < 0) return out ? 'zoom' : 'fit';
+    return PINCH[Math.max(0, Math.min(PINCH.length - 1, i + (out ? 1 : -1)))];
+  }
+  let hud = $state<{ text: string; nonce: number } | null>(null);
+  $effect(() => {
+    void hud?.nonce;
+    if (!hud) return;
+    const timer = setTimeout(() => (hud = null), 700);
+    return () => clearTimeout(timer);
+  });
+  function setAspect(a: Aspect): void {
+    if (!pb) return;
+    aspect = a;
+    pb.player.setAspect(a);
+    remember('aspect', pb.scopeCtx, a);
+    hud = { text: t(ASPECT_LABEL[a]), nonce: (hud?.nonce ?? 0) + 1 };
+  }
+  function cycleAspect(): void {
+    if (!pb) return;
+    const list = pb.player.aspects;
+    setAspect(list[(list.indexOf(aspect) + 1) % list.length]);
+    poke();
+  }
+  // X-05: the title's remembered format, once its scope is known.
+  $effect(() => {
+    const p = pb;
+    if (!p?.scopeCtx) return;
+    const a = recall('aspect', p.scopeCtx);
+    if (typeof a === 'string' && p.player.aspects.includes(a as Aspect)) {
+      aspect = a as Aspect;
+      p.player.setAspect(aspect);
+    }
+  });
+
+  // ---- The bar: a tap or a drag; the time lands in the middle while dragging, the seek on release ----
   let bar = $state<HTMLElement>()!;
-  function scrubAt(e: PointerEvent): number {
+  function barAt(e: PointerEvent): number {
     const r = bar.getBoundingClientRect();
     return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (pb?.durationMs ?? 0);
   }
   function onBarDown(e: PointerEvent): void {
     if (!pb?.durationMs) return;
+    e.stopPropagation();
     bar.setPointerCapture(e.pointerId);
-    scrub = scrubAt(e);
-    poke();
+    scrubbing = true;
+    preview = barAt(e);
   }
   function onBarMove(e: PointerEvent): void {
-    if (scrub !== null) scrub = scrubAt(e);
+    if (scrubbing) preview = barAt(e);
   }
   function onBarUp(): void {
-    if (scrub !== null && pb) pb.seek(scrub);
-    scrub = null;
+    if (!scrubbing) return;
+    if (preview !== null) seekTo(preview);
+    preview = null;
+    scrubbing = false;
     poke();
   }
-  const position = $derived(scrub ?? pb?.positionMs ?? 0);
+  const position = $derived(pb?.positionMs ?? 0);
   const duration = $derived(pb?.durationMs ?? 0);
-  const thumb = $derived(scrub !== null && pb?.preview ? pb.preview.at(scrub) : null);
+  const shown = $derived(preview ?? position);
+  const buffered = $derived(pb ? (void pb.positionMs, position + (pb.player.stats().bufferMs ?? 0)) : 0);
+  const thumb = $derived(preview !== null && pb?.preview ? pb.preview.at(preview) : null);
+  const timeFormat = $derived(new Intl.DateTimeFormat(locale.current, { hour: '2-digit', minute: '2-digit' }));
+  // "Ends at": stable while playing, follows the clock while paused, at the playback speed.
+  const endsAt = $derived(duration > 0 ? t('ends_at', timeFormat.format(now + Math.max(0, duration - position) / Math.max(0.1, pb?.rate ?? 1))) : '');
 
-  // ---- How it plays ----
+  // ---- How it plays: by the title, so a remux on the iPhone (no server work) shows ----
+  const remuxed = $derived(!!pb && (pb.player as RemuxPlayer).remuxed);
   const mode = $derived.by(() => {
     if (!pb?.item) return '';
     if (pb.playMethod === 'Transcode') return t('web_mode_transcode');
     if (pb.playMethod === 'DirectStream') return t('web_mode_audio');
-    return (pb.player as RemuxPlayer).remuxed ? t('web_mode_remux') : t('web_mode_direct');
+    return remuxed ? t('web_mode_remux') : t('web_mode_direct');
   });
 
-  // ---- Skippable segments: a chip for 8 s (Ask), a jump once (Auto) ----
+  // ---- Skippable segments: a chip for 8 s (Ask), back when the controls wake; a jump once (Auto) ----
   const SKIP_SETTING: Record<SegmentKind, keyof typeof settings> = { Intro: 'skipIntro', Recap: 'skipRecap', Preview: 'skipPreview', Commercial: 'skipCommercial' };
   const SKIP_LABEL: Record<SegmentKind, string> = { Intro: 'skip_intro', Recap: 'skip_recap', Preview: 'skip_preview', Commercial: 'skip_commercial' };
   const skippable = $derived.by(() => {
@@ -148,8 +292,12 @@
     return r && m !== SKIP_OFF ? { ...r, mode: m } : undefined;
   });
   let skipVisible = $state(false);
+  let skipNonce = $state(0);
+  // The chip keeps its label while it fades out.
+  let chipKind = $state<SegmentKind>('Intro');
   const autoSkipped = new Set<number>();
   $effect(() => {
+    void skipNonce;
     const s = skippable;
     if (!s) return void (skipVisible = false);
     if (s.mode === SKIP_AUTO) {
@@ -159,6 +307,7 @@
       }
       return;
     }
+    chipKind = s.kind;
     skipVisible = true;
     const timer = setTimeout(() => (skipVisible = false), 8000);
     return () => clearTimeout(timer);
@@ -167,7 +316,7 @@
   // ---- Up next, its countdown, "Still watching?" ----
   let dismissedUpNext = $state(false);
   let stillWatching = $state(false);
-  let countdown = $state<number | null>(null);
+  let countdown = $state(0);
   const upNext = $derived.by<BaseItem | null>(() => {
     if (!pb || !pb.next || dismissedUpNext || stillWatching || pb.trailer) return null;
     const at = upNextAt(pb.durationMs, pb.segments.credits);
@@ -175,7 +324,6 @@
   });
   function advance(auto: boolean): void {
     dismissedUpNext = false;
-    countdown = null;
     autoSkipped.clear();
     pb?.advance(auto);
   }
@@ -187,92 +335,193 @@
     } else advance(true);
   }
   $effect(() => {
-    if (!upNext || !settings.autoplayNext.value) return void (countdown = null);
+    // "End of this video" takes priority over autoplay.
+    if (!upNext || !settings.autoplayNext.value || endOfVideo()) return;
+    const from = pb?.item?.Id;
     let left = settings.countdown.value;
     countdown = left;
     const timer = setInterval(() => {
+      // The countdown waits while the credits are paused.
       if (pb?.playing) left--;
       countdown = left;
       if (left <= 0) {
         clearInterval(timer);
-        autoAdvance();
+        if (pb?.item?.Id === from) autoAdvance();
       }
     }, 1000);
     return () => clearInterval(timer);
   });
   $effect(() => {
-    if (!pb?.ended || stillWatching) return;
+    if (!pb?.ended || stillWatching || sleep.state?.promptUntil) return;
+    // The sleep timer's "end of this video": stay at the end and ask.
+    if (sleepAtEnd()) return;
     if (pb.next && !dismissedUpNext && settings.autoplayNext.value) autoAdvance();
     else exit();
   });
+  function keepWatching(): void {
+    stillWatching = false;
+    if (!pb) return;
+    pb.autoCount = 0;
+    if (pb.next) advance(false);
+    else pb.togglePlay(true);
+  }
 
-  // ---- Sheets ----
-  function pick(title: string, labels: string[], selected: number, run: (i: number) => void): void {
-    showAlert({ title, selected, actions: labels.map((label, i) => ({ label, run: () => run(i) })) });
+  // ---- X-04 sleep timer: checked once a second (the prompt, then the pause) ----
+  $effect(() => {
+    void now;
+    if (!pb || pb.trailer) return;
+    if (checkSleep(now) === 'expire') pb.togglePlay(false);
+  });
+  const sleepLeft = $derived(sleep.state?.endsAt ? Math.max(0, sleep.state.endsAt - now) : null);
+  const sleepPrompt = $derived(sleep.state?.promptUntil ? Math.max(0, Math.ceil((sleep.state.promptUntil - now) / 1000)) : null);
+  // Continue (or Back): the same timer again; at the end of the video it goes on.
+  function sleepContinue(): void {
+    const atEnd = !!pb?.ended;
+    restartSleep();
+    if (atEnd) {
+      if (pb?.next) advance(false);
+      else exit();
+    } else if (pb && !pb.playing) pb.togglePlay(true);
   }
-  function audioSheet(): void {
-    if (!pb) return;
-    const p = pb;
-    const list = p.audio();
-    pick(t('audio'), list.map(trackName), Math.max(0, list.findIndex((s) => s.Index === p.audioIndex)), (i) => p.selectAudio(list[i].Index));
+  function sleepStop(): void {
+    cancelSleep();
+    pb?.togglePlay(false);
   }
-  function subtitleSheet(): void {
-    if (!pb) return;
-    const p = pb;
-    const list = p.subtitles();
-    pick(t('subtitles'), [t('subtitles_off'), ...list.map(trackName)], Math.max(0, list.findIndex((s) => s.Index === p.subtitleIndex) + 1), (i) => p.selectSubtitle(i === 0 ? -1 : list[i - 1].Index));
+  function pickSleep(minutes: number | null | 'extend' | 'cancel'): void {
+    if (minutes === 'extend') extendSleep();
+    else if (minutes === 'cancel') cancelSleep();
+    else startSleep(minutes);
+    sheet = null;
   }
-  function speedSheet(): void {
-    if (!pb) return;
-    const p = pb;
-    const list = p.player.speeds;
-    pick(t('speed'), list.map((r) => t('speed_value', r.toLocaleString(locale.current, { maximumFractionDigits: 2 }))), list.indexOf(p.rate), (i) => p.setSpeed(list[i]));
+
+  // ---- X-02 quality and version: the gear shows "Originale" or "720p", the sheet the presets with their size ----
+  const mbps = (b: number) => (b / 1_000_000).toLocaleString(locale.current, { maximumFractionDigits: 2 });
+  const presetLabel = (b: number, height?: number) => t('quality_preset', height ?? 0, mbps(b));
+  const capped = $derived(pb && pb.qualityCap !== null && pb.qualityCap < ORIGINAL_BITRATE ? pb.qualityCap : null);
+  const qualityShort = $derived.by(() => {
+    const row = capped ? pb?.qualityRows().find((r) => r.maxBitrate === capped) : undefined;
+    return row?.height ? `${row.height}p` : t('quality_original');
+  });
+  // "1,4 Go" / "1.4 GB" (Android formatShortFileSize).
+  function size(bytes?: number): string | undefined {
+    if (!bytes) return undefined;
+    const units = locale.current.startsWith('fr') ? ['o', 'ko', 'Mo', 'Go', 'To'] : ['B', 'kB', 'MB', 'GB', 'TB'];
+    let v = bytes;
+    let u = 0;
+    while (v >= 1000 && u < units.length - 1) {
+      v /= 1000;
+      u++;
+    }
+    return `${v.toLocaleString(locale.current, { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[u]}`;
   }
-  function qualitySheet(): void {
-    if (!pb) return;
+  type Column = { title: string; rows: { text: string; selected: boolean; busy?: boolean; run: () => void }[]; weight?: number };
+  let busy = $state<{ col: 'v' | 'q'; i: number } | null>(null);
+  const qualityColumns = $derived.by<Column[]>(() => {
+    if (!pb) return [];
     const p = pb;
-    const capped = p.qualityCap !== null && p.qualityCap < ORIGINAL_BITRATE ? p.qualityCap : null;
+    const tag = p.playMethod === 'Transcode' ? t('play_method_transcode') : t('play_method_direct');
+    const versions = p.versions;
+    const labels = p.item ? Versions.labels(p.item) : [];
+    const vSel = versions.findIndex((v) => v.Id === p.currentSourceId);
     const rows = p.qualityRows();
-    const labels = rows.map((r) => (r.maxBitrate === null ? t('quality_original') : `${r.height ? `${r.height}p · ` : ''}${(r.maxBitrate / 1_000_000).toLocaleString(locale.current, { maximumFractionDigits: 1 })} Mb/s`));
-    pick(t('quality'), labels, Math.max(0, rows.findIndex((r) => r.maxBitrate === capped)), async (i) => {
-      const ok = await p.switchQuality(null, rows[i].maxBitrate);
-      showToast(ok ? labels[i] : t('quality_failed'));
+    const rSel = rows.findIndex((r) => r.maxBitrate === capped);
+    const cols: Column[] = [];
+    if (versions.length > 1)
+      cols.push({
+        title: t('quality_version'),
+        rows: versions.map((v, i) => ({
+          text: [labels[i] ?? v.Id, i === vSel && !p.switching ? tag : undefined, size(v.Size)].filter(Boolean).join(' · '),
+          selected: i === vSel,
+          busy: busy?.col === 'v' && busy.i === i,
+          run: () => void (i !== vSel && switchQuality('v', i, v.Id, capped)),
+        })),
+      });
+    cols.push({
+      title: t('quality'),
+      weight: 1.3,
+      rows: rows.map((r, i) => {
+        const name = r.maxBitrate === null ? [t('quality_original'), r.height ? `${r.height}p` : undefined].filter(Boolean).join(' · ') : presetLabel(r.maxBitrate, r.height);
+        const sz = size(r.size);
+        return {
+          text: [name, i === rSel && !p.switching ? tag : undefined, sz && r.percent !== undefined ? t('quality_size', sz, r.percent) : sz].filter(Boolean).join(' · '),
+          selected: i === rSel,
+          busy: busy?.col === 'q' && busy.i === i,
+          run: () => void (i !== rSel && switchQuality('q', i, null, r.maxBitrate)),
+        };
+      }),
     });
+    return cols;
+  });
+  // The sheet closes once the switch took and stays open on a failure (its toast says so).
+  async function switchQuality(col: 'v' | 'q', i: number, sourceId: string | null, maxBitrate: number | null): Promise<void> {
+    if (!pb || pb.switching) return;
+    busy = { col, i };
+    const ok = await pb.switchQuality(sourceId, maxBitrate);
+    busy = null;
+    if (!ok) return showToast(t('quality_failed'));
+    const item = pb.item;
+    const label =
+      sourceId && item
+        ? (Versions.labels(item)[pb.versions.findIndex((v) => v.Id === sourceId)] ?? sourceId)
+        : maxBitrate
+          ? presetLabel(maxBitrate, pb.qualityRows().find((r) => r.maxBitrate === maxBitrate)?.height)
+          : t('quality_original');
+    showToast(t('quality_switched', label));
+    sheet = null;
   }
+
+  // ---- The other sheets ----
+  const trackColumns = $derived.by<Column[]>(() => {
+    if (!pb) return [];
+    const p = pb;
+    const audio = p.audio();
+    const audioSel = p.audioIndex ?? audio.find((s) => s.IsDefault)?.Index;
+    return [
+      { title: t('audio'), rows: audio.map((s) => ({ text: trackName(s), selected: s.Index === audioSel, run: () => p.selectAudio(s.Index) })) },
+      {
+        title: t('subtitles'),
+        rows: [{ Index: -1, text: t('subtitles_off') }, ...p.subtitles().map((s) => ({ Index: s.Index, text: trackName(s) }))].map((s) => ({
+          text: s.text,
+          selected: s.Index === p.subtitleIndex,
+          run: () => p.selectSubtitle(s.Index),
+        })),
+      },
+    ];
+  });
+  const speedText = (r: number) => (r === 1 ? t('speed_normal') : t('speed_value', r.toLocaleString(locale.current, { maximumFractionDigits: 2 })));
+  const speedColumns = $derived.by<Column[]>(() => {
+    if (!pb) return [];
+    const p = pb;
+    return [{ title: t('speed'), rows: p.player.speeds.map((r) => ({ text: speedText(r), selected: Math.abs(p.rate - r) < 0.01, run: () => (p.setSpeed(r), (sheet = null)) })) }];
+  });
+  const sleepColumns = $derived.by<Column[]>(() => {
+    const st = sleep.state;
+    return [
+      {
+        title: t('sleep_timer'),
+        rows: [
+          ...(st?.endsAt ? [{ text: t('sleep_extend'), selected: false, run: () => pickSleep('extend') }] : []),
+          ...(st ? [{ text: t('sleep_cancel'), selected: false, run: () => pickSleep('cancel') }] : []),
+          { text: t('sleep_end_of_video'), selected: !!st && st.minutes === null, run: () => pickSleep(null) },
+          ...SLEEP_MINUTES.map((m) => ({ text: t('sleep_minutes', m), selected: st?.minutes === m, run: () => pickSleep(m) })),
+        ],
+      },
+    ];
+  });
+  // The real chapters (Emby's intro and credits markers left out).
   const chapters = $derived(
     (pb?.item?.Chapters ?? [])
       .map((c) => ({ name: c.Name, ms: c.StartPositionTicks / 10_000, marker: c.MarkerType }))
       .filter((c) => !c.marker || c.marker === 'Chapter')
       .sort((a, b) => a.ms - b.ms),
   );
-  function chapterSheet(): void {
-    if (!pb || !chapters.length) return;
-    const p = pb;
-    const current = chapters.findLastIndex((c) => c.ms <= p.positionMs);
-    pick(t('chapters'), chapters.map((c, i) => `${clock(c.ms)} · ${c.name || i + 1}`), current, (i) => p.seek(chapters[i].ms));
-  }
-  function moreSheet(): void {
-    if (!pb) return;
-    showAlert({
-      title: pb.item?.Name ?? '',
-      message: mode,
-      actions: [
-        { label: t('audio'), run: audioSheet },
-        { label: t('speed'), run: speedSheet },
-        ...((pb.player as RemuxPlayer).remuxed || pb.playMethod !== 'DirectPlay' ? [{ label: t('quality'), run: qualitySheet }] : []),
-        ...(chapters.length ? [{ label: t('chapters'), run: chapterSheet }] : []),
-        { label: t('web_playback_info'), run: infoSheet },
-      ],
-    });
-  }
-
-  // What plays and how, for a report from the phone (codecs, buffer, the last error).
-  function infoSheet(): void {
-    if (!pb) return;
-    const p = pb;
-    const lines = [mode, ...((p.player as RemuxPlayer).diagnostics?.() ?? []), p.transcodeReasons.length ? p.transcodeReasons.join(', ') : ''].filter(Boolean);
-    showAlert({ title: t('web_playback_info'), message: lines.join('\n'), actions: [{ label: t('close'), run: () => {} }] });
-  }
+  const chapterColumns = $derived.by<Column[]>(() => {
+    const current = chapters.findLastIndex((c) => c.ms <= position);
+    return [{ title: t('chapters'), rows: chapters.map((c, i) => ({ text: `${clock(c.ms)} · ${c.name || i + 1}`, selected: i === current, run: () => (seekTo(c.ms), (sheet = null)) })) }];
+  });
+  const columns = $derived(
+    sheet === 'tracks' ? trackColumns : sheet === 'speed' ? speedColumns : sheet === 'quality' ? qualityColumns : sheet === 'chapters' ? chapterColumns : sheet === 'sleep' ? sleepColumns : [],
+  );
 
   // ---- Picture in picture, AirPlay ----
   const pipOk = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
@@ -315,9 +564,12 @@
     keepAwake(true);
     host.prepend(video);
     const player = createPlayer(video);
+    // The shared element keeps the last video's format.
+    player.setAspect('fit');
     const p = new Playback(client, player, id, { fromStart, trailer, startMs, tracks, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
     pb = p;
     p.start();
+    const clockTimer = setInterval(() => (now = Date.now()), 1000);
     const w = window as unknown as { WebKitPlaybackTargetAvailabilityEvent?: unknown };
     const onTargets = (e: Event) => (airplayOk = (e as Event & { availability?: string }).availability === 'available');
     if (w.WebKitPlaybackTargetAvailabilityEvent) video.addEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
@@ -325,13 +577,16 @@
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
       ['play', () => p.togglePlay(true)],
       ['pause', () => p.togglePlay(false)],
-      ['seekbackward', () => skipBy(-10_000)],
-      ['seekforward', () => skipBy(10_000)],
+      ['seekbackward', () => seekTo(p.positionMs - TAP_SEEK_MS)],
+      ['seekforward', () => seekTo(p.positionMs + TAP_SEEK_MS)],
       ['seekto', (d) => d.seekTime !== undefined && p.seek(d.seekTime * 1000)],
       ['nexttrack', () => void (p.next && advance(false))],
     ];
     for (const [a, h] of handlers) ms?.setActionHandler(a, h);
+    // Back closes a sheet, counts as Continue on the sleep prompt, dismisses up next, then leaves.
     const stopBack = onBack(screen, () => {
+      if (sheet) return (sheet = null), true;
+      if (sleepPrompt !== null) return sleepContinue(), true;
       if (upNext) return (dismissedUpNext = true), true;
       return false;
     });
@@ -340,128 +595,210 @@
       for (const [a] of handlers) ms?.setActionHandler(a, null);
       if (ms) ms.metadata = null;
       video.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
-      clearTimeout(tapTimer);
+      clearInterval(clockTimer);
+      clearTimeout(singleTimer);
+      // The timer belongs to this session.
+      cancelSleep();
       p.stop();
       video.remove();
       keepAwake(false);
     };
   });
 
-  const title = $derived(pb?.item ? (pb.item.Type === 'Episode' ? (pb.item.SeriesName ?? pb.item.Name) : pb.item.Name) : '');
-  const subtitle = $derived(pb?.item?.Type === 'Episode' ? (episodeLine(pb.item) ?? '') : '');
-  const remuxed = $derived(!!pb && (pb.player as RemuxPlayer).remuxed);
+  const eyebrow = $derived(pb?.item ? (pb.item.Type === 'Episode' ? pb.item.SeriesName : pb.item.ProductionYear?.toString()) : undefined);
+  const title = $derived(pb?.item ? (pb.item.Type === 'Episode' ? (episodeLine(pb.item) ?? pb.item.Name) : pb.item.Name) : '');
+  const osd = $derived(!!pb?.item && ((controls && (preview === null || scrubbing) && !pb.error) || sheet !== null));
+  const cornerUp = $derived(controls && !!pb?.item && !pb.error);
 </script>
 
 <div class="player" bind:this={host}>
-  <!-- svelte-ignore a11y_no_static_element_interactions (taps on the picture; every action also has a button) -->
-  <div class="surface" onpointerup={onSurface}></div>
+  <!-- svelte-ignore a11y_no_static_element_interactions (gestures on the picture; every action also has a button) -->
+  <div class="surface" onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp}></div>
 
   {#if pb}
     <Subtitles cues={pb.activeCues} raised={controls} />
 
-    {#if ripple}
-      {#key ripple.key}
-        <div class="ripple" class:right={ripple.side > 0} out:fade={{ duration: 200 }}>
-          {#if ripple.side < 0}<RotateCcw size={30} aria-hidden="true" />{:else}<RotateCw size={30} aria-hidden="true" />{/if}
-          <span class="footnote">{ripple.secs} s</span>
+    {#if tapSeek}
+      {#key tapSeek.nonce}
+        <div class="lobe" class:right={tapSeek.side > 0} out:fade={{ duration: 200 }}>
+          <span class="ring" style:left="{tapSeek.x}px" style:top="{tapSeek.y}px"></span>
+          {#if tapSeek.side < 0}<ChevronsLeft size={28} aria-hidden="true" />{:else}<ChevronsRight size={28} aria-hidden="true" />{/if}
+          <span class="callout">{t(tapSeek.side < 0 ? 'seek_back_seconds' : 'seek_forward_seconds', tapSeek.secs)}</span>
         </div>
       {/key}
     {/if}
 
     {#if pb.error}
-      <div class="center message">
-        <p class="title-3">{pb.error}</p>
-        <button class="btn-light pressable" onclick={() => pb?.retry()}>{t('retry')}</button>
+      <div class="center">
+        <p class="title-2">{pb.error}</p>
+        <div class="actions">
+          <button class="pill pressable" onclick={exit}>{t('back')}</button>
+          {#if pb.item}<button class="pill pressable" onclick={() => pb?.retry()}>{t('retry')}</button>{/if}
+        </div>
       </div>
-    {:else if pb.buffering || !pb.item}
-      <div class="center"><Spinner size={44} /></div>
+    {:else if (pb.buffering || !pb.item) && preview === null && !osd}
+      <div class="center quiet"><Spinner size={44} /></div>
     {/if}
 
-    {#if controls}
-      <div class="chrome" transition:fade={{ duration: 160 }}>
+    {#if stats && preview === null}<Stats {pb} />{/if}
+
+    {#if osd}
+      <div class="osd" transition:fade={{ duration: 200 }}>
+        <div class="scrim-top"></div>
+        <div class="scrim-bottom"></div>
         <div class="top">
-          <button class="round glass-media" aria-label={t('close')} onclick={exit}><ChevronDown size={26} aria-hidden="true" /></button>
+          <button class="icon" aria-label={t('back')} onclick={exit}><ChevronLeft size={24} aria-hidden="true" /></button>
           <div class="heading">
+            <p class="footnote dim ellipsis">{[eyebrow, mode].filter(Boolean).join(' · ')}</p>
             <p class="headline ellipsis">{title}</p>
-            <p class="caption ellipsis dim">{[subtitle, mode].filter(Boolean).join(' · ')}</p>
           </div>
-          {#if pipOk}<button class="round glass-media" aria-label={t('pip')} onclick={pip}><PictureInPicture size={21} aria-hidden="true" /></button>{/if}
-          {#if airplayOk && !remuxed}<button class="round glass-media" aria-label={t('web_airplay')} onclick={airplay}><Airplay size={21} aria-hidden="true" /></button>{/if}
+          <div class="tools">
+            {#if pb.next}<button class="icon" aria-label={t('up_next')} onclick={() => advance(false)}><SkipForward size={18} fill="currentColor" aria-hidden="true" /></button>{/if}
+            <button class="icon" aria-label={t('subtitles')} onclick={() => (sheet = 'tracks')}><Captions size={22} aria-hidden="true" /></button>
+            {#if chapters.length > 1}<button class="icon" aria-label={t('chapters')} onclick={() => (sheet = 'chapters')}><ListVideo size={22} aria-hidden="true" /></button>{/if}
+            <button class="icon" class:on={stats} aria-label={t('stats_title')} aria-pressed={stats} onclick={() => (stats = !stats)}><Info size={22} aria-hidden="true" /></button>
+            {#if pb.player.speeds.length > 1}<button class="icon" aria-label={t('speed')} onclick={() => (sheet = 'speed')}><Gauge size={22} aria-hidden="true" /></button>{/if}
+            <button class="icon" aria-label={t('aspect_value', t(ASPECT_LABEL[aspect]))} onclick={cycleAspect}><Scan size={22} aria-hidden="true" /></button>
+            {#if !pb.trailer}
+              <button class="icon wide" aria-label={t('quality')} onclick={() => (sheet = 'quality')}><Settings size={22} aria-hidden="true" /><span class="footnote">{qualityShort}</span></button>
+              <button class="icon" aria-label={[t('sleep_timer'), sleepLeft !== null ? clock(sleepLeft) : ''].filter(Boolean).join(', ')} onclick={() => (sheet = 'sleep')}>
+                <Moon size={22} aria-hidden="true" />
+                {#if sleepLeft !== null}<span class="badge mono">{clock(sleepLeft)}</span>{/if}
+              </button>
+            {/if}
+            {#if pipOk}<button class="icon" aria-label={t('pip')} onclick={pip}><PictureInPicture size={22} aria-hidden="true" /></button>{/if}
+            {#if airplayOk && !remuxed}<button class="icon" aria-label={t('web_airplay')} onclick={airplay}><Airplay size={22} aria-hidden="true" /></button>{/if}
+          </div>
         </div>
 
         <div class="middle">
-          <button class="round big glass-media" aria-label={t('web_back10')} onclick={() => skipBy(-10_000)}><RotateCcw size={30} aria-hidden="true" /></button>
-          <button class="round huge glass-media" aria-label={pb.playing ? t('pause') : t('play')} onclick={togglePlay}>
-            {#if pb.playing}<Pause size={38} fill="currentColor" strokeWidth={0} aria-hidden="true" />{:else}<Play size={38} fill="currentColor" strokeWidth={0} aria-hidden="true" />{/if}
+          <button class="icon step" aria-label={t('rewind_10')} onclick={() => (seekTo(position - TAP_SEEK_MS), poke())}>
+            <RotateCcw size={30} aria-hidden="true" /><span class="badge mono">10</span>
           </button>
-          <button class="round big glass-media" aria-label={t('web_fwd10')} onclick={() => skipBy(10_000)}><RotateCw size={30} aria-hidden="true" /></button>
+          <button class="icon main" aria-label={pb.playing ? t('pause') : t('play')} onclick={togglePlay}>
+            {#if pb.buffering}<Spinner size={34} />{:else if pb.playing}<Pause size={34} fill="currentColor" strokeWidth={0} aria-hidden="true" />{:else}<Play size={34} fill="currentColor" strokeWidth={0} aria-hidden="true" />{/if}
+          </button>
+          <button class="icon step" aria-label={t('forward_10')} onclick={() => (seekTo(position + TAP_SEEK_MS), poke())}>
+            <RotateCw size={30} aria-hidden="true" /><span class="badge mono">10</span>
+          </button>
         </div>
 
         <div class="bottom">
-          {#if thumb}
-            <div class="thumb" style:left="{(position / Math.max(1, duration)) * 100}%">
-              {#if thumb.tile}
-                <span class="tile" style:background-image="url({thumb.src})" style:background-size="{(thumb.tile.sheetWidth / thumb.width) * 100}% auto" style:background-position="{(thumb.tile.x / Math.max(1, thumb.tile.sheetWidth - thumb.width)) * 100}% {(thumb.tile.y / Math.max(1, thumb.tile.sheetHeight - thumb.height)) * 100}%"></span>
-              {:else}
-                <img src={thumb.src} alt="" />
-              {/if}
-              <span class="caption mono">{clock(position)}</span>
-            </div>
-          {/if}
           <div
             class="bar"
-            class:active={scrub !== null}
+            class:active={scrubbing}
             bind:this={bar}
             role="slider"
             tabindex="0"
             aria-label={title}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration / 1000)}
-            aria-valuenow={Math.round(position / 1000)}
+            aria-valuenow={Math.round(shown / 1000)}
             onpointerdown={onBarDown}
             onpointermove={onBarMove}
             onpointerup={onBarUp}
             onpointercancel={onBarUp}
           >
-            <span class="track"><span class="done" style:transform="scaleX({duration ? position / duration : 0})"></span></span>
+            <span class="track">
+              <span class="buffered" style:transform="scaleX({duration ? Math.min(1, buffered / duration) : 0})"></span>
+              <span class="done" style:transform="scaleX({duration ? shown / duration : 0})"></span>
+            </span>
+            <span class="knob" style:left="{duration ? (shown / duration) * 100 : 0}%"></span>
           </div>
-          <div class="times caption mono">
-            <span>{clock(position)}</span>
-            <span>−{clock(Math.max(0, duration - position))}</span>
+          <div class="times mono footnote">
+            <span>{clock(shown)}</span>
+            <span>{t('seek_delta_back', clock(Math.max(0, duration - shown)))}</span>
           </div>
-          <div class="tools">
-            <button class="tool" aria-label={t('subtitles')} onclick={subtitleSheet}><Captions size={22} aria-hidden="true" /></button>
-            {#if pb.next}<button class="tool" aria-label={t('up_next')} onclick={() => advance(false)}><SkipForward size={22} aria-hidden="true" /></button>{/if}
-            <button class="tool" aria-label={t('more')} onclick={moreSheet}><Ellipsis size={22} aria-hidden="true" /></button>
+          {#if endsAt}<p class="times ends mono footnote">{endsAt}</p>{/if}
+        </div>
+      </div>
+    {/if}
+
+    {#if preview !== null}
+      <div class="preview">
+        {#if thumb}
+          {#if thumb.tile}
+            <span class="frame" style:background-image="url({thumb.src})" style:background-size="{(thumb.tile.sheetWidth / thumb.width) * 100}% auto" style:background-position="{(thumb.tile.x / Math.max(1, thumb.tile.sheetWidth - thumb.width)) * 100}% {(thumb.tile.y / Math.max(1, thumb.tile.sheetHeight - thumb.height)) * 100}%"></span>
+          {:else}
+            <img class="frame" src={thumb.src} alt="" />
+          {/if}
+        {/if}
+        <div class="when">
+          <p class="mono big">{clock(preview)}</p>
+          <p class="mono footnote dim">{t(preview >= position ? 'seek_delta_forward' : 'seek_delta_back', clock(Math.abs(preview - position)))}</p>
+        </div>
+      </div>
+    {/if}
+
+    {#if hud}
+      {#key hud.nonce}<div class="hud callout" out:fade={{ duration: 200 }}><Scan size={20} aria-hidden="true" />{hud.text}</div>{/key}
+    {/if}
+
+    {#if skipVisible && skippable && !upNext && !sheet}
+      <button class="action corner pressable" class:up={cornerUp} transition:fade={{ duration: 220 }} onclick={() => (seekTo(skippable!.endMs), (skipVisible = false))}>
+        <SkipForward size={18} fill="currentColor" aria-hidden="true" /><span class="headline">{t(SKIP_LABEL[chipKind])}</span>
+      </button>
+    {/if}
+
+    {#if upNext && !sheet}
+      {@const art = client.thumb(upNext, 600)}
+      <div class="next corner" class:up={cornerUp} in:fly={{ y: 40, duration: 320 }} out:fade={{ duration: 200 }}>
+        <div class="art">
+          {#if art}<img src={art} alt="" />{/if}
+          <button class="icon close" aria-label={t('close')} onclick={() => (dismissedUpNext = true)}><X size={16} aria-hidden="true" /></button>
+          {#if settings.autoplayNext.value && !endOfVideo()}
+            <span class="count"><span style:transform="scaleX({1 - countdown / Math.max(1, settings.countdown.value)})"></span></span>
+          {/if}
+        </div>
+        <div class="next-body">
+          <p class="eyebrow">{t('up_next')}</p>
+          <p class="headline two-lines">{episodeLine(upNext) ?? upNext.Name}</p>
+          <div class="next-actions">
+            <button class="action pressable" onclick={() => advance(false)}><SkipForward size={18} fill="currentColor" aria-hidden="true" /><span class="headline">{t('play_now')}</span></button>
+            {#if settings.autoplayNext.value && !endOfVideo()}<span class="callout label-2">{t('up_next_in', countdown)}</span>{/if}
           </div>
         </div>
       </div>
     {/if}
 
-    {#if skipVisible && skippable}
-      <button class="chip glass-media headline" transition:fade={{ duration: 160 }} onclick={() => (pb?.seek(skippable!.endMs), (skipVisible = false))}>{t(SKIP_LABEL[skippable.kind])}</button>
-    {/if}
-
-    {#if upNext}
-      <div class="next glass-media" transition:fade={{ duration: 200 }}>
-        <p class="caption dim">{t('up_next')}{countdown !== null ? ` · ${t('up_next_in', countdown)}` : ''}</p>
-        <p class="subhead ellipsis">{episodeLine(upNext) ?? upNext.Name}</p>
-        <div class="next-actions">
-          <button class="btn-light small" onclick={() => advance(false)}><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />{t('play')}</button>
-          <button class="subhead dim" onclick={() => (dismissedUpNext = true)}>{t('cancel')}</button>
+    {#if sheet}
+      <PlayerSheet onclose={() => (sheet = null)}>
+        <div class="columns">
+          {#each columns as col (col.title)}
+            <div class="column" style:flex={col.weight ?? 1}>
+              <p class="eyebrow label-3">{col.title}</p>
+              <div class="rows">
+                {#each col.rows as row, i (i)}
+                  <OptionRow text={row.text} selected={row.selected} busy={row.busy} onclick={row.run} />
+                {/each}
+              </div>
+            </div>
+          {/each}
         </div>
-      </div>
+      </PlayerSheet>
     {/if}
 
+    {#if sleepPrompt !== null && !stillWatching}
+      {@render ask(t('still_watching_pausing_in', sleepPrompt), sleepContinue, t('sleep_pause'), sleepStop)}
+    {/if}
     {#if stillWatching}
-      <div class="center message">
-        <p class="title-2">{t('still_watching')}</p>
-        <p class="callout dim">{t('web_still_body')}</p>
-        <button class="btn-light pressable" onclick={() => ((stillWatching = false), advance(false))}>{t('web_continue')}</button>
-      </div>
+      {@render ask(t('still_watching_sub'), keepWatching, t('stop_watching'), exit)}
     {/if}
   {/if}
 </div>
+
+{#snippet ask(sub: string, onContinue: () => void, stopLabel: string, onStop: () => void)}
+  <div class="modal" transition:fade={{ duration: 180 }}>
+    <div class="card">
+      <p class="title-2">{t('still_watching')}</p>
+      <p class="callout label-2">{sub}</p>
+      <div class="actions">
+        <button class="pill primary pressable" onclick={onContinue}>{t('keep_watching')}</button>
+        <button class="pill pressable" onclick={onStop}>{stopLabel}</button>
+      </div>
+    </div>
+  </div>
+{/snippet}
 
 <style>
   .player {
@@ -470,7 +807,9 @@
     background: #000;
     color: #fff;
     overflow: hidden;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .player > :global(.app-video) {
     position: absolute;
@@ -478,27 +817,11 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
+    transition: transform var(--t-med) var(--ease-out);
   }
   .surface {
     position: absolute;
     inset: 0;
-  }
-  .center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    pointer-events: none;
-    color: #fff;
-  }
-  .message {
-    pointer-events: auto;
-    background: rgb(0 0 0 / 0.6);
-    text-align: center;
-    padding: 24px;
   }
   .dim {
     color: rgb(255 255 255 / 0.7);
@@ -508,168 +831,401 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .chrome {
+  .center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .center.quiet {
+    pointer-events: none;
+  }
+  .actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* ---- The controls ---- */
+  .osd {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0) 26%, rgb(0 0 0 / 0) 62%, rgb(0 0 0 / 0.65));
   }
-  .chrome button,
-  .chrome .bar {
+  .osd button,
+  .osd .bar {
     pointer-events: auto;
+  }
+  /* Video scrims (content, not chrome): the white controls stay legible on bright frames. */
+  .scrim-top,
+  .scrim-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+  .scrim-top {
+    top: 0;
+    height: calc(var(--safe-top) + 130px);
+    background: linear-gradient(rgb(0 0 0 / 0.62), transparent);
+  }
+  .scrim-bottom {
+    bottom: 0;
+    height: calc(var(--safe-bottom) + 170px);
+    background: linear-gradient(transparent, rgb(0 0 0 / 0.72));
+  }
+  .icon {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    color: #fff;
+    transition:
+      transform var(--t-fast) var(--ease-out),
+      background-color var(--t-fast);
+  }
+  .icon:active {
+    transform: scale(0.9);
+  }
+  .icon.on {
+    background: rgb(255 255 255 / 0.22);
+  }
+  .icon.wide {
+    width: auto;
+    padding: 0 11px;
+    gap: 6px;
+    border-radius: 22px;
+  }
+  .badge {
+    position: absolute;
+    font-size: 9px;
+    line-height: 1;
+    margin-top: 2px;
   }
   .top {
     position: absolute;
     top: calc(var(--safe-top) + 6px);
-    left: max(14px, var(--safe-left));
-    right: max(14px, var(--safe-right));
+    left: max(12px, var(--safe-left));
+    right: max(12px, var(--safe-right));
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
   }
   .heading {
     flex: 1;
     min-width: 0;
-    text-align: center;
+    padding: 0 12px 0 6px;
   }
-  .round {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex: none;
+  .tools {
+    display: flex;
+    align-items: center;
   }
-  .round.big {
-    width: 58px;
-    height: 58px;
-  }
-  .round.huge {
-    width: 78px;
-    height: 78px;
+  /* Portrait: the buttons under the title, to the right. */
+  @media (max-width: 640px) {
+    .tools {
+      order: 3;
+      width: 100%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
   }
   .middle {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 50%;
     top: 50%;
-    transform: translateY(-50%);
+    translate: -50% -50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: clamp(28px, 10vw, 64px);
+    gap: 44px;
+  }
+  .icon.step {
+    width: 56px;
+    height: 56px;
+  }
+  .icon.main {
+    width: 76px;
+    height: 76px;
+    background: rgb(0 0 0 / 0.32);
   }
   .bottom {
     position: absolute;
-    left: max(18px, var(--safe-left));
-    right: max(18px, var(--safe-right));
-    bottom: calc(var(--safe-bottom) + 10px);
+    left: max(24px, var(--safe-left));
+    right: max(24px, var(--safe-right));
+    bottom: calc(var(--safe-bottom) + 14px);
   }
   .bar {
-    height: 30px;
+    position: relative;
+    height: 36px;
     display: flex;
     align-items: center;
     touch-action: none;
   }
   .track {
+    position: relative;
     flex: 1;
-    height: 5px;
-    border-radius: 3px;
-    background: rgb(255 255 255 / 0.28);
+    height: 4px;
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.22);
     overflow: hidden;
-    transition: transform var(--t-fast) var(--ease-out);
+    transition: height var(--t-fast) var(--ease-out);
   }
   .bar.active .track {
-    transform: scaleY(1.8);
+    height: 6px;
+  }
+  .buffered,
+  .done {
+    position: absolute;
+    inset: 0;
+    transform-origin: left;
+  }
+  .buffered {
+    background: rgb(255 255 255 / 0.2);
   }
   .done {
-    display: block;
-    height: 100%;
+    background: var(--accent);
+  }
+  .knob {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
     background: #fff;
-    transform-origin: left;
+    translate: -50% -50%;
+    transition:
+      width var(--t-fast) var(--ease-out),
+      height var(--t-fast) var(--ease-out);
+  }
+  .bar.active .knob {
+    width: 18px;
+    height: 18px;
   }
   .times {
     display: flex;
     justify-content: space-between;
-    color: rgb(255 255 255 / 0.75);
-    margin-top: -2px;
+    color: rgb(255 255 255 / 0.7);
   }
-  .tools {
-    display: flex;
+  .times.ends {
     justify-content: flex-end;
-    gap: 6px;
-    margin-top: 6px;
   }
-  .tool {
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    color: #fff;
-  }
-  .thumb {
+
+  /* ---- Feedback ---- */
+  .lobe {
     position: absolute;
-    bottom: 76px;
-    width: 160px;
-    transform: translateX(-50%);
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: 0 50% 50% 0 / 0 50% 50% 0;
+    background: rgb(255 255 255 / 0.08);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     pointer-events: none;
   }
-  .thumb .tile,
-  .thumb img {
+  .lobe.right {
+    left: auto;
+    right: 0;
+    border-radius: 50% 0 0 50% / 50% 0 0 50%;
+  }
+  .ring {
+    position: absolute;
+    width: 120vh;
+    height: 120vh;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.16);
+    translate: -50% -50%;
+    animation: ring 450ms var(--ease-out) forwards;
+  }
+  @keyframes ring {
+    from {
+      transform: scale(0);
+      opacity: 1;
+    }
+    to {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+  .preview {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .frame {
     display: block;
-    width: 160px;
+    width: 220px;
     aspect-ratio: 16 / 9;
-    border-radius: 8px;
+    border-radius: var(--r-sm);
+    background-color: var(--bg-elevated-2);
     background-repeat: no-repeat;
     object-fit: cover;
-    box-shadow: 0 6px 20px rgb(0 0 0 / 0.5);
   }
-  .ripple {
+  .when {
+    padding: 8px 16px;
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+    text-align: center;
+  }
+  .big {
+    font-size: 26px;
+    line-height: 30px;
+  }
+  .hud {
     position: absolute;
-    top: 50%;
-    left: 18%;
-    transform: translate(-50%, -50%);
+    top: calc(var(--safe-top) + 28px);
+    left: 50%;
+    translate: -50% 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    color: var(--label);
     pointer-events: none;
   }
-  .ripple.right {
-    left: 82%;
-  }
-  .chip {
+
+  /* ---- Skip, up next: bottom right, above the bar while the controls show ---- */
+  .corner {
     position: absolute;
-    right: max(18px, var(--safe-right));
-    bottom: calc(var(--safe-bottom) + 130px);
-    height: 44px;
-    padding: 0 20px;
-    border-radius: 22px;
+    right: max(24px, var(--safe-right));
+    bottom: calc(var(--safe-bottom) + 28px);
+    transition: bottom var(--t-med) var(--ease-out);
+  }
+  .corner.up {
+    bottom: calc(var(--safe-bottom) + 104px);
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 999px;
+    background: #fff;
+    color: #000;
+    white-space: nowrap;
   }
   .next {
-    position: absolute;
-    right: max(18px, var(--safe-right));
-    bottom: calc(var(--safe-bottom) + 130px);
-    width: min(300px, calc(100% - 36px));
-    padding: 14px;
+    width: min(300px, calc(100% - 48px));
     border-radius: var(--r-lg);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    background: color-mix(in srgb, var(--bg-elevated) 95%, transparent);
+    color: var(--label);
+    overflow: hidden;
+  }
+  .art {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-elevated-2);
+  }
+  .art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .icon.close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: rgb(0 0 0 / 0.45);
+  }
+  .count {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgb(255 255 255 / 0.22);
+  }
+  .count span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: left;
+    transition: transform 1s linear;
+  }
+  .next-body {
+    padding: 12px 16px 14px;
+  }
+  .next-body .eyebrow {
+    color: var(--label-3);
+  }
+  .two-lines {
+    margin: 3px 0 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .next-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-top: 8px;
+    gap: 12px;
   }
-  .btn-light.small {
-    height: 38px;
-    padding: 0 16px;
-    font-size: var(--fs-subhead);
+
+  /* ---- Sheets ---- */
+  .columns {
+    display: flex;
+    gap: 20px;
+    min-height: 0;
+    flex: 1;
+  }
+  .column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .column .eyebrow {
+    padding: 0 0 6px 12px;
+  }
+  .rows {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+  }
+
+  /* ---- "Still watching?" ---- */
+  .modal {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 0.6);
+    z-index: 30;
+  }
+  .card {
+    width: min(420px, 100%);
+    padding: 28px;
+    border-radius: var(--r-xl);
+    background: var(--bg-elevated);
+    color: var(--label);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .card .callout {
+    margin: 6px 0 22px;
   }
 </style>

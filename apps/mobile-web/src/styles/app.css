@@ -44,28 +44,18 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* The floating tab bar: 62px high, its bottom edge just above the home indicator; --tabbar is what a page keeps
-     clear under its content. */
-  --tabbar-gap: max(10px, calc(var(--safe-bottom) - 14px));
-  --tabbar: calc(62px + var(--tabbar-gap) + 16px);
-
-  /* Glass (iOS 26's material, in the theme's own tones): a tinted, blurred fill, a light rim along the top edge and
-     a hairline all round, floating on a soft shadow. Over artwork (heroes, the player) it is always dark. */
-  --glass-fill: color-mix(in srgb, var(--bg-elevated-2) 58%, transparent);
-  --glass-rim: rgb(255 255 255 / 0.2);
-  --glass-edge: rgb(255 255 255 / 0.08);
-  --glass-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
-  --glass-blur: blur(22px) saturate(190%);
+  /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
+     own bars do; --tabbar is what a page keeps clear under its content. */
+  --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
+  --tabbar: calc(64px + var(--tabbar-inset));
+  /* Over artwork (heroes, the player): a dark fill keeps white labels legible on any frame (Android onArt). */
+  --on-art: rgb(0 0 0 / 0.4);
 
   color-scheme: dark;
 }
 
 [data-theme='light'] {
   color-scheme: light;
-  --glass-fill: rgb(255 255 255 / 0.62);
-  --glass-rim: rgb(255 255 255 / 0.9);
-  --glass-edge: rgb(0 0 0 / 0.08);
-  --glass-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -78,8 +68,6 @@
 }
 :root[data-reduce-transparency] {
   --blur: none;
-  --glass-blur: none;
-  --glass-fill: var(--bg-elevated-2);
 }
 
 *,
@@ -175,42 +163,87 @@ p {
   backdrop-filter: var(--blur);
 }
 
-.glass {
-  background: var(--glass-fill);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 0.5px 0 var(--glass-rim), inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
-}
-/* Glass over artwork: dark in every theme, white content. */
-.glass-media {
-  background: rgb(28 28 31 / 0.42);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.25), inset 0 0 0 0.5px rgb(255 255 255 / 0.1);
-  color: #fff;
-}
+/* ---- Wicaby controls (docs/design.md; Android PillButton, ActionIcon, the desktop's .btn) ---- */
 
-/* The Apple TV pair: a light pill for Play (as the desktop's .btn.light) and round glass buttons beside it. */
-.btn-light {
-  height: 50px;
-  padding: 0 26px;
+/* A pill: neutral fill; .light is Play (white, as the desktop's item page); .primary the accent; .on-art over
+   artwork. */
+.pill {
+  height: 46px;
+  padding: 0 20px;
   border-radius: 999px;
-  background: #f5f5f7;
-  color: #000;
+  background: var(--fill-3);
+  color: var(--label);
   font-size: var(--fs-headline);
-  font-weight: 650;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
+  flex: none;
 }
-.btn-round {
-  width: 50px;
-  height: 50px;
+.pill.light {
+  background: #f5f5f7;
+  color: #000;
+}
+.pill.primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.pill.on-art {
+  background: var(--on-art);
+  color: #fff;
+}
+.pill.compact {
+  height: 38px;
+  padding: 0 14px;
+  font-size: var(--fs-subhead);
+}
+.pill:disabled {
+  opacity: 0.45;
+}
+
+/* A round icon button: the canvas's fill, or the dark fill over artwork. */
+.round {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: inline-grid;
   place-items: center;
   flex: none;
+  background: var(--fill-2);
+  color: var(--label);
+}
+.round.on-art {
+  background: var(--on-art);
+  color: #fff;
+}
+.round.bare {
+  background: transparent;
+}
+
+/* Small caps over a title ("FILM · DRAME"), as the desktop's hero and item page. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-2);
+}
+
+/* A technical badge (4K, Dolby Vision · HDR10, 5.1): a small filled tag. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-xs);
+  background: var(--fill-3);
+  color: var(--label);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* Press feedback on any tappable surface: an instant dim, a scale on cards. */

@@ -17,7 +17,8 @@ import { createServer } from 'vite';
 const ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const OUT = path.join(ROOT, '.dev', 'shots');
 const APP = path.resolve(import.meta.dirname, '..');
-const SAFE = { top: 59, bottom: 34 };
+// iPhone 15 Pro Max insets, upright and on its side.
+const SAFE = process.env.SHOTS_LANDSCAPE === '1' ? { top: 0, bottom: 21, left: 59, right: 59 } : { top: 59, bottom: 34, left: 0, right: 0 };
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -81,6 +82,17 @@ const SCENES = {
     await page.locator('[data-screen-top] section.shelf').first().locator('button.card').first().click();
     await page.waitForTimeout(6000);
   },
+  // The player, then its audio and subtitles sheet, and its quality sheet.
+  async playerTracks(page) {
+    await SCENES.player(page);
+    await page.locator('.osd button[aria-label]').nth(1).click();
+    await page.waitForTimeout(600);
+  },
+  async playerQuality(page) {
+    await SCENES.player(page);
+    await page.locator('.osd button.wide').click();
+    await page.waitForTimeout(600);
+  },
   async settings(page) {
     await page.locator('nav button').nth(3).click();
     await page.waitForTimeout(500);
@@ -99,17 +111,20 @@ async function main() {
   const errors = [];
   try {
     const context = await browser.newContext({
-      viewport: { width: 430, height: 932 },
+      // SHOTS_LANDSCAPE=1: the phone on its side (the player scenes).
+      viewport: process.env.SHOTS_LANDSCAPE === '1' ? { width: 932, height: 430 } : { width: 430, height: 932 },
       deviceScaleFactor: 3,
       isMobile: true,
       hasTouch: true,
       colorScheme: process.env.SHOTS_DARK === '0' ? 'light' : 'dark',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
     });
-    await context.addInitScript(({ top, bottom }) => {
+    await context.addInitScript(({ top, bottom, left, right }) => {
       const set = () => {
         document.documentElement.style.setProperty('--safe-top', `${top}px`);
         document.documentElement.style.setProperty('--safe-bottom', `${bottom}px`);
+        document.documentElement.style.setProperty('--safe-left', `${left}px`);
+        document.documentElement.style.setProperty('--safe-right', `${right}px`);
       };
       if (document.documentElement) set();
       else document.addEventListener('DOMContentLoaded', set);

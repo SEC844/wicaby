@@ -24,7 +24,8 @@
     onall?: () => void;
   } = $props();
 
-  const width = $derived(wide ? Math.min(300, Math.round(window.innerWidth * 0.74)) : 118);
+  // Android MediaRow: 16:9 cards at about three quarters of the width, posters at 116 dp.
+  const width = $derived(wide ? Math.min(300, Math.round(window.innerWidth * 0.74)) : 116);
 </script>
 
 <section class="shelf">
@@ -38,7 +39,7 @@
   {/if}
   <div class="shelf-row">
     {#each items as item (`${item.ServerId ?? ''}:${item.Id}`)}
-      <Card {item} {api} {wide} {width} subtitle={subtitle?.(item)} onclick={() => onopen(item)} />
+      <Card {item} {api} {wide} titled={!wide} {width} subtitle={subtitle?.(item)} onclick={() => onopen(item)} />
     {/each}
   </div>
 </section>

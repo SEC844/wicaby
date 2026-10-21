@@ -43,7 +43,7 @@ async function startMock(port, video) {
 const state = (page) =>
   page.evaluate(() => {
     const v = document.querySelector('video');
-    return { t: v?.currentTime ?? -1, paused: v?.paused, err: v?.error?.message ?? null, mode: document.querySelector('.heading .caption')?.textContent ?? '', msg: document.querySelector('.message')?.textContent ?? '' };
+    return { t: v?.currentTime ?? -1, paused: v?.paused, err: v?.error?.message ?? null, mode: document.querySelector('.heading .footnote')?.textContent ?? '', msg: document.querySelector('.center .title-2')?.textContent ?? '' };
   });
 
 const files = process.argv.slice(2).length ? process.argv.slice(2) : fs.readdirSync(MEDIA).filter((f) => f.endsWith('.mkv'));

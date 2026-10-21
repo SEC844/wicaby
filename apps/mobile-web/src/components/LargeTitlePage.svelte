@@ -1,6 +1,6 @@
 <script lang="ts">
-  // A page with a large title, as iOS draws it: the title at the top of the content; once it scrolls away, a glass
-  // bar takes over with the title small and centred. The switch is a class flip on a threshold (no work per frame).
+  // A page with a large title (the desktop's page heads, Android's screen titles): the title at the top of the
+  // content; once it scrolls away, a bar of the floating chrome's material takes over with the title small. The switch is a class flip on a threshold (no work per frame).
   // A pushed page (back) gets a round Back button above its title. A tap on the current tab's icon at its root
   // scrolls back to the top.
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -43,7 +43,7 @@
     <span class="headline ellipsis">{title}</span>
   </div>
   {#if back}
-    <button class="back-btn glass" class:collapsed aria-label={t('back')} onclick={() => handleBack()}><ChevronLeft size={26} strokeWidth={2.2} aria-hidden="true" /></button>
+    <button class="back-btn round" aria-label={t('back')} onclick={() => handleBack()}><ChevronLeft size={26} strokeWidth={2.2} aria-hidden="true" /></button>
   {/if}
 </div>
 
@@ -72,13 +72,6 @@
     place-items: center;
     z-index: 5;
   }
-  .back-btn.collapsed {
-    background: transparent;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    color: var(--accent);
-  }
   .ellipsis {
     max-width: calc(100% - 128px);
     overflow: hidden;
@@ -104,9 +97,9 @@
     padding-top: var(--safe-top);
     display: grid;
     place-items: center;
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    background: var(--material);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     border-bottom: 0.5px solid var(--separator);
     opacity: 0;
     pointer-events: none;
