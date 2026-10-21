@@ -79,6 +79,7 @@
   .head {
     padding: 14px 16px;
     text-align: center;
+    white-space: pre-line;
     display: flex;
     flex-direction: column;
     gap: 4px;

@@ -30,4 +30,5 @@
     <string name="web_airplay">AirPlay</string>
     <string name="web_back10">Back 10 s</string>
     <string name="web_fwd10">Forward 10 s</string>
+    <string name="web_playback_info">Playback info</string>
 </resources>

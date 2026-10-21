@@ -3,6 +3,7 @@ import { mount } from 'svelte';
 import App from './App.svelte';
 import { setLanguage } from '$tv/i18n.svelte';
 import { settings } from '$tv/settings.svelte';
+import { unlockOnFirstTouch } from './lib/media-element';
 import { applyTheme } from './lib/theme';
 import { initUpdates } from './lib/updates.svelte';
 
@@ -10,4 +11,5 @@ import { initUpdates } from './lib/updates.svelte';
 applyTheme(settings.theme.value, settings.accent.value);
 setLanguage(settings.language.value);
 initUpdates();
+unlockOnFirstTouch();
 mount(App, { target: document.getElementById('app')! });

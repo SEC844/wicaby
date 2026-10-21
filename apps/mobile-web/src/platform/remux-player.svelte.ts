@@ -35,6 +35,7 @@ export function remuxSupports(mime: string): boolean {
 
 const isMatroska = (b: Uint8Array) => b.length >= 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
 const BEHIND_S = 30;
+const STREAMING_FLOOR_S = 10;
 
 export class RemuxPlayer extends HtmlPlayer {
   // Reactive: the player screen shows how the title plays.
@@ -128,8 +129,12 @@ export class RemuxPlayer extends HtmlPlayer {
     // ManagedMediaSource plays only without remote playback (AirPlay takes the server's HLS instead).
     this.el.disableRemotePlayback = true;
     const opened = new Promise<void>((resolve) => ms.addEventListener('sourceopen', () => resolve(), { once: true }));
-    if ('srcObject' in this.el && 'ManagedMediaSource' in window) (this.el as HTMLVideoElement & { srcObject: unknown }).srcObject = ms;
-    else this.el.src = this.objectUrl = URL.createObjectURL(ms);
+    // Safari takes a ManagedMediaSource as srcObject (what it asks for); an engine that refuses it gets a URL.
+    try {
+      (this.el as HTMLVideoElement & { srcObject: unknown }).srcObject = ms;
+    } catch {
+      this.el.src = this.objectUrl = URL.createObjectURL(ms);
+    }
     ms.addEventListener('startstreaming', () => this.wake?.());
     await opened;
     if (header.durationMs) ms.duration = (header.durationMs + this.lead) / 1000;
@@ -159,6 +164,7 @@ export class RemuxPlayer extends HtmlPlayer {
     void this.pump(gen, offset).catch((e) => {
       if (gen !== this.generation) return;
       console.warn('remux:', e);
+      this.lastError = e instanceof Error ? e.message : String(e);
       this.emit('error', e instanceof Error ? e.message : String(e));
     });
   }
@@ -189,8 +195,10 @@ export class RemuxPlayer extends HtmlPlayer {
     for (;;) {
       if (gen !== this.generation) return;
       const ahead = this.bufferedAhead();
-      const streaming = this.ms?.streaming ?? true;
-      if (ahead < this.aheadS && streaming) return;
+      // ManagedMediaSource asks for data (startstreaming) only below about 10 s buffered, and only once it has some:
+      // under that, feed regardless; above it, follow its endstreaming as well as the cap.
+      const paused = this.ms?.streaming === false && ahead >= STREAMING_FLOOR_S;
+      if (ahead < this.aheadS && !paused) return;
       await new Promise<void>((resolve) => {
         this.wake = () => {
           this.wake = null;
@@ -303,6 +311,22 @@ export class RemuxPlayer extends HtmlPlayer {
   // The file is remuxed on the phone (the Matroska path), rather than played by Safari as served.
   get remuxed(): boolean {
     return this.remuxing;
+  }
+
+  private lastError = '';
+
+  // What the "Playback info" sheet shows: the source, the codecs fed to Safari, the buffer, the last error.
+  diagnostics(): string[] {
+    const rx = this.remux;
+    const ahead = this.bufferedAhead();
+    return [
+      this.remuxing ? `Remux · ${this.source?.seekable ? 'Range' : 'stream'}${this.source?.size ? ` · ${(this.source.size / 1e9).toFixed(2)} GB` : ''}` : 'Safari',
+      ...(rx?.video ? [rx.video.mime.replace(/^.*codecs="|"$/g, '')] : []),
+      ...(rx?.audio ? [rx.audio.mime.replace(/^.*codecs="|"$/g, '')] : []),
+      `${this.ms ? (this.ms.constructor as { name: string }).name : 'video'} · ${this.ms?.readyState ?? '-'} · streaming ${String(this.ms?.streaming ?? '-')}`,
+      `buffer +${ahead.toFixed(1)} s · readyState ${this.el.readyState}${this.el.error ? ` · error ${this.el.error.code} ${this.el.error.message}` : ''}`,
+      ...(this.lastError ? [this.lastError] : []),
+    ];
   }
 
   // ---- The player interface, on the file's timeline ----

@@ -6,8 +6,7 @@
   import { t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
   import { play } from '$tv/playback';
-  import { api, prefs } from '$tv/session.svelte';
-  import Avatar from '../components/Avatar.svelte';
+  import { api } from '$tv/session.svelte';
   import Hero from '../components/Hero.svelte';
   import Shelf from '../components/Shelf.svelte';
   import Spinner from '../components/Spinner.svelte';
@@ -15,7 +14,6 @@
   import { itemRoute, nav, shell } from '../lib/nav.svelte';
 
   const a = api()!;
-  const session = prefs.session!;
   const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
   const home = useHome(a, () => views.value ?? []);
 
@@ -55,9 +53,6 @@
   <div class="bar" class:solid>
     <span class="headline title">{t('tab_home')}</span>
   </div>
-  <button class="me" aria-label={t('settings_account')} onclick={() => nav.selectTab('settings')}>
-    <Avatar user={{ Id: session.userId, Name: session.userName }} api={a} size={36} />
-  </button>
 </div>
 
 <style>
@@ -94,14 +89,6 @@
   }
   .bar.solid {
     opacity: 1;
-  }
-  .me {
-    position: absolute;
-    top: calc(var(--safe-top) + 4px);
-    right: max(16px, var(--safe-right));
-    z-index: 5;
-    border-radius: 50%;
-    box-shadow: 0 2px 10px rgb(0 0 0 / 0.35), 0 0 0 0.5px rgb(255 255 255 / 0.2);
   }
   .loading {
     display: grid;

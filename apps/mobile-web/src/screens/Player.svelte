@@ -31,6 +31,7 @@
   import { fade } from 'svelte/transition';
   import Spinner from '../components/Spinner.svelte';
   import Subtitles from '../components/player/Subtitles.svelte';
+  import { video as sharedVideo } from '../lib/media-element';
   import { handleBack, onBack, SCREEN } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { createPlayer, keepAwake } from '../platform';
@@ -49,7 +50,9 @@
   // svelte-ignore state_referenced_locally
   const client = apiOf(serverId)!;
   const screen = getContext<number>(SCREEN);
-  let video: HTMLVideoElement;
+  // The app's one video element, unlocked for sound at the first touch (lib/media-element.ts), placed here.
+  const video = sharedVideo;
+  let host: HTMLDivElement;
   let pb = $state<Playback | null>(null);
 
   // ---- Controls: shown on a tap, hidden 3.5 s after the last one while playing ----
@@ -258,8 +261,17 @@
         { label: t('speed'), run: speedSheet },
         ...((pb.player as RemuxPlayer).remuxed || pb.playMethod !== 'DirectPlay' ? [{ label: t('quality'), run: qualitySheet }] : []),
         ...(chapters.length ? [{ label: t('chapters'), run: chapterSheet }] : []),
+        { label: t('web_playback_info'), run: infoSheet },
       ],
     });
+  }
+
+  // What plays and how, for a report from the phone (codecs, buffer, the last error).
+  function infoSheet(): void {
+    if (!pb) return;
+    const p = pb;
+    const lines = [mode, ...((p.player as RemuxPlayer).diagnostics?.() ?? []), p.transcodeReasons.length ? p.transcodeReasons.join(', ') : ''].filter(Boolean);
+    showAlert({ title: t('web_playback_info'), message: lines.join('\n'), actions: [{ label: t('close'), run: () => {} }] });
   }
 
   // ---- Picture in picture, AirPlay ----
@@ -301,6 +313,7 @@
     // A video ends the music, as on Android (one audio output, one session).
     stopMusic();
     keepAwake(true);
+    host.prepend(video);
     const player = createPlayer(video);
     const p = new Playback(client, player, id, { fromStart, trailer, startMs, tracks, queue: queue ? { ids: queue, index: Math.max(0, queue.indexOf(id)), fromStart: true } : undefined });
     pb = p;
@@ -329,6 +342,7 @@
       video.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
       clearTimeout(tapTimer);
       p.stop();
+      video.remove();
       keepAwake(false);
     };
   });
@@ -338,9 +352,7 @@
   const remuxed = $derived(!!pb && (pb.player as RemuxPlayer).remuxed);
 </script>
 
-<div class="player">
-  <!-- svelte-ignore a11y_media_has_caption (the app draws the captions: Subtitles) -->
-  <video bind:this={video} class="video" playsinline></video>
+<div class="player" bind:this={host}>
   <!-- svelte-ignore a11y_no_static_element_interactions (taps on the picture; every action also has a button) -->
   <div class="surface" onpointerup={onSurface}></div>
 
@@ -460,7 +472,7 @@
     overflow: hidden;
     touch-action: manipulation;
   }
-  .video {
+  .player > :global(.app-video) {
     position: absolute;
     inset: 0;
     width: 100%;

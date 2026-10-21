@@ -66,6 +66,16 @@ try {
     const port = await freePort();
     const mock = await startMock(port, path.join(MEDIA, name));
     const page = await browser.newPage({ viewport: { width: 430, height: 932 } });
+    // iOS's ManagedMediaSource as the worst case: it never says "start streaming" (streaming stays false), so the
+    // player must feed what it needs by itself (the iPhone's black screen of 2026-10-21).
+    await page.addInitScript(() => {
+      class ManagedMediaSource extends MediaSource {
+        get streaming() {
+          return false;
+        }
+      }
+      Object.defineProperty(window, 'ManagedMediaSource', { value: ManagedMediaSource });
+    });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => /^remux:/.test(m.text()) && errors.push(m.text()));

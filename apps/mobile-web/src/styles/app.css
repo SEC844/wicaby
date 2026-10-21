@@ -110,9 +110,15 @@ body {
   -webkit-user-select: none;
 }
 
+/* The whole screen. Not inset: 0, whose box iOS 26+ measures short in a Home Screen app (a band under the tab bar):
+   the large viewport's height is the screen's. */
 #app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
 }
 
 input,
