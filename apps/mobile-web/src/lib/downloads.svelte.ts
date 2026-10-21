@@ -160,7 +160,7 @@ export async function posterOf(d: Download): Promise<string | undefined> {
 
 // The downloaded file behind a stream URL of the server (/Videos/{id}/stream…), when there is one.
 export async function localMedia(url: string): Promise<Blob | null> {
-  const id = /\/Videos\/([^/]+)\//i.exec(url)?.[1];
+  const id = /[?&]static=true/i.test(url) ? /\/Videos\/([^/]+)\//i.exec(url)?.[1] : undefined;
   const d = id ? find(id) : undefined;
   if (d?.status !== 'done') return null;
   const hit = await caches.open(CACHE).then((c) => c.match(fileUrl(d, 'media')));

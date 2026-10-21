@@ -84,4 +84,6 @@
     <string name="web_downloaded">Downloaded</string>
     <string name="web_downloading">Downloading</string>
     <string name="web_download_started">Download started</string>
+    <string name="web_airplay_preparing">Getting ready for AirPlay…</string>
+    <string name="web_airplay_ready">Ready: tap AirPlay to pick the TV</string>
 </resources>

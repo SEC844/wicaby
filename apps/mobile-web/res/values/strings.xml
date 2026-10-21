@@ -85,4 +85,6 @@
     <string name="web_downloaded">Téléchargé</string>
     <string name="web_downloading">Téléchargement en cours</string>
     <string name="web_download_started">Téléchargement lancé</string>
+    <string name="web_airplay_preparing">Préparation pour AirPlay…</string>
+    <string name="web_airplay_ready">Prêt : touchez AirPlay pour choisir la TV</string>
 </resources>

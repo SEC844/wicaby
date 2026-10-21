@@ -49,6 +49,7 @@
   import PlayerSheet from '../components/player/PlayerSheet.svelte';
   import Stats from '../components/player/Stats.svelte';
   import Subtitles from '../components/player/Subtitles.svelte';
+  import { remote } from '../lib/device-profile';
   import { video as sharedVideo } from '../lib/media-element';
   import { handleBack, nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { createPlayer, keepAwake } from '../platform';
@@ -549,7 +550,7 @@
     }
     if (pb.item?.Type === 'Episode' && chapters.length > 1) rows.push({ text: t('chapters'), selected: false, run: () => (sheet = 'chapters') });
     rows.push({ text: t('stats_title'), selected: stats, run: () => ((stats = !stats), (sheet = null)) });
-    if (airplayOk && !remuxed) rows.push({ text: t('web_airplay'), selected: false, run: () => ((sheet = null), airplay()) });
+    if (airplayOk) rows.push({ text: t('web_airplay'), selected: false, run: () => ((sheet = null), void airplay()) });
     return [{ title: t('more'), rows }];
   });
   const SHEETS = $derived<Record<Sheet, Column[]>>({
@@ -581,7 +582,22 @@
     if (document.pictureInPictureElement) void document.exitPictureInPicture();
     else void video.requestPictureInPicture().catch(() => showToast(t('web_pip_unavailable')));
   }
-  function airplay(): void {
+  // A title the phone remuxes cannot leave for a TV (the stream is made on the phone): the first tap reloads it, at
+  // the same position, as the server's HLS, which AirPlay takes; the next one opens the picker (it must come from a
+  // tap, which a reload after a network round trip no longer is).
+  let preparing = $state(false);
+  async function airplay(): Promise<void> {
+    if (remuxed && pb) {
+      if (preparing) return;
+      preparing = true;
+      remote.hls = true;
+      showToast(t('web_airplay_preparing'));
+      const ok = await pb.switchQuality(null, pb.qualityCap);
+      preparing = false;
+      if (!ok) remote.hls = false;
+      showToast(t(ok ? 'web_airplay_ready' : 'web_action_failed'));
+      return;
+    }
     (video as HTMLVideoElement & { webkitShowPlaybackTargetPicker?(): void }).webkitShowPlaybackTargetPicker?.();
   }
 
@@ -623,7 +639,13 @@
     const clockTimer = setInterval(() => (now = Date.now()), 1000);
     const w = window as unknown as { WebKitPlaybackTargetAvailabilityEvent?: unknown };
     const onTargets = (e: Event) => (airplayOk = (e as Event & { availability?: string }).availability === 'available');
-    if (w.WebKitPlaybackTargetAvailabilityEvent) video.addEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
+    // A remuxed video turns remote playback off (ManagedMediaSource asks it), so the receivers are watched on an
+    // element of its own too.
+    const probe = document.createElement('video');
+    if (w.WebKitPlaybackTargetAvailabilityEvent) {
+      video.addEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
+      probe.addEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
+    }
     const ms = 'mediaSession' in navigator ? navigator.mediaSession : null;
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
       ['play', () => p.togglePlay(true)],
@@ -646,6 +668,8 @@
       for (const [a] of handlers) ms?.setActionHandler(a, null);
       if (ms) ms.metadata = null;
       video.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
+      probe.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
+      remote.hls = false;
       clearInterval(clockTimer);
       clearTimeout(singleTimer);
       // The timer belongs to this session.
@@ -703,7 +727,7 @@
             <p class="footnote dim ellipsis">{[eyebrow, mode].filter(Boolean).join(' · ')}</p>
             <p class="headline ellipsis">{title}</p>
           </div>
-          {#if airplayOk && !remuxed}<button class="icon" aria-label={t('web_airplay')} onclick={airplay}><Airplay size={22} aria-hidden="true" /></button>{/if}
+          {#if airplayOk}<button class="icon" class:busy={preparing} aria-label={t('web_airplay')} onclick={() => void airplay()}><Airplay size={22} aria-hidden="true" /></button>{/if}
           {#if pipOk}<button class="icon" aria-label={t('pip')} onclick={pip}><PictureInPicture size={22} aria-hidden="true" /></button>{/if}
         </div>
 
@@ -946,6 +970,15 @@
   }
   .icon:active {
     transform: scale(0.9);
+  }
+  .icon.busy {
+    color: var(--accent);
+    animation: pulse 1s var(--ease-in-out, ease-in-out) infinite alternate;
+  }
+  @keyframes pulse {
+    to {
+      opacity: 0.45;
+    }
   }
   .badge {
     position: absolute;

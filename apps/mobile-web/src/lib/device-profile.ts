@@ -31,6 +31,10 @@ function dolby(c: Caps): string[] {
   return [...(pass('ac3', c.ac3) ? ['ac3'] : []), ...(pass('eac3', c.eac3) ? ['eac3'] : [])];
 }
 
+// AirPlay (and any other system casting) takes what Safari plays itself, never the phone's remux: while it is asked
+// for, Matroska goes through the server's HLS (the video copied when the stream takes it, H.264 otherwise).
+export const remote = { hls: false };
+
 export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, maxHeight = 0, burnText = false): Record<string, unknown> {
   const video = ['h264', ...(c.hevc ? ['hevc'] : []), ...(c.av1 ? ['av1'] : [])].join(',');
   const surround = dolby(c);
@@ -38,7 +42,7 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
   const hlsAudio = ['aac', ...surround].join(',');
   const fmp4 = server === 'jellyfin';
   const remux = c.remux ?? { video: [], audio: [] };
-  const mkv = c.mkv && remux.video.length > 0;
+  const mkv = !remote.hls && c.mkv && remux.video.length > 0;
   // The audio the phone takes when it remuxes, Dolby passthrough choices applied.
   const remuxAudio = remux.audio.filter((a) => (a === 'ac3' || a === 'eac3' ? surround.includes(a) : true));
   const height = maxHeight ? Math.min(maxHeight, c.maxHeight) : c.maxHeight;
