@@ -1,7 +1,7 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, normalizePath, type Plugin } from 'vite';
 import androidStrings from './scripts/android-strings.mjs';
 import csp from './scripts/csp.mjs';
 import serviceWorker from './scripts/service-worker.mjs';
@@ -42,13 +42,60 @@ const tvSeams: Plugin = {
   },
 };
 
+// The desktop's server administration (renderer/admin: dashboard, users, libraries, tasks, transcoding, plugins,
+// logs, an item's metadata, artwork, identification…) is reused as is too. Its seams with the Electron renderer (the
+// IPC bridge, the stores, the router, the modal sheet) resolve to src/desktop, which keeps the same exports over this
+// app's sessions; only the catalogs the admin reads load, and its media URLs point at the server instead of main.
+const DESKTOP_SRC = here('../desktop/src/renderer');
+const DESKTOP_SEAMS: Record<string, string> = {
+  'lib/bridge': here('src/desktop/bridge.ts'),
+  'lib/stores.svelte': here('src/desktop/stores.svelte.ts'),
+  'lib/api': here('src/desktop/api.ts'),
+  'lib/router.svelte': here('src/desktop/router.svelte.ts'),
+  'components/Sheet.svelte': here('src/desktop/Sheet.svelte'),
+};
+const ADMIN_CATALOGS = 'admin,adminLibraries,adminMetadata,adminServer,adminUsers,common,errors';
+// Exact rewrites: a desktop change that moves one of these fails the build instead of shipping a dead URL.
+const DESKTOP_REWRITES: Record<string, [string, string][]> = {
+  'lib/i18n.svelte.ts': [["'../locales/*/*.json'", `'../locales/*/{${ADMIN_CATALOGS}}.json'`]],
+  'admin/item/metadata.ts': [
+    ['`${MEDIA_SCHEME}://api${server}/Items/', '`${mediaBase(item.ServerId)}/Items/'],
+    ['`${MEDIA_SCHEME}://remote-image/?u=${encodeURIComponent(url)}`', 'url'],
+    ["import { comicCoverUrl } from '../../lib/images';", "import { comicCoverUrl, mediaBase } from '../../lib/images';"],
+  ],
+};
+
+const desktopSeams: Plugin = {
+  name: 'wicaby-desktop-seams',
+  enforce: 'pre',
+  resolveId(source, importer) {
+    if (!importer || !source.startsWith('.')) return null;
+    const from = path.resolve(path.dirname(importer.split('?')[0]), source);
+    if (!from.startsWith(DESKTOP_SRC)) return null;
+    const key = path.relative(DESKTOP_SRC, from).split(path.sep).join('/').replace(/\.ts$/, '');
+    // Forward slashes: the Svelte plugin finds a component's compiled CSS by the id the component was loaded under.
+    return DESKTOP_SEAMS[key] ? normalizePath(DESKTOP_SEAMS[key]) : null;
+  },
+  transform(code, id) {
+    const file = path.resolve(id.split('?')[0]);
+    if (!file.startsWith(DESKTOP_SRC)) return null;
+    const rewrites = DESKTOP_REWRITES[path.relative(DESKTOP_SRC, file).split(path.sep).join('/')];
+    if (!rewrites) return null;
+    for (const [from, to] of rewrites) {
+      if (!code.includes(from)) throw new Error(`${file}: "${from}" not found (desktop seam out of date)`);
+      code = code.split(from).join(to);
+    }
+    return { code, map: null };
+  },
+};
+
 export default defineConfig({
   root: 'src',
   // Relative: the app is served from a sub-path (GitHub Pages /wicaby/) as well as from a root.
   base: './',
   publicDir: '../public',
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  plugins: [tvSeams, svelte(), androidStrings(), csp(), serviceWorker()],
+  plugins: [tvSeams, desktopSeams, svelte(), androidStrings(), csp(), serviceWorker()],
   resolve: {
     alias: {
       $shared: here('../desktop/src/shared'),

@@ -4,7 +4,8 @@
   // - play: resume (or play), from the start, shuffle (a series, a season, a collection);
   // - go: its page, its series;
   // - mark watched or not, favourite, remove from Continue watching (with an undo), add to a playlist or a collection;
-  // - for who may: refresh the metadata (an administrator), delete (the server's CanDelete for this user).
+  // - for an administrator, the desktop's tools (edit the metadata, identify, artwork, refresh, subtitles); delete
+  //   when the server's CanDelete allows it for this user.
   // The title is read again on open (watched state, favourite, CanDelete as of now); every change refreshes the rows.
   import type { BaseItem } from '$shared/models';
   import { acceptsList, ApiError, listTargets, type Api, type ListKind } from '$tv/api';
@@ -24,7 +25,11 @@
   import ListPlus from '@lucide/svelte/icons/list-plus';
   import Play from '@lucide/svelte/icons/play';
   import Plus from '@lucide/svelte/icons/plus';
+  import Captions from '@lucide/svelte/icons/captions';
+  import Image from '@lucide/svelte/icons/image';
+  import Pencil from '@lucide/svelte/icons/pencil';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+  import ScanSearch from '@lucide/svelte/icons/scan-search';
   import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
   import Shuffle from '@lucide/svelte/icons/shuffle';
   import Trash from '@lucide/svelte/icons/trash-2';
@@ -32,11 +37,11 @@
   import Undo from '@lucide/svelte/icons/undo-2';
   import type { Component } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { closeItemMenu, type ItemMenuContext } from '../lib/item-menu.svelte';
+  import { adminActions, closeItemMenu, openItemAdmin, type ItemAdminAction, type ItemMenuContext } from '../lib/item-menu.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { showSnack } from '../lib/snackbar.svelte';
-  import { isAdmin } from '../lib/user';
+  import { isAdmin } from '../lib/user.svelte';
   import Spinner from './Spinner.svelte';
   import TextField from './TextField.svelte';
 
@@ -132,6 +137,15 @@
     });
   }
 
+  const ADMIN: Record<ItemAdminAction, [Component, string]> = {
+    edit: [Pencil, 'web_admin_edit'],
+    identify: [ScanSearch, 'web_admin_identify'],
+    images: [Image, 'web_admin_images'],
+    refresh: [RefreshCw, 'web_refresh'],
+    subtitles: [Captions, 'web_admin_subtitles'],
+    delete: [Trash, 'delete'],
+  };
+
   type Row = { icon: Component; label: string; run: () => void; destructive?: boolean; on?: boolean };
   const groups = $derived.by<Row[][]>(() => {
     const g: Row[][] = [];
@@ -159,10 +173,11 @@
 
     const manage: Row[] = [];
     if (admin) {
-      const q = { Recursive: true, MetadataRefreshMode: 'FullRefresh', ImageRefreshMode: 'FullRefresh', ReplaceAllMetadata: false, ReplaceAllImages: false };
-      manage.push({ icon: RefreshCw, label: t('web_refresh'), run: () => void act(() => client.post(`/Items/${item.Id}/Refresh`, undefined, q), t('web_refresh_started')) });
-    }
-    if (item.CanDelete) manage.push({ icon: Trash, label: t('delete'), destructive: true, run: remove });
+      for (const a of adminActions(item)) {
+        const [icon, label] = ADMIN[a];
+        manage.push({ icon, label: t(label), destructive: a === 'delete', run: () => (done(), openItemAdmin(item, a)) });
+      }
+    } else if (item.CanDelete) manage.push({ icon: Trash, label: t('delete'), destructive: true, run: remove });
     if (manage.length) g.push(manage);
     return g;
   });

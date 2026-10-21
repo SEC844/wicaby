@@ -20,3 +20,33 @@ export function openItemMenu(item: BaseItem, ctx: ItemMenuContext = {}): void {
 export function closeItemMenu(): void {
   itemMenu.item = null;
 }
+
+// The administrator's tools on a title (the desktop's admin/item sheets: edit, identify, artwork, refresh, subtitles,
+// delete), opened from the menu once it has closed; drawn by components/ItemAdminHost.svelte.
+export type ItemAdminAction = 'edit' | 'identify' | 'images' | 'refresh' | 'subtitles' | 'delete';
+export const itemAdmin = $state<{ item: BaseItem | null; action: ItemAdminAction | null }>({ item: null, action: null });
+// The title the last sheet was about: a deletion leaves that title's page, and only that one.
+export let adminTarget: string | null = null;
+
+export function openItemAdmin(item: BaseItem, action: ItemAdminAction): void {
+  adminTarget = item.Id;
+  itemAdmin.item = item;
+  itemAdmin.action = action;
+}
+
+export function closeItemAdmin(): void {
+  itemAdmin.action = null;
+}
+
+// The desktop's adminEntries (admin/item/metadata.ts) without loading the admin: which tools a title has.
+const IDENTIFIABLE = ['Movie', 'Series', 'BoxSet', 'MusicAlbum', 'MusicArtist', 'Person', 'Book', 'MusicVideo', 'Trailer'];
+const SUBTITLED = ['Movie', 'Episode', 'Video', 'MusicVideo', 'Trailer'];
+export function adminActions(item: BaseItem & { CanDelete?: boolean }): ItemAdminAction[] {
+  if (item.Type === 'CollectionFolder' || item.Type === 'UserView') return [];
+  const out: ItemAdminAction[] = ['edit'];
+  if (IDENTIFIABLE.includes(item.Type ?? '')) out.push('identify');
+  out.push('images', 'refresh');
+  if (SUBTITLED.includes(item.Type ?? '') && item.MediaType === 'Video') out.push('subtitles');
+  if (item.CanDelete) out.push('delete');
+  return out;
+}

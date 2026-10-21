@@ -12,6 +12,7 @@
   import Palette from '@lucide/svelte/icons/palette';
   import Play from '@lucide/svelte/icons/play';
   import Users from '@lucide/svelte/icons/users';
+  import Wrench from '@lucide/svelte/icons/wrench';
   import Avatar from '../components/Avatar.svelte';
   import LargeTitlePage from '../components/LargeTitlePage.svelte';
   import Group from '../components/settings/Group.svelte';
@@ -19,7 +20,7 @@
   import { VERSION } from '../lib/identity';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { ACCENTS } from '../lib/theme';
-  import { isAdmin } from '../lib/user';
+  import { isAdmin } from '../lib/user.svelte';
 
   const a = api()!;
   const session = $derived(prefs.session);
@@ -56,6 +57,12 @@
     <Row icon={Play} tint="var(--red)" label={t('settings_playback')} sub={bitrate} chevron onclick={() => open('playback')} />
     <Row icon={Captions} tint="var(--orange)" label={t('subtitles')} sub={subs} chevron onclick={() => open('subtitles')} />
   </Group>
+
+  {#if admin}
+    <Group>
+      <Row icon={Wrench} tint="var(--gray, #8e8e93)" label={t('web_admin_title')} sub={t('web_admin_sub')} chevron onclick={() => nav.push({ name: 'admin' })} />
+    </Group>
+  {/if}
 
   <Group>
     <Row icon={Users} tint="var(--indigo)" label={t('settings_accounts')} sub={session ? t('signed_in_as', session.userName, session.server.name) : undefined} chevron onclick={() => open('accounts')} />

@@ -27,7 +27,6 @@
     <string name="web_favorite_add">Add to favourites</string>
     <string name="web_favorite_remove">Remove from favourites</string>
     <string name="web_refresh">Refresh metadata</string>
-    <string name="web_refresh_started">Refresh started on the server</string>
     <string name="web_delete_title">Delete “%1$s”?</string>
     <string name="web_delete_body">The media will be erased from the server and its disk. This cannot be undone.</string>
     <string name="web_deleted">“%1$s” deleted</string>
@@ -39,4 +38,10 @@
     <string name="web_categories_title">Settings</string>
     <string name="web_speed_short">Speed</string>
     <string name="web_pip_unavailable">iOS still blocks picture in picture in a Home Screen app (WebKit bug 303885).</string>
+    <string name="web_admin_title">Administration</string>
+    <string name="web_admin_sub">Dashboard, users, libraries, tasks</string>
+    <string name="web_admin_edit">Edit metadata</string>
+    <string name="web_admin_identify">Identify</string>
+    <string name="web_admin_images">Edit images</string>
+    <string name="web_admin_subtitles">Search for subtitles</string>
 </resources>

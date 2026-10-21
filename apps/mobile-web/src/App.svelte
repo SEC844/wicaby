@@ -11,7 +11,7 @@
   import Snackbar from './components/Snackbar.svelte';
   import Toast from './components/Toast.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
-  import { itemMenu } from './lib/item-menu.svelte';
+  import { itemAdmin, itemMenu } from './lib/item-menu.svelte';
   import { isFullScreen, nav, stack } from './lib/nav.svelte';
   import { overlay } from './lib/overlay.svelte';
   import Login from './screens/Login.svelte';
@@ -26,6 +26,8 @@
   const Folder = () => import('./screens/Folder.svelte');
   const Player = () => import('./screens/Player.svelte');
   const SettingsPage = () => import('./screens/SettingsPage.svelte');
+  const Admin = () => import('./screens/Admin.svelte');
+  const ItemAdminHost = () => import('./components/ItemAdminHost.svelte');
 
   // The theme and accent follow Settings at once, on every page.
   $effect(() => applyTheme(settings.theme.value, settings.accent.value));
@@ -60,6 +62,9 @@
     {:else if e.route.name === 'settings'}
       {@const r = e.route}
       {#await SettingsPage() then m}<m.default page={r.page} />{/await}
+    {:else if e.route.name === 'admin'}
+      {@const r = e.route}
+      {#await Admin() then m}<m.default section={r.section} />{/await}
     {:else}
       <Pending route={e.route} />
     {/if}
@@ -67,6 +72,7 @@
 </Pages>
 {#if tabs}<TabBar />{/if}
 {#if itemMenu.item}{#key itemMenu.item}<ItemMenu item={itemMenu.item} ctx={itemMenu.ctx} />{/key}{/if}
+{#if itemAdmin.item}{#await ItemAdminHost() then m}<m.default />{/await}{/if}
 {#if overlay.alert}<AlertSheet alert={overlay.alert} />{/if}
 <Toast />
 <Snackbar />

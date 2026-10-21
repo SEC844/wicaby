@@ -79,7 +79,7 @@ const SCENES = {
   },
   // A long press on the first Continue card: the title's menu.
   async itemMenu(page) {
-    const card = page.locator('[data-screen-top] section.shelf').first().locator('button.card').first();
+    const card = page.locator('[data-screen-top] section.continue button.big').first();
     const box = await card.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
     await page.mouse.down();
@@ -89,7 +89,7 @@ const SCENES = {
   },
   // A Continue card plays; the controls stay up for the screenshot (a tap shows them).
   async player(page) {
-    await page.locator('[data-screen-top] section.shelf').first().locator('button.card').first().click();
+    await page.locator('[data-screen-top] section.continue button.big').first().click();
     await page.waitForTimeout(6000);
   },
   // The player, then its audio and subtitles sheet, and its quality sheet.
@@ -113,6 +113,32 @@ const SCENES = {
     await SCENES.settings(page);
     await page.locator('[data-screen-top] button.row').nth(3).click();
     await page.waitForTimeout(800);
+  },
+  // Settings > Administration, then a few of its sections; a title's metadata editor from its menu.
+  async admin(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.row', { hasText: 'Administration' }).click();
+    await page.waitForTimeout(800);
+  },
+  ...Object.fromEntries(
+    ['Tableau de bord', 'Utilisateurs', 'Bibliothèques', 'Tâches planifiées', 'Transcodage', 'Serveur', 'Activité', 'Journaux', 'Extensions', 'Appareils', 'Clés'].map((label, i) => [
+      `admin${i}`,
+      async (page) => {
+        await SCENES.admin(page);
+        await page.locator('[data-screen-top] button.row', { hasText: label }).first().click();
+        await page.waitForTimeout(2000);
+      },
+    ]),
+  ),
+  async itemEdit(page) {
+    await SCENES.itemMenu(page);
+    await page.locator('.sheet button.row', { hasText: 'Modifier les métadonnées' }).click();
+    await page.waitForTimeout(1500);
+  },
+  async itemIdentify(page) {
+    await SCENES.itemMenu(page);
+    await page.locator('.sheet button.row', { hasText: 'Modifier les images' }).click();
+    await page.waitForTimeout(1500);
   },
   async settings(page) {
     await page.locator('nav button').last().click();

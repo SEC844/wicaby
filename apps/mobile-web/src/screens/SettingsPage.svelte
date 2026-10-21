@@ -17,7 +17,7 @@
   import { VERSION } from '../lib/identity';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
-  import { isAdmin } from '../lib/user';
+  import { isAdmin } from '../lib/user.svelte';
   import { standalone } from '../platform';
 
   let { page }: { page: SettingsPageId } = $props();
