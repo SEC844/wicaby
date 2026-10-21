@@ -56,7 +56,7 @@
     height: 100%;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: calc(var(--safe-top) + 10px) 0 calc(var(--tabbar) + 16px);
+    padding: var(--top-row) 0 calc(var(--tabbar) + 16px);
   }
   .scroller.back {
     padding-top: calc(var(--safe-top) + 56px);

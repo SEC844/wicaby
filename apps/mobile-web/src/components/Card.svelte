@@ -9,7 +9,7 @@
   import { episodeLine, progress } from '$tv/format';
   import { placeholder } from '$tv/images';
   import Check from '@lucide/svelte/icons/check';
-  import { openItemMenu, type ItemMenuContext } from '../lib/item-menu.svelte';
+  import { menuPress, type ItemMenuContext } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
 
   let {
@@ -35,14 +35,14 @@
 </script>
 
 <!-- A long press opens the title's menu (components/ItemMenu.svelte). -->
-<button class="card pressable" class:wide style:width="{width}px" aria-label={title} {onclick} use:longpress={() => openItemMenu(item, menu)}>
+<button class="card pressable" class:wide style:width="{width}px" aria-label={title} {onclick} use:longpress={menuPress(item, menu)}>
   <span class="art" style:height="{height}px" style:background-color={tint}>
     {#if src && !failed}
       <img {src} alt="" loading="lazy" decoding="async" class:loaded onload={() => (loaded = true)} onerror={() => (failed = true)} />
     {/if}
     {#if !src || failed}<span class="fallback subhead">{title}</span>{/if}
     {#if done}<span class="bar"><span style:transform="scaleX({done})"></span></span>{/if}
-    <!-- Watched tick or unplayed count (Android CardBadge): neutral, the accent stays for progress. -->
+    <!-- Watched tick or unplayed count (Android CardBadge), in the chosen accent. -->
     {#if item.UserData?.Played}
       <span class="badge tick"><Check size={13} strokeWidth={3} aria-label="✓" /></span>
     {:else if (item.UserData?.UnplayedItemCount ?? 0) > 0}
@@ -127,8 +127,9 @@
     border-radius: 11px;
     display: grid;
     place-items: center;
-    background: rgb(0 0 0 / 0.55);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-fg);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
     font-size: 11px;
     font-weight: 700;
     padding: 0 6px;

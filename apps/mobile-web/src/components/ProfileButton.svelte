@@ -74,10 +74,10 @@
   .me.on-art {
     background: var(--on-art);
   }
-  /* Over Home's hero: under the status bar and the Dynamic Island, with the same margin as the page's sides. */
+  /* Over Home's hero: on the tabs' top row (app.css --top-row), clear of the status bar, with the page's side margin. */
   .floating {
     position: absolute;
-    top: calc(var(--safe-top) + 10px);
+    top: var(--top-row);
     right: max(var(--gutter), var(--safe-right));
     z-index: 5;
   }
@@ -89,7 +89,7 @@
   /* A menu as the desktop's and Android's: the raised surface, rounded, icon then label. */
   .menu {
     position: absolute;
-    top: calc(var(--safe-top) + 64px);
+    top: calc(var(--top-row) + 52px);
     right: max(var(--gutter), var(--safe-right));
     width: 260px;
     padding: 6px;

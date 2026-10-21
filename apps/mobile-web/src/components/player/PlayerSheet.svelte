@@ -2,13 +2,14 @@
   // A sheet inside the player (Android PlayerSheet): it rises from the bottom over a scrim, on the elevated surface,
   // with a handle; a tap outside closes it. Up to 330 px high, the rows scroll inside.
   import type { Snippet } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
+  import { sheet } from '../../lib/motion';
 
   let { onclose, children }: { onclose: () => void; children: Snippet } = $props();
 </script>
 
 <div class="scrim" role="presentation" onclick={onclose} transition:fade={{ duration: 180 }}></div>
-<div class="sheet" role="dialog" aria-modal="true" transition:fly={{ y: 340, duration: 280, opacity: 1 }}>
+<div class="sheet" role="dialog" aria-modal="true" in:sheet out:sheet={{ duration: 240 }}>
   <span class="handle" aria-hidden="true"></span>
   {@render children()}
 </div>

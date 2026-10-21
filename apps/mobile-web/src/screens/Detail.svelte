@@ -6,7 +6,6 @@
   // episode rows (long press: watched, earlier ones watched); the cast, bonus videos and similar titles.
   // The data and its rules are the TV web app's (versions, track memory, Trakt, toggles answered at once).
   import type { BaseItem } from '$shared/models';
-  import { previousEpisodes } from '$tv/api';
   import { episodeLine, runtimeText, TICKS_PER_MS } from '$tv/format';
   import { t } from '$tv/i18n.svelte';
   import { placeholder } from '$tv/images';
@@ -31,6 +30,7 @@
   import { endsAt, metaLine } from '../lib/format';
   import { handleBack, itemRoute, nav } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
+  import { menuPress, openItemMenu } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
 
   let { id, serverId }: { id: string; serverId?: string } = $props();
@@ -143,25 +143,19 @@
     if (url) openRemoteTrailer(url);
   }
 
+  // "…": the title's whole menu (components/ItemMenu.svelte), as its long press; a book keeps its own (its page).
   function more(): void {
     if (!item) return;
+    if (!book) {
+      openItemMenu(item, { onPage: true });
+      return;
+    }
     showAlert({
       title: item.Name,
       actions: [
         ...((book ? bookPage !== null : resume > 0) && target ? [{ label: t('from_start'), run: fromStart }] : []),
         ...(series || item.Type === 'Season' ? [{ label: t('shuffle'), run: () => void shuffle(item) }] : []),
         { label: watched ? t('mark_unplayed') : t('mark_played'), run: () => void toggleWatched() },
-      ],
-    });
-  }
-
-  function episodeMenu(ep: BaseItem): void {
-    const played = ep.UserData?.Played === true;
-    showAlert({
-      title: episodeLine(ep) ?? ep.Name,
-      actions: [
-        { label: t(played ? 'mark_unplayed' : 'mark_played'), run: () => void mark([ep], !played) },
-        { label: t('mark_previous_played'), run: async () => mark(previousEpisodes(await client.episodes(id), ep), true) },
       ],
     });
   }
@@ -328,7 +322,7 @@
           {#each shownEpisodes as ep (ep.Id)}
             {@const thumb = client.thumb(ep, Math.round(150 * dpr))}
             {@const done = ep.UserData?.PlayedPercentage}
-            <button class="episode pressable" onclick={() => play(ep)} use:longpress={() => episodeMenu(ep)}>
+            <button class="episode pressable" onclick={() => play(ep)} use:longpress={menuPress(ep)}>
               <span class="ep-art" style:background-color={placeholder(ep, 'Primary') ?? undefined}>
                 {#if thumb}<img src={thumb} alt="" loading="lazy" decoding="async" />{/if}
                 {#if done}<span class="ep-bar"><span style:transform="scaleX({done / 100})"></span></span>{/if}

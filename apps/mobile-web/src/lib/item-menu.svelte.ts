@@ -2,6 +2,7 @@
 // onLongClick): one at a time over the pages, drawn by components/ItemMenu.svelte.
 import type { BaseItem } from '$shared/models';
 import type { SeriesDates } from '$desktop/continue';
+import { apiOf } from '$tv/session.svelte';
 
 export interface ItemMenuContext {
   // Opened from the Continue watching row: "Remove" hides the card (and the series' dates order the undo).
@@ -12,10 +13,37 @@ export interface ItemMenuContext {
 
 export const itemMenu = $state<{ item: BaseItem | null; ctx: ItemMenuContext }>({ item: null, ctx: {} });
 
+// The title as of now (watched, favourite, CanDelete, its files), read while the press is held (lib/press hold) so
+// the menu opens with its final rows and does not grow under the finger.
+export type MenuItem = BaseItem & { CanDelete?: boolean; Path?: string; ExternalUrls?: { Name: string; Url: string }[] };
+const FIELDS = 'CanDelete,MediaSources,MediaStreams,Path,ProviderIds,ExternalUrls,DateCreated';
+const fresh = new Map<string, Promise<MenuItem>>();
+const ready = new Map<string, MenuItem>();
+
+export function fetchMenuItem(item: BaseItem): Promise<MenuItem> {
+  const c = apiOf(item.ServerId);
+  if (!c) return Promise.resolve(item);
+  let p = fresh.get(item.Id);
+  if (!p) {
+    const q = { Fields: FIELDS };
+    p = (c.isEmby ? c.get<MenuItem>(`/Users/${c.userId}/Items/${item.Id}`, q) : c.get<MenuItem>(`/Items/${item.Id}`, { ...q, userId: c.userId })).then((it) => {
+      const full = { ...item, ...it, ServerId: item.ServerId ?? c.serverId };
+      ready.set(item.Id, full);
+      return full;
+    });
+    p.catch(() => {}).finally(() => setTimeout(() => (fresh.delete(item.Id), ready.delete(item.Id)), 3000));
+    fresh.set(item.Id, p);
+  }
+  return p;
+}
+
 export function openItemMenu(item: BaseItem, ctx: ItemMenuContext = {}): void {
-  itemMenu.item = item;
+  itemMenu.item = ready.get(item.Id) ?? item;
   itemMenu.ctx = ctx;
 }
+
+// A card's long press: the title is read while held, its menu opens on 480 ms.
+export const menuPress = (item: BaseItem, ctx: ItemMenuContext = {}) => ({ run: () => openItemMenu(item, ctx), hold: () => void fetchMenuItem(item).catch(() => {}) });
 
 export function closeItemMenu(): void {
   itemMenu.item = null;

@@ -4,7 +4,8 @@
   // chosen one checked in the accent); a question with one or two answers is a centred card with pill buttons.
   // A tap outside closes either.
   import Check from '@lucide/svelte/icons/check';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fade, scale } from 'svelte/transition';
+  import { sheet as rise } from '../lib/motion';
   import { closeAlert, type Alert } from '../lib/overlay.svelte';
   import { openUrl } from '../platform';
 
@@ -25,7 +26,7 @@
 
 <div class="scrim" role="presentation" onclick={closeAlert} transition:fade={{ duration: 180 }}></div>
 {#if sheet}
-  <div class="sheet" role="dialog" aria-modal="true" aria-label={alert.title} transition:fly={{ y: 420, duration: 300, opacity: 1 }}>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label={alert.title} in:rise out:rise={{ duration: 240 }}>
     <span class="handle" aria-hidden="true"></span>
     <p class="eyebrow title">{alert.title}</p>
     {#if alert.message}<p class="footnote label-2 message">{alert.message}</p>{/if}

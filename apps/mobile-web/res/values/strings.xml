@@ -87,4 +87,20 @@
     <string name="web_download_started">Téléchargement lancé</string>
     <string name="web_airplay_preparing">Préparation pour AirPlay…</string>
     <string name="web_airplay_ready">Prêt : touchez AirPlay pour choisir la TV</string>
+    <string name="web_media_info">Infos du média</string>
+    <string name="web_links">Liens externes</string>
+    <string name="web_copy_stream">Copier le lien du flux</string>
+    <string name="web_copied">Lien copié</string>
+    <string name="web_share">Partager</string>
+    <string name="web_split_versions">Séparer les versions</string>
+    <string name="web_split_done">Versions séparées</string>
+    <string name="web_video">Vidéo</string>
+    <string name="web_mbps">%1$s Mb/s</string>
+    <string name="web_kbps">%1$s kb/s</string>
+    <string name="web_fps">%1$s i/s</string>
+    <string name="web_bits">%1$s bits</string>
+    <string name="web_channels">%1$s canaux</string>
+    <string name="web_default">Par défaut</string>
+    <string name="web_forced">Forcés</string>
+    <string name="web_external">Externe</string>
 </resources>

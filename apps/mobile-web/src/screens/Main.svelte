@@ -10,6 +10,7 @@
   import SearchTab from '../tabs/SearchTab.svelte';
   import DownloadsTab from '../tabs/DownloadsTab.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
+  import { me } from '../lib/user.svelte';
 
   const visited = $state<Record<TabId, boolean>>({ home: true, libraries: false, search: false, downloads: false, settings: false });
   $effect.pre(() => {
@@ -17,7 +18,11 @@
   });
   // The rows reload by themselves (TV web Main, Android HomeRefresh): back in the app, on the server's changes
   // (another device playing, a library scan), every 5 min; after a video, once its Stopped report is in.
-  onMount(() => runHomeRefresh(api()!));
+  onMount(() => {
+    // The account's picture and rights, once per start.
+    void me(api()!);
+    return runHomeRefresh(api()!);
+  });
 </script>
 
 {#each TABS as tab (tab)}

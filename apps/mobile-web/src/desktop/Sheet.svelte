@@ -4,7 +4,8 @@
   // and a tap outside close it. Lives on #app (the page layer, sized to the screen by lib/viewport.ts).
   import X from '@lucide/svelte/icons/x';
   import { getContext, type Snippet } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
+  import { sheet } from '../lib/motion';
   import { t } from '$tv/i18n.svelte';
   import { onBack, SCREEN } from '../lib/nav.svelte';
 
@@ -31,7 +32,7 @@
 {#if open}
   <div class="layer" use:portal>
     <div class="scrim" role="presentation" onclick={onclose} transition:fade={{ duration: 180 }}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label={label} transition:fly={{ y: 600, duration: 300, opacity: 1 }}>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label={label} in:sheet out:sheet={{ duration: 240 }}>
       <span class="handle" aria-hidden="true"></span>
       <div class="body">{@render children()}</div>
       <button class="close" onclick={onclose} aria-label={t('close')}><X size={18} strokeWidth={2.4} aria-hidden="true" /></button>

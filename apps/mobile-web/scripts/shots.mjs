@@ -108,6 +108,17 @@ const SCENES = {
     await page.mouse.up();
     await page.waitForTimeout(900);
   },
+  // A title's "…" on its page (the same menu), and its media info.
+  async movieMore(page) {
+    await SCENES.movie(page);
+    await page.locator('[data-screen-top] .actions button.action').last().click();
+    await page.waitForTimeout(900);
+  },
+  async mediaInfo(page) {
+    await SCENES.movieMore(page);
+    await page.locator('.sheet button.row', { hasText: 'Infos du média' }).click();
+    await page.waitForTimeout(700);
+  },
   // A Continue card plays; the controls stay up for the screenshot (a tap shows them).
   async player(page) {
     await page.locator('[data-screen-top] section.continue button.big').first().click();

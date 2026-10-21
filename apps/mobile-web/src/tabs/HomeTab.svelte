@@ -75,7 +75,7 @@
     padding-bottom: calc(var(--tabbar) + 12px);
   }
   .plain {
-    padding: calc(var(--safe-top) + 10px) var(--gutter) 0;
+    padding: var(--top-row) var(--gutter) 0;
   }
   .bar {
     position: absolute;

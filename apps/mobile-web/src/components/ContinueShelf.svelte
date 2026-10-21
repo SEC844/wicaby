@@ -9,7 +9,7 @@
   import { placeholder } from '$tv/images';
   import { apiOf } from '$tv/session.svelte';
   import Play from '@lucide/svelte/icons/play';
-  import { openItemMenu } from '../lib/item-menu.svelte';
+  import { menuPress } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
 
   let {
@@ -42,7 +42,7 @@
         style:background-color={placeholder(item, 'Thumb') ?? placeholder(item, 'Backdrop')}
         aria-label={item.Type === 'Episode' ? `${item.SeriesName} · ${line}` : item.Name}
         onclick={() => onplay(item)}
-        use:longpress={() => openItemMenu(item, { continueRow })}
+        use:longpress={menuPress(item, { continueRow })}
       >
         {#if src}<img {src} alt="" decoding="async" loading="lazy" />{/if}
         <span class="shade"></span>

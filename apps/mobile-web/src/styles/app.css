@@ -44,6 +44,9 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  /* Where a tab's top row (large title, account) starts: clear of the status bar and of the blur iOS draws under
+     it as content scrolls (scroll edge effect), at least 47pt in even where the inset reads less. */
+  --top-row: calc(max(var(--safe-top), 47px) + 22px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
@@ -253,6 +256,11 @@ p {
 .pressable:active {
   transform: scale(0.97);
   transition-duration: calc(var(--t-fast) / 2);
+}
+/* A long press under way (lib/press): the card sinks until its menu opens. */
+.pressable[data-holding] {
+  transform: scale(0.94);
+  transition: transform calc(280ms * var(--tempo)) var(--ease-in-out);
 }
 
 .sr-only {

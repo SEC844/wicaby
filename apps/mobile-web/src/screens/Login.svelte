@@ -16,6 +16,7 @@
   import Spinner from '../components/Spinner.svelte';
   import TextField from '../components/TextField.svelte';
   import { nav, onBack, SCREEN } from '../lib/nav.svelte';
+  import { noteImageTag } from '../lib/user.svelte';
 
   let { server, add = false }: { server: Server; add?: boolean } = $props();
 
@@ -53,6 +54,7 @@
     loadError = false;
     try {
       users = await api.publicUsers();
+      for (const u of users) noteImageTag(u);
     } catch {
       loadError = true;
     }
@@ -78,6 +80,7 @@
     error = null;
     try {
       const r = await api.signIn(user, pw);
+      noteImageTag(r.User);
       done({ server, userId: r.User.Id, userName: r.User.Name, token: r.AccessToken });
     } catch (e) {
       error = e instanceof ApiError && (e.status === 401 || e.status === 403) ? t('wrong_credentials') : e instanceof ApiError && e.status ? e.message : t('server_unreachable');
@@ -94,6 +97,7 @@
     try {
       const me = await apiFor(server, s).get<UserDto>(`/Users/${s.userId}`);
       if (me.Id !== s.userId) throw new ApiError('not this account', 401);
+      noteImageTag(me);
       done(s);
     } catch (e) {
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
