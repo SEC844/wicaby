@@ -139,10 +139,28 @@ const json = async (url) => (loopbackUrl(url), (await fetch(url)).json());
 const video = path.join(tmp, 'video.mkv');
 fs.writeFileSync(video, Buffer.alloc(256 * 1024, 0x1a));
 const m = await startMockPlex({ port: 0, tvPort: 0, relayPort: 0, env: { MOCK_PLEX_VIDEO: video, MOCK_PLEX_SECOND: '0', MOCK_PLEX_TLS: '0' } });
-const ports = { dlna: await freePort(), cast: await freePort(), castState: await freePort() };
+// A free port can be taken again before the child binds it: the ports are picked together (so distinct) and
+// picked afresh when the child hits EADDRINUSE.
+async function onFreePorts(count, start) {
+  for (let attempt = 1; ; attempt++) {
+    const picked = await Promise.all(Array.from({ length: count }, freePort));
+    try {
+      return await start(...picked);
+    } catch (e) {
+      if (attempt === 3 || !/EADDRINUSE/.test(e.message)) throw e;
+    }
+  }
+}
+const ports = {};
 await Promise.all([
-  startChild('dlna', 'mock-dlna.mjs', [String(ports.dlna)], { MOCK_DLNA_PROFILE: 'generic' }, /^Mock DLNA renderer/),
-  startChild('cast', 'mock-cast.mjs', [], { MOCK_CAST_PORT: String(ports.cast), MOCK_CAST_STATE_PORT: String(ports.castState) }, /^Mock Cast device/),
+  onFreePorts(1, (dlna) =>
+    startChild('dlna', 'mock-dlna.mjs', [String(dlna)], { MOCK_DLNA_PROFILE: 'generic' }, /^Mock DLNA renderer/).then(() => Object.assign(ports, { dlna })),
+  ),
+  onFreePorts(2, (cast, castState) =>
+    startChild('cast', 'mock-cast.mjs', [], { MOCK_CAST_PORT: String(cast), MOCK_CAST_STATE_PORT: String(castState) }, /^Mock Cast device/).then(() =>
+      Object.assign(ports, { cast, castState }),
+    ),
+  ),
 ]);
 
 const identity = { client: 'Wicaby', version: '0.0.0-check', deviceId: 'check-device-plex-cast', deviceName: 'check' };
