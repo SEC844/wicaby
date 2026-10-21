@@ -309,8 +309,14 @@ export class Playback {
   private async applySubtitles(): Promise<void> {
     const s = this.streams.find((m) => m.Index === this.subtitleIndex && m.Type === 'Subtitle');
     this.cues = [];
-    const url = s ? this.subtitleUrl(s) : null;
     const want = this.subtitleIndex;
+    // Read from the file by the player itself, when it can: nothing for the server to extract.
+    const embedded = this.subtitles().filter((m) => !m.IsExternal);
+    const own = (cues: Cue[]) => {
+      if (this.subtitleIndex === want) this.cues = cues;
+    };
+    if (s && !s.IsExternal && this.playMethod === 'DirectPlay' && this.player.embeddedCues?.(embedded.indexOf(s), own)) return;
+    const url = s ? this.subtitleUrl(s) : null;
     if (!url) return;
     try {
       const cues = await loadCues(url);
