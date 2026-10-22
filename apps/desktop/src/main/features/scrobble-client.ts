@@ -9,6 +9,17 @@ export const LASTFM_API = 'https://ws.audioscrobbler.com/2.0/';
 export const LASTFM_AUTH = 'https://www.last.fm/api/auth/';
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>;
+// The global fetch, called as a plain function: a browser throws "Illegal invocation" when it is called as a method
+// of another object (this.fetcher(...)), which Node allows.
+const globalFetch: Fetch = (url, init) => fetch(url, init);
+
+// A form from a record, built pair by pair: URLSearchParams takes a record only from Chromium 61 (the TV web app
+// runs this from 53, where the record becomes "[object Object]=").
+function formOf(fields: Record<string, string>): URLSearchParams {
+  const form = new URLSearchParams();
+  for (const k of Object.keys(fields)) form.append(k, fields[k]);
+  return form;
+}
 
 // retry: worth sending again later (network, 429, 5xx, Last.fm "try again"); auth: the token or session is refused.
 export class ScrobbleError extends Error {
@@ -95,7 +106,7 @@ export function listenBody(info: TrackInfo, listenedAt: number | null, version: 
 export class ListenBrainzClient {
   constructor(
     private readonly base: string,
-    private readonly fetcher: Fetch = fetch,
+    private readonly fetcher: Fetch = globalFetch,
   ) {}
 
   private async call(path: string, token: string, body?: object): Promise<unknown> {
@@ -159,12 +170,12 @@ export class LastfmClient {
     private readonly base: string,
     private readonly apiKey: string,
     private readonly secret: string,
-    private readonly fetcher: Fetch = fetch,
+    private readonly fetcher: Fetch = globalFetch,
   ) {}
 
   private async call<T>(method: string, params: Record<string, string>, post: boolean): Promise<T> {
     const all: Record<string, string> = { ...params, method, api_key: this.apiKey };
-    const form = new URLSearchParams({ ...all, api_sig: lastfmSign(all, this.secret), format: 'json' });
+    const form = formOf({ ...all, api_sig: lastfmSign(all, this.secret), format: 'json' });
     let res: Response;
     try {
       res = post
@@ -188,7 +199,7 @@ export class LastfmClient {
   }
 
   authUrl(token: string): string {
-    return `${LASTFM_AUTH}?${new URLSearchParams({ api_key: this.apiKey, token })}`;
+    return `${LASTFM_AUTH}?${formOf({ api_key: this.apiKey, token })}`;
   }
 
   // The session once the user allowed the token on last.fm; null while they have not yet (error 14).
