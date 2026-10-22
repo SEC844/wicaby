@@ -137,9 +137,10 @@
     };
   });
 
-  // Leaving when the session ends (the queue emptied).
+  // Leaving when the session ends (the queue emptied); from under another screen (a video started from a phone), it
+  // only drops out of the stack.
   $effect(() => {
-    if (!s || s.released) nav.back();
+    if (!s || s.released) nav.close(screen);
   });
 
   const f = $derived(s && s.durationMs > 0 ? Math.min(1, s.positionMs / s.durationMs) : 0);

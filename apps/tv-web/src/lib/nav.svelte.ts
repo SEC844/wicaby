@@ -83,6 +83,14 @@ export const nav = {
     settle(stack[stack.length - 1].lastFocus);
     return true;
   },
+  // A screen leaving by itself (its content is gone): Back when it is on top, else it drops out of the stack
+  // without touching the screen on top.
+  close(key: number): void {
+    const i = stack.findIndex((e) => e.key === key);
+    if (i < 0) return;
+    if (i === stack.length - 1) nav.back();
+    else stack.splice(i, 1);
+  },
   get depth(): number {
     return stack.length;
   },
