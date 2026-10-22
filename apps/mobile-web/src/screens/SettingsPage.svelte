@@ -43,6 +43,15 @@
   const LANGS = ['auto', 'fr', 'en'] as const;
   const MBPS = [0, 120, 80, 60, 40, 20, 10, 8, 4, 2];
   const SECS = [5, 10, 15, 20, 30];
+  const HERO_SECS = [0, 5, 8, 12];
+  const SEEK_SECS = [10, 15, 30];
+  const HIDE_SECS = [3.5, 6, 10];
+  const START_TABS = [
+    { id: 'home', label: 'tab_home' },
+    { id: 'libraries', label: 'nav_libraries' },
+    { id: 'downloads', label: 'nav_downloads' },
+    { id: 'search', label: 'tab_search' },
+  ] as const;
 
   $effect(() => setLanguage(settings.language.value));
 
@@ -95,9 +104,11 @@
     <Group title={t('web_posters')}>
       <Chips label={t('web_poster_size')} options={[t('web_size_small'), t('web_size_medium'), t('web_size_large')]} selected={look.posterSize} onpick={(i) => setLook('posterSize', i)} />
       <Row label={t('web_poster_titles')} checked={look.posterTitles} ontoggle={(on) => setLook('posterTitles', on)} />
+      <Row label={t('web_card_badges')} sub={t('web_card_badges_sub')} checked={look.cardBadges} ontoggle={(on) => setLook('cardBadges', on)} />
       <Row label={t('web_library_art')} sub={t('web_library_art_sub')} checked={look.libraryArt} ontoggle={(on) => setLook('libraryArt', on)} />
     </Group>
     <Group title={t('web_interface')}>
+      <Chips label={t('web_start_tab')} options={START_TABS.map((s) => t(s.label))} selected={Math.max(0, START_TABS.findIndex((s) => s.id === look.startTab))} onpick={(i) => setLook('startTab', START_TABS[i].id)} />
       <Row label={t('web_tab_labels')} checked={look.tabLabels} ontoggle={(on) => setLook('tabLabels', on)} />
       <Row label={t('web_reduce_motion')} sub={t('web_reduce_motion_sub')} checked={look.reduceMotion} ontoggle={(on) => setLook('reduceMotion', on)} />
     </Group>
@@ -106,6 +117,10 @@
       <Row {...toggle(t('row_hero'), settings.rowHero)} />
       {#if settings.rowHero.value}<Row {...toggle(t('hero_hide_watched'), settings.heroHideWatched)} />{/if}
       <Row {...toggle(t('settings_merge_continue'), settings.mergeContinue)} />
+      <Row label={t('web_continue_large')} sub={t('web_continue_large_sub')} checked={look.continueLarge} ontoggle={(on) => setLook('continueLarge', on)} />
+      {#if settings.rowHero.value}
+        <Chips label={t('web_hero_rotation')} options={HERO_SECS.map((s) => (s ? t('seconds', s) : t('web_off')))} selected={Math.max(0, HERO_SECS.indexOf(look.heroSeconds))} onpick={(i) => setLook('heroSeconds', HERO_SECS[i])} />
+      {/if}
     </Group>
     <Group title={t('web_home_rows')} hint={t('web_home_rows_hint')}>
       <HomeRows views={() => views?.value ?? []} />
@@ -125,6 +140,10 @@
     <Group title={t('web_dolby')} hint={t('web_dolby_hint')}>
       <Chips label="Dolby Digital (AC3)" options={passOptions} {...chips(settings.passthrough.ac3)} />
       <Chips label="Dolby Digital Plus (EAC3)" options={passOptions} {...chips(settings.passthrough.eac3)} />
+    </Group>
+    <Group title={t('web_player_controls')}>
+      <Chips label={t('web_seek_step')} options={SEEK_SECS.map((s) => t('seconds', s))} selected={Math.max(0, SEEK_SECS.indexOf(look.seekSeconds))} onpick={(i) => setLook('seekSeconds', SEEK_SECS[i])} />
+      <Chips label={t('web_controls_hide')} options={HIDE_SECS.map((s) => t('web_seconds_dec', s.toLocaleString()))} selected={Math.max(0, HIDE_SECS.indexOf(look.controlsSeconds))} onpick={(i) => setLook('controlsSeconds', HIDE_SECS[i])} />
     </Group>
     <Group title={t('group_resume')}>
       <Chips label={t('resume_mode')} options={[t('resume_auto'), t('resume_ask'), t('resume_start')]} {...chips(settings.resume)} />

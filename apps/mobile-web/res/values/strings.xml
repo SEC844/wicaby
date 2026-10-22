@@ -136,4 +136,15 @@
     <string name="web_status_hint_title">Gagner de la place en haut de l’écran</string>
     <string name="web_status_hint_body">Pour que Wicaby commence juste sous l’heure et la batterie, supprimez-la de l’écran d’accueil puis ajoutez-la à nouveau depuis Safari (Partager › Sur l’écran d’accueil). Il faudra vous reconnecter et retélécharger les titres gardés hors ligne.</string>
     <string name="web_got_it">J’ai compris</string>
+    <string name="web_card_badges">Pastilles vu / non vus</string>
+    <string name="web_card_badges_sub">La coche des titres vus et le nombre d’épisodes à voir</string>
+    <string name="web_start_tab">Onglet au lancement</string>
+    <string name="web_continue_large">Grandes cartes « Continuer à regarder »</string>
+    <string name="web_continue_large_sub">Sinon, une rangée de vignettes comme les autres</string>
+    <string name="web_hero_rotation">Défilement de la une</string>
+    <string name="web_off">Désactivé</string>
+    <string name="web_player_controls">Commandes du lecteur</string>
+    <string name="web_seek_step">Saut avant / arrière</string>
+    <string name="web_controls_hide">Masquer les commandes après</string>
+    <string name="web_seconds_dec">%1$s s</string>
 </resources>

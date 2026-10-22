@@ -10,6 +10,7 @@
   import { placeholder } from '$tv/images';
   import Check from '@lucide/svelte/icons/check';
   import { menuPress, type ItemMenuContext } from '../lib/item-menu.svelte';
+  import { look } from '../lib/look.svelte';
   import { longpress } from '../lib/press';
 
   let {
@@ -43,7 +44,9 @@
     {#if !src || failed}<span class="fallback subhead">{title}</span>{/if}
     {#if done}<span class="bar"><span style:transform="scaleX({done})"></span></span>{/if}
     <!-- Watched tick or unplayed count (Android CardBadge), in the chosen accent. -->
-    {#if item.UserData?.Played}
+    {#if !look.cardBadges}
+      <!-- Settings > Appearance: no badges. -->
+    {:else if item.UserData?.Played}
       <span class="badge tick"><Check size={13} strokeWidth={3} aria-label="✓" /></span>
     {:else if (item.UserData?.UnplayedItemCount ?? 0) > 0}
       <span class="badge count">{item.UserData!.UnplayedItemCount}</span>

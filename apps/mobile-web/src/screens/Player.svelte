@@ -42,6 +42,7 @@
   import Scan from '@lucide/svelte/icons/scan';
   import SkipForward from '@lucide/svelte/icons/skip-forward';
   import X from '@lucide/svelte/icons/x';
+  import { look } from '../lib/look.svelte';
   import { setPlayerStatus } from '../lib/status-colour';
   import { getContext, onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
@@ -66,7 +67,8 @@
     tracks,
   }: { id: string; fromStart?: boolean; trailer?: boolean; queue?: string[]; serverId?: string; startMs?: number; tracks?: { audio?: number; subtitle?: number } } = $props();
 
-  const TAP_SEEK_MS = 10_000;
+  // The jump of a double tap, the ±buttons and the lock screen's (Settings > Playback).
+  const TAP_SEEK_MS = look.seekSeconds * 1000;
   const SWIPE_SPAN_MS = 100_000;
   const DOUBLE_TAP_MS = 300;
 
@@ -86,7 +88,7 @@
   // The wall clock, for "Ends at" and the sleep timer.
   let now = $state(Date.now());
 
-  // ---- Controls: shown on a tap, hidden 3.5 s after the last one while playing ----
+  // ---- Controls: shown on a tap, hidden a few seconds after the last one while playing (Settings > Playback) ----
   let controls = $state(true);
   let nonce = $state(0);
   function poke(): void {
@@ -101,7 +103,7 @@
   $effect(() => {
     void nonce;
     if (!controls || !pb?.playing || sheet || preview !== null) return;
-    const timer = setTimeout(() => (controls = false), 3500);
+    const timer = setTimeout(() => (controls = false), look.controlsSeconds * 1000);
     return () => clearTimeout(timer);
   });
 
@@ -737,13 +739,13 @@
 
         <div class="middle">
           <button class="icon step" aria-label={t('rewind_10')} onclick={() => (seekTo(position - TAP_SEEK_MS), poke())}>
-            <RotateCcw size={30} aria-hidden="true" /><span class="badge mono">10</span>
+            <RotateCcw size={30} aria-hidden="true" /><span class="badge mono">{look.seekSeconds}</span>
           </button>
           <button class="icon main" aria-label={pb.playing ? t('pause') : t('play')} onclick={togglePlay}>
             {#if pb.buffering}<Spinner size={34} />{:else if pb.playing}<Pause size={34} fill="currentColor" strokeWidth={0} aria-hidden="true" />{:else}<Play size={34} fill="currentColor" strokeWidth={0} aria-hidden="true" />{/if}
           </button>
           <button class="icon step" aria-label={t('forward_10')} onclick={() => (seekTo(position + TAP_SEEK_MS), poke())}>
-            <RotateCw size={30} aria-hidden="true" /><span class="badge mono">10</span>
+            <RotateCw size={30} aria-hidden="true" /><span class="badge mono">{look.seekSeconds}</span>
           </button>
         </div>
 

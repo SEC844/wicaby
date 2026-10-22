@@ -135,4 +135,15 @@
     <string name="web_status_hint_title">Gain room at the top of the screen</string>
     <string name="web_status_hint_body">For Wicaby to start right under the time and battery, remove it from the Home Screen, then add it again from Safari (Share › Add to Home Screen). You will need to sign in again and download the offline titles again.</string>
     <string name="web_got_it">Got it</string>
+    <string name="web_card_badges">Watched / unwatched badges</string>
+    <string name="web_card_badges_sub">The tick on watched titles and the count of episodes left</string>
+    <string name="web_start_tab">Start tab</string>
+    <string name="web_continue_large">Large “Continue watching” cards</string>
+    <string name="web_continue_large_sub">Otherwise, a row of thumbnails like the others</string>
+    <string name="web_hero_rotation">Featured rotation</string>
+    <string name="web_off">Off</string>
+    <string name="web_player_controls">Player controls</string>
+    <string name="web_seek_step">Skip back / forward</string>
+    <string name="web_controls_hide">Hide controls after</string>
+    <string name="web_seconds_dec">%1$s s</string>
 </resources>

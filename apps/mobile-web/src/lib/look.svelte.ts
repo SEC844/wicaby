@@ -1,5 +1,6 @@
-// The phone's own look preferences (Réglages > Apparence), beside the shared theme and accent: the text size, the
-// library cards, the posters, the tab bar's labels, the motion. Kept on the phone; applied to the document as CSS
+// The phone's own preferences, beside the shared ones (lib settings): the look (text size, library cards, posters,
+// badges, the tab bar's labels, the motion), Home's hero and Continue watching, the start tab, the player's jump and
+// controls delay. Kept on the phone; applied to the document as CSS
 // variables and attributes, so a change shows at once everywhere.
 import { load, save } from '$tv/storage';
 
@@ -18,9 +19,32 @@ export interface Look {
   posterTitles: boolean;
   tabLabels: boolean;
   reduceMotion: boolean;
+  // The watched tick and the unplayed count on posters.
+  cardBadges: boolean;
+  // Home: the featured titles' rotation in seconds (0: by hand only); Continue watching as large cards or a row.
+  heroSeconds: number;
+  continueLarge: boolean;
+  // The tab the app opens on.
+  startTab: 'home' | 'libraries' | 'downloads' | 'search';
+  // The player: the jump of a double tap and of the ±buttons, and how long the controls stay up.
+  seekSeconds: number;
+  controlsSeconds: number;
 }
 
-const DEFAULTS: Look = { textSize: 'system', libraryArt: true, posterSize: 1, posterTitles: true, tabLabels: true, reduceMotion: false };
+const DEFAULTS: Look = {
+  textSize: 'system',
+  libraryArt: true,
+  posterSize: 1,
+  posterTitles: true,
+  tabLabels: true,
+  reduceMotion: false,
+  cardBadges: true,
+  heroSeconds: 8,
+  continueLarge: true,
+  startTab: 'home',
+  seekSeconds: 10,
+  controlsSeconds: 3.5,
+};
 
 export const look = $state<Look>({ ...DEFAULTS, ...load<Partial<Look>>('look', {}) });
 

@@ -2,7 +2,7 @@
   // Home's hero (Android HeroCarousel, the desktop's Hero): the backdrop full bleed under the status bar, fading into
   // the canvas; at its foot, aligned left, the type and genres in small caps, the title's logo (or its name, large
   // and bold), the facts, then Play (the accent) and More info. Slides follow the finger (a native horizontal scroll that
-  // snaps) and advance every 8 s while the hero is in view and untouched; the dots below mark the current one.
+  // snaps) and advance every few seconds (Settings > Home) while the hero is in view and untouched; the dots below mark the current one.
   // Pulling the page down stretches the artwork (the page writes --stretch).
   import type { BaseItem } from '$shared/models';
   import type { Api } from '$tv/api';
@@ -11,6 +11,7 @@
   import { play } from '$tv/playback';
   import Play from '@lucide/svelte/icons/play';
   import { eyebrowLine, metaLine } from '../lib/format';
+  import { look } from '../lib/look.svelte';
   import { itemRoute, nav } from '../lib/nav.svelte';
 
   // tops: each title's artwork top colour (lib/status-colour), its top fading into it under the status bar;
@@ -24,7 +25,6 @@
     onshown,
   }: { items: BaseItem[]; api: Api; tops?: Record<string, string>; onposition?: (at: number) => void; onshown?: (id: string) => void } = $props();
 
-  const SLIDE_MS = 8000;
   const dpr = Math.min(3, window.devicePixelRatio || 2);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -61,11 +61,11 @@
   }
 
   $effect(() => {
-    if (reduced || touching || offscreen || items.length < 2) return;
+    if (reduced || touching || offscreen || items.length < 2 || !look.heroSeconds) return;
     const id = setTimeout(() => {
       const next = (index + 1) % items.length;
       track.scrollTo({ left: next * track.clientWidth, behavior: next === 0 ? 'instant' : 'smooth' });
-    }, SLIDE_MS);
+    }, look.heroSeconds * 1000);
     return () => clearTimeout(id);
   });
 

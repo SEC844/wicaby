@@ -4,6 +4,7 @@
 // top screen last; `nav.push` opens a page in the current tab (or full screen), `nav.back` closes the top one.
 // Pages under the top stay mounted (hidden), so Back returns at once to the same scroll position.
 import type { BaseItem } from '$shared/models';
+import { look } from './look.svelte';
 import type { Route as TvRoute } from '$tv/nav.svelte';
 
 // A settings category's page (tabs/SettingsTab.svelte lists them).
@@ -95,7 +96,7 @@ export const nav = {
     roots = [entry(route, null)];
     for (const t of TABS) tabStacks[t] = [];
     full = [];
-    shell.tab = 'home';
+    shell.tab = look.startTab;
     shell.op = 'reset';
     sync();
   },

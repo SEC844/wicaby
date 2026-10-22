@@ -16,6 +16,7 @@
   import Spinner from '../components/Spinner.svelte';
   import { useHome } from '../lib/home.svelte';
   import { itemRoute, nav, shell, stack } from '../lib/nav.svelte';
+  import { look } from '../lib/look.svelte';
   import { backdropTop, mixRgb, setPageStatusColour, toRgb } from '../lib/status-colour';
 
   const a = api()!;
@@ -85,10 +86,10 @@
       <div class="lead" aria-hidden="true"></div>
     {/if}
     {#each home.rows as row (row.key)}
-      {#if row.continueRow}
+      {#if row.continueRow && look.continueLarge}
         <ContinueShelf title={row.title} items={row.items} api={a} subtitle={row.subtitle} continueRow={row.continueRow} onplay={(i) => play(i)} />
       {:else}
-        <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} onopen={row.playable ? (i) => play(i) : open} />
+        <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} menu={row.continueRow ? { continueRow: row.continueRow } : undefined} onopen={row.playable ? (i) => play(i) : open} />
       {/if}
     {/each}
     {#if home.loading && !home.rows.length}
