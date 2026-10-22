@@ -16,7 +16,9 @@ Wicaby is versioned as a whole: a release tag (`vX.Y.Z`) covers the Windows desk
 Android TV app, the Android mobile app and the mesh helper. The Android apps also carry their own
 `versionName` and `versionCode` (used by the in-app updater); they are listed in each entry.
 
-## [Unreleased]
+## [0.12.0] - 2026-10-22
+
+Android TV 0.12.0 (versionCode 40), Android mobile 0.12.0 (versionCode 37).
 
 ### Added
 
