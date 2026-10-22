@@ -626,6 +626,8 @@
   });
 
   onMount(() => {
+    // The top edge's band goes black over the video (app.css .edge-band).
+    document.documentElement.style.setProperty('--edge-bg', '#000');
     // A video ends the music, as on Android (one audio output, one session).
     stopMusic();
     keepAwake(true);
@@ -671,6 +673,7 @@
       probe.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
       remote.hls = false;
       clearInterval(clockTimer);
+      document.documentElement.style.removeProperty('--edge-bg');
       clearTimeout(singleTimer);
       // The timer belongs to this session.
       cancelSleep();

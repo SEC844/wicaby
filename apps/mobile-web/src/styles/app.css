@@ -42,7 +42,8 @@
 
   /* The page gutter, and the system's insets (notch, Dynamic Island, home indicator) in standalone mode. */
   --gutter: 20px;
-  --safe-top: env(safe-area-inset-top, 0px);
+  /* At least the edge band's height (.edge-band), so nothing the page shows starts under it. */
+  --safe-top: max(env(safe-area-inset-top, 0px), 14px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
@@ -287,6 +288,20 @@ p {
 }
 .shelf-row > * {
   scroll-snap-align: start;
+}
+
+/* The top edge's band. iOS 26 draws its scroll edge blur over the top of a Home Screen web app (no switch turns it
+   off) unless the element WebKit finds at the very top is a fixed, full-width box of one solid colour, over 10 px
+   tall: then it extends that colour under the status bar instead. WebKit finds it by hit-testing, so the band takes
+   pointer events (pointer-events: none would hide it). The player turns it black (--edge-bg). */
+.edge-band {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  background: var(--edge-bg, var(--bg));
+  z-index: 1000;
 }
 
 /* Under a translucent status bar (an app added to the Home Screen before it was opaque, index.html): the canvas,
