@@ -45,6 +45,12 @@
   // svelte-ignore state_referenced_locally
   const early = peek(id);
   const item = $derived(loaded.value ?? (loaded.error === undefined ? early : undefined));
+  // The rows under the fold (cast, extras, similar) join once the page has slid in: the slide stays smooth.
+  let settled = $state(false);
+  $effect(() => {
+    const timer = setTimeout(() => (settled = true), 420);
+    return () => clearTimeout(timer);
+  });
   const series = $derived(item?.Type === 'Series');
   const book = $derived(!!item && isBook(item));
 
@@ -340,7 +346,7 @@
         </div>
       {/if}
 
-      {#if people.length}
+      {#if settled && people.length}
         <section class="people">
           <h2 class="title-3 head">{t('web_cast_crew')}</h2>
           <div class="shelf-row">
@@ -358,10 +364,10 @@
         </section>
       {/if}
 
-      {#if extras.value?.length}
+      {#if settled && extras.value?.length}
         <Shelf title={t('bonus')} items={extras.value} api={client} wide onopen={(i) => playTrailer(i)} />
       {/if}
-      {#if similar.value?.length}
+      {#if settled && similar.value?.length}
         <Shelf title={t('similar')} items={similar.value} api={client} onopen={(i) => nav.push(itemRoute(i))} />
       {/if}
     {/if}
