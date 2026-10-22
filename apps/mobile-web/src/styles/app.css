@@ -47,8 +47,9 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* The pages' top row (title, actions, account), right under the status bar as Instagram's and Netflix's. */
-  --top-bar: calc(var(--safe-top) + 46px);
+  /* The pages' top row (title, actions, account), right under the status bar and the edge band (.edge-band) as
+     Instagram's and Netflix's: 38 px of content. */
+  --top-bar: calc(var(--safe-top) + 38px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));

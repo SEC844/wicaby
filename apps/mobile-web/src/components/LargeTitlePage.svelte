@@ -75,8 +75,8 @@
     box-shadow: 0 0.5px 0 var(--separator);
   }
   .back-btn {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     margin-left: -8px;
     flex: none;
   }
@@ -84,6 +84,7 @@
     flex: 1;
     min-width: 0;
     margin: 0;
+    line-height: 1.15;
     font-size: var(--fs-title-3);
     font-weight: 750;
     letter-spacing: -0.02em;

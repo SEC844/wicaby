@@ -39,7 +39,7 @@
 
 {#if session}
   <button class="me pressable" class:floating class:on-art={onMedia} aria-label={t('settings_account')} aria-expanded={open} onclick={() => (open = !open)}>
-    <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={32} />
+    <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={30} />
   </button>
   {#if open}
     <div class="scrim" role="presentation" onclick={() => (open = false)} transition:fade={{ duration: 140 }}></div>
@@ -63,9 +63,9 @@
 <style>
   /* The user's picture in a ring: the canvas's fill, or the dark fill over artwork. */
   .me {
-    width: 38px;
-    height: 38px;
-    padding: 3px;
+    width: 34px;
+    height: 34px;
+    padding: 2px;
     border-radius: 50%;
     display: grid;
     place-items: center;
@@ -78,7 +78,7 @@
   /* Over Home's hero: centred in the top row (app.css --top-bar) as on the other tabs, with the page's side margin. */
   .floating {
     position: absolute;
-    top: calc(var(--safe-top) + 4px);
+    top: calc(var(--safe-top) + 2px);
     right: max(var(--gutter), var(--safe-right));
     z-index: 5;
   }

@@ -108,6 +108,7 @@
   }
   .name {
     margin: 0;
+    line-height: 1.15;
     font-size: var(--fs-title-1);
     font-weight: 800;
     letter-spacing: -0.03em;

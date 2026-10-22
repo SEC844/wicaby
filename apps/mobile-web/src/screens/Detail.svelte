@@ -725,8 +725,10 @@
   }
   .back {
     position: absolute;
-    top: calc(var(--safe-top) + 3px);
+    top: calc(var(--safe-top) + 1px);
     left: max(var(--gutter), var(--safe-left));
+    width: 36px;
+    height: 36px;
     z-index: 5;
   }
 </style>
