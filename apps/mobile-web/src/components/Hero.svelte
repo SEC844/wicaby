@@ -13,7 +13,8 @@
   import { eyebrowLine, metaLine } from '../lib/format';
   import { itemRoute, nav } from '../lib/nav.svelte';
 
-  let { items, api }: { items: BaseItem[]; api: Api } = $props();
+  // onslide: the title on show (its index), as the slides move.
+  let { items, api, onslide }: { items: BaseItem[]; api: Api; onslide?: (item: BaseItem) => void } = $props();
 
   const SLIDE_MS = 8000;
   const dpr = Math.min(3, window.devicePixelRatio || 2);
@@ -34,6 +35,11 @@
       warm = new Set([...warm, i - 1, i, i + 1]);
     }
   }
+
+  $effect(() => {
+    const item = items[index];
+    if (item) onslide?.(item);
+  });
 
   $effect(() => {
     if (reduced || touching || offscreen || items.length < 2) return;

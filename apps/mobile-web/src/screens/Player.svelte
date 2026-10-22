@@ -42,6 +42,7 @@
   import Scan from '@lucide/svelte/icons/scan';
   import SkipForward from '@lucide/svelte/icons/skip-forward';
   import X from '@lucide/svelte/icons/x';
+  import { setPlayerStatus } from '../lib/status-colour';
   import { getContext, onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import Spinner from '../components/Spinner.svelte';
@@ -626,8 +627,8 @@
   });
 
   onMount(() => {
-    // The status bar goes black over the video (app.css .status-colour).
-    document.documentElement.style.setProperty('--status-colour', '#000');
+    // The status bar goes black over the video (lib/status-colour).
+    setPlayerStatus(true);
     // A video ends the music, as on Android (one audio output, one session).
     stopMusic();
     keepAwake(true);
@@ -673,7 +674,7 @@
       probe.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
       remote.hls = false;
       clearInterval(clockTimer);
-      document.documentElement.style.removeProperty('--status-colour');
+      setPlayerStatus(false);
       clearTimeout(singleTimer);
       // The timer belongs to this session.
       cancelSleep();
