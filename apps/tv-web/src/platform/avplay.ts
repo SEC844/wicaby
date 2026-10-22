@@ -48,6 +48,14 @@ function language(info: AvTrackInfo): string {
   }
 }
 
+function quiet(call: () => void): void {
+  try {
+    call();
+  } catch {
+    // Not allowed in AVPlay's current state.
+  }
+}
+
 export class AvPlayer extends Emitter implements VideoPlayer {
   private readonly av = webapis!.avplay;
 
@@ -79,13 +87,17 @@ export class AvPlayer extends Emitter implements VideoPlayer {
     });
   }
 
-  play(): void { this.av.play(); }
-  pause(): void { this.av.pause(); }
+  // AVPlay throws InvalidStateError for a call its state does not allow (a key pressed while it is idle, preparing or
+  // already stopped): such a call does nothing, as on the other players.
+  play(): void { quiet(() => this.av.play()); }
+  pause(): void { quiet(() => this.av.pause()); }
   // Ready once the seek has landed, paused or not (SyncPlay's Ready waits for it).
-  seek(ms: number): void { this.av.seekTo(Math.max(0, Math.round(ms)), () => this.emit('buffering', false)); }
+  seek(ms: number): void { quiet(() => this.av.seekTo(Math.max(0, Math.round(ms)), () => this.emit('buffering', false))); }
 
+  // Never throws: the callers' cleanup (Live TV's tune, the player's exit) runs on after it.
   stop(): void {
-    try { this.av.stop(); } finally { this.av.close(); }
+    quiet(() => this.av.stop());
+    quiet(() => this.av.close());
   }
 
   get durationMs(): number { return this.av.getState() === 'NONE' ? 0 : this.av.getDuration(); }

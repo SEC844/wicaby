@@ -515,9 +515,9 @@
       document.removeEventListener('tvfocus', track);
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('keyup', onKeyUp, true);
-      p.stop();
       keepAwake(false);
       document.documentElement.classList.remove('avplay');
+      p.stop();
     };
   });
 
