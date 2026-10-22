@@ -36,6 +36,16 @@ for (const level of [0, 1, 6, 9])
     const packed = zlib.deflateRawSync(data, { level, strategy: level === 1 ? zlib.constants.Z_FIXED : undefined });
     assert.ok(Buffer.from(inflate(new Uint8Array(packed), n)).equals(data), `inflate: ${kind} at level ${level}`);
   }
+// A bomb (8 MiB of zeros) claiming 1 KiB, a stored block whose length and complement disagree, a stored block cut
+// short: each refused, none read past its input.
+const bomb = new Uint8Array(zlib.deflateRawSync(Buffer.alloc(8 << 20)));
+assert.throws(() => inflate(bomb, 1024), /larger than claimed/, 'inflate: output capped at the claimed size');
+assert.throws(() => inflate(bomb, 0x7fffffff), /too large/, 'inflate: claim over the hard maximum');
+const storedBlock = new Uint8Array(zlib.deflateRawSync(Buffer.from('stored bytes'), { level: 0 }));
+const badLen = storedBlock.slice();
+badLen[3] ^= 1;
+assert.throws(() => inflate(badLen, 12), /bad stored length/, 'inflate: stored LEN/NLEN mismatch');
+assert.throws(() => inflate(storedBlock.subarray(0, storedBlock.length - 4), 12), /truncated/, 'inflate: stored block cut short');
 
 // --- A CBZ over Range requests ---
 const pages = Array.from({ length: 6 }, (_, i) => ({ name: `Tome/${i + 1}.png`, data: comicPage(i + 1, [80, 120, 200], 60, 90), store: i % 2 === 0 }));
@@ -75,6 +85,17 @@ for (const honourRange of [true, false]) {
   assert.equal(startPage(item, b.pages.length), 3, 'resume page from ticks');
 }
 assert.ok(ranges >= 3, 'zip: read through Range requests');
+// A server ignoring Range with a book over the in-memory limit: refused from its Content-Length, before the body.
+{
+  const { Zip, MAX_WHOLE } = await load('src/lib/zip.ts');
+  let read = false;
+  globalThis.fetch = async () => {
+    const body = new ReadableStream({ pull: (c) => ((read = true), c.close()) }, { highWaterMark: 0 });
+    return new Response(body, { status: 200, headers: { 'Content-Length': String(MAX_WHOLE + 1) } });
+  };
+  await assert.rejects(new Zip('http://192.0.2.1/b', {}).open(), /too-large/, 'zip: whole file over the limit refused');
+  assert.equal(read, false, 'zip: refused before its body is read');
+}
 
 // --- Page order and spreads ---
 assert.deepEqual(['10.jpg', '2.jpg', '01.jpg', 'b.jpg', 'A.jpg'].sort(natural), ['01.jpg', '2.jpg', '10.jpg', 'A.jpg', 'b.jpg'], 'natural order');

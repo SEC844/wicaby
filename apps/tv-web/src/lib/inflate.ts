@@ -1,5 +1,12 @@
 // Raw DEFLATE (RFC 1951) for the comic reader's ZIP entries: stored, fixed and dynamic Huffman blocks. The TV
 // engines have no DecompressionStream (Chromium 80+), and a library would weigh more than this.
+// The output never grows past the size the entry claims, nor past MAX_OUTPUT: a small archive cannot expand into
+// gigabytes (a deflate bomb) and run the TV out of memory.
+
+// One comic page, as the largest entry worth opening.
+export const MAX_OUTPUT = 64 * 1024 * 1024;
+
+export class InflateError extends Error {}
 
 class Tree {
   readonly counts = new Uint16Array(16);
@@ -44,17 +51,20 @@ class Reader {
   bits = 0;
   out: Uint8Array;
   n = 0;
+  readonly limit: number;
 
   constructor(
     readonly src: Uint8Array,
     size: number,
   ) {
-    this.out = new Uint8Array(size > 0 ? size : src.length * 4 + 1024);
+    if (size > MAX_OUTPUT) throw new InflateError('inflate: entry too large');
+    this.limit = size > 0 ? size : MAX_OUTPUT;
+    this.out = new Uint8Array(size > 0 ? size : Math.min(src.length * 4 + 1024, MAX_OUTPUT));
   }
 
   need(k: number): void {
     while (this.bits < k) {
-      if (this.pos >= this.src.length) throw new Error('inflate: truncated');
+      if (this.pos >= this.src.length) throw new InflateError('inflate: truncated');
       this.bit |= this.src[this.pos++] << this.bits;
       this.bits += 8;
     }
@@ -82,12 +92,13 @@ class Reader {
       first = (first + count) << 1;
       code <<= 1;
     }
-    throw new Error('inflate: bad code');
+    throw new InflateError('inflate: bad code');
   }
 
   put(b: number): void {
     if (this.n >= this.out.length) {
-      const grown = new Uint8Array(this.out.length * 2);
+      if (this.n >= this.limit) throw new InflateError('inflate: output larger than claimed');
+      const grown = new Uint8Array(Math.min(this.out.length * 2, this.limit));
       grown.set(this.out);
       this.out = grown;
     }
@@ -107,7 +118,7 @@ function block(r: Reader, lit: Tree, dist: Tree): void {
     const len = LENGTH_BASE[li] + r.read(LENGTH_EXTRA[li]);
     const di = r.symbol(dist);
     const back = DIST_BASE[di] + r.read(DIST_EXTRA[di]);
-    if (back > r.n) throw new Error('inflate: bad distance');
+    if (back > r.n) throw new InflateError('inflate: bad distance');
     for (let i = 0; i < len; i++) r.put(r.out[r.n - back]);
   }
 }
@@ -134,7 +145,8 @@ function dynamicTrees(r: Reader, lit: Tree, dist: Tree): void {
   build(dist, lengths, hlit, hdist);
 }
 
-// Inflates [src]; [size] is the expected output length (the ZIP entry's), used to size the buffer once.
+// Inflates [src]; [size] is the expected output length (the ZIP entry's): the buffer is sized once, and the output
+// may not exceed it.
 export function inflate(src: Uint8Array, size = 0): Uint8Array {
   const r = new Reader(src, size);
   const lit = new Tree();
@@ -147,14 +159,18 @@ export function inflate(src: Uint8Array, size = 0): Uint8Array {
       // Stored: byte-aligned length, its complement, then the bytes.
       r.bit = 0;
       r.bits = 0;
+      if (r.pos + 4 > r.src.length) throw new InflateError('inflate: truncated');
       const len = r.src[r.pos] | (r.src[r.pos + 1] << 8);
+      const nlen = r.src[r.pos + 2] | (r.src[r.pos + 3] << 8);
+      if ((len ^ 0xffff) !== nlen) throw new InflateError('inflate: bad stored length');
       r.pos += 4;
+      if (r.pos + len > r.src.length) throw new InflateError('inflate: truncated');
       for (let i = 0; i < len; i++) r.put(r.src[r.pos++]);
     } else if (type === 1) block(r, FIXED_LIT, FIXED_DIST);
     else if (type === 2) {
       dynamicTrees(r, lit, dist);
       block(r, lit, dist);
-    } else throw new Error('inflate: bad block');
+    } else throw new InflateError('inflate: bad block');
   } while (!last);
   return r.n === r.out.length ? r.out : r.out.subarray(0, r.n);
 }
