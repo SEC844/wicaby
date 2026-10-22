@@ -1,8 +1,8 @@
 <script lang="ts">
   // Accueil, as the TV app's Home: the hero first, full bleed under the status bar, Continue watching in large
   // right under it (components/ContinueShelf.svelte), then the user's other rows (lib/home.svelte.ts). The top row
-  // (the account on the right) sits over the hero on a shade that keeps the status bar legible; once the hero scrolls
-  // away it turns into the canvas with the tab's name, as Netflix's. Pulling down at the top stretches the hero's
+  // (the account on the right) sits over the hero, under the status bar's opaque band (App.svelte); once the hero
+  // scrolls away it turns into the canvas with the tab's name, as Netflix's. Pulling down at the top stretches the hero's
   // artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
@@ -79,7 +79,7 @@
   .lead {
     height: calc(var(--top-bar) + 4px);
   }
-  /* The top row: over the hero, a shade only (no surface); past it, the canvas with a hairline. Opacity only. */
+  /* The top row: over the hero, nothing but its account button; past it, the canvas with a hairline. Opacity only. */
   .top {
     position: absolute;
     top: 0;
@@ -92,28 +92,14 @@
     pointer-events: none;
     z-index: 4;
   }
-  .top::before,
   .top::after {
     content: '';
     position: absolute;
     inset: 0;
     z-index: -1;
     transition: opacity var(--t-med) var(--ease-out);
-  }
-  .top::before {
-    bottom: -40px;
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0));
-    opacity: 0;
-  }
-  .top.over::before {
-    opacity: 1;
-  }
-  .top::after {
     background: var(--bg);
     box-shadow: 0 0.5px 0 var(--separator);
-    opacity: 0;
-  }
-  .top.solid::before {
     opacity: 0;
   }
   .top.solid::after {

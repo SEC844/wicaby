@@ -91,3 +91,5 @@
 <Toast />
 <Snackbar />
 <UpdateBanner />
+<!-- The status bar's own band (app.css .status-band). -->
+<div class="status-band" aria-hidden="true"></div>

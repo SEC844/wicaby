@@ -626,6 +626,8 @@
   });
 
   onMount(() => {
+    // The status bar's band goes black over the video (app.css .status-band).
+    document.documentElement.style.setProperty('--status-bg', '#000');
     // A video ends the music, as on Android (one audio output, one session).
     stopMusic();
     keepAwake(true);
@@ -664,6 +666,7 @@
       return false;
     });
     return () => {
+      document.documentElement.style.removeProperty('--status-bg');
       stopBack();
       for (const [a] of handlers) ms?.setActionHandler(a, null);
       if (ms) ms.metadata = null;

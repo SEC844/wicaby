@@ -288,3 +288,17 @@ p {
 .shelf-row > * {
   scroll-snap-align: start;
 }
+
+/* The status bar's band: opaque, fixed at the top edge. iOS 26 blurs whatever a web app draws under the status bar
+   (its scroll edge effect) unless a fixed bar with a solid colour holds that edge: it then extends that colour
+   instead, as for a native app's bar (Instagram's). The player turns it black (--status-bg). */
+.status-band {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  background: var(--status-bg, var(--bg));
+  pointer-events: none;
+  z-index: 1000;
+}
