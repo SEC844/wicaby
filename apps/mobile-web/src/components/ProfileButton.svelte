@@ -78,7 +78,7 @@
   /* Over Home's hero: centred in the top row (app.css --top-bar) as on the other tabs, with the page's side margin. */
   .floating {
     position: absolute;
-    top: calc(var(--safe-top) + 7px);
+    top: calc(var(--safe-top) + 4px);
     right: max(var(--gutter), var(--safe-right));
     z-index: 5;
   }

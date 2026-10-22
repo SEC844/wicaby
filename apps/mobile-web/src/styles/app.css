@@ -43,12 +43,12 @@
   /* The page gutter, and the system's insets (notch, Dynamic Island, home indicator) in standalone mode. */
   --gutter: 20px;
   /* At least the edge band's height (.edge-band), so nothing the page shows starts under it. */
-  --safe-top: max(env(safe-area-inset-top, 0px), 14px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 11px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   /* The pages' top row (title, actions, account), right under the status bar as Instagram's and Netflix's. */
-  --top-bar: calc(var(--safe-top) + 52px);
+  --top-bar: calc(var(--safe-top) + 46px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
