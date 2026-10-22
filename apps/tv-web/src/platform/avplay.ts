@@ -23,6 +23,8 @@ interface AvPlay {
   setSelectTrack(type: 'AUDIO' | 'TEXT', index: number): void;
   setSilentSubtitle(silent: boolean): void;
   setListener(l: Record<string, (...a: never[]) => void>): void;
+  suspend(): void;
+  restore(): void;
 }
 
 declare const webapis: { avplay: AvPlay } | undefined;
@@ -64,7 +66,17 @@ export class AvPlayer extends Emitter implements VideoPlayer {
     mountAvplayObject();
   }
 
+  // Samsung's multitasking rule: the pipeline is suspended while the app is hidden (Home, another app) and restored
+  // when it shows again; without it, coming back usually leaves a black video plane.
+  private readonly visibility = (): void => {
+    const state = this.av.getState();
+    if (state === 'NONE' || state === 'IDLE') return;
+    quiet(() => (document.hidden ? this.av.suspend() : this.av.restore()));
+  };
+
   open(url: string, startMs = 0): Promise<void> {
+    document.removeEventListener('visibilitychange', this.visibility);
+    document.addEventListener('visibilitychange', this.visibility);
     if (this.av.getState() !== 'NONE') this.av.close();
     this.av.open(url);
     this.av.setDisplayRect(0, 0, 1920, 1080);
@@ -96,6 +108,7 @@ export class AvPlayer extends Emitter implements VideoPlayer {
 
   // Never throws: the callers' cleanup (Live TV's tune, the player's exit) runs on after it.
   stop(): void {
+    document.removeEventListener('visibilitychange', this.visibility);
     quiet(() => this.av.stop());
     quiet(() => this.av.close());
   }
