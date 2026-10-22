@@ -64,6 +64,8 @@ export class ComicBook {
   private readonly urls = new Map<number, string>();
   private readonly pending = new Map<number, Promise<string>>();
   private order: number[] = [];
+  // A page's URL just released (out of the window kept): whoever shows pages drops it and asks again when needed.
+  onRelease: ((i: number) => void) | null = null;
 
   constructor(private readonly zip: Zip) {}
 
@@ -119,6 +121,7 @@ export class ComicBook {
           const u = this.urls.get(old);
           if (u) URL.revokeObjectURL(u);
           this.urls.delete(old);
+          this.onRelease?.(old);
         }
         return url;
       });

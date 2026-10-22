@@ -64,6 +64,13 @@
         const it = await client.get<BaseItem>(`/Users/${client.userId}/Items/${id}`, { Fields: 'Path,MediaSources' });
         item = it;
         const b = await ComicBook.open(client, it);
+        // A released page leaves the shown ones too, so going back decodes it again instead of a dead URL.
+        b.onRelease = (i) => {
+          if (!(i in urls)) return;
+          const rest = { ...urls };
+          delete rest[i];
+          urls = rest;
+        };
         book = b;
         count = b.pages.length;
         sizes = b.pages.map((_, i) => (b.doubles.has(i) ? { width: 2, height: 1 } : undefined));
@@ -142,10 +149,14 @@
     go(spreadIndex + ((right ? 1 : -1) * (rtl ? -1 : 1)));
   }
   let pageEl = $state<HTMLDivElement>();
+  // The pages' box scales about its centre: at maxY its top meets the screen's top, at minY its bottom meets the
+  // screen's bottom. Fit page centres the box (a symmetric range); fit width anchors it at the top (0 down to the
+  // overflow), so the foot of a tall page can be reached.
   function vertical(down: boolean): void {
     const h = pageEl?.offsetHeight ?? viewH;
-    const maxY = Math.max(0, (h * zoom - viewH) / 2);
-    if (maxY > 1) pan = { ...pan, y: Math.max(-maxY, Math.min(maxY, pan.y + (down ? -1 : 1) * viewH * 0.6)) };
+    const maxY = (h * (zoom - 1)) / 2;
+    const minY = Math.min(maxY, viewH - (h * (zoom + 1)) / 2);
+    if (maxY - minY > 1) pan = { ...pan, y: Math.max(minY, Math.min(maxY, pan.y + (down ? -1 : 1) * viewH * 0.6)) };
   }
 
   // --- Webtoon strip ---
