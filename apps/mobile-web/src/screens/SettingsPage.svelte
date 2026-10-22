@@ -11,9 +11,13 @@
   import AccentPicker from '../components/settings/AccentPicker.svelte';
   import Chips from '../components/settings/Chips.svelte';
   import Group from '../components/settings/Group.svelte';
+  import HomeRows from '../components/settings/HomeRows.svelte';
   import Row from '../components/settings/Row.svelte';
   import ThemePicker from '../components/settings/ThemePicker.svelte';
+  import { useLoad } from '$tv/load.svelte';
+  import type { BaseItem } from '$shared/models';
   import { leave } from '../lib/account';
+  import { look, setLook, TEXT_SCALES, systemScale } from '../lib/look.svelte';
   import { VERSION } from '../lib/identity';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
@@ -53,8 +57,23 @@
     showAlert({ title, actions: [{ label, destructive: true, run }, { label: t('cancel'), run: () => {} }] });
   }
 
+  // Text size: the system's, then the fixed sizes; the system's own scale shown in its chip.
+  const textOptions = $derived([t('web_text_system', `${Math.round(systemScale() * 100)} %`), t('web_text_xs'), t('web_text_s'), t('web_text_m'), t('web_text_l'), t('web_text_xl')]);
+  const textIndex = $derived(look.textSize === 'system' ? 0 : Math.max(0, TEXT_SCALES.indexOf(look.textSize)) + 1);
+  // A settings page is pushed for one category and never re-targeted.
+  // svelte-ignore state_referenced_locally
+  const views = page === 'home' ? useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true }) : null;
+
   const css = getComputedStyle(document.documentElement);
-  const display = `${window.innerHeight}/${screen.height} · ${css.getPropertyValue('--app-height').trim() || 'auto'} · ${standalone ? 'app' : 'web'}`;
+  const inset = (() => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;padding-top:env(safe-area-inset-top)';
+    document.body.appendChild(probe);
+    const px = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+    return px;
+  })();
+  const display = `${window.innerHeight}/${screen.height} · ${css.getPropertyValue('--app-height').trim() || 'auto'} · ${t('web_display_top', Math.round(inset))} · ${standalone ? 'app' : 'web'}`;
 </script>
 
 <LargeTitlePage title={t(TITLE[page])} back>
@@ -69,11 +88,27 @@
     <Group title={t('settings_accent')}>
       <AccentPicker accent={settings.accent.value} onpick={(i) => (settings.accent.value = i)} />
     </Group>
+    <Group title={t('web_text')} hint={t('web_text_hint')}>
+      <Chips label={t('web_text_size')} options={textOptions} selected={textIndex} onpick={(i) => setLook('textSize', i === 0 ? 'system' : TEXT_SCALES[i - 1])} />
+      <p class="preview">{t('web_text_preview')}</p>
+    </Group>
+    <Group title={t('web_posters')}>
+      <Chips label={t('web_poster_size')} options={[t('web_size_small'), t('web_size_medium'), t('web_size_large')]} selected={look.posterSize} onpick={(i) => setLook('posterSize', i)} />
+      <Row label={t('web_poster_titles')} checked={look.posterTitles} ontoggle={(on) => setLook('posterTitles', on)} />
+      <Row label={t('web_library_art')} sub={t('web_library_art_sub')} checked={look.libraryArt} ontoggle={(on) => setLook('libraryArt', on)} />
+    </Group>
+    <Group title={t('web_interface')}>
+      <Row label={t('web_tab_labels')} checked={look.tabLabels} ontoggle={(on) => setLook('tabLabels', on)} />
+      <Row label={t('web_reduce_motion')} sub={t('web_reduce_motion_sub')} checked={look.reduceMotion} ontoggle={(on) => setLook('reduceMotion', on)} />
+    </Group>
   {:else if page === 'home'}
     <Group title={t('group_home')}>
       <Row {...toggle(t('row_hero'), settings.rowHero)} />
       {#if settings.rowHero.value}<Row {...toggle(t('hero_hide_watched'), settings.heroHideWatched)} />{/if}
       <Row {...toggle(t('settings_merge_continue'), settings.mergeContinue)} />
+    </Group>
+    <Group title={t('web_home_rows')} hint={t('web_home_rows_hint')}>
+      <HomeRows views={() => views?.value ?? []} />
     </Group>
     <Group title={t('tab_search')}>
       <Row {...toggle(t('search_episodes'), settings.searchEpisodes)} />
@@ -151,6 +186,13 @@
 </LargeTitlePage>
 
 <style>
+  .preview {
+    margin: 0;
+    padding: 12px 16px 14px;
+    font-size: var(--fs-body);
+    line-height: 1.35;
+    color: var(--label-2);
+  }
   .account {
     display: flex;
     align-items: center;

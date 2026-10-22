@@ -161,7 +161,7 @@
     filter: drop-shadow(0 2px 12px rgb(0 0 0 / 0.45));
   }
   .name {
-    font-size: 40px;
+    font-size: calc(40px * var(--text-scale));
     font-weight: 800;
     letter-spacing: -0.035em;
     line-height: 1.05;

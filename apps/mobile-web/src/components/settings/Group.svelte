@@ -18,7 +18,7 @@
   }
   .title {
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale));
     font-weight: 650;
     letter-spacing: 0.06em;
     color: var(--label-3);

@@ -137,7 +137,7 @@
     outline: none;
     background: none;
     color: var(--label);
-    font-size: 17px;
+    font-size: max(16px, var(--fs-body));
   }
   input::placeholder {
     color: var(--label-3);

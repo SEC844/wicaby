@@ -1,12 +1,12 @@
 <script lang="ts">
   // Short messages (lib/toast.svelte.ts, shared with the TV): one at a time, above the tab bar.
-  import { fly } from 'svelte/transition';
+  import { lift } from '../lib/motion';
   import { toast } from '$tv/toast.svelte';
 </script>
 
 {#key toast.key}
   {#if toast.text}
-    <div class="toast material subhead" role="status" transition:fly={{ y: 24, duration: 240 }}>{toast.text}</div>
+    <div class="toast material subhead" role="status" in:lift out:lift={{ duration: 200 }}>{toast.text}</div>
   {/if}
 {/key}
 

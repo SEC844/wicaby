@@ -7,12 +7,12 @@ import type { BaseItem } from '$shared/models';
 import type { SeriesDates } from '$desktop/continue';
 import type { Api } from '$tv/api';
 import { continueSubtitle, loadContinueAll } from '$tv/continue-watching';
-import { BECAUSE, becauseSeeds, defaults, latestViewId, NEXT_UP, RESUME, UPCOMING, unseen } from '$tv/home-rows';
+import { BECAUSE, becauseSeeds, defaults, latestViewId, move, NEXT_UP, RESUME, UPCOMING, unseen, type HomePref } from '$tv/home-rows';
 import { t } from '$tv/i18n.svelte';
 import { useLoad } from '$tv/load.svelte';
 import { extraViews as loadExtraViews, libraryRef, merged as mergedAll } from '$tv/servers';
 import { apiOf, isMulti, prefs, serverName } from '$tv/session.svelte';
-import { arrange, homeRows, settings } from '$tv/settings.svelte';
+import { arrange, homeRows, setHomeRows, settings } from '$tv/settings.svelte';
 
 export interface HomeRow {
   key: string;
@@ -32,21 +32,84 @@ export interface HomeRow {
 const latestOf = (list: BaseItem[]) => list.filter((v) => !['playlists', 'livetv', 'folders', 'music', 'photos', 'books'].includes(v.CollectionType ?? ''));
 const airDate = (i: BaseItem) => Date.parse(i.PremiereDate ?? '') || 0;
 
-export function useHome(api: Api, views: () => BaseItem[]) {
+// The rows Home can show for the signed-in user, in their order, with what the user changed (TP-07): Home's rows
+// and Settings > Home's editor read the same layout.
+function useLayout(views: () => BaseItem[]) {
   const serverId = prefs.session!.server.id;
   const user = `${serverId}/${prefs.session!.userId}`;
   const merged = $derived(settings.mergeContinue.value);
   const multi = $derived(isMulti());
-
   const extra = useLoad(
     () => (multi ? `extra-views-${(prefs.extras ?? []).map((e) => e.server.id).join(',')}` : 'extra-views-off'),
     () => (multi ? loadExtraViews() : Promise.resolve([])),
   );
   const latestViews = $derived([...latestOf(views()), ...latestOf(extra.value ?? [])]);
   const viewRef = (v: BaseItem) => libraryRef(v, serverId);
-  const homeDefaults = $derived(defaults(latestViews.map(viewRef), merged));
-  const pref = $derived(homeRows(user, homeDefaults));
-  const shown = $derived(arrange(homeDefaults, pref).filter((id) => !pref.hidden.includes(id)));
+  const ids = $derived(defaults(latestViews.map(viewRef), merged));
+  const pref = $derived(homeRows(user, ids));
+  const order = $derived(arrange(ids, pref));
+  // A library's name, with its server's when it is another server's ("Films · <server name>").
+  const viewName = (view: BaseItem | undefined) => (view && view.ServerId && view.ServerId !== serverId ? `${view.Name} · ${serverName(view.ServerId) ?? ''}` : view?.Name);
+  return {
+    serverId,
+    user,
+    get merged() {
+      return merged;
+    },
+    get latestViews() {
+      return latestViews;
+    },
+    get pref() {
+      return pref;
+    },
+    get order() {
+      return order;
+    },
+    viewRef,
+    viewName,
+  };
+}
+
+export interface LayoutRow {
+  id: string;
+  label: string;
+  hidden: boolean;
+  // A Recently added row: shown as 16:9 thumbnails instead of posters.
+  wide: boolean | null;
+}
+
+// Settings > Home: show or hide each row, move it, a library's row in thumbnails, back to the defaults.
+export function useHomeLayout(views: () => BaseItem[]) {
+  const l = useLayout(views);
+  const label = (id: string): string => {
+    if (id === RESUME) return t(l.merged ? 'continue_watching_merged' : 'continue_watching');
+    if (id === NEXT_UP) return t('next_up');
+    if (id === UPCOMING) return t('row_upcoming');
+    if (id === BECAUSE) return t('web_row_because');
+    const viewId = latestViewId(id);
+    return t('latest_in', l.viewName(l.latestViews.find((v) => l.viewRef(v) === viewId)) ?? '');
+  };
+  const save = (patch: Partial<HomePref>) => setHomeRows(l.user, { order: l.order, hidden: l.pref.hidden, thumb: l.pref.thumb, ...patch });
+  const flip = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  return {
+    get rows(): LayoutRow[] {
+      return l.order.map((id) => ({ id, label: label(id), hidden: l.pref.hidden.includes(id), wide: latestViewId(id) !== null ? l.pref.thumb.includes(id) : null }));
+    },
+    toggle: (id: string) => save({ hidden: flip(l.pref.hidden, id) }),
+    wide: (id: string) => save({ thumb: flip(l.pref.thumb, id) }),
+    move: (id: string, by: number) => save({ order: move(l.order, l.order.indexOf(id), l.order.indexOf(id) + by) }),
+    reset: () => setHomeRows(l.user, { order: [], hidden: [], thumb: [] }),
+  };
+}
+
+export function useHome(api: Api, views: () => BaseItem[]) {
+  const l = useLayout(views);
+  const serverId = l.serverId;
+  const merged = $derived(l.merged);
+  const latestViews = $derived(l.latestViews);
+  const viewRef = l.viewRef;
+  const pref = $derived(l.pref);
+  const shown = $derived(l.order.filter((id) => !pref.hidden.includes(id)));
 
   // #8: unwatched titles only when asked, all of them when everything is watched (Main.kt heroItems).
   const pickHero = async (unwatched: boolean) =>
@@ -124,8 +187,7 @@ export function useHome(api: Api, views: () => BaseItem[]) {
         const viewId = latestViewId(id);
         const view = latestViews.find((v) => viewRef(v) === viewId);
         const items = viewId ? latests.value?.[viewId] : undefined;
-        // Another server's library names its server: "Films · <server name>".
-        const name = view && view.ServerId && view.ServerId !== serverId ? `${view.Name} · ${serverName(view.ServerId) ?? ''}` : view?.Name;
+        const name = l.viewName(view);
         if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items, wide: pref.thumb.includes(id), playable: false });
       }
     }

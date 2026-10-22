@@ -1,6 +1,9 @@
-// The sheets' motion (iOS's sheet curve, app.css --ease): a sheet comes up from below by its own height, so it
-// starts out of sight however tall it is, and leaves faster than it came. Both run as CSS animations (compositor).
-// A sheet can also be pulled down to close (dragDismiss).
+// The app's motion, on iOS's curve (app.css --ease), as CSS animations (compositor: transform and opacity only):
+// - sheet: a sheet comes up from below by its own height, so it starts out of sight however tall it is, and leaves
+//   faster than it came; it can also be pulled down to close (dragDismiss);
+// - pop: a menu or a dialog grows from its anchor (its transform-origin) as it fades in;
+// - lift: a toast rises a little as it fades in.
+// Settings > Appearance > Reduce motion (or the system's) turns them into a plain fade.
 import type { TransitionConfig } from 'svelte/transition';
 
 // A CSS cubic-bezier as an easing function (Newton's method on x, then y).
@@ -25,8 +28,9 @@ function bezier(x1: number, y1: number, x2: number, y2: number): (t: number) => 
   };
 }
 
-const ease = bezier(0.32, 0.72, 0, 1);
-const reduced = () => document.documentElement.hasAttribute('data-reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+export const ease = bezier(0.32, 0.72, 0, 1);
+export const reducedMotion = () => document.documentElement.hasAttribute('data-reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduced = reducedMotion;
 
 // in:sheet / out:sheet={{ duration: 240 }}. A pull in progress (--drag) carries on from where the finger left it.
 export function sheet(node: HTMLElement, { duration = 420 }: { duration?: number } = {}): TransitionConfig {
@@ -36,6 +40,16 @@ export function sheet(node: HTMLElement, { duration = 420 }: { duration?: number
     easing: ease,
     css: (_t, u) => `transform: translate3d(0, calc(${(u * h).toFixed(1)}px + var(--drag, 0px)), 0)`,
   };
+}
+
+export function pop(node: HTMLElement, { start = 0.86, duration = 280 }: { start?: number; duration?: number } = {}): TransitionConfig {
+  if (reduced()) return { duration: 160, css: (t) => `opacity: ${t}` };
+  return { duration, easing: ease, css: (t, u) => `opacity: ${Math.min(1, t * 1.6)}; transform: scale(${(start + (1 - start) * t).toFixed(4)})` };
+}
+
+export function lift(node: HTMLElement, { y = 18, duration = 320 }: { y?: number; duration?: number } = {}): TransitionConfig {
+  if (reduced()) return { duration: 160, css: (t) => `opacity: ${t}` };
+  return { duration, easing: ease, css: (t, u) => `opacity: ${t}; transform: translate3d(0, ${(u * y).toFixed(1)}px, 0)` };
 }
 
 // Pull the sheet down by its grip (the node, e.g. its handle and title) to close it: past a quarter of its height

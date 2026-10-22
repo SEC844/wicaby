@@ -1,6 +1,8 @@
 <script lang="ts">
   // Bibliothèques: Emby's cross-library lists first (favourites, collections, playlists, history) as tiles, then
-  // every library as a wide card with its own artwork (or an icon on its tint), as the Apple TV app lists its sections. Video libraries open their grid; music, photos, books and Live TV get their pages with M3.
+  // every library as a wide card: its own artwork (the server's jacket), or, as chosen in Settings > Appearance (and
+  // without artwork), its icon on the tint of its kind. Video libraries open their grid; music, photos, books and
+  // Live TV get their pages with M3.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
@@ -17,12 +19,14 @@
   import Radio from '@lucide/svelte/icons/radio';
   import Tv from '@lucide/svelte/icons/tv';
   import LargeTitlePage from '../components/LargeTitlePage.svelte';
+  import { look } from '../lib/look.svelte';
   import { nav } from '../lib/nav.svelte';
 
   const a = api()!;
   const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
   const dpr = Math.min(3, window.devicePixelRatio || 2);
   const ICONS: Record<string, typeof Film> = { movies: Film, tvshows: Tv, music: Music, photos: ImageIcon, homevideos: ImageIcon, books: BookOpen, livetv: Radio };
+  const TINTS: Record<string, string> = { movies: 'var(--indigo)', tvshows: 'var(--red)', music: 'var(--orange)', photos: 'var(--teal)', homevideos: 'var(--teal)', books: 'var(--green)', livetv: 'var(--purple)' };
 
   const QUICK = [
     { icon: Heart, tint: 'var(--pink)', label: 'web_favorites', route: () => nav.push({ name: 'favorites' }) },
@@ -54,14 +58,14 @@
   <div class="list">
     {#each views.value ?? [] as v (v.Id)}
       {@const Icon = ICONS[v.CollectionType ?? ''] ?? FolderIcon}
-      {@const art = v.ImageTags?.Primary ? a.image(v.Id, 'Primary', v.ImageTags.Primary, { maxWidth: Math.round(400 * dpr) }) : undefined}
-      <button class="lib pressable" onclick={() => open(v)}>
+      {@const art = look.libraryArt && v.ImageTags?.Primary ? a.image(v.Id, 'Primary', v.ImageTags.Primary, { maxWidth: Math.round(400 * dpr) }) : undefined}
+      <button class="lib pressable" class:plain={!art} style:--tint={TINTS[v.CollectionType ?? ''] ?? 'var(--graphite, #6b6b75)'} onclick={() => open(v)}>
         {#if art}
           <img src={art} alt="" loading="lazy" decoding="async" />
+          <span class="shade"></span>
         {:else}
-          <span class="icon"><Icon size={34} strokeWidth={1.5} aria-hidden="true" /></span>
+          <span class="icon"><Icon size={92} strokeWidth={1.2} aria-hidden="true" /></span>
         {/if}
-        <span class="shade"></span>
         <span class="title-3 name">{v.Name}</span>
       </button>
     {/each}
@@ -117,11 +121,17 @@
     height: 100%;
     object-fit: cover;
   }
+  /* Plain: the tint of the library's kind, its icon large and faint on the right. */
+  .lib.plain {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 78%, #000), color-mix(in srgb, var(--tint) 40%, #000));
+    box-shadow: none;
+  }
   .icon {
     position: absolute;
-    top: 16px;
-    left: 18px;
-    color: var(--label-2);
+    right: -6px;
+    bottom: -14px;
+    color: rgb(255 255 255 / 0.22);
+    transform: rotate(-8deg);
   }
   .shade {
     position: absolute;

@@ -10,16 +10,18 @@
   --mono: 'Geist Mono Variable', ui-monospace, monospace;
   --blur: blur(30px) saturate(180%);
 
-  --fs-large-title: 34px;
-  --fs-title-1: 28px;
-  --fs-title-2: 22px;
-  --fs-title-3: 20px;
-  --fs-headline: 17px;
-  --fs-body: 17px;
-  --fs-callout: 16px;
-  --fs-subhead: 15px;
-  --fs-footnote: 13px;
-  --fs-caption: 12px;
+  /* Type scales with --text-scale (lib/look.svelte.ts: iOS's text size, or the one picked in Settings). */
+  --text-scale: 1;
+  --fs-large-title: calc(34px * var(--text-scale));
+  --fs-title-1: calc(28px * var(--text-scale));
+  --fs-title-2: calc(22px * var(--text-scale));
+  --fs-title-3: calc(20px * var(--text-scale));
+  --fs-headline: calc(17px * var(--text-scale));
+  --fs-body: calc(17px * var(--text-scale));
+  --fs-callout: calc(16px * var(--text-scale));
+  --fs-subhead: calc(15px * var(--text-scale));
+  --fs-footnote: calc(13px * var(--text-scale));
+  --fs-caption: calc(12px * var(--text-scale));
 
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -44,9 +46,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* Where a tab's top row (large title, account) starts: clear of the status bar and of the blur iOS draws under
-     it as content scrolls (scroll edge effect), at least 47pt in even where the inset reads less. */
-  --top-row: calc(max(var(--safe-top), 47px) + 22px);
+  /* The pages' top row (title, actions, account), right under the status bar as Instagram's and Netflix's. */
+  --top-bar: calc(var(--safe-top) + 52px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
@@ -250,12 +251,13 @@ p {
 }
 
 /* Press feedback on any tappable surface: an instant dim, a scale on cards. */
+/* Pressed: in at once, out with a slight spring (as iOS's buttons and Netflix's cards settle). */
 .pressable {
-  transition: transform var(--t-fast) var(--ease-out);
+  transition: transform calc(420ms * var(--tempo)) cubic-bezier(0.3, 1.35, 0.5, 1);
 }
 .pressable:active {
-  transform: scale(0.97);
-  transition-duration: calc(var(--t-fast) / 2);
+  transform: scale(0.96);
+  transition: transform calc(90ms * var(--tempo)) var(--ease-out);
 }
 /* A long press under way (lib/press): the card sinks until its menu opens. */
 .pressable[data-holding] {

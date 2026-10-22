@@ -4,8 +4,8 @@
   // chosen one checked in the accent); a question with one or two answers is a centred card with pill buttons.
   // A tap outside closes either.
   import Check from '@lucide/svelte/icons/check';
-  import { fade, scale } from 'svelte/transition';
-  import { sheet as rise } from '../lib/motion';
+  import { fade } from 'svelte/transition';
+  import { pop, sheet as rise } from '../lib/motion';
   import { closeAlert, type Alert } from '../lib/overlay.svelte';
   import { openUrl } from '../platform';
 
@@ -41,7 +41,7 @@
     </div>
   </div>
 {:else}
-  <div class="dialog" role="alertdialog" aria-modal="true" aria-label={alert.title} transition:scale={{ start: 0.94, duration: 200 }}>
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-label={alert.title} in:pop={{ start: 1.12 }} out:pop={{ start: 0.96, duration: 160 }}>
     <p class="title-3">{alert.title}</p>
     {#if alert.message}<p class="callout label-2 message">{alert.message}</p>{/if}
     <div class="buttons">

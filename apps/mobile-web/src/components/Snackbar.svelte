@@ -1,6 +1,6 @@
 <script lang="ts">
   // The message with an action (lib/snackbar.svelte.ts), above the tab bar like the toasts.
-  import { fly } from 'svelte/transition';
+  import { lift } from '../lib/motion';
   import { dismissSnack, snackbar } from '../lib/snackbar.svelte';
 
   function act(): void {
@@ -12,7 +12,7 @@
 
 {#key snackbar.key}
   {#if snackbar.snack}
-    <div class="snack subhead" role="status" transition:fly={{ y: 24, duration: 240 }}>
+    <div class="snack subhead" role="status" in:lift out:lift={{ duration: 200 }}>
       <span class="text">{snackbar.snack.text}</span>
       <button class="headline action" onclick={act}>{snackbar.snack.action}</button>
     </div>

@@ -5,6 +5,7 @@
   // edge drags the top page back with the finger (a standalone web app gets no system back gesture), and lets go
   // to the side the finger was heading. Only transform and opacity move, on the compositor.
   import type { Snippet } from 'svelte';
+  import { ease, reducedMotion } from '../lib/motion';
   import { handleBack, isFullScreen, mounted, shell, stack, type Entry } from '../lib/nav.svelte';
   import PageScope from './PageScope.svelte';
 
@@ -31,11 +32,11 @@
 
   // The page enters: slid in from the right, or up for a full-screen page, on a push only.
   function enter(node: HTMLElement, e: Entry) {
-    if (shell.op !== 'push') return { duration: 0 };
+    if (shell.op !== 'push' || reducedMotion()) return { duration: 0 };
     const up = isFullScreen(e.route);
     return {
-      duration: up ? 420 : 380,
-      easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      duration: up ? 440 : 400,
+      easing: ease,
       css: (t: number) => (up ? `transform: translate3d(0, ${(1 - t) * 100}%, 0)` : `transform: translate3d(${(1 - t) * 100}%, 0, 0)`),
     };
   }
@@ -43,14 +44,14 @@
   // The page leaves on Back: the way it came. After a completed swipe it is already off screen.
   let swiped = false;
   function leave(node: HTMLElement, e: Entry) {
-    if (swiped || shell.op !== 'back') {
+    if (swiped || shell.op !== 'back' || reducedMotion()) {
       swiped = false;
       return { duration: 0 };
     }
     const down = isFullScreen(e.route);
     return {
-      duration: 340,
-      easing: (t: number) => t * t * (3 - 2 * t),
+      duration: 400,
+      easing: ease,
       css: (t: number) => (down ? `transform: translate3d(0, ${(1 - t) * 100}%, 0)` : `transform: translate3d(${(1 - t) * 100}%, 0, 0)`),
     };
   }
@@ -147,13 +148,16 @@
     overflow: hidden;
     background: #000;
   }
+  .layer {
+    --page-move: 400ms;
+  }
   .page {
     position: absolute;
     inset: 0;
     background: var(--bg);
     overflow: hidden;
     contain: strict;
-    transition: transform 380ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition: transform var(--page-move) var(--ease);
     --dim: 0;
   }
   /* The previous page drifts left and dims, then hides once the move ends (visibility flips after the delay). */
@@ -164,16 +168,16 @@
     background: #000;
     opacity: var(--dim);
     pointer-events: none;
-    transition: opacity 380ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition: opacity var(--page-move) var(--ease);
   }
   .behind {
     transform: translate3d(-30%, 0, 0);
     visibility: hidden;
     --dim: 0.25;
-    transition: transform 380ms cubic-bezier(0.2, 0.9, 0.3, 1), visibility 0s linear 380ms;
+    transition: transform var(--page-move) var(--ease), visibility 0s linear var(--page-move);
   }
   .behind::after {
-    transition: opacity 380ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition: opacity var(--page-move) var(--ease);
   }
   .covered {
     visibility: hidden;
@@ -196,5 +200,9 @@
     .page::after {
       transition: none;
     }
+  }
+  :global(:root[data-reduce-motion]) .page,
+  :global(:root[data-reduce-motion]) .page::after {
+    transition: none;
   }
 </style>

@@ -707,13 +707,12 @@
     top: 0;
     left: 0;
     right: 0;
-    height: calc(var(--safe-top) + 56px);
+    height: var(--top-bar);
     padding: var(--safe-top) 72px 0;
     display: grid;
     place-items: center;
-    background: var(--material);
-    -webkit-backdrop-filter: var(--blur);
-    backdrop-filter: var(--blur);
+    /* The canvas, not a blur over the artwork (the top row of every page). */
+    background: var(--bg);
     border-bottom: 0.5px solid var(--separator);
     opacity: 0;
     pointer-events: none;

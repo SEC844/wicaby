@@ -7,7 +7,8 @@
   import ServerIcon from '@lucide/svelte/icons/server';
   import Settings from '@lucide/svelte/icons/settings';
   import Users from '@lucide/svelte/icons/users';
-  import { scale, fade } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
+  import { pop } from '../lib/motion';
   import { leave } from '../lib/account';
   import { nav } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
@@ -38,11 +39,11 @@
 
 {#if session}
   <button class="me pressable" class:floating class:on-art={onMedia} aria-label={t('settings_account')} aria-expanded={open} onclick={() => (open = !open)}>
-    <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={34} />
+    <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={32} />
   </button>
   {#if open}
-    <div class="scrim" role="presentation" onclick={() => (open = false)} transition:fade={{ duration: 120 }}></div>
-    <div class="menu" role="menu" transition:scale={{ start: 0.9, duration: 180, opacity: 0 }}>
+    <div class="scrim" role="presentation" onclick={() => (open = false)} transition:fade={{ duration: 140 }}></div>
+    <div class="menu" role="menu" in:pop={{ start: 0.6, duration: 340 }} out:pop={{ start: 0.85, duration: 180 }}>
       <div class="who">
         <Avatar user={{ Id: session.userId, Name: session.userName }} api={api()!} size={44} />
         <span class="text">
@@ -62,8 +63,8 @@
 <style>
   /* The user's picture in a ring: the canvas's fill, or the dark fill over artwork. */
   .me {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     padding: 3px;
     border-radius: 50%;
     display: grid;
@@ -74,10 +75,10 @@
   .me.on-art {
     background: var(--on-art);
   }
-  /* Over Home's hero: on the tabs' top row (app.css --top-row), clear of the status bar, with the page's side margin. */
+  /* Over Home's hero: centred in the top row (app.css --top-bar) as on the other tabs, with the page's side margin. */
   .floating {
     position: absolute;
-    top: var(--top-row);
+    top: calc(var(--safe-top) + 7px);
     right: max(var(--gutter), var(--safe-right));
     z-index: 5;
   }
@@ -89,7 +90,7 @@
   /* A menu as the desktop's and Android's: the raised surface, rounded, icon then label. */
   .menu {
     position: absolute;
-    top: calc(var(--top-row) + 52px);
+    top: calc(var(--top-bar) + 4px);
     right: max(var(--gutter), var(--safe-right));
     width: 260px;
     padding: 6px;

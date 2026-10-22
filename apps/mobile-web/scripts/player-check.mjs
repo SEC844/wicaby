@@ -101,7 +101,7 @@ try {
         await page.locator('.sheet button.row', { hasText: 'Télécharger' }).click();
         await page.waitForFunction(() => JSON.parse(localStorage.getItem('wicaby.downloads') ?? '[]')[0]?.status === 'done', null, { timeout: 60_000 });
         mock.kill();
-        await page.locator('nav button').nth(3).click();
+        await page.locator('nav button').nth(2).click();
         await page.locator('[data-screen-top] button.main').first().click();
       } else {
         // A film from its page, from the start (a resume point could lie past the end of the short test file).

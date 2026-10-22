@@ -1,30 +1,30 @@
 <script lang="ts">
   // The tab bar, as the Android mobile app's (MainShell's NavigationBar): the full width at the bottom, on the
-  // elevated surface, five tabs with their labels; the current one has a soft pill behind its icon (selection
-  // shows as a fill, never as the accent). A tap on the current tab returns it to its root, or to its top.
+  // elevated surface, four tabs with their labels; the current one has a soft pill behind its icon (selection
+  // shows as a fill, never as the accent). Settings has no tab: it opens from the account menu (ProfileButton). A tap
+  // on the current tab returns it to its root, or to its top.
   import Download from '@lucide/svelte/icons/download';
   import House from '@lucide/svelte/icons/house';
   import Library from '@lucide/svelte/icons/library';
   import Search from '@lucide/svelte/icons/search';
-  import Settings from '@lucide/svelte/icons/settings';
   import { t } from '$tv/i18n.svelte';
   import { nav, shell, type TabId } from '../lib/nav.svelte';
+  import { look } from '../lib/look.svelte';
 
   const TABS: { id: TabId; icon: typeof House; label: string }[] = [
     { id: 'home', icon: House, label: 'tab_home' },
     { id: 'libraries', icon: Library, label: 'nav_libraries' },
-    { id: 'search', icon: Search, label: 'tab_search' },
     { id: 'downloads', icon: Download, label: 'nav_downloads' },
-    { id: 'settings', icon: Settings, label: 'tab_settings' },
+    { id: 'search', icon: Search, label: 'tab_search' },
   ];
 </script>
 
-<nav class="bar" aria-label="Wicaby">
+<nav class="bar" class:bare={!look.tabLabels} aria-label="Wicaby">
   {#each TABS as tab (tab.id)}
     {@const on = shell.tab === tab.id}
     <button class="tab" class:on aria-current={on ? 'page' : undefined} onclick={() => nav.selectTab(tab.id)}>
       <span class="pill-bg"><tab.icon size={22} strokeWidth={on ? 2 : 1.6} aria-hidden="true" /></span>
-      <span class="name">{t(tab.label)}</span>
+      {#if look.tabLabels}<span class="name">{t(tab.label)}</span>{/if}
     </button>
   {/each}
 </nav>

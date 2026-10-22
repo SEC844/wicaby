@@ -1,7 +1,8 @@
 <script lang="ts">
   // Accueil, as the TV app's Home: the hero first, full bleed under the status bar, Continue watching in large
-  // right under it (components/ContinueShelf.svelte), then the user's other rows (lib/home.svelte.ts). Once the hero
-  // scrolls away, a bar of the floating chrome's material takes the top. Pulling down at the top stretches the hero's
+  // right under it (components/ContinueShelf.svelte), then the user's other rows (lib/home.svelte.ts). The top row
+  // (the account on the right) sits over the hero on a shade that keeps the status bar legible; once the hero scrolls
+  // away it turns into the canvas with the tab's name, as Netflix's. Pulling down at the top stretches the hero's
   // artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
@@ -28,7 +29,7 @@
     const y = scroller.scrollTop;
     // iOS reports the rubber band above the top as a negative offset.
     if (heroBox) heroBox.style.setProperty('--stretch', String(1 + Math.max(0, -y) / heroBox.offsetHeight));
-    solid = y > (heroBox ? heroBox.offsetHeight - 120 : 40);
+    solid = y > (heroBox ? heroBox.offsetHeight - 120 : 2);
   }
 
   let seen = shell.reselect;
@@ -45,7 +46,7 @@
     {#if home.hero.length}
       <div bind:this={heroBox}><Hero items={home.hero} api={a} /></div>
     {:else}
-      <h1 class="large-title plain">{t('tab_home')}</h1>
+      <div class="lead" aria-hidden="true"></div>
     {/if}
     {#each home.rows as row (row.key)}
       {#if row.continueRow}
@@ -57,9 +58,9 @@
     {#if home.loading}<div class="loading"><Spinner /></div>{/if}
   </div>
 
-  <div class="bar" class:solid>
-    <span class="headline title">{t('tab_home')}</span>
-  </div>
+  <header class="top" class:solid class:over={home.hero.length > 0}>
+    <h1 class="name">{t('tab_home')}</h1>
+  </header>
   <ProfileButton floating onMedia={!solid && home.hero.length > 0} />
 </div>
 
@@ -74,29 +75,65 @@
     overscroll-behavior-y: contain;
     padding-bottom: calc(var(--tabbar) + 12px);
   }
-  .plain {
-    padding: var(--top-row) var(--gutter) 0;
+  /* No hero: the content starts under the top row. */
+  .lead {
+    height: calc(var(--top-bar) + 4px);
   }
-  .bar {
+  /* The top row: over the hero, a shade only (no surface); past it, the canvas with a hairline. Opacity only. */
+  .top {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: calc(var(--safe-top) + 44px);
-    padding-top: var(--safe-top);
-    display: grid;
-    place-items: center;
-    background: var(--material);
-    -webkit-backdrop-filter: var(--blur);
-    backdrop-filter: var(--blur);
-    border-bottom: 0.5px solid var(--separator);
-    opacity: 0;
+    height: var(--top-bar);
+    padding: var(--safe-top) calc(max(var(--gutter), var(--safe-right)) + 48px) 0 max(var(--gutter), var(--safe-left));
+    display: flex;
+    align-items: center;
     pointer-events: none;
-    transition: opacity var(--t-fast) linear;
     z-index: 4;
   }
-  .bar.solid {
+  .top::before,
+  .top::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transition: opacity var(--t-med) var(--ease-out);
+  }
+  .top::before {
+    bottom: -40px;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0));
+    opacity: 0;
+  }
+  .top.over::before {
     opacity: 1;
+  }
+  .top::after {
+    background: var(--bg);
+    box-shadow: 0 0.5px 0 var(--separator);
+    opacity: 0;
+  }
+  .top.solid::before {
+    opacity: 0;
+  }
+  .top.solid::after {
+    opacity: 1;
+  }
+  .name {
+    margin: 0;
+    font-size: var(--fs-title-1);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+    transition:
+      opacity var(--t-med) var(--ease-out),
+      transform var(--t-med) var(--ease-out);
+  }
+  .top.solid .name,
+  .top:not(.over) .name {
+    opacity: 1;
+    transform: none;
   }
   .loading {
     display: grid;

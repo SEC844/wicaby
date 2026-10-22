@@ -5,6 +5,7 @@
   import type { BaseItem, ItemsResult } from '$shared/models';
   import type { Api } from '$tv/api';
   import { untrack } from 'svelte';
+  import { look, textScale } from '../lib/look.svelte';
   import Card from './Card.svelte';
 
   let {
@@ -29,9 +30,10 @@
   let viewTop = $state(0);
   let viewH = $state(800);
 
-  const cols = $derived(width >= 700 ? 6 : width >= 520 ? 4 : 3);
+  // Settings > Appearance: small posters fit one more column, large ones one fewer; the titles under them are optional.
+  const cols = $derived((width >= 700 ? 6 : width >= 520 ? 4 : 3) + [1, 0, -1][look.posterSize]);
   const cardW = $derived(Math.floor((width - GAP * (cols - 1)) / cols));
-  const pitch = $derived(Math.round(cardW * 1.5) + 6 + TITLE + GAP);
+  const pitch = $derived(Math.round(cardW * 1.5) + 6 + (look.posterTitles ? Math.ceil(TITLE * textScale()) : 0) + GAP);
   const rows = $derived(total > 0 ? Math.ceil(total / cols) : 0);
   const first = $derived(Math.max(0, Math.floor(viewTop / Math.max(1, pitch)) - BUFFER));
   const last = $derived(Math.min(rows, Math.ceil((viewTop + viewH) / Math.max(1, pitch)) + BUFFER));
@@ -127,7 +129,7 @@
   {#each shown as cell (cell.item ? `${cell.i}:${cell.item.Id}` : cell.i)}
     <div class="cell" style:transform="translate3d({cell.x}px, {cell.y}px, 0)" style:width="{cardW}px">
       {#if cell.item}
-        <Card item={cell.item} {api} titled width={cardW} onclick={() => onopen(cell.item!)} />
+        <Card item={cell.item} {api} titled={look.posterTitles} width={cardW} onclick={() => onopen(cell.item!)} />
       {:else}
         <div class="ghost" style:height="{Math.round(cardW * 1.5)}px"></div>
       {/if}

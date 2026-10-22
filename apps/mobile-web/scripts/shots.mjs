@@ -95,7 +95,7 @@ const SCENES = {
     await page.waitForTimeout(1500);
   },
   async search(page) {
-    await page.locator('nav button[aria-label]').last().click();
+    await page.locator('nav button').last().click();
     await page.waitForTimeout(500);
   },
   // A long press on the first Continue card: the title's menu.
@@ -177,11 +177,13 @@ const SCENES = {
     await SCENES.itemMenu(page);
     await page.locator('.sheet button.row', { hasText: 'Télécharger' }).click();
     await page.waitForTimeout(4000);
-    await page.locator('nav button').nth(3).click();
+    await page.locator('nav button').nth(2).click();
     await page.waitForTimeout(1200);
   },
+  // Settings: from the account menu (the tab bar has no Settings tab).
   async settings(page) {
-    await page.locator('nav button').last().click();
+    await page.locator('[data-screen-top] button.me, button.me.floating').first().click();
+    await page.locator('.menu .item').first().click();
     await page.waitForTimeout(500);
   },
 };
