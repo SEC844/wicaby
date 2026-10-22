@@ -91,6 +91,11 @@ export class Playback {
   // The WebVTT file could not be fetched (a server without CORS on it): text subtitles are burnt in instead.
   private burnText = false;
   private seq = 0;
+  // Each load (the first, a reload for a track, a quality switch, the B01 fallback): a newer one makes the older
+  // stop at its next step, so two quick track changes do not run two loads at once. failedLoad: the load whose
+  // failure was already handled (the player may both reject its open and report an error).
+  private loadSeq = 0;
+  private failedLoad = -1;
   // A progressive conversion (an engine without HLS: a desktop browser) starts at the asked position: its time 0 is
   // offsetMs, it has no duration of its own, and a seek asks the server again.
   private progressive = false;
@@ -221,6 +226,8 @@ export class Playback {
     const it = this.item;
     if (!it) return;
     const seq = this.seq;
+    const ls = ++this.loadSeq;
+    const current = () => seq === this.seq && ls === this.loadSeq;
     const mbps = onWifi() ? settings.mbpsWifi.value : settings.mbpsEthernet.value;
     const maxBitrate = this.qualityCap ?? (mbps > 0 ? mbps * 1_000_000 : 200_000_000);
     const ticks = Math.round(startMs * TICKS_PER_MS);
@@ -253,7 +260,7 @@ export class Playback {
       { UserId: this.api.userId, StartTimeTicks: ticks, IsPlayback: true, AutoOpenLiveStream: true, MaxStreamingBitrate: maxBitrate, AudioStreamIndex: audio, SubtitleStreamIndex: subtitle, MediaSourceId: this.sourceId },
       body,
     );
-    if (seq !== this.seq) return;
+    if (!current()) return;
     if (info.ErrorCode) throw new Error(t('playback_error_code', info.ErrorCode));
     const ps = info.MediaSources?.find((s) => s.Id === this.sourceId) ?? info.MediaSources?.[0];
     if (!ps) throw new Error(t('no_playable_source'));
@@ -284,8 +291,16 @@ export class Playback {
     this.buffering = true;
     this.progressive = progressive;
     this.offsetMs = progressive ? startMs : 0;
-    await this.player.open(url, from);
-    if (seq !== this.seq) return;
+    // The position asked, already: a fallback after a failed open starts from it, not from 0.
+    this.positionMs = startMs;
+    try {
+      await this.player.open(url, from);
+    } catch (e) {
+      // A refused open goes the way of a playback error (B01): on Tizen, a failed prepare may only reject.
+      if (current()) this.failed(e instanceof Error ? e.message : '');
+      return;
+    }
+    if (!current()) return;
     if (this.rate !== 1) this.player.setRate(this.rate);
     const runtime = (it.RunTimeTicks ?? 0) / TICKS_PER_MS;
     this.durationMs = progressive ? runtime : this.player.durationMs || runtime;
@@ -311,20 +326,24 @@ export class Playback {
     this.cues = [];
     const url = s ? this.subtitleUrl(s) : null;
     const want = this.subtitleIndex;
+    // A download that lands after a reload or on the next episode (same index, another file) is dropped.
+    const ls = this.loadSeq;
+    const still = () => this.subtitleIndex === want && ls === this.loadSeq && !this.stopped;
     if (!url) return;
     try {
       const cues = await loadCues(url);
-      if (this.subtitleIndex === want) this.cues = cues;
+      if (still()) this.cues = cues;
     } catch {
       // Refused (no CORS on the file) or unreachable: once per session, the server burns the text in.
-      if (this.subtitleIndex !== want || this.burnText || this.stopped) return;
+      if (!still() || this.burnText) return;
       this.burnText = true;
       this.reload();
     }
   }
 
   private failed(message: string): void {
-    if (this.stopped) return;
+    if (this.stopped || this.failedLoad === this.loadSeq) return;
+    this.failedLoad = this.loadSeq;
     // B01: the TV could not decode the direct play: once per item, the server's conversion from the same position.
     if (this.playMethod === 'DirectPlay' && !this.fellBack && this.item) {
       this.fellBack = true;
@@ -465,6 +484,8 @@ export class Playback {
 
   retry(): void {
     this.error = null;
+    // The failed session ends on the server first (a reload, not a finished watch).
+    this.endSession(true);
     void this.open(this.itemId, false);
   }
 

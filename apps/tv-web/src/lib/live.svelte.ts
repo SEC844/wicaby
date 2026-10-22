@@ -73,6 +73,7 @@ export class LiveSession {
   private stream: Stream | null = null;
   private rung: Rung = 0;
   private seq = 0;
+  private failedSeq = -1;
   private stopped = false;
   private timers: number[] = [];
   private offs: (() => void)[] = [];
@@ -221,7 +222,13 @@ export class LiveSession {
       s.playMethod = play.method;
       this.stream = s;
       opened = null;
-      await this.player.open(url, 0);
+      try {
+        await this.player.open(url, 0);
+      } catch (e) {
+        // A refused open climbs the ladder as a playback error does: on Tizen, a failed prepare may only reject.
+        if (seq === this.seq) this.failed(e instanceof Error ? e.message : '');
+        return;
+      }
       if (seq !== this.seq) return;
       this.player.play();
       s.adopted = true;
@@ -249,9 +256,12 @@ export class LiveSession {
 
   // The TV could not play it: the next rung of the same channel, else the error.
   private failed(message: string): void {
-    if (this.stopped || !this.stream) return;
+    // Once per tune: the player may both reject its open and report an error.
+    if (this.stopped || !this.stream || this.failedSeq === this.seq) return;
+    this.failedSeq = this.seq;
     if (this.rung < 2) return void this.tune(this.stream.channelId, (this.rung + 1) as Rung);
     this.playing = false;
+    this.tuning = false;
     this.error = message || t('playback_error');
   }
 
