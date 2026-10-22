@@ -16,6 +16,10 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 20_000;
 
+// Told of every 401 with a token: the signed-in shell (Main) sends the user back to sign-in when the token is its own
+// (revoked from the server's dashboard, the password changed).
+export const unauthorized: { handler: ((api: Api) => void) | null } = { handler: null };
+
 function quote(value: string): string {
   return `"${encodeURIComponent(value)}"`;
 }
@@ -94,6 +98,7 @@ export class Api {
       addressFailed(this.serverId, this.address, this.isEmby);
       throw e instanceof ApiError ? e : new ApiError(e instanceof Error ? e.message : String(e), 0);
     }
+    if (res.status === 401 && this.token) unauthorized.handler?.(this);
     if (!res.ok) throw new ApiError((await res.text().catch(() => '')).slice(0, 300) || `HTTP ${res.status}`, res.status);
     if (res.status === 204) return undefined as T;
     const type = res.headers.get('content-type') ?? '';

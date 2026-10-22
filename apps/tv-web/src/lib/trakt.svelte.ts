@@ -74,9 +74,13 @@ const withTokens = (a: Account, t: Tokens): Account => ({
 // --- Authorization (device code) ---
 
 let poll = 0;
+// Each sign-in, and each cancel: a poll answered after a newer one began (or after a cancel) is dropped.
+let attempt = 0;
 
+// The account signed in so far stays until the new one is authorized: a sign-in left halfway keeps it.
 export async function connect(clientId: string, secret: string): Promise<void> {
   cancel();
+  const mine = attempt;
   trakt.error = null;
   if (!CLIENT_RE.test(clientId.trim()) || !CLIENT_RE.test(secret.trim())) return void (trakt.error = 'client');
   const id = clientId.trim();
@@ -85,22 +89,24 @@ export async function connect(clientId: string, secret: string): Promise<void> {
   try {
     code = await ok('/oauth/device/code', id, { client_id: id });
   } catch {
-    return void (trakt.error = 'client');
+    if (mine === attempt) trakt.error = 'client';
+    return;
   }
-  store({ clientId: id, secret: sec, user: '', expiresAt: 0 });
+  if (mine !== attempt) return;
   const expiresAt = Date.now() + code.expires_in * 1000;
   trakt.pending = { userCode: code.user_code, url: code.verification_url, expiresAt };
   let interval = Math.max(1, code.interval) * 1000;
   const tick = async (): Promise<void> => {
-    if (!trakt.pending) return;
+    if (mine !== attempt || !trakt.pending) return;
     if (Date.now() > expiresAt) return fail('expired');
     let r: Response;
     try {
       r = await call('/oauth/device/token', id, { code: code.device_code, client_id: id, client_secret: sec });
     } catch {
-      poll = window.setTimeout(tick, interval);
+      if (mine === attempt) poll = window.setTimeout(tick, interval);
       return;
     }
+    if (mine !== attempt) return;
     if (r.status === 200) {
       const tokens = (await r.json()) as Tokens;
       let a = withTokens({ clientId: id, secret: sec, user: '', expiresAt: 0 }, tokens);
@@ -110,6 +116,7 @@ export async function connect(clientId: string, secret: string): Promise<void> {
       } catch {
         // The name is only shown: authorized all the same.
       }
+      if (mine !== attempt) return;
       trakt.pending = null;
       store(a);
       return;
@@ -129,6 +136,7 @@ function fail(e: TraktError): void {
 }
 
 export function cancel(): void {
+  attempt++;
   clearTimeout(poll);
   trakt.pending = null;
 }

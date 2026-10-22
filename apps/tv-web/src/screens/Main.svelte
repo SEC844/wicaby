@@ -3,6 +3,7 @@
   // then Search and Settings pinned as icons. Tabs visited stay mounted (hidden) so coming back keeps their scroll
   // and focus; Back from the content goes up to the bar, from the bar the app shell asks to quit.
   import type { BaseItem } from '$shared/models';
+  import { unauthorized } from '../lib/api';
   import { getContext, onMount } from 'svelte';
   import ProfileMenu from '../components/ProfileMenu.svelte';
   import TopBar from '../components/TopBar.svelte';
@@ -102,7 +103,15 @@
     const refresh = runHomeRefresh(client);
     const retries = runScrobbleRetries();
     const remote = runRemoteControl();
+    // The account's token refused: back to sign-in (its password asked again), which also stops the socket's
+    // reconnects; the profile stays.
+    unauthorized.handler = (a) => {
+      if (a.token !== session.token || a.serverId !== session.server.id) return;
+      unauthorized.handler = null;
+      leave(false);
+    };
     return () => {
+      unauthorized.handler = null;
       document.removeEventListener('tvfocus', track);
       stop();
       refresh();
