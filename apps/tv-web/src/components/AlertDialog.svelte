@@ -1,6 +1,5 @@
 <script lang="ts">
   // Android TV TvAlert: a centred card over a dimmed screen, actions stacked full width.
-  import { onMount } from 'svelte';
   import { focusable, setFocus } from '../lib/focus';
   import { closeAlert, type Alert } from '../lib/overlay.svelte';
   import Icon from './Icon.svelte';
@@ -9,11 +8,14 @@
   let { alert }: { alert: Alert } = $props();
   let buttons: HTMLButtonElement[] = $state([]);
 
-  onMount(() => {
-    requestAnimationFrame(() => {
-      const b = buttons[alert.focusIndex ?? alert.selected ?? 0] ?? buttons[0];
+  // Each alert shown gets its default focus, also one opened by another one's action (the same dialog, new content).
+  $effect(() => {
+    const a = alert;
+    const frame = requestAnimationFrame(() => {
+      const b = buttons[a.focusIndex ?? a.selected ?? 0] ?? buttons[0];
       if (b) setFocus(b);
     });
+    return () => cancelAnimationFrame(frame);
   });
 </script>
 

@@ -21,17 +21,23 @@ export interface Alert {
 
 export const overlay = $state<{ alert: Alert | null }>({ alert: null });
 let returnTo: HTMLElement | null = null;
+let restoring = 0;
 
 export function showAlert(alert: Alert): void {
-  returnTo = focused();
+  // Opened by another dialog's action (a confirmation): the focus later goes back where the first one came from.
+  if (restoring) {
+    cancelAnimationFrame(restoring);
+    restoring = 0;
+  } else if (!overlay.alert) returnTo = focused();
   overlay.alert = alert;
 }
 
 export function closeAlert(): void {
   overlay.alert = null;
-  const el = returnTo;
-  returnTo = null;
-  requestAnimationFrame(() => {
+  restoring = requestAnimationFrame(() => {
+    restoring = 0;
+    const el = returnTo;
+    returnTo = null;
     if (el && el.isConnected) setFocus(el);
   });
 }
