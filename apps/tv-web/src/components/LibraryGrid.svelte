@@ -83,6 +83,8 @@
   let items: (BaseItem | null)[] = [];
   let rev = $state(0);
   let total = $state(-1);
+  // The server's own count, which can run ahead of what it lists: total is cut where a short page ends.
+  let claimed = -1;
   let failed = $state(false);
   let letters = $state<number[] | null>(null);
   const inFlight = new Set<number>();
@@ -99,14 +101,21 @@
     inFlight.add(n);
     try {
       const r = await page(n * PAGE);
-      if (r.TotalRecordCount !== total || items.length !== r.TotalRecordCount) {
-        items = new Array(r.TotalRecordCount).fill(null);
-        total = r.TotalRecordCount;
+      if (r.TotalRecordCount !== claimed) {
+        claimed = r.TotalRecordCount;
+        items = new Array(claimed).fill(null);
+        total = claimed;
         letters = null;
       }
       r.Items.forEach((it, k) => {
         if (n * PAGE + k < items.length) items[n * PAGE + k] = it;
       });
+      // A short or empty page before the count's end: the list ends there (else the page is asked for forever).
+      const end = n * PAGE + r.Items.length;
+      if (r.Items.length < PAGE && end < total) {
+        items = items.slice(0, end);
+        total = end;
+      }
       failed = false;
       rev++;
     } catch {
@@ -236,6 +245,11 @@
   $effect(() => {
     void rev;
     if (target < 0) return;
+    // Past the end the server really lists: its last title.
+    if (total >= 0 && target >= total) {
+      target = total - 1;
+      return;
+    }
     const page_ = Math.floor(target / PAGE);
     if (!loaded(page_)) {
       void load(page_);

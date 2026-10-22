@@ -43,6 +43,16 @@
   let rowFirst = $state(0);
   let f = $state<GuideFocus | null>(null);
   let held = $state(false);
+  let grip = $state<HTMLButtonElement>();
+  // The focus is virtual (lib/focus.ts): the grid's button never blurs, so the grid lets go when the focus lands
+  // anywhere else.
+  $effect(() => {
+    const away = (e: Event) => {
+      if (e.target !== grip) held = false;
+    };
+    document.addEventListener('tvfocus', away);
+    return () => document.removeEventListener('tvfocus', away);
+  });
   $effect.pre(() => {
     if (!left) left = leftForNow(Date.now(), laneMs);
   });
@@ -275,7 +285,7 @@
     </div>
   </div>
 
-  <button class="guide-focus" use:focusable aria-label={focusedProgram?.title ?? focusedRow?.name ?? ''} ontvfocus={onEnter} ontvmove={onmove} onclick={ok} onblur={() => (held = false)}></button>
+  <button bind:this={grip} class="guide-focus" use:focusable aria-label={focusedProgram?.title ?? focusedRow?.name ?? ''} ontvfocus={onEnter} ontvmove={onmove} onclick={ok}></button>
 
   <div class="rows">
     <div class="rows-slide" style="transform:translate3d(0,{-rowFirst * ROW}rem,0)">

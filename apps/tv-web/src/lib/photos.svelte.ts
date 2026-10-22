@@ -35,15 +35,18 @@ export class Timeline {
   private async run(): Promise<void> {
     try {
       const out: Photo[] = [];
-      for (;;) {
-        const r = await this.fetch(out.length, PAGE);
-        const page = r.Items.map((item) => ({ asset: toAsset(item), item }));
+      // A photo the server lists on two pages (the library changed while paging) is kept once: the timeline keys its
+      // tiles by id.
+      const seen = new Set<string>();
+      for (let start = 0; ; start += PAGE) {
+        const r = await this.fetch(start, PAGE);
+        const page = r.Items.filter((item) => !seen.has(item.Id) && seen.add(item.Id)).map((item) => ({ asset: toAsset(item), item }));
         page.sort((a, b) => byTakenDesc(a.asset, b.asset));
         out.push(...page);
         // Each page lands in place (sorted within itself, like Android): the screen fills while a large library pages.
         this.photos = out.slice().sort((a, b) => byTakenDesc(a.asset, b.asset));
         this.total = r.TotalRecordCount;
-        if (!r.Items.length || out.length >= r.TotalRecordCount) break;
+        if (!r.Items.length || start + r.Items.length >= r.TotalRecordCount) break;
       }
       this.failed = false;
       this.complete = true;
