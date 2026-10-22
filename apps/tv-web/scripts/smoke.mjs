@@ -1,6 +1,8 @@
 ﻿// Smoke test of the built app (dist/) on each pinned engine (scripts/engines.mjs), through the DevTools protocol.
 // Loads dist/index.html from file://, like a packaged TV app, sends remote keys, saves screenshots to
 // .dev/smoke/<major>/ and fails on any console error or uncaught exception.
+// Without --steps, it checks the remote instead: Down moves the focus, Up brings it back, OK clicks the focused
+// element (an engine gap in the focus engine leaves the app rendering fine but dead to the remote).
 // Usage: npm run smoke [-- --engine 53 --steps 39,38,13,text:wicaby,wait:2000 --wait 1500 --port 9300]
 // --port: the first DevTools port (one per engine from there), so parallel runs do not collide.
 // --probe <js>: an expression evaluated at the end, printed (debugging).
@@ -99,6 +101,29 @@ async function run(major, port) {
       else for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, windowsVirtualKeyCode: Number(step), nativeVirtualKeyCode: Number(step) });
       await sleep(300);
       await shot(`${name}-${step.replace(/[^\w]+/g, '_')}`);
+    }
+    // The remote, on the first screen (the server address field above its Connect button).
+    if (!reference && !steps.length) {
+      const evaluate = async (expression) => (await send('Runtime.evaluate', { expression, returnByValue: true }))?.result?.value;
+      const where = () => evaluate("(function () { var f = document.querySelector('.focused'); return f ? f.outerHTML.slice(0, 120) : ''; })()");
+      const key = async (code) => {
+        for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code });
+        await sleep(300);
+      };
+      const start = await where();
+      await key(40);
+      const below = await where();
+      await key(38);
+      const back = await where();
+      await key(40);
+      await evaluate("window.__smokeClicks = []; document.addEventListener('click', function (e) { __smokeClicks.push(e.target === document.querySelector('.focused')); }, true); 0");
+      await key(13);
+      const clicks = await evaluate('JSON.stringify(window.__smokeClicks)');
+      if (!start) errors.push('remote: nothing focused on the first screen');
+      else if (below === start) errors.push('remote: Down did not move the focus');
+      else if (back !== start) errors.push('remote: Up did not bring the focus back');
+      else if (clicks !== '[true]') errors.push(`remote: OK did not click the focused element (${clicks})`);
+      await shot('remote');
     }
     if (opts.probe && !reference) {
       // awaitPromise is unknown to the oldest engines' protocol (error, no result): evaluate plainly there.

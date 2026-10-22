@@ -136,6 +136,13 @@ for (const proto of [Element.prototype, Document.prototype, DocumentFragment.pro
     this.insertBefore(toNode(nodes), this.firstChild);
   });
 }
+// The focus engine and the screens' focus restore check that a remembered element is still on the page.
+if (!('isConnected' in Node.prototype)) { // 54
+  Object.defineProperty(Node.prototype, 'isConnected', {
+    configurable: true,
+    get(this: Node) { return this === document || document.documentElement.contains(this); },
+  });
+}
 define(Element.prototype, 'toggleAttribute', function (this: Element, name: string, force?: boolean) { // 69
   const on = force ?? !this.hasAttribute(name);
   if (on) this.setAttribute(name, '');
