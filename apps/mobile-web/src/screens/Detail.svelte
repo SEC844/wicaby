@@ -364,7 +364,6 @@
     {/if}
   </div>
 
-  <div class="status-shade" aria-hidden="true"></div>
   <div class="bar" class:solid>
     <span class="headline ellipsis">{item?.Name ?? ''}</span>
   </div>

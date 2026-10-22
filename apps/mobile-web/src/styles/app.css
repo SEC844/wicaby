@@ -294,7 +294,8 @@ p {
 /* The top edge's band. iOS 26 draws its scroll edge blur over the top of a Home Screen web app (no switch turns it
    off) unless the element WebKit finds at the very top is a fixed, full-width box of one solid colour, over 10 px
    tall: then it extends that colour under the status bar instead. WebKit finds it by hit-testing, so the band takes
-   pointer events (pointer-events: none would hide it). The player turns it black (--edge-bg). */
+   pointer events (pointer-events: none would hide it). Under a translucent status bar it is the status bar's
+   height, so the page starts right under the clock. The player turns it black (--edge-bg). */
 .edge-band {
   position: fixed;
   top: 0;
@@ -303,18 +304,4 @@ p {
   height: var(--safe-top);
   background: var(--edge-bg, var(--bg));
   z-index: 1000;
-}
-
-/* Under a translucent status bar (an app added to the Home Screen before it was opaque, index.html): the canvas,
-   fading out below it, so iOS 26's blur there has little to show. Opaque bar: no top inset, no shade. Absolute,
-   not fixed: a fixed bar would move the blur below itself, over the page's top row. */
-.status-shade {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--safe-top) * 1.6);
-  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) 62%, transparent);
-  pointer-events: none;
-  z-index: 4;
 }

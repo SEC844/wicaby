@@ -132,7 +132,7 @@
     <string name="web_move_down">Move down</string>
     <string name="web_rows_reset">Restore the default order</string>
     <string name="web_display_top">top %1$s</string>
-    <string name="web_status_hint_title">Remove the blur at the top of the screen</string>
-    <string name="web_status_hint_body">For the time and battery to show on a sharp bar, remove Wicaby from the Home Screen, then add it again from Safari (Share › Add to Home Screen). You will need to sign in again and download the offline titles again.</string>
+    <string name="web_status_hint_title">Gain room at the top of the screen</string>
+    <string name="web_status_hint_body">For Wicaby to start right under the time and battery, remove it from the Home Screen, then add it again from Safari (Share › Add to Home Screen). You will need to sign in again and download the offline titles again.</string>
     <string name="web_got_it">Got it</string>
 </resources>
