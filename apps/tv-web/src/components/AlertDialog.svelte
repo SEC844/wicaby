@@ -25,7 +25,7 @@
       <div class="qr"><QrCode text={alert.qr} size={160} /></div>
       <p class="t-caption label-3 link">{alert.qr}</p>
     {/if}
-    {#each alert.actions as a, i (a.label)}
+    {#each alert.actions as a, i (i)}
       <button
         bind:this={buttons[i]}
         class="action t-headline"
