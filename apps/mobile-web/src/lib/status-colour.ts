@@ -113,3 +113,13 @@ export function mixRgb(a: string, b: string, t: number): string {
   const c = pa.map((v, k) => Math.round(v + (pb[k] - v) * t));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
+
+// A CSS colour as rgb() (the canvas token is a hex): through the browser's own parsing.
+export function toRgb(c: string): string {
+  const probe = document.createElement('span');
+  probe.style.color = c;
+  document.body.appendChild(probe);
+  const out = getComputedStyle(probe).color;
+  probe.remove();
+  return out;
+}

@@ -607,9 +607,21 @@
   }
 
   // ---- The lock screen and Control Center ----
+  // Only while the app is away (locked, another app): in the app, Now Playing would put its media activity in the
+  // Dynamic Island over the video.
+  let away = $state(document.visibilityState === 'hidden');
+  $effect(() => {
+    const flip = () => (away = document.visibilityState === 'hidden');
+    document.addEventListener('visibilitychange', flip);
+    return () => document.removeEventListener('visibilitychange', flip);
+  });
   $effect(() => {
     const it = pb?.item;
     if (!it || !('mediaSession' in navigator)) return;
+    if (!away) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
     const art = client.thumb(it, 600) ?? client.poster(it, 600);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: it.Type === 'Episode' ? (episodeLine(it) ?? it.Name) : it.Name,
@@ -618,7 +630,7 @@
     });
   });
   $effect(() => {
-    if (!('mediaSession' in navigator) || !pb || !duration) return;
+    if (!('mediaSession' in navigator) || !pb || !duration || !away) return;
     try {
       navigator.mediaSession.setPositionState({ duration: duration / 1000, position: Math.min(duration, pb.positionMs) / 1000, playbackRate: pb.rate });
     } catch {
@@ -658,7 +670,12 @@
       ['seekto', (d) => d.seekTime !== undefined && p.seek(d.seekTime * 1000)],
       ['nexttrack', () => void (p.next && advance(false))],
     ];
-    for (const [a, h] of handlers) ms?.setActionHandler(a, h);
+    const controls = (on: boolean) => {
+      for (const [a, h] of handlers) ms?.setActionHandler(a, on ? h : null);
+    };
+    const onVisibility = () => controls(document.visibilityState === 'hidden');
+    onVisibility();
+    document.addEventListener('visibilitychange', onVisibility);
     // Back closes a sheet, counts as Continue on the sleep prompt, dismisses up next, then leaves.
     const stopBack = onBack(screen, () => {
       if (sheet) return (sheet = null), true;
@@ -668,7 +685,8 @@
     });
     return () => {
       stopBack();
-      for (const [a] of handlers) ms?.setActionHandler(a, null);
+      document.removeEventListener('visibilitychange', onVisibility);
+      controls(false);
       if (ms) ms.metadata = null;
       video.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
       probe.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);

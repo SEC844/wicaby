@@ -16,7 +16,7 @@
   import Spinner from '../components/Spinner.svelte';
   import { useHome } from '../lib/home.svelte';
   import { itemRoute, nav, shell, stack } from '../lib/nav.svelte';
-  import { backdropTop, mixRgb, setPageStatusColour } from '../lib/status-colour';
+  import { backdropTop, mixRgb, setPageStatusColour, toRgb } from '../lib/status-colour';
 
   const a = api()!;
   const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
@@ -46,7 +46,11 @@
   // the hero loads; while a slide is swiped the status bar blends the two, following the finger. Anywhere else,
   // the canvas.
   let tops = $state<Record<string, string>>({});
+  let shownArt = $state<Record<string, true>>({});
   let at = $state(0);
+  // A slide whose artwork is not on screen yet counts as the canvas.
+  const canvas = () => toRgb(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+  const colourOf = (id: string) => (shownArt[id] && tops[id]) || canvas();
   $effect(() => {
     const items = home.hero;
     let live = true;
@@ -64,9 +68,7 @@
     const items = home.hero;
     if (!items.length) return undefined;
     const i = Math.max(0, Math.min(items.length - 1, Math.floor(at)));
-    const from = tops[items[i].Id];
-    const to = tops[items[Math.min(items.length - 1, i + 1)].Id] ?? from;
-    return from && to ? mixRgb(from, to, at - i) : from;
+    return mixRgb(colourOf(items[i].Id), colourOf(items[Math.min(items.length - 1, i + 1)].Id), at - i);
   });
   const atTop = $derived(shell.tab === 'home' && stack[stack.length - 1]?.route.name === 'main' && !solid && home.hero.length > 0);
   $effect(() => {
@@ -78,7 +80,7 @@
 <div class="page">
   <div class="scroller" data-scroll bind:this={scroller} onscroll={onScroll}>
     {#if home.hero.length}
-      <div bind:this={heroBox}><Hero items={home.hero} api={a} {tops} onposition={(p) => (at = p)} /></div>
+      <div bind:this={heroBox}><Hero items={home.hero} api={a} {tops} onposition={(p) => (at = p)} onshown={(id) => (shownArt[id] = true)} /></div>
     {:else}
       <div class="lead" aria-hidden="true"></div>
     {/if}

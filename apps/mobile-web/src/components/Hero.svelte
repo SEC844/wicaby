@@ -15,7 +15,14 @@
 
   // tops: each title's artwork top colour (lib/status-colour), its top fading into it under the status bar;
   // onposition: where the track is, in slides (1.5 = halfway from the second to the third), as it moves.
-  let { items, api, tops = {}, onposition }: { items: BaseItem[]; api: Api; tops?: Record<string, string>; onposition?: (at: number) => void } = $props();
+  // onshown: a slide's artwork is on screen (decoded), so its colour may take the status bar.
+  let {
+    items,
+    api,
+    tops = {},
+    onposition,
+    onshown,
+  }: { items: BaseItem[]; api: Api; tops?: Record<string, string>; onposition?: (at: number) => void; onshown?: (id: string) => void } = $props();
 
   const SLIDE_MS = 8000;
   const dpr = Math.min(3, window.devicePixelRatio || 2);
@@ -26,13 +33,23 @@
   let index = $state(0);
   let touching = $state(false);
   let offscreen = $state(false);
-  // Artwork: the first slide at once, every other one right after it (a swipe never meets an empty slide).
-  let warm = $state(new Set<number>([0, 1]));
-  $effect(() => {
-    const n = items.length;
-    const id = setTimeout(() => (warm = new Set(Array.from({ length: n }, (_, i) => i))), 600);
-    return () => clearTimeout(id);
-  });
+  // Artwork, one slide after the other: the first, then each next one once the previous is in, so a swipe never meets
+  // an empty slide and the server resizes one image at a time. A failed load is asked again twice, a second apart.
+  let warm = $state(new Set<number>([0]));
+  let shown = $state(new Set<string>());
+  let tries = $state<Record<string, number>>({});
+  function loaded(i: number): void {
+    shown = new Set([...shown, items[i].Id]);
+    onshown?.(items[i].Id);
+    const next = items.findIndex((_, k) => !warm.has(k));
+    if (next >= 0) warm = new Set([...warm, next]);
+  }
+  function failed(i: number): void {
+    const id = items[i].Id;
+    const n = tries[id] ?? 0;
+    if (n < 2) setTimeout(() => (tries = { ...tries, [id]: n + 1 }), 1000);
+    else loaded(i);
+  }
 
   function onScroll(): void {
     onposition?.(track.scrollLeft / track.clientWidth);
@@ -58,7 +75,11 @@
     return () => io.disconnect();
   });
 
-  const backdrop = (item: BaseItem) => api.backdrop(item, Math.round(1100 * (dpr / 3) * (16 / 9)));
+  // A retry asks the same image under another URL (the failed one may be cached).
+  const backdrop = (item: BaseItem) => {
+    const url = api.backdrop(item, Math.round(1100 * (dpr / 3) * (16 / 9)));
+    return url && tries[item.Id] ? `${url}&retry=${tries[item.Id]}` : url;
+  };
   const logo = (item: BaseItem) => api.logo(item, Math.round(280 * dpr));
 </script>
 
@@ -69,8 +90,10 @@
       {@const art = warm.has(i) ? backdrop(item) : undefined}
       {@const mark = logo(item)}
       <article class="slide" aria-roledescription="slide" aria-label={item.Name} style:background-color={placeholder(item, 'Backdrop') ?? '#111'}>
-        {#if art}<img class="art" src={art} alt="" decoding="async" fetchpriority={i === 0 ? 'high' : 'low'} />{/if}
-        {#if tops[item.Id]}<div class="blend" style:--top={tops[item.Id]} aria-hidden="true"></div>{/if}
+        {#if art}
+          <img class="art" class:in={shown.has(item.Id)} src={art} alt="" decoding="async" fetchpriority={i === 0 ? 'high' : 'low'} onload={() => loaded(i)} onerror={() => failed(i)} />
+        {/if}
+        {#if tops[item.Id] && shown.has(item.Id)}<div class="blend" style:--top={tops[item.Id]} aria-hidden="true"></div>{/if}
         <div class="shade"></div>
         <div class="content">
           <p class="eyebrow on">{eyebrowLine(item)}</p>
@@ -152,13 +175,18 @@
     height: 100%;
     object-fit: cover;
     object-position: 50% 30%;
+    opacity: 0;
+    transition: opacity var(--t-med) var(--ease-out);
   }
-  /* The status bar stays legible on top; the canvas rises from the bottom with no hard edge (design.md). */
+  .art.in {
+    opacity: 1;
+  }
+  /* The canvas rises from the bottom with no hard edge (design.md). The top is left as it is: the status bar takes
+     its colour (.blend), so a shade there would part them. */
   .shade {
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(to bottom, rgb(0 0 0 / 0.4), rgb(0 0 0 / 0) 20%),
       linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 20%, rgb(0 0 0 / 0.2) 50%, rgb(0 0 0 / 0) 66%);
   }
   .content {
