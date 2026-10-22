@@ -19,3 +19,17 @@ export function save(key: string, value: unknown): void {
     // Full or blocked storage: the value lives for this session only.
   }
 }
+
+// The saved keys that start with [prefix], as load and save name them.
+export function keys(prefix: string): string[] {
+  const out: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const name = localStorage.key(i);
+      if (name?.startsWith(PREFIX + prefix)) out.push(name.slice(PREFIX.length));
+    }
+  } catch {
+    // Blocked storage: nothing saved.
+  }
+  return out;
+}
