@@ -54,12 +54,14 @@ function migrate(): void {
     const primaryId = read<string>(OLD.primary);
     const primary = servers.find((s) => s.id === primaryId) ?? servers[0];
     const session = sessions.find((s) => s.server.id === primary.id) ?? null;
+    const extras = sessions.filter((s) => s.server.id !== primary.id);
     save('session', {
       server: server(primary),
       session,
-      profiles: sessions,
+      // The primary account's entry carries the other servers, as a profile does (session.svelte.ts signIn).
+      profiles: sessions.map((s) => (s === session ? { ...s, extras } : s)),
       onboarded: true,
-      extras: sessions.filter((s) => s.server.id !== primary.id),
+      extras,
     });
   }
 

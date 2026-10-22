@@ -14,6 +14,8 @@ export interface Session {
   userId: string;
   userName: string;
   token: string;
+  // A saved profile's other servers (TP-06), back with it when it signs in again.
+  extras?: Session[];
 }
 
 interface Persisted {
@@ -37,28 +39,47 @@ export function setServer(server: Server): void {
   persist();
 }
 
+const same = (a: Session, b: Session) => a.server.id === b.server.id && a.userId === b.userId;
+
+// The other servers belong to the profile signed in: each profile gets its own back, none inherits another's.
 export function signIn(session: Session): void {
-  prefs.session = session;
-  prefs.profiles = [session, ...prefs.profiles.filter((p) => !(p.server.id === session.server.id && p.userId === session.userId))];
+  const saved = prefs.profiles.find((p) => same(p, session));
+  const { extras, ...account } = session;
+  prefs.session = account;
+  prefs.extras = extras ?? saved?.extras ?? [];
+  prefs.profiles = [{ ...account, extras: prefs.extras }, ...prefs.profiles.filter((p) => !same(p, session))];
+  persist();
+}
+
+// The signed-in profile's entry follows its other servers.
+function keepExtras(): void {
+  const s = prefs.session;
+  if (s) prefs.profiles = prefs.profiles.map((p) => (same(p, s) ? { ...p, extras: prefs.extras ?? [] } : p));
   persist();
 }
 
 export function addExtra(session: Session): void {
   prefs.extras = [...(prefs.extras ?? []).filter((e) => e.server.id !== session.server.id), session];
-  persist();
+  keepExtras();
 }
 
 // Not revoked on the server: the token may serve elsewhere (Android removeAccount).
 export function removeExtra(serverId: string): void {
   prefs.extras = (prefs.extras ?? []).filter((e) => e.server.id !== serverId);
-  persist();
+  keepExtras();
 }
 
-// Switch user keeps the profile (and its token) for the picker; sign out forgets it.
+// Switch user keeps the profile (its token and its other servers) for the picker. Sign out revokes the token on the
+// server (/Sessions/Logout) and forgets the profile with its other servers.
 export function signOut(forget: boolean): void {
   const s = prefs.session;
-  if (s && forget) prefs.profiles = prefs.profiles.filter((p) => !(p.server.id === s.server.id && p.userId === s.userId));
+  if (s && !forget) keepExtras();
+  if (s && forget) {
+    void apiFor(s.server, s).request('POST', '/Sessions/Logout').catch(() => {});
+    prefs.profiles = prefs.profiles.filter((p) => !same(p, s));
+  }
   prefs.session = null;
+  prefs.extras = [];
   persist();
 }
 

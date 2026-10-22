@@ -75,7 +75,6 @@
 
   function leave(to: 'login' | 'servers', revoke: boolean): void {
     const server = session.server;
-    if (revoke) void api.request('POST', '/Sessions/Logout').catch(() => {});
     clearCache();
     if (to === 'servers') nav.reset({ name: 'servers' });
     else nav.reset({ name: 'login', server });
