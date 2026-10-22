@@ -1,8 +1,8 @@
 <script lang="ts">
   // Accueil, as the TV app's Home: the hero first, full bleed under the status bar, Continue watching in large
   // right under it (components/ContinueShelf.svelte), then the user's other rows (lib/home.svelte.ts). The top row
-  // (the account on the right) sits over the hero, right under the status bar's band (app.css .edge-band); once the
-  // hero scrolls away it turns into the canvas with the tab's name, as Netflix's. Pulling down at the top stretches the hero's
+  // (the account on the right) sits over the hero, which runs up to the status bar (app.css .status-colour); once
+  // the hero scrolls away it turns into the canvas with the tab's name, as Netflix's. Pulling down at the top stretches the hero's
   // artwork. Continue watching and Next up play on a tap; other cards open their page.
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
@@ -86,7 +86,7 @@
     left: 0;
     right: 0;
     height: var(--top-bar);
-    padding: var(--edge) calc(max(var(--gutter), var(--safe-right)) + 48px) 0 max(var(--gutter), var(--safe-left));
+    padding: var(--safe-top) calc(max(var(--gutter), var(--safe-right)) + 48px) 0 max(var(--gutter), var(--safe-left));
     display: flex;
     align-items: center;
     pointer-events: none;

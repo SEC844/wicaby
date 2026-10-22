@@ -1,6 +1,7 @@
 // Screenshots of the phone web app in WebKit (Playwright's build of Safari's engine), at an iPhone 15 Pro Max's
-// size as a Home Screen app: 430 × 932 pt at 3×, touch, with its safe areas (59 pt top, 34 pt bottom) applied
-// through the app's own --safe-* variables, since a desktop WebKit reports none. Runs against the mock Emby server
+// size as a Home Screen app under the platform's status bar (index.html): 430 × 873 pt at 3× (932 less the 59 pt
+// bar), touch, with its bottom safe area (34 pt) applied through the app's own --safe-* variables, since a desktop
+// WebKit reports none. Runs against the mock Emby server
 // (demo dataset) and the dev server, signs in once, then walks each scene. Fails on any page error or console error.
 //
 //   npm run shots -w apps/mobile-web [-- scene…]      scenes: login home homeScrolled detail series library folder
@@ -18,7 +19,7 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const OUT = path.join(ROOT, '.dev', 'shots');
 const APP = path.resolve(import.meta.dirname, '..');
 // iPhone 15 Pro Max insets, upright and on its side.
-const SAFE = process.env.SHOTS_LANDSCAPE === '1' ? { top: 0, bottom: 21, left: 59, right: 59 } : { top: 59, bottom: 34, left: 0, right: 0 };
+const SAFE = process.env.SHOTS_LANDSCAPE === '1' ? { top: 0, bottom: 21, left: 59, right: 59 } : { top: 0, bottom: 34, left: 0, right: 0 };
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -201,7 +202,7 @@ async function main() {
   try {
     const context = await browser.newContext({
       // SHOTS_LANDSCAPE=1: the phone on its side (the player scenes).
-      viewport: process.env.SHOTS_LANDSCAPE === '1' ? { width: 932, height: 430 } : { width: 430, height: 932 },
+      viewport: process.env.SHOTS_LANDSCAPE === '1' ? { width: 932, height: 430 } : { width: 430, height: 873 },
       deviceScaleFactor: 3,
       isMobile: true,
       hasTouch: true,
@@ -210,7 +211,6 @@ async function main() {
     });
     await context.addInitScript(({ top, bottom, left, right }) => {
       const set = () => {
-        document.documentElement.style.setProperty('--inset-top', `${top}px`);
         document.documentElement.style.setProperty('--safe-top', `${top}px`);
         document.documentElement.style.setProperty('--safe-bottom', `${bottom}px`);
         document.documentElement.style.setProperty('--safe-left', `${left}px`);

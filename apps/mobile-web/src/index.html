@@ -10,10 +10,10 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <!-- black-translucent: the page draws under the status bar, whose height app.css's edge band (.edge-band) fills
-         with the canvas, so the page's top row sits right under the clock and iOS 26+ draws no blur there. iOS
-         reads this when the app is added to the Home Screen. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- No apple-mobile-web-app-status-bar-style: the status bar stays the platform's, and the page starts under
+         it. With black-translucent the page would draw under it, but iOS 26+ then has no top inset to hang its
+         colour extension on and always blurs the top (WKWebView _shouldHideTopScrollPocket); app.css's
+         .status-colour gives that colour. iOS reads this when the app is added to the Home Screen. -->
     <meta name="apple-mobile-web-app-title" content="Wicaby" />
     <title>Wicaby</title>
     <link rel="manifest" href="./manifest.webmanifest" />

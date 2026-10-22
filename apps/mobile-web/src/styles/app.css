@@ -42,17 +42,12 @@
 
   /* The page gutter, and the system's insets (notch, Dynamic Island, home indicator) in standalone mode. */
   --gutter: 20px;
-  /* At least the edge band's height (.edge-band), so nothing the page shows starts under it. */
-  --inset-top: env(safe-area-inset-top, 0px);
-  --safe-top: max(var(--inset-top), 11px);
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* The edge band's height (.edge-band): 10 px past the status bar, at least 11 px. */
-  --edge: max(calc(var(--inset-top) + 10px), 11px);
-  /* The pages' top row (title, actions, account), right under the edge band as Instagram's and Netflix's: 30 px of
-     content. */
-  --top-bar: calc(var(--edge) + 30px);
+  /* The pages' top row (title, actions, account), right under the status bar as Instagram's and Netflix's. */
+  --top-bar: calc(var(--safe-top) + 44px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
@@ -294,18 +289,21 @@ p {
   scroll-snap-align: start;
 }
 
-/* The top edge's band. iOS 26 draws its scroll edge blur over the top of a Home Screen web app (no switch turns it
-   off) unless the element WebKit finds at the top of the visible area (under a translucent status bar, right below
-   it) is a fixed, full-width box of one solid colour, over 10 px tall: then it extends that colour instead. So the
-   band runs 10 px past the status bar (--edge), and the page's top row starts under it. WebKit finds it by
-   hit-testing, so the band takes
-   pointer events (pointer-events: none would hide it). The player turns it black (--edge-bg). */
-.edge-band {
+/* The status bar's colour. iOS 26+ blurs the top of a Home Screen web app (its scroll edge effect) unless WebKit
+   finds, at the top edge's midpoint 4 px down, a position: fixed box at least 90% of the width and over 10 px tall:
+   it then paints the status bar with that box's background colour, read from its style, and draws no blur
+   (WKWebView _shouldHideTopScrollPocket, LocalFrameView::fixedContainerEdges). The box paints nothing itself
+   (background-clip: text on an empty box), so the page's artwork runs right up to the status bar. It must stay
+   rendered (not display: none) and opaque. The player turns the status bar black (--status-colour). */
+.status-colour {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--edge);
-  background: var(--edge-bg, var(--bg));
-  z-index: 1000;
+  height: 11px;
+  background-color: var(--status-colour, var(--bg));
+  -webkit-background-clip: text;
+  background-clip: text;
+  pointer-events: none;
+  z-index: 2147483647;
 }

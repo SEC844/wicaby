@@ -708,7 +708,7 @@
     left: 0;
     right: 0;
     height: var(--top-bar);
-    padding: var(--edge) 72px 0;
+    padding: var(--safe-top) 72px 0;
     display: grid;
     place-items: center;
     /* The canvas, not a blur over the artwork (the top row of every page). */
@@ -724,10 +724,10 @@
   }
   .back {
     position: absolute;
-    top: var(--edge);
+    top: calc(var(--safe-top) + 4px);
     left: max(var(--gutter), var(--safe-left));
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     z-index: 5;
   }
 </style>

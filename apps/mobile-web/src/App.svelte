@@ -91,4 +91,4 @@
 <Toast />
 <Snackbar />
 <UpdateBanner />
-<div class="edge-band" aria-hidden="true"></div>
+<div class="status-colour" aria-hidden="true"></div>

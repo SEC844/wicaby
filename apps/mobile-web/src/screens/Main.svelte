@@ -24,12 +24,10 @@
   // The rows reload by themselves (TV web Main, Android HomeRefresh): back in the app, on the server's changes
   // (another device playing, a library scan), every 5 min; after a video, once its Stopped report is in.
   onMount(() => {
-    // An app added to the Home Screen while the status bar was opaque keeps it (iOS reads index.html's meta at
-    // install): the page starts a status bar lower (no top inset, the screen taller than the page). Once, how to
-    // get the top row right under the clock.
-    const opaqueBar = topInset() === 0 && screen.height - window.innerHeight >= 20;
-    if (standalone && opaqueBar && window.innerHeight > window.innerWidth && !load<boolean>('statusHint2', false)) {
-      save('statusHint2', true);
+    // An app added to the Home Screen while its status bar was translucent keeps it (iOS reads index.html's meta at
+    // install), and iOS then always blurs the top (app.css .status-colour). Once, how to get rid of it.
+    if (standalone && topInset() > 0 && window.innerHeight > window.innerWidth && !load<boolean>('statusHint3', false)) {
+      save('statusHint3', true);
       showAlert({ title: t('web_status_hint_title'), message: t('web_status_hint_body'), actions: [{ label: t('web_got_it'), run: () => {} }] });
     }
     // The account's picture and rights, once per start.
