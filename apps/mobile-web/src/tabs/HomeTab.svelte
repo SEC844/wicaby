@@ -86,7 +86,7 @@
     left: 0;
     right: 0;
     height: var(--top-bar);
-    padding: var(--safe-top) calc(max(var(--gutter), var(--safe-right)) + 48px) 0 max(var(--gutter), var(--safe-left));
+    padding: var(--edge) calc(max(var(--gutter), var(--safe-right)) + 48px) 0 max(var(--gutter), var(--safe-left));
     display: flex;
     align-items: center;
     pointer-events: none;

@@ -43,13 +43,16 @@
   /* The page gutter, and the system's insets (notch, Dynamic Island, home indicator) in standalone mode. */
   --gutter: 20px;
   /* At least the edge band's height (.edge-band), so nothing the page shows starts under it. */
-  --safe-top: max(env(safe-area-inset-top, 0px), 11px);
+  --inset-top: env(safe-area-inset-top, 0px);
+  --safe-top: max(var(--inset-top), 11px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* The pages' top row (title, actions, account), right under the status bar and the edge band (.edge-band) as
-     Instagram's and Netflix's: 38 px of content. */
-  --top-bar: calc(var(--safe-top) + 38px);
+  /* The edge band's height (.edge-band): 10 px past the status bar, at least 11 px. */
+  --edge: max(calc(var(--inset-top) + 10px), 11px);
+  /* The pages' top row (title, actions, account), right under the edge band as Instagram's and Netflix's: 30 px of
+     content. */
+  --top-bar: calc(var(--edge) + 30px);
   /* The tab bar (Android MainShell's NavigationBar): 64px, reaching 12px into the home indicator's inset as iOS's
      own bars do; --tabbar is what a page keeps clear under its content. */
   --tabbar-inset: max(4px, calc(var(--safe-bottom) - 12px));
@@ -292,16 +295,17 @@ p {
 }
 
 /* The top edge's band. iOS 26 draws its scroll edge blur over the top of a Home Screen web app (no switch turns it
-   off) unless the element WebKit finds at the very top is a fixed, full-width box of one solid colour, over 10 px
-   tall: then it extends that colour under the status bar instead. WebKit finds it by hit-testing, so the band takes
-   pointer events (pointer-events: none would hide it). Under a translucent status bar it is the status bar's
-   height, so the page starts right under the clock. The player turns it black (--edge-bg). */
+   off) unless the element WebKit finds at the top of the visible area (under a translucent status bar, right below
+   it) is a fixed, full-width box of one solid colour, over 10 px tall: then it extends that colour instead. So the
+   band runs 10 px past the status bar (--edge), and the page's top row starts under it. WebKit finds it by
+   hit-testing, so the band takes
+   pointer events (pointer-events: none would hide it). The player turns it black (--edge-bg). */
 .edge-band {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--safe-top);
+  height: var(--edge);
   background: var(--edge-bg, var(--bg));
   z-index: 1000;
 }

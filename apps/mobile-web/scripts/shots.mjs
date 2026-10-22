@@ -210,6 +210,7 @@ async function main() {
     });
     await context.addInitScript(({ top, bottom, left, right }) => {
       const set = () => {
+        document.documentElement.style.setProperty('--inset-top', `${top}px`);
         document.documentElement.style.setProperty('--safe-top', `${top}px`);
         document.documentElement.style.setProperty('--safe-bottom', `${bottom}px`);
         document.documentElement.style.setProperty('--safe-left', `${left}px`);

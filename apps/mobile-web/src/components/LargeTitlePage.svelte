@@ -62,7 +62,7 @@
     left: 0;
     right: 0;
     height: var(--top-bar);
-    padding: var(--safe-top) max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
+    padding: var(--edge) max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
     display: flex;
     align-items: center;
     gap: 10px;
@@ -75,8 +75,8 @@
     box-shadow: 0 0.5px 0 var(--separator);
   }
   .back-btn {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     margin-left: -8px;
     flex: none;
   }
