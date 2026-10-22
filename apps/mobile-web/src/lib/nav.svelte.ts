@@ -31,9 +31,17 @@ export function isFullScreen(route: Route): boolean {
   return FULL_SCREEN.has(route.name);
 }
 
+// The titles last opened from a card, as the card had them: a details page paints with them at once (name,
+// artwork, facts) while it reads the whole title.
+const peeked = new Map<string, BaseItem>();
+export const peek = (id: string): BaseItem | undefined => peeked.get(id);
+
 // Android NavController.open(item): an album or audio playlist opens its page, an artist theirs, a folder its grid,
 // a channel plays live, a photo album opens its timeline, everything else its details page.
 export function itemRoute(item: BaseItem): Route {
+  peeked.delete(item.Id);
+  peeked.set(item.Id, item);
+  if (peeked.size > 40) peeked.delete(peeked.keys().next().value!);
   if (item.Type === 'MusicAlbum' || (item.Type === 'Playlist' && item.MediaType === 'Audio')) return { name: 'musicAlbum', id: item.Id, title: item.Name, serverId: item.ServerId };
   if (item.Type === 'MusicArtist') return { name: 'musicArtist', id: item.Id, title: item.Name, serverId: item.ServerId };
   if (item.Type === 'TvChannel') return { name: 'live', id: item.Id };

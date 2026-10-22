@@ -91,7 +91,17 @@
         <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} onopen={row.playable ? (i) => play(i) : open} />
       {/if}
     {/each}
-    {#if home.loading}<div class="loading"><Spinner /></div>{/if}
+    {#if home.loading && !home.rows.length}
+      <!-- The first load ever (later ones paint from the stored rows): the rows' shapes, shimmering, not a spinner. -->
+      <div class="ghost" aria-hidden="true">
+        {#each [true, false, false] as wide, r (r)}
+          <span class="ghost-title shimmer"></span>
+          <div class="ghost-row">
+            {#each Array(wide ? 2 : 4) as _, c (c)}<span class="shimmer" class:wide></span>{/each}
+          </div>
+        {/each}
+      </div>
+    {:else if home.loading}<div class="loading"><Spinner /></div>{/if}
   </div>
 
   <header class="top" class:solid class:over={home.hero.length > 0}>
@@ -157,6 +167,32 @@
   .top:not(.over) .name {
     opacity: 1;
     transform: none;
+  }
+  .ghost {
+    padding: 24px 0 0 max(var(--gutter), var(--safe-left));
+    overflow: hidden;
+  }
+  .ghost-title {
+    display: block;
+    width: 160px;
+    height: 20px;
+    border-radius: 6px;
+    margin: 6px 0 12px;
+  }
+  .ghost-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .ghost-row span {
+    flex: none;
+    width: 116px;
+    aspect-ratio: 2 / 3;
+    border-radius: var(--r-md);
+  }
+  .ghost-row span.wide {
+    width: min(300px, 74vw);
+    aspect-ratio: 16 / 9;
   }
   .loading {
     display: grid;

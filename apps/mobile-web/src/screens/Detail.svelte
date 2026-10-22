@@ -28,7 +28,7 @@
   import Shelf from '../components/Shelf.svelte';
   import Spinner from '../components/Spinner.svelte';
   import { endsAt, metaLine } from '../lib/format';
-  import { handleBack, itemRoute, nav } from '../lib/nav.svelte';
+  import { handleBack, itemRoute, nav, peek } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { menuPress, openItemMenu } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
@@ -41,7 +41,10 @@
 
   let reload = $state(0);
   const loaded = useLoad(() => `item-${id}-${reload}`, () => client.item(id));
-  const item = $derived(loaded.value);
+  // What the card had, until the whole title is in (lib/nav peek): the page shows at once, the rest fills in.
+  // svelte-ignore state_referenced_locally
+  const early = peek(id);
+  const item = $derived(loaded.value ?? (loaded.error === undefined ? early : undefined));
   const series = $derived(item?.Type === 'Series');
   const book = $derived(!!item && isBook(item));
 

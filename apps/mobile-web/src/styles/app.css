@@ -84,6 +84,8 @@
    not scroll (overflow on html); the body does not clip, so the app can be taller than iOS's short viewport
    (lib/viewport.ts). */
 html {
+  /* No double-tap zoom: a tap is a click at once. */
+  touch-action: manipulation;
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
@@ -306,4 +308,24 @@ p {
   background-clip: text;
   pointer-events: none;
   z-index: 2147483647;
+}
+
+/* A placeholder's light sweep while content loads (Netflix's, Instagram's). Transform only: on the compositor. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--fill-2);
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.07) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: shimmer calc(1400ms * var(--tempo)) ease-in-out infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
