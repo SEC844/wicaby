@@ -31,7 +31,8 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   control, the screensaver and the music ambient layout, series track memory, remembered speed and picture
   format, and the rows reloading on return, on server changes and every 5 minutes; and 0.11.0's Quick Connect,
   AniSkip, external ratings, SDH and AD tracks, ListenBrainz and Last.fm scrobbling and SyncPlay. It installs under
-  the web TV app's ids, so it updates an installed web TV build in place. Test builds only: the unsigned `.wgt` and
+  the web TV app's ids, so it updates an installed web TV build in place and takes over its device, its servers and
+  their accounts, and its MDBList key (its other settings start from the defaults). Test builds only: the unsigned `.wgt` and
   the `.ipk` are workflow artifacts. See docs/tv-web.md.
 - Settings > Home & libraries > "Episodes in Search" (Android TV, TV web app): off, typing a series' name lists the
   series without every one of its episodes.

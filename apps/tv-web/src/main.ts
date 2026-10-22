@@ -1,5 +1,7 @@
 // Polyfills first: module evaluation follows import order, and the Svelte runtime needs them.
 import './polyfills';
+// Before any module reads the session or the device id: the replaced web TV app's storage, taken over once.
+import './lib/legacy-webtv';
 import './styles/theme.css';
 import { mount } from 'svelte';
 import App from './App.svelte';

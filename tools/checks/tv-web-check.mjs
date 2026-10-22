@@ -237,5 +237,32 @@ if (fs.existsSync(assets)) {
   }
 }
 
+// --- The replaced web TV app's storage: its device, servers, accounts and MDBList key taken over, then removed ---
+{
+  store.clear();
+  const old = {
+    'wicaby.web.device': JSON.stringify('0123456789abcdef0123'),
+    'wicaby.web.primary': JSON.stringify('s2'),
+    'wicaby.web.servers': JSON.stringify([
+      { id: 's1', name: 'Home', kind: 'emby', version: '4.9', address: 'http://192.0.2.1:8096', userId: 'u1', userName: 'Nora', token: 't1' },
+      { id: 's2', name: 'Cloud', kind: 'jellyfin', version: '10.10', address: 'https://media.example', userId: 'u2', userName: 'Nora', token: 't2' },
+      { id: 'demo', name: 'Demo', kind: 'emby', version: '', address: 'demo' },
+    ]),
+    'wicaby.web.settings': '{}',
+    'wicaby.web.mdblist': JSON.stringify('abcdefghijklmnopqrstuvwxy'),
+    'wicaby.web.ratings': '{}',
+  };
+  for (const [k, v] of Object.entries(old)) store.set(k, v);
+  await load('src/lib/legacy-webtv.ts');
+  const session = JSON.parse(store.get('wicaby.session'));
+  assert.equal(JSON.parse(store.get('wicaby.deviceId')), '0123456789abcdef0123', 'legacy: same device id');
+  assert.equal(session.server.id, 's2', 'legacy: primary server');
+  assert.equal(session.session.token, 't2', 'legacy: primary account signed in');
+  assert.deepEqual(session.extras.map((e) => e.server.id), ['s1'], 'legacy: other servers alongside');
+  assert.equal(session.profiles.length, 2, 'legacy: every account in the profile picker');
+  assert.equal(JSON.parse(store.get('wicaby.ratings_key')), 'abcdefghijklmnopqrstuvwxy', 'legacy: MDBList key');
+  assert.ok(Object.keys(old).every((k) => !store.has(k)), 'legacy: old keys removed');
+}
+
 fs.rmSync(dir, { recursive: true, force: true });
 console.log('tv-web-check: ok');
