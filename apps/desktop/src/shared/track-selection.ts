@@ -180,7 +180,16 @@ export function selectTracks(
 
 // ---- X-05 matching (the same rules as TrackMemory.kt; fixtures in tools/checks/fixtures/track) ----
 
-const normTitle = (t?: string) => (t ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+// Unicode property escapes need Chromium 64, and the TV web app runs this from 53: there, the letters of the main
+// scripts (Latin, Greek, Cyrillic, Hebrew, Arabic, Indic, Thai, Japanese kana, CJK, Hangul) stand in for \p{L}.
+const NOT_WORD = (() => {
+  try {
+    return new RegExp('[^\\p{L}\\p{N}]+', 'gu');
+  } catch {
+    return /[^0-9a-z\u00aa\u00b5\u00ba\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u02af\u0370-\u03ff\u0400-\u052f\u0590-\u05ff\u0600-\u06ff\u0900-\u0dff\u0e00-\u0eff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g;
+  }
+})();
+const normTitle = (t?: string) => (t ?? '').toLowerCase().replace(NOT_WORD, ' ').trim();
 
 // An old language-only entry (migrated): no ordinal, codec or title was recorded.
 const isLegacy = (intent: AudioIntent | SubtitleIntent) => intent.ordinal < 0 && !intent.codec;
