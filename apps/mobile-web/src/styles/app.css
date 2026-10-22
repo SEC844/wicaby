@@ -289,16 +289,17 @@ p {
   scroll-snap-align: start;
 }
 
-/* The status bar's band: opaque, fixed at the top edge. iOS 26 blurs whatever a web app draws under the status bar
-   (its scroll edge effect) unless a fixed bar with a solid colour holds that edge: it then extends that colour
-   instead, as for a native app's bar (Instagram's). The player turns it black (--status-bg). */
-.status-band {
-  position: fixed;
+/* Under the status bar: the canvas, fading out below it. iOS 26 blurs whatever a home-screen web app draws there
+   (its scroll edge effect, no switch to turn it off); a plain colour blurred stays plain, so only the status bar's
+   own text shows, as over Instagram's header. Absolute, not fixed: a fixed bar would move the blur below itself,
+   over the page's top row. */
+.status-shade {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--safe-top);
-  background: var(--status-bg, var(--bg));
+  height: calc(var(--safe-top) + 28px);
+  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) var(--safe-top), transparent);
   pointer-events: none;
-  z-index: 1000;
+  z-index: 4;
 }
