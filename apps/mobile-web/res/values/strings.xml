@@ -133,4 +133,7 @@
     <string name="web_move_down">Descendre</string>
     <string name="web_rows_reset">Rétablir l’ordre par défaut</string>
     <string name="web_display_top">haut %1$s</string>
+    <string name="web_status_hint_title">Retirer le flou en haut de l’écran</string>
+    <string name="web_status_hint_body">Pour que l’heure et la batterie s’affichent sur une barre nette, supprimez Wicaby de l’écran d’accueil puis ajoutez-la à nouveau depuis Safari (Partager › Sur l’écran d’accueil). Il faudra vous reconnecter et retélécharger les titres gardés hors ligne.</string>
+    <string name="web_got_it">J’ai compris</string>
 </resources>

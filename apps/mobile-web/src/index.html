@@ -10,7 +10,9 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- No apple-mobile-web-app-status-bar-style: the default keeps the page below an opaque status bar, tinted by
+         theme-color. With black-translucent, iOS 26+ blurs whatever the page draws under it (its scroll edge
+         effect, no switch to turn it off). iOS reads this when the app is added to the Home Screen. -->
     <meta name="apple-mobile-web-app-title" content="Wicaby" />
     <title>Wicaby</title>
     <link rel="manifest" href="./manifest.webmanifest" />

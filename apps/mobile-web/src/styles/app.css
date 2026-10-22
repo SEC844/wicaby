@@ -289,17 +289,16 @@ p {
   scroll-snap-align: start;
 }
 
-/* Under the status bar: the canvas, fading out below it. iOS 26 blurs whatever a home-screen web app draws there
-   (its scroll edge effect, no switch to turn it off); a plain colour blurred stays plain, so only the status bar's
-   own text shows, as over Instagram's header. Absolute, not fixed: a fixed bar would move the blur below itself,
-   over the page's top row. */
+/* Under a translucent status bar (an app added to the Home Screen before it was opaque, index.html): the canvas,
+   fading out below it, so iOS 26's blur there has little to show. Opaque bar: no top inset, no shade. Absolute,
+   not fixed: a fixed bar would move the blur below itself, over the page's top row. */
 .status-shade {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: calc(var(--safe-top) + 28px);
-  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) var(--safe-top), transparent);
+  height: calc(var(--safe-top) * 1.6);
+  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) 62%, transparent);
   pointer-events: none;
   z-index: 4;
 }

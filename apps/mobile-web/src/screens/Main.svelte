@@ -11,6 +11,11 @@
   import DownloadsTab from '../tabs/DownloadsTab.svelte';
   import SettingsTab from '../tabs/SettingsTab.svelte';
   import { me } from '../lib/user.svelte';
+  import { load, save } from '$tv/storage';
+  import { t } from '$tv/i18n.svelte';
+  import { showAlert } from '../lib/overlay.svelte';
+  import { topInset } from '../lib/viewport';
+  import { standalone } from '../platform';
 
   const visited = $state<Record<TabId, boolean>>({ home: true, libraries: false, search: false, downloads: false, settings: false });
   $effect.pre(() => {
@@ -19,6 +24,12 @@
   // The rows reload by themselves (TV web Main, Android HomeRefresh): back in the app, on the server's changes
   // (another device playing, a library scan), every 5 min; after a video, once its Stopped report is in.
   onMount(() => {
+    // An app added to the Home Screen while the status bar was translucent keeps it (iOS reads index.html's meta at
+    // install), with iOS 26's blur under it: once, how to get the opaque bar.
+    if (standalone && topInset() > 0 && window.innerHeight > window.innerWidth && !load<boolean>('statusHint', false)) {
+      save('statusHint', true);
+      showAlert({ title: t('web_status_hint_title'), message: t('web_status_hint_body'), actions: [{ label: t('web_got_it'), run: () => {} }] });
+    }
     // The account's picture and rights, once per start.
     void me(api()!);
     return runHomeRefresh(api()!);
