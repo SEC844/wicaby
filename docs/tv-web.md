@@ -74,7 +74,8 @@ npm run package:tv
 ```
 
 writes `release/tv-web/Wicaby-Tizen-<version>.wgt` (unsigned) and `release/tv-web/Wicaby-webOS-<version>.ipk`. The
-licence texts ship inside both. The `TV web app` workflow builds the same two files on every change.
+licence texts ship inside both. `npm run pack:tv` packs the last build without building it again. The `TV web app`
+workflow builds the same two files on every change.
 
 ## Install on a Samsung TV (Tizen)
 

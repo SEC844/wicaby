@@ -23,7 +23,8 @@
     "dev:tv": "npm run dev -w apps/tv-web",
     "build:tv": "npm run build -w apps/tv-web",
     "check:tv": "npm run check -w apps/tv-web",
-    "package:tv": "npm run package:tizen -w apps/tv-web && node apps/tv-web/scripts/package-ipk.mjs",
+    "package:tv": "npm run build:tv && npm run pack:tv",
+    "pack:tv": "node apps/tv-web/scripts/package-wgt.mjs && node apps/tv-web/scripts/package-ipk.mjs",
     "build:mesh": "node packages/mesh/scripts/build-vpn-helper.mjs",
     "build:mesh-aar": "powershell -NoProfile -ExecutionPolicy Bypass -File packages/mesh/scripts/build-mesh-aar.ps1"
   },
