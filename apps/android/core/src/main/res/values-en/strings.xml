@@ -160,6 +160,8 @@
     <string name="segment_commercial">Commercials</string>
     <string name="aniskip">AniSkip for anime</string>
     <string name="aniskip_hint">Fills in missing anime intro and credits times from aniskip.com (sends the MyAnimeList id and episode number).</string>
+    <string name="community_segments">Community timestamps</string>
+    <string name="community_segments_summary">Intro, recap, credits and preview from TheIntroDB and IntroDB. Sends the watched title\'s id to these services.</string>
     <string name="bonus">Extras</string>
     <string name="external_player_open">Open in External Player</string>
     <string name="voice_search">Voice Search</string>

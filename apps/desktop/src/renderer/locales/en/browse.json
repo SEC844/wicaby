@@ -54,7 +54,16 @@
     },
     "empty": {
       "title": "No Items",
-      "body": "Nothing matches these filters."
+      "body": "Nothing matches these filters.",
+      "folder": "This folder is empty."
+    },
+    "view": {
+      "label": "View",
+      "folders": "Folders",
+      "books": "All Books"
+    },
+    "folders": {
+      "up": "Parent Folder"
     }
   },
   "all": "All",

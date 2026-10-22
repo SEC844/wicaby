@@ -67,6 +67,7 @@
     "label": "Lecture en cours",
     "play": "Lecture",
     "pause": "Pause",
+    "stop": "Arrêter",
     "next": "Suivant",
     "previous": "Précédent",
     "shuffleOn": "Lecture aléatoire activée",

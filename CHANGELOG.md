@@ -34,6 +34,18 @@ Android TV app, the Android mobile app and the mesh helper. The Android apps als
   the web TV app's ids, so it updates an installed web TV build in place and takes over its device, its servers and
   their accounts, and its MDBList key (its other settings start from the defaults). Test builds only: the unsigned `.wgt` and
   the `.ipk` are workflow artifacts. See docs/tv-web.md.
+- Android TV player: a "Next Episode" button (or "Up Next" in a play queue) in the control bar, shown when there is a
+  next item; it plays it the way the Up Next card does. Holding the remote's Next key no longer skips several items.
+- Desktop music: a Stop button beside Play/Pause in the bar and the full-screen player. Stop ends the playback, reports
+  it to the server and hides the bar; the queue is no longer restored at the next start after a Stop.
+- Desktop comics: a books library opens on a "Folders" view that follows the server's folder tree (breadcrumbs, parent
+  folder; a folder shows its own image or its first book's cover). "All Books" keeps the flat list; the choice is
+  remembered per library.
+- Community timestamps (desktop, TV web app, Android TV, Android mobile): Settings > Playback > "Community timestamps" fills in the intro, recap,
+  end credits and preview the server has no markers for, from TheIntroDB and IntroDB (the TV web app asks TheIntroDB
+  only: IntroDB does not allow cross-origin requests). The server's own markers win, then TheIntroDB, IntroDB and
+  AniSkip; each kind follows its usual Ask / Auto / Off setting, and the credits drive Up Next. Off by default: it
+  sends the watched title's TMDB, TVDB or IMDb id and the episode numbers to these services.
 - Settings > Home & libraries > "Episodes in Search" (Android TV, TV web app): off, typing a series' name lists the
   series without every one of its episodes.
 

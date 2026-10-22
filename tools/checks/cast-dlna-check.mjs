@@ -642,7 +642,8 @@ try {
     await until(async () => (await dlnaState('generic')).calls.some((c) => c.action === 'SetNextAVTransportURI' && c.error === 401), 4000, 'SetNextAVTransportURI refused (401)');
     await fetch(`${rootOf('generic')}/Mock/End`, { method: 'POST' });
     await until(() => A.cast.state?.item?.id === ids[1], 5000, 'the next song after STOPPED');
-    assert.match((await dlnaState('generic')).uri, /\/Audio\/track-3-0-1\//);
+    // The state moves on before SetAVTransportURI reaches the renderer (flaked on CI).
+    await until(async () => /\/Audio\/track-3-0-1\//.test((await dlnaState('generic')).uri), 3000, 'the next song sent to the renderer');
     assert.equal(A.cast.state.status, 'playing');
     await sleep(1500); // a poll sees it play (a song lasts longer than a poll)
     await fetch(`${rootOf('generic')}/Mock/End`, { method: 'POST' });

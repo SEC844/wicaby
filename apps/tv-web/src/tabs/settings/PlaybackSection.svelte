@@ -34,15 +34,20 @@
 </SettingsGroup>
 <SettingsGroup title={t('group_skip')}>
   <SettingRow {...choiceOf(t('skip_intro_mode'), skipOptions, settings.skipIntro)} />
-  <!-- Recaps, previews and commercials are Jellyfin media segments: nothing to set on Emby. -->
-  {#if !api.isEmby}
+  <!-- Recaps, previews and commercials are Jellyfin media segments: on Emby, community timestamps bring recaps and previews. -->
+  {#if !api.isEmby || settings.communitySegments.value}
     <SettingRow {...choiceOf(t('segment_recap'), skipOptions, settings.skipRecap)} />
     <SettingRow {...choiceOf(t('segment_preview'), skipOptions, settings.skipPreview)} />
+  {/if}
+  {#if !api.isEmby}
     <SettingRow {...choiceOf(t('segment_commercial'), skipOptions, settings.skipCommercial)} />
   {/if}
 </SettingsGroup>
 <SettingsGroup title={t('aniskip')} hint={t('aniskip_hint')}>
   <SettingRow {...toggle(t('aniskip'), settings.aniskip)} />
+</SettingsGroup>
+<SettingsGroup title={t('community_segments')} hint={t('community_segments_summary')}>
+  <SettingRow {...toggle(t('community_segments'), settings.communitySegments)} />
 </SettingsGroup>
 <!-- X-05: where speed and aspect are remembered. -->
 <SettingsGroup title={t('remember_title')}>

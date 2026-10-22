@@ -4,6 +4,7 @@ import {
   MEDIA_SCHEME,
   TICKS_PER_MS,
   type HtmlPlayerEvent,
+  type MediaMarkers,
   type PlaybackCommand,
   type PlaybackState,
   type PlayMethod,
@@ -28,6 +29,7 @@ import type { DownloadRecord } from '../downloads/download-manager';
 import { clearThumbar, setPlaybackThumbar } from '../features/taskbar';
 import { buildDeviceProfile } from '../../shared/device-profile';
 import { hdrFromStream } from '../../shared/hdr';
+import { missingKinds, mergeMarkers } from '../../shared/community-segments';
 import { activeSegment, embyMarkers, jellyfinMarkers, SEGMENT_SETTING, type MediaSegment } from '../../shared/markers';
 import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows } from '../../shared/quality-presets';
 import { addedSubtitle } from '../../shared/subtitles';
@@ -62,7 +64,7 @@ import {
   type PlaybackDeps,
   type StartOptions,
 } from './playback-model';
-import { aniskipFallback, EMBY_SKIP_MODE, jellyfinTrickplay } from './playback-extras';
+import { aniskipFallback, communityFallback, EMBY_SKIP_MODE, jellyfinTrickplay } from './playback-extras';
 import { cinemaTrailers, PlayQueue } from './play-queue';
 import { PlayerMemory } from './player-memory';
 import { handleRemote } from './remote-commands';
@@ -967,14 +969,26 @@ export class PlaybackService extends EventEmitter {
     }
     await Promise.all(tasks.map((t) => t.catch((err) => log.debug(`playback extras: ${String(err)}`))));
     if (!stale()) this.publish(true);
-    // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
+    // What the server lacks, from the third parties turned on (off by default): per kind the server wins, then
+    // TheIntroDB, IntroDB, then AniSkip (asked while intro, credits or recap is missing; it fills only those).
     const m = this.state.markers;
-    if (api && userId && !caps(api.kind).localUserData && this.deps.settings.value.playback.aniskip && m?.introEndMs === undefined && m?.creditsStartMs === undefined && !stale()) {
-      const a = await aniskipFallback(api, userId, item, this.state.durationMs).catch((err) => (log.debug(`aniskip: ${String(err)}`), null));
-      if (a && !stale()) {
-        this.state.markers = { ...a, segments: m?.segments ?? a.segments };
-        this.publish(true);
-      }
+    const p = this.deps.settings.value.playback;
+    if (api && userId && !caps(api.kind).localUserData && !stale()) {
+      const quiet = (what: string) => (err: unknown) => (log.debug(`${what}: ${String(err)}`), null);
+      // Asked side by side, each answer applied as it lands (a slow service must not delay the other's intro).
+      let c: MediaMarkers | null = null;
+      let a: MediaMarkers | null = null;
+      const land = () => {
+        const merged = (c || a) && mergeMarkers(m, c, a);
+        if (merged && !stale()) {
+          this.state.markers = merged;
+          this.publish(true);
+        }
+      };
+      await Promise.all([
+        p.communitySegments && missingKinds(m) && communityFallback(api, userId, item, this.state.durationMs).catch(quiet('community segments')).then((r) => ((c = r), land())),
+        p.aniskip && (m?.introEndMs === undefined || m?.creditsStartMs === undefined || !m?.segments?.some((s) => s.type === 'recap')) && aniskipFallback(api, userId, item, this.state.durationMs).catch(quiet('aniskip')).then((r) => ((a = r), land())),
+      ]);
     }
   }
 

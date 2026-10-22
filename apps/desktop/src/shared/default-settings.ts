@@ -83,6 +83,7 @@ export function defaultSettings(downloadsFolder: string): StoredSettings {
       skipPreview: 'ask',
       skipCommercial: 'ask',
       aniskip: false,
+      communitySegments: false,
       maxBitrateRemoteMbps: 120,
       defaultSpeed: 1,
       upNextSeconds: 10,

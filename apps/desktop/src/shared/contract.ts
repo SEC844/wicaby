@@ -245,6 +245,8 @@ export interface Settings {
     skipCommercial: SkipMode;
     // Anime intro/credits from api.aniskip.com when the server has none (third party: off by default).
     aniskip: boolean;
+    // Intro, recap, credits and preview from TheIntroDB and IntroDB when the server has none (third parties: off by default).
+    communitySegments: boolean;
     // maxBitrateMbps applies on the LAN, this one when the server address is remote.
     maxBitrateRemoteMbps: number;
     defaultSpeed: number;

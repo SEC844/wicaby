@@ -375,6 +375,10 @@
       "label": "AniSkip pour les animés",
       "desc": "Complète les génériques d’animés manquants depuis aniskip.com (envoie l’identifiant MyAnimeList et le numéro d’épisode)."
     },
+    "communitySegments": {
+      "label": "Horodatages communautaires",
+      "desc": "Intro, récap, générique et aperçu depuis TheIntroDB et IntroDB. Envoie l’identifiant du titre regardé à ces services."
+    },
     "skip": {
       "ask": "Proposer",
       "auto": "Auto",

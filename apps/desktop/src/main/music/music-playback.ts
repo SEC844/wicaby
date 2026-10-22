@@ -314,6 +314,11 @@ export class MusicPlayback {
         else await this.host.startItem({ player: kind });
         return true;
       }
+      case 'stop':
+        // Stop (bar, tray, media key, remote) ends the queue as its end does: not restored at the next start. The
+        // playback service does the stop itself; quit goes through shutdown and keeps the queue.
+        this.saved?.set(null);
+        return false;
       case 'queue-jump':
       case 'next': {
         const i = cmd.type === 'next' ? nextIndex(q.qs, true) : cmd.index;

@@ -245,6 +245,13 @@
       </div>
       <Toggle label={t('settings.playback.aniskip.label')} checked={s.playback.aniskip} onchange={(v) => set({ playback: { aniskip: v } })} />
     </div>
+    <div class="row">
+      <div class="txt">
+        <div class="lbl">{t('settings.playback.communitySegments.label')}</div>
+        <div class="desc">{t('settings.playback.communitySegments.desc')}</div>
+      </div>
+      <Toggle label={t('settings.playback.communitySegments.label')} checked={s.playback.communitySegments} onchange={(v) => set({ playback: { communitySegments: v } })} />
+    </div>
   </div>
 
   <h3 class="gh">{t('settings.playback.speedSeek')}</h3>

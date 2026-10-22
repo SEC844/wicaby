@@ -173,7 +173,7 @@
 
 **Everywhere**
 - Continue Watching, Up Next, search, favorites and collections.
-- Skip intros, recaps and credits, autoplay of the next episode, sleep timer.
+- Skip intros, recaps and credits (from the server, or optionally from AniSkip, TheIntroDB and IntroDB community timestamps), autoplay of the next episode, sleep timer.
 - Bonus features on detail pages; mark a season or all earlier episodes as watched.
 - Pick versions, audio and subtitles; Wicaby remembers your choices per title.
 - Find and download subtitles from inside the player.

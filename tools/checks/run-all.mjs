@@ -25,6 +25,8 @@ const checks = [
   ['skip-check.mjs'],
   // AniSkip fallback: response parsing and the MAL id + episode a season resolves to (fixtures/aniskip.json).
   ['aniskip-check.mjs'],
+  // Community timestamps: TheIntroDB and IntroDB parsing, sanity drops, priority merge (fixtures/community-segments.json).
+  ['community-segments-check.mjs'],
   // External ratings: MDBList route and parser (saved sample answer).
   ['ratings-check.mjs'],
   ['home-rows-check.mjs'],
@@ -56,6 +58,7 @@ const checks = [
   ['zip-check.mjs'],
   ['comic-cover-check.mjs'],
   ['comic-formats-check.mjs'],
+  ['comic-folders-check.mjs'],
   ['download-path-check.mjs'],
   ['bif-check.mjs'],
   ['mesh-selfcheck.mjs'],

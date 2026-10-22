@@ -353,9 +353,15 @@ function cbz(id) {
   }
   return bookCache.get(id);
 }
+// Book folders (the desktop Folders view): one with its own image, one borrowing its first book's cover, a nested one
+// whose books have no cover either (a folder icon). comic-1..4 stay at the library root (comic-cover-check lists it).
+add({ Id: 'bookdir-formats', Name: 'Formats', Type: 'Folder', IsFolder: true, ParentId: 'lib-books', ImageTags: {} });
+add({ Id: 'bookdir-more', Name: 'Autres formats', Type: 'Folder', IsFolder: true, ParentId: 'bookdir-formats', ImageTags: {} });
+add({ Id: 'bookdir-novels', Name: 'Romans', Type: 'Folder', IsFolder: true, ParentId: 'lib-books', ImageTags: { Primary: 'p' } });
+const BOOK_DIRS = { 'comic-5': 'bookdir-formats', 'comic-6': 'bookdir-formats', 'comic-9': 'bookdir-formats', 'comic-7': 'bookdir-more', 'comic-8': 'bookdir-more', 'comic-10': 'bookdir-novels', 'comic-11': 'bookdir-novels' };
 Object.entries(COMICS).forEach(([id, c], i) => {
   const ext = c.ext ?? 'cbz';
-  add({ Id: id, Name: c.name, Type: 'Book', MediaType: 'Book', ParentId: 'lib-books', Path: `/books/${c.name}.${ext}`, Container: ext, ProductionYear: 2020 + i, Genres: ['Bande dessinée'], Overview: `${c.name} : album de test généré par le serveur de démonstration.`, ImageTags: NO_COVER.has(id) ? {} : { Primary: 'p' }, DateCreated: new Date().toISOString() });
+  add({ Id: id, Name: c.name, Type: 'Book', MediaType: 'Book', ParentId: BOOK_DIRS[id] ?? 'lib-books', Path: `/books/${c.name}.${ext}`, Container: ext, ProductionYear: 2020 + i, Genres: ['Bande dessinée'], Overview: `${c.name} : album de test généré par le serveur de démonstration.`, ImageTags: NO_COVER.has(id) ? {} : { Primary: 'p' }, DateCreated: new Date().toISOString() });
 });
 ud('comic-1').PlaybackPositionTicks = 5 * 10_000;
 
@@ -428,6 +434,12 @@ function bifFor(id) {
 function chapterSvg(n) {
   const hue = palette[n % palette.length];
   return `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270"><rect width="100%" height="100%" fill="${hue}"/><rect width="100%" height="100%" fill="#000" fill-opacity="0.35"/><text x="24" y="240" font-family="Arial" font-weight="700" font-size="64" fill="#fff">${n}</text></svg>`;
+}
+
+// Recursive=true: any depth of ParentId (book folders nest).
+function under(x, parent) {
+  for (let p = items.get(x.ParentId), n = 0; p && n < 8; p = items.get(p.ParentId), n++) if (p.ParentId === parent) return true;
+  return false;
 }
 
 function view(item) {
@@ -1091,7 +1103,7 @@ export async function handler(req, res) {
       const term = q.get('SearchTerm')?.toLowerCase();
       const ids = q.get('Ids')?.split(',');
       if (ids) arr = arr.filter((x) => ids.includes(x.Id));
-      if (parent) arr = arr.filter((x) => x.ParentId === parent || (q.get('Recursive') === 'true' && (x.SeriesId === parent || x.SeasonId === parent || items.get(x.SeriesId)?.ParentId === parent || items.get(x.ParentId)?.ParentId === parent)));
+      if (parent) arr = arr.filter((x) => x.ParentId === parent || (q.get('Recursive') === 'true' && (x.SeriesId === parent || x.SeasonId === parent || items.get(x.SeriesId)?.ParentId === parent || under(x, parent))));
       const artists = q.get('ArtistIds')?.split(',');
       // Both servers: an album artist or an artist credited on the item.
       if (artists) arr = arr.filter((x) => [...(x.ArtistItems ?? []), ...(x.AlbumArtists ?? [])].some((a) => artists.includes(a.Id)));
@@ -1127,6 +1139,8 @@ export async function handler(req, res) {
       // Filters=IsPlayed / IsResumable query is guaranteed to list played items first.
       if (sort.startsWith('DatePlayed')) arr.sort((a, b) => (Date.parse(ud(a.Id).LastPlayedDate ?? '') || Infinity) - (Date.parse(ud(b.Id).LastPlayedDate ?? '') || Infinity));
       if (q.get('SortOrder') === 'Descending') arr.reverse();
+      // Folders first, as both servers' IsFolder comparer (stable: keeps the order above).
+      if (sort.startsWith('IsFolder')) arr.sort((a, b) => Number(Boolean(b.IsFolder)) - Number(Boolean(a.IsFolder)));
       return send(res, 200, list(arr, q));
     }
   }

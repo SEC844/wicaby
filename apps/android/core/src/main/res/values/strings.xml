@@ -162,6 +162,8 @@
     <string name="segment_commercial">Publicités</string>
     <string name="aniskip">AniSkip pour les animés</string>
     <string name="aniskip_hint">Complète les génériques d’animés manquants depuis aniskip.com (envoie l’identifiant MyAnimeList et le numéro d’épisode).</string>
+    <string name="community_segments">Horodatages communautaires</string>
+    <string name="community_segments_summary">Intro, récap, générique et aperçu depuis TheIntroDB et IntroDB. Envoie l\'identifiant du titre regardé à ces services.</string>
     <string name="bonus">Bonus</string>
     <string name="external_player_open">Ouvrir dans un lecteur externe</string>
     <string name="voice_search">Recherche vocale</string>

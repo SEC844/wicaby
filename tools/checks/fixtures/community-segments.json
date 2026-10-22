@@ -1,0 +1,356 @@
+{
+  "_comment": "Saved answers of api.theintrodb.org/v4/media and api.introdb.app/segments (Breaking Bad S1E1 and S2E1, captured 2026-10) plus made-up edge cases. Read by tools/checks/community-segments-check.mjs.",
+  "theintrodb": [
+    {
+      "name": "Breaking Bad S1E1: credits run to the end (null end)",
+      "runtimeMs": 3500000,
+      "response": {
+        "tvdb_id": 81189,
+        "type": "tv",
+        "season": 1,
+        "episode": 1,
+        "intro": [
+          {
+            "start_ms": 228664,
+            "end_ms": 246143
+          }
+        ],
+        "credits": [
+          {
+            "start_ms": 3431000,
+            "end_ms": null
+          }
+        ]
+      },
+      "expect": {
+        "intro": [
+          228664,
+          246143
+        ],
+        "credits": [
+          3431000,
+          3500000
+        ]
+      }
+    },
+    {
+      "name": "Breaking Bad S2E1",
+      "runtimeMs": 2843000,
+      "response": {
+        "tvdb_id": 81189,
+        "type": "tv",
+        "season": 2,
+        "episode": 1,
+        "intro": [
+          {
+            "start_ms": 76813,
+            "end_ms": 114335
+          }
+        ],
+        "credits": [
+          {
+            "start_ms": 2786500,
+            "end_ms": 2843000
+          }
+        ]
+      },
+      "expect": {
+        "intro": [
+          76813,
+          114335
+        ],
+        "credits": [
+          2786500,
+          2843000
+        ]
+      }
+    },
+    {
+      "name": "versions shape: no times",
+      "runtimeMs": 1800000,
+      "response": {
+        "tvdb_id": 1,
+        "type": "movie",
+        "versions": [
+          {
+            "duration_ms": 1800000,
+            "submission_count": 3
+          }
+        ]
+      },
+      "expect": {}
+    },
+    {
+      "name": "episodes shape: no times",
+      "runtimeMs": 1800000,
+      "response": {
+        "tvdb_id": 1,
+        "type": "tv",
+        "episodes": []
+      },
+      "expect": {}
+    },
+    {
+      "name": "null intro start, earliest valid recap, preview to the end, negative credits dropped",
+      "runtimeMs": 1800000,
+      "response": {
+        "tvdb_id": 1,
+        "type": "tv",
+        "intro": [
+          {
+            "start_ms": null,
+            "end_ms": 30000
+          }
+        ],
+        "recap": [
+          {
+            "start_ms": 90000,
+            "end_ms": 60000
+          },
+          {
+            "start_ms": 50000,
+            "end_ms": 70000
+          },
+          {
+            "start_ms": 40000,
+            "end_ms": 40000
+          }
+        ],
+        "credits": [
+          {
+            "start_ms": -5,
+            "end_ms": 100
+          }
+        ],
+        "preview": [
+          {
+            "start_ms": 1790000,
+            "end_ms": null
+          }
+        ]
+      },
+      "expect": {
+        "intro": [
+          0,
+          30000
+        ],
+        "recap": [
+          50000,
+          70000
+        ],
+        "preview": [
+          1790000,
+          1800000
+        ]
+      }
+    },
+    {
+      "name": "past the runtime + 5 s dropped, within kept",
+      "runtimeMs": 1800000,
+      "response": {
+        "tvdb_id": 1,
+        "type": "movie",
+        "intro": [
+          {
+            "start_ms": 1000,
+            "end_ms": 1806000
+          }
+        ],
+        "credits": [
+          {
+            "start_ms": 1700000,
+            "end_ms": 1804000
+          }
+        ]
+      },
+      "expect": {
+        "credits": [
+          1700000,
+          1804000
+        ]
+      }
+    },
+    {
+      "name": "null end with an unknown runtime dropped",
+      "runtimeMs": 0,
+      "response": {
+        "tvdb_id": 1,
+        "type": "movie",
+        "credits": [
+          {
+            "start_ms": 1700000,
+            "end_ms": null
+          }
+        ]
+      },
+      "expect": {}
+    },
+    {
+      "name": "not an object",
+      "runtimeMs": 1800000,
+      "response": null,
+      "expect": {}
+    },
+    {
+      "name": "null end on an intro and null start on credits or a preview dropped",
+      "runtimeMs": 1800000,
+      "response": {
+        "tvdb_id": 1,
+        "type": "tv",
+        "intro": [
+          {
+            "start_ms": 1000,
+            "end_ms": null
+          }
+        ],
+        "recap": [
+          {
+            "start_ms": null,
+            "end_ms": 20000
+          }
+        ],
+        "credits": [
+          {
+            "start_ms": null,
+            "end_ms": 1800000
+          }
+        ],
+        "preview": [
+          {
+            "start_ms": null,
+            "end_ms": null
+          }
+        ]
+      },
+      "expect": {
+        "recap": [
+          0,
+          20000
+        ]
+      }
+    }
+  ],
+  "introdb": [
+    {
+      "name": "Breaking Bad S1E1: outro only",
+      "runtimeMs": 3500000,
+      "response": {
+        "imdb_id": "tt0903747",
+        "media_type": "tv",
+        "is_movie": false,
+        "season": 1,
+        "episode": 1,
+        "intro": null,
+        "recap": null,
+        "outro": {
+          "start_sec": 3431,
+          "end_sec": 3500,
+          "start_ms": 3431000,
+          "end_ms": 3500000,
+          "confidence": 1,
+          "submission_count": 1,
+          "updated_at": "2026-04-14T12:21:01.935Z"
+        },
+        "post_credits": null,
+        "no_intro": true,
+        "no_recap": true,
+        "no_outro": false
+      },
+      "expect": {
+        "credits": [
+          3431000,
+          3500000
+        ]
+      }
+    },
+    {
+      "name": "Breaking Bad S2E1: intro, recap, outro",
+      "runtimeMs": 2843000,
+      "response": {
+        "imdb_id": "tt0903747",
+        "media_type": "tv",
+        "is_movie": false,
+        "season": 2,
+        "episode": 1,
+        "intro": {
+          "start_sec": 77,
+          "end_sec": 94,
+          "start_ms": 77000,
+          "end_ms": 94000,
+          "confidence": 1,
+          "submission_count": 1,
+          "updated_at": "2026-04-08T18:47:54.342Z"
+        },
+        "recap": {
+          "start_sec": 95,
+          "end_sec": 259,
+          "start_ms": 95000,
+          "end_ms": 259000,
+          "confidence": 1,
+          "submission_count": 1,
+          "updated_at": "2026-05-10T09:30:17.719Z"
+        },
+        "outro": {
+          "start_sec": 2791,
+          "end_sec": 2843,
+          "start_ms": 2791000,
+          "end_ms": 2843000,
+          "confidence": 1,
+          "submission_count": 1,
+          "updated_at": "2026-04-14T12:25:20.160Z"
+        },
+        "post_credits": null,
+        "no_intro": false,
+        "no_recap": false,
+        "no_outro": false
+      },
+      "expect": {
+        "intro": [
+          77000,
+          94000
+        ],
+        "recap": [
+          95000,
+          259000
+        ],
+        "credits": [
+          2791000,
+          2843000
+        ]
+      }
+    },
+    {
+      "name": "post_credits ignored, seconds when ms missing, reversed dropped",
+      "runtimeMs": 1800000,
+      "response": {
+        "imdb_id": "tt1",
+        "media_type": "movie",
+        "is_movie": true,
+        "season": null,
+        "episode": null,
+        "intro": {
+          "start_sec": 10,
+          "end_sec": 40
+        },
+        "recap": {
+          "start_ms": 5000,
+          "end_ms": 4000
+        },
+        "outro": null,
+        "post_credits": {
+          "start_ms": 1790000,
+          "end_ms": 1799000
+        },
+        "no_intro": false,
+        "no_recap": false,
+        "no_outro": true
+      },
+      "expect": {
+        "intro": [
+          10000,
+          40000
+        ]
+      }
+    }
+  ]
+}

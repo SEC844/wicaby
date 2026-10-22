@@ -375,6 +375,10 @@
       "label": "AniSkip for Anime",
       "desc": "Fills in missing anime intro and credits times from aniskip.com (sends the MyAnimeList id and episode number)."
     },
+    "communitySegments": {
+      "label": "Community Timestamps",
+      "desc": "Intro, recap, credits and preview from TheIntroDB and IntroDB. Sends the watched title's id to these services."
+    },
     "skip": {
       "ask": "Ask",
       "auto": "Auto",

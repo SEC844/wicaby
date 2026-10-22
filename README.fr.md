@@ -173,7 +173,7 @@
 
 **Partout**
 - Continuer à regarder, À suivre, recherche, favoris et collections.
-- Passer le générique de début, le récap et le générique de fin, épisode suivant automatique, minuterie de veille.
+- Passer le générique de début, le récap et le générique de fin (depuis le serveur, ou en option depuis les horodatages communautaires d'AniSkip, TheIntroDB et IntroDB), épisode suivant automatique, minuterie de veille.
 - Les bonus sur les fiches ; marquer une saison ou tous les épisodes précédents comme vus.
 - Choix de la version, de l'audio et des sous-titres ; Wicaby retient vos choix pour chaque titre.
 - Recherche et téléchargement de sous-titres depuis le lecteur.

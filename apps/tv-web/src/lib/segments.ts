@@ -1,5 +1,6 @@
 // What a "Skip" button can skip, the credits, and the resume / watched / up-next rules (Android core Segments.kt,
 // the same rules as the desktop's shared/markers.ts; both follow tools/checks/fixtures/segments.json). Times in ms.
+import type { MediaMarkers } from '$shared/contract';
 import type { MediaSegment } from '$shared/markers';
 import type { ChapterInfo } from '$shared/models';
 
@@ -55,6 +56,26 @@ export function jellyfinSegments(items: MediaSegment[] = []): Segments {
     .map((m) => ({ kind: m.Type as SegmentKind, startMs: m.StartTicks / TICKS_PER_MS, endMs: m.EndTicks / TICKS_PER_MS }));
   if (intro) ranges.push({ kind: 'Intro', startMs: intro.StartTicks / TICKS_PER_MS, endMs: intro.EndTicks / TICKS_PER_MS });
   return { credits: creditsMs(first('Outro')?.StartTicks), ranges: sorted(ranges) };
+}
+
+// A third party's markers (AniSkip, community timestamps: the desktop's shared MediaMarkers) as segments.
+export function fromMarkers(m: MediaMarkers): Segments {
+  const ranges: SkipRange[] = [];
+  if (m.introStartMs !== undefined && m.introEndMs !== undefined) ranges.push({ kind: 'Intro', startMs: m.introStartMs, endMs: m.introEndMs });
+  const kinds: Record<string, SegmentKind> = { recap: 'Recap', preview: 'Preview', commercial: 'Commercial' };
+  for (const s of m.segments ?? []) ranges.push({ kind: kinds[s.type], startMs: s.startMs, endMs: s.endMs });
+  return { credits: m.creditsStartMs, ranges: sorted(ranges) };
+}
+
+// Per kind, the first source that has it wins (the server first), credits included.
+export function mergeSegments(...list: Segments[]): Segments {
+  const ranges: SkipRange[] = [];
+  for (const kind of ['Intro', ...OTHER_KINDS] as SegmentKind[]) {
+    const from = list.find((s) => s.ranges.some((r) => r.kind === kind));
+    if (from) ranges.push(...from.ranges.filter((r) => r.kind === kind));
+  }
+  const withCredits = list.find((s) => s.credits !== undefined);
+  return { credits: withCredits ? withCredits.credits : undefined, ranges: sorted(ranges) };
 }
 
 // Resume and watched rules shared by Emby (5 % / 90 % defaults) and Jellyfin.

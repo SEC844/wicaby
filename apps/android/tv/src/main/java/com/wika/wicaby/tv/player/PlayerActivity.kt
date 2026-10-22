@@ -450,13 +450,15 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
     val togetherButton = remember { FocusRequester() }
     val together = !pb.preview && !pb.trailer && SyncPlay.available(pb.api)
     val songIdButton = remember { FocusRequester() }
+    val nextButton = remember { FocusRequester() }
     val queue = pb.queue
+    val hasNext = pb.next != null && !pb.preview
     val chapters = pb.chapters
     val chapterStarts = remember(chapters) { chapters.map { it.value.startPositionTicks / TICKS_PER_MS } }
     // The control bar, left to right (left/right move along it).
     val buttons = listOfNotNull(
         tracksButton, chaptersButton.takeIf { chapters.isNotEmpty() }, speedButton, sleepButton, songIdButton.takeIf { pb.songIdSource != null }, queueButton.takeIf { queue != null },
-        togetherButton.takeIf { together }, qualityButton.takeIf { pb.canSwitchQuality }, aspectButton,
+        togetherButton.takeIf { together }, nextButton.takeIf { hasNext }, qualityButton.takeIf { pb.canSwitchQuality }, aspectButton,
     )
     fun openPanel(kind: Int) {
         panelKind = kind
@@ -793,7 +795,7 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
             }
             e.key == Key.MediaPlay -> { if (repeat == 0) togglePlay(play = true); true }
             e.key == Key.MediaPause -> { if (repeat == 0) togglePlay(play = false); true }
-            e.key == Key.MediaNext -> { if (pb.next != null) pb.advance(auto = false); true }
+            e.key == Key.MediaNext -> { if (repeat == 0 && pb.next != null) pb.advance(auto = false); true }
             e.key == Key.MediaPrevious -> { if (repeat == 0) pb.previous(); true }
             // FF/REW step like left/right (B19: whole chapters were too far); the chapters panel still jumps.
             e.key == Key.MediaRewind -> { stepSeek(forward = false, repeat > 0); true }
@@ -1002,6 +1004,8 @@ private fun PlayerScreen(pb: Playback, player: ExoPlayer, ass: AssHandler, inPip
                     qualityButton = qualityButton.takeIf { pb.canSwitchQuality }, qualityCap = pb.qualityCap, onQuality = { openPanel(PANEL_QUALITY) },
                     queueButton = queueButton.takeIf { queue != null }, queuePosition = queue?.let { it.index + 1 to it.ids.size }, onQueue = { openPanel(PANEL_QUEUE) },
                     togetherButton = togetherButton.takeIf { together }, inGroup = SyncPlay.group != null, onTogether = { openPanel(PANEL_TOGETHER) },
+                    // The button vanishes with the switch: the key catcher takes focus first.
+                    nextButton = nextButton.takeIf { hasNext }, queued = queue != null, onNext = { runCatching { root.requestFocus() }; pb.advance(auto = false) },
                 )
             }
         }
@@ -1273,6 +1277,9 @@ private fun Osd(
     togetherButton: FocusRequester? = null,
     inGroup: Boolean = false,
     onTogether: () -> Unit = {},
+    nextButton: FocusRequester? = null,
+    queued: Boolean = false,
+    onNext: () -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.86f))))
@@ -1353,6 +1360,13 @@ private fun Osd(
                         Ic.Group, name, onTogether,
                         Modifier.padding(start = 8.dp).focusRequester(togetherButton).onPreviewKeyEvent { onControlsKey(it, togetherButton) },
                         value = SyncPlay.group?.participants?.size?.toString()?.takeIf { inGroup },
+                    )
+                }
+                // The next episode (or queue entry), the same switch as the Up Next card.
+                if (nextButton != null) {
+                    OsdButton(
+                        Ic.Next, stringResource(if (queued) com.wika.wicaby.core.R.string.queue_up_next else R.string.up_next), onNext,
+                        Modifier.padding(start = 8.dp).focusRequester(nextButton).onPreviewKeyEvent { onControlsKey(it, nextButton) },
                     )
                 }
                 Spacer(Modifier.weight(1f))

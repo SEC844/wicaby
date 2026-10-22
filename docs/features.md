@@ -12,7 +12,7 @@ The [README](../README.md) gives the short version. This page lists everything t
 
 - **Emby and Jellyfin.** Wicaby finds servers on your network (UDP discovery) or takes a typed address, and detects which server it is talking to.
 - **Your library.** One merged Continue Watching row, Up Next and Recently Added rows, libraries with sorting and filters, search and favorites.
-- **Smart playback.** Resume points, skip intro and credits (Emby chapter markers or Jellyfin media segments), and an Up Next countdown that plays the next episode.
+- **Smart playback.** Resume points, skip intro and credits (Emby chapter markers or Jellyfin media segments; optionally AniSkip, TheIntroDB and IntroDB community timestamps, off by default), and an Up Next countdown that plays the next episode.
 - **Versions and tracks.** Pick between multiple versions of a title (4K / 1080p, cuts, dubs), plus audio and subtitle tracks. Your choices are remembered per title and passed to the server.
 - **Player controls.** Stepped seeking, a sleep timer, quality presets, and subtitle search and download from inside the player, and "What's this song?": a button names the music playing in a film or episode with Shazam, with links to Shazam, Spotify, YouTube and Apple Music, and Play Later when the track is in your server's music (desktop with mpv; on Android for a direct play or a downloaded file).
 - **HDR awareness.** Detail pages show the dynamic range (Dolby Vision with its profile, HDR10+, HDR10, HLG).
@@ -283,6 +283,7 @@ Wicaby can reach your server away from home over **Tailscale** or **NetBird**, w
   - YouTube (youtube-nocookie.com), only when you play a YouTube trailer on desktop.
   - the map tile service (OpenStreetMap by default), only after you turn the photo map on (desktop). It sees which areas you look at, not your photos.
   - LRCLIB (lrclib.net), only after you turn on online lyrics, and only for a song your server has no lyrics for. It sees the artist, title, album and length of that song.
+  - TheIntroDB (api.theintrodb.org) and IntroDB (api.introdb.app), only after you turn on "Community timestamps" in Settings › Playback, and only for a movie or episode your server lacks skip markers for. They see that title's TMDB, TVDB or IMDb id and the season and episode numbers (the TV web app asks TheIntroDB only).
   - Shazam (amp.shazam.com), only when you press "What's this song?" in the player (a notice says so the first time). It receives an audio fingerprint of about 12 seconds (frequency peaks, not the sound) and a fixed, made-up location; the cover art comes from Apple's image server.
 - **Tailscale log upload is disabled.** The embedded node sets `TS_NO_LOGS_NO_SUPPORT`, so no diagnostics go to Tailscale's log servers.
 - **Tokens stay protected.**

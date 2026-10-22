@@ -1,6 +1,6 @@
 // Self-check for the TV web app (apps/tv-web, docs/tv-web.md): its own DEFLATE decoder against zlib, the ZIP reader
 // over Range requests on a real CBZ (stored and deflated pages, ComicInfo flags, deleted pages), the comic page order
-// and spreads, when the home rows reload by themselves, AniSkip's answers as the player's segments, its MD5 and PBKDF2
+// and spreads, when the home rows reload by themselves, AniSkip's and TheIntroDB's answers as the player's segments, its MD5 and PBKDF2
 // against node:crypto, scrobbling's queue, the server addresses raced (B09), and, when apps/tv-web/dist holds a
 // build, that the bundle parses as ES2016 (the Chromium 53 floor: webOS 4 and Tizen 4, 2018 models). No network: the
 // book and the services' answers are served from memory.
@@ -136,7 +136,8 @@ assert.equal(r.due(), false, 'refresh: a return restarts the period');
 
 // --- AniSkip: the shared fixtures' saved answers, as the player's segments (no network) ---
 const aniskipFx = JSON.parse(fs.readFileSync(path.join(repo, 'tools', 'checks', 'fixtures', 'aniskip.json'), 'utf8'));
-const { aniskipSegments, mergeAniskip } = await load('src/lib/aniskip.ts');
+const { aniskipSegments } = await load('src/lib/aniskip.ts');
+const { mergeSegments } = await load('src/lib/segments.ts');
 const anime = {
   item: async (id) => ({ Id: id, ProviderIds: id === 'season-1' ? { MyAnimeList: '5114' } : {} }),
 };
@@ -154,8 +155,28 @@ for (const [n, c] of aniskipFx.cases.filter((x) => x.response).entries()) {
   }
 }
 assert.ok(asked.every((u) => u.startsWith('https://api.aniskip.com/v2/skip-times/5114/')), 'aniskip: the season MAL id and episode');
-const merged = mergeAniskip({ ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }] }, { credits: 9, ranges: [{ kind: 'Intro', startMs: 3, endMs: 4 }, { kind: 'Recap', startMs: 5, endMs: 6 }] });
+const merged = mergeSegments({ ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }] }, { credits: 9, ranges: [{ kind: 'Intro', startMs: 3, endMs: 4 }, { kind: 'Recap', startMs: 5, endMs: 6 }] });
 assert.deepEqual(merged, { credits: 9, ranges: [{ kind: 'Recap', startMs: 1, endMs: 2 }, { kind: 'Intro', startMs: 3, endMs: 4 }] }, 'aniskip: the server recap wins');
+assert.deepEqual(mergeSegments({ credits: 5, ranges: [] }, { credits: 9, ranges: [] }).credits, 5, 'segments: the server credits win');
+
+// --- Community timestamps: a saved TheIntroDB answer as the player's segments, the series' ids asked, cached ---
+const communityFx = JSON.parse(fs.readFileSync(path.join(repo, 'tools', 'checks', 'fixtures', 'community-segments.json'), 'utf8'));
+const { communitySegments } = await load('src/lib/community-segments.ts');
+const show = { item: async (id) => ({ Id: id, ProviderIds: id === 'bb' ? { Tmdb: '1396', Imdb: 'tt0903747' } : {} }) };
+const tidbAsked = [];
+globalThis.fetch = async (url, init) => (tidbAsked.push([String(url), init?.redirect]), new Response(JSON.stringify(communityFx.theintrodb[1].response), { status: 200 }));
+const bbEp = { Id: 'bb-201', Type: 'Episode', SeriesId: 'bb', ParentIndexNumber: 2, IndexNumber: 1, RunTimeTicks: 2843000 * 10_000 };
+const cs = await communitySegments(show, bbEp);
+assert.deepEqual(cs, { credits: 2786500, ranges: [{ kind: 'Intro', startMs: 76813, endMs: 114335 }] }, 'community: segments');
+assert.equal(await communitySegments(show, bbEp).then((x) => x.credits), 2786500);
+// The cached answer is parsed against each play's runtime: credits ending past this one are dropped.
+assert.deepEqual(await communitySegments(show, { ...bbEp, RunTimeTicks: 2_000_000 * 10_000 }), { credits: undefined, ranges: [{ kind: 'Intro', startMs: 76813, endMs: 114335 }] }, 'community: per runtime');
+assert.equal(await communitySegments(show, { ...bbEp, RunTimeTicks: 0 }), null, 'community: no runtime, nothing asked');
+assert.deepEqual(tidbAsked, [['https://api.theintrodb.org/v4/media?tmdb_id=1396&season=2&episode=1', 'error']], 'community: asked once, no redirects');
+globalThis.fetch = async () => new Response('{}', { status: 429, headers: { 'Retry-After': '60' } });
+assert.equal(await communitySegments(show, { ...bbEp, IndexNumber: 2 }), null, 'community: 429');
+globalThis.fetch = async () => assert.fail('community: no request while rate limited');
+assert.equal(await communitySegments(show, { ...bbEp, IndexNumber: 3 }), null);
 
 // --- MD5 (Last.fm's api_sig on a TV) against node:crypto ---
 const { md5 } = await load('src/platform/node-crypto.ts');

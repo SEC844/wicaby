@@ -67,6 +67,7 @@
     "label": "Now Playing",
     "play": "Play",
     "pause": "Pause",
+    "stop": "Stop",
     "next": "Next",
     "previous": "Previous",
     "shuffleOn": "Shuffle on",

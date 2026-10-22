@@ -4,7 +4,7 @@
 import { aniskipMarkers, aniskipTarget, aniskipUrl } from '$shared/aniskip';
 import type { BaseItem } from '$shared/models';
 import type { Api } from './api';
-import type { Segments, SkipRange } from './segments';
+import { fromMarkers, type Segments } from './segments';
 
 // In memory for the run: one answer per (MAL id, episode), one MAL id per AniList id.
 const cache = new Map<string, Segments | null>();
@@ -39,15 +39,8 @@ export async function aniskipSegments(api: Api, item: BaseItem): Promise<Segment
   const key = `${mal}:${target.episode}`;
   if (cache.has(key)) return cache.get(key)!;
   const m = aniskipMarkers(await fetchJson(aniskipUrl(mal, target.episode, lengthMs)));
-  const ranges: SkipRange[] = [];
-  if (m?.introStartMs !== undefined && m.introEndMs !== undefined) ranges.push({ kind: 'Intro', startMs: m.introStartMs, endMs: m.introEndMs });
-  for (const s of m?.segments ?? []) if (s.type === 'recap') ranges.push({ kind: 'Recap', startMs: s.startMs, endMs: s.endMs });
-  const out = m ? { credits: m.creditsStartMs, ranges: ranges.sort((a, b) => a.startMs - b.startMs) } : null;
+  const out = m ? fromMarkers(m) : null;
   cache.set(key, out);
   return out;
 }
 
-// The server's recap, preview and commercial ranges win over AniSkip's.
-export function mergeAniskip(server: Segments, a: Segments): Segments {
-  return { credits: a.credits, ranges: [...server.ranges, ...a.ranges.filter((r) => !server.ranges.some((x) => x.kind === r.kind))].sort((x, y) => x.startMs - y.startMs) };
-}

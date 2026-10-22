@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.wika.wicaby.core.player.AniSkip
+import com.wika.wicaby.core.player.CommunitySegments
 import com.wika.wicaby.core.player.SegmentKind
 import com.wika.wicaby.core.ui.themeLabel
 import com.wika.wicaby.mobile.player.SkipSettings
@@ -284,9 +285,14 @@ private fun PlaybackPage(api: Api) {
     }
     Eyebrow(stringResource(R.string.settings_skip))
     Group {
-        // Recaps, previews and commercials are Jellyfin media segments: nothing to set on Emby.
+        // Recaps, previews and commercials are Jellyfin media segments: on Emby, community timestamps bring recaps and previews.
         var skip by remember { mutableStateOf(SegmentKind.entries.associateWith { SkipSettings.mode(context, it) }) }
-        val kinds = if (api.server.isEmby) listOf(SegmentKind.Intro) else SegmentKind.entries
+        var community by remember { mutableStateOf(CommunitySegments.enabled) }
+        val kinds = when {
+            !api.server.isEmby -> SegmentKind.entries
+            community -> listOf(SegmentKind.Intro, SegmentKind.Recap, SegmentKind.Preview)
+            else -> listOf(SegmentKind.Intro)
+        }
         val labels = mapOf(
             SegmentKind.Intro to R.string.skip_intro_mode, SegmentKind.Recap to com.wika.wicaby.core.R.string.segment_recap,
             SegmentKind.Preview to com.wika.wicaby.core.R.string.segment_preview, SegmentKind.Commercial to com.wika.wicaby.core.R.string.segment_commercial,
@@ -308,6 +314,11 @@ private fun PlaybackPage(api: Api) {
         val toggleAniskip = { v: Boolean -> AniSkip.enabled = v; aniskip = v }
         GroupRow(stringResource(com.wika.wicaby.core.R.string.aniskip), { toggleAniskip(!aniskip) }, subtitle = stringResource(com.wika.wicaby.core.R.string.aniskip_hint), chevron = false) {
             SettingSwitch(aniskip, toggleAniskip)
+        }
+        GroupDivider()
+        val toggleCommunity = { v: Boolean -> CommunitySegments.enabled = v; community = v }
+        GroupRow(stringResource(com.wika.wicaby.core.R.string.community_segments), { toggleCommunity(!community) }, subtitle = stringResource(com.wika.wicaby.core.R.string.community_segments_summary), chevron = false) {
+            SettingSwitch(community, toggleCommunity)
         }
     }
 }

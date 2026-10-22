@@ -5,8 +5,10 @@
   // with the same pages and filters instead of refetching page one. Kept to the 5 most recent.
   const memo = new Map<
     string,
-    { lib: Item | null; items: Item[]; total: number; repeated: number; sort: string; desc: boolean; unplayed: boolean; favorites: boolean; genre: string; genres: string[] }
+    { lib: Item | null; items: Item[]; total: number; repeated: number; sort: string; desc: boolean; unplayed: boolean; favorites: boolean; genre: string; genres: string[]; view: View; folders: Item[] }
   >();
+  // Books libraries: every book (flat) or the library's folder tree.
+  export type View = 'books' | 'folders';
 </script>
 
 <script lang="ts">
@@ -23,6 +25,7 @@
   import { queue, queueModes } from '../lib/queue.svelte';
   import { entering, scrollMemory } from '../lib/motion';
   const enter = entering();
+  import { posterUrl } from '../lib/images';
   import { dataVersion, errorMessage, libraries, sessionFor, settings } from '../lib/stores.svelte';
 
   // server: the library's server (absent: the primary one).
@@ -40,12 +43,12 @@
   ];
   const STORE_KEY = 'wicaby.library.prefs';
 
-  function loadPrefs(): { sort: string; desc: boolean } {
+  function loadPrefs(): { sort: string; desc: boolean; view: View } {
     // Settings > Accueil et bibliothèques: the sort a library starts with until you change it there.
-    const fallback = { sort: settings.value?.ui.librarySort ?? 'SortName', desc: settings.value?.ui.librarySortDesc ?? false };
+    const fallback = { sort: settings.value?.ui.librarySort ?? 'SortName', desc: settings.value?.ui.librarySortDesc ?? false, view: 'folders' as View };
     try {
-      const all = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, { sort: string; desc: boolean }>;
-      return all[id] ?? fallback;
+      const all = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, { sort: string; desc: boolean; view?: View }>;
+      return { ...fallback, ...all[id] };
     } catch {
       return fallback;
     }
@@ -54,7 +57,7 @@
   function savePrefs(): void {
     try {
       const all = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, unknown>;
-      all[id] = { sort, desc };
+      all[id] = { sort, desc, view };
       localStorage.setItem(STORE_KEY, JSON.stringify(all));
     } catch {
       // Preference persistence is best effort.
@@ -76,6 +79,12 @@
   let favorites = $state(saved?.favorites ?? false);
   let genre = $state(saved?.genre ?? '');
   let genres = $state<string[]>(saved?.genres ?? []);
+  let view = $state<View>(saved?.view ?? initial.view);
+  // Folders view: the path from the library root.
+  let folders = $state<BaseItem[]>(saved?.folders ?? []);
+  // A folder without an image of its own: its first book's cover (null: none, a folder icon).
+  let art = $state<Record<string, string | null>>({});
+  const asked = new Set<string>();
   // Restored pages are already on screen: skip the first refetch.
   let skipReset = Boolean(saved);
   let sentinel: HTMLDivElement | undefined = $state();
@@ -97,6 +106,8 @@
   const variant = $derived(
     collection === 'music' ? 'square' : collection === 'homevideos' || (collection !== 'books' && settings.value?.ui.libraryView === 'thumb') ? 'thumb' : 'poster',
   );
+  // Books libraries open on their folders, as the TV app's library grid (non-recursive, folders pushed).
+  const browsing = $derived(collection === 'books' && view === 'folders');
   const filter = $derived(unplayed ? 'unplayed' : favorites ? 'favorites' : 'all');
   const FILTERS = [
     { key: 'all', labelKey: 'browse.library.filter.all' },
@@ -107,6 +118,8 @@
   function query(start: number) {
     const filters = [unplayed ? 'IsUnplayed' : '', favorites ? 'IsFavorite' : ''].filter(Boolean).join(',');
     const sortBy = sort === 'SortName' ? 'SortName' : `${sort},SortName`;
+    if (browsing)
+      return { ParentId: folders.at(-1)?.Id ?? id, SortBy: `IsFolder,${sortBy}`, SortOrder: desc ? 'Descending' : 'Ascending', StartIndex: start, Limit: PAGE };
     return {
       ParentId: id,
       Recursive: Boolean(includeTypes),
@@ -161,7 +174,7 @@
   $effect(() => {
     // Map order is insertion order: re-inserting marks this library the most recent.
     memo.delete(memoKey);
-    memo.set(memoKey, { lib, items, total, repeated, sort, desc, unplayed, favorites, genre, genres });
+    memo.set(memoKey, { lib, items, total, repeated, sort, desc, unplayed, favorites, genre, genres, view, folders });
     if (memo.size > 5) memo.delete(memo.keys().next().value!);
   });
 
@@ -190,6 +203,8 @@
     void unplayed;
     void favorites;
     void genre;
+    void browsing;
+    void folders;
     void dataVersion.library;
     if (skipReset) {
       skipReset = false;
@@ -198,6 +213,30 @@
     // Untracked: reset() reads the session store (api.items), and a session push must not reload page 1.
     untrack(() => void reset());
   });
+
+  // shortcut: one request per imageless folder on screen; batch it if libraries with hundreds of folders show up.
+  $effect(() => {
+    for (const f of items) {
+      if (f.Type !== 'Folder' || f.ImageTags?.Primary || asked.has(f.Id)) continue;
+      asked.add(f.Id);
+      void api
+        .items({ ParentId: f.Id, Recursive: true, IncludeItemTypes: 'Book', SortBy: 'SortName', Limit: 1 })
+        .then((r) => (art[f.Id] = r.Items[0] ? posterUrl(r.Items[0], 330) : null))
+        .catch(() => undefined);
+    }
+  });
+
+  function setView(v: View): void {
+    toTop();
+    view = v;
+    folders = [];
+    savePrefs();
+  }
+
+  function openFolder(to: BaseItem[]): void {
+    toTop();
+    folders = to;
+  }
 
   // Re-created after each load: a new observer reports at once, so a sentinel that stays
   // in view still pulls the next page. An error stops it until the next reset.
@@ -243,17 +282,26 @@
   </header>
 
   <div class="toolbar">
-    <div class="segmented" role="tablist" aria-label={t('browse.library.filter.label')}>
-      {#each FILTERS as f (f.key)}
-        <button role="tab" class:on={filter === f.key} aria-selected={filter === f.key} onclick={() => setFilter(f.key)}>{t(f.labelKey)}</button>
-      {/each}
-    </div>
+    {#if collection === 'books'}
+      <div class="segmented" role="tablist" aria-label={t('browse.library.view.label')}>
+        {#each ['folders', 'books'] as const as v (v)}
+          <button role="tab" data-view={v} class:on={view === v} aria-selected={view === v} onclick={() => setView(v)}>{t(`browse.library.view.${v}`)}</button>
+        {/each}
+      </div>
+    {/if}
+    {#if !browsing}
+      <div class="segmented" role="tablist" aria-label={t('browse.library.filter.label')}>
+        {#each FILTERS as f (f.key)}
+          <button role="tab" class:on={filter === f.key} aria-selected={filter === f.key} onclick={() => setFilter(f.key)}>{t(f.labelKey)}</button>
+        {/each}
+      </div>
+    {/if}
     <div class="spacer"></div>
     <!-- Box sets and playlists hold linked children, not descendants: a recursive query finds nothing. -->
     {#if lib && !['books', 'boxsets', 'playlists'].includes(collection) && queueModes(lib).includes('shuffle')}
       <button class="btn shuffle" onclick={() => lib && queue(lib, 'shuffle')}><Icon name="shuffle" size={15} stroke={2} /> {t('common.actions.shuffle')}</button>
     {/if}
-    {#if genres.length > 0}
+    {#if genres.length > 0 && !browsing}
       <BrowseMenu
         label={genre || t('browse.library.genres')}
         icon="filter"
@@ -276,6 +324,17 @@
     />
   </div>
 
+  {#if browsing && folders.length > 0}
+    <nav class="crumbs callout" aria-label={t('browse.library.view.folders')}>
+      <button class="btn ghost" onclick={() => openFolder(folders.slice(0, -1))}><Icon name="chevronLeft" size={14} /> {t('browse.library.folders.up')}</button>
+      {#each [lib, ...folders] as f, i (f?.Id)}
+        {#if i > 0}<span aria-hidden="true">/</span>{/if}
+        {#if i === folders.length}<span aria-current="page">{f?.Name}</span>
+        {:else}<button class="crumb" onclick={() => openFolder(folders.slice(0, i))}>{f?.Name}</button>{/if}
+      {/each}
+    </nav>
+  {/if}
+
   {#if error}
     <div class="error"><Icon name="exclamation" size={16} /> {error}</div>
   {/if}
@@ -283,7 +342,11 @@
   <div class="grid {variant}">
     {#each items as item, i (itemKey(item))}
       <div class="cell" class:enter={enter && i < firstPage && i < 12} style:--i={i}>
-        <Card {item} {variant} />
+        {#if browsing && item.Type === 'Folder'}
+          <Card {item} {variant} art={item.ImageTags?.Primary ? undefined : (art[item.Id] ?? null)} onopen={() => openFolder([...folders, item])} />
+        {:else}
+          <Card {item} {variant} />
+        {/if}
       </div>
     {/each}
     {#if loading}
@@ -300,7 +363,7 @@
     <div class="empty">
       <Icon name="filter" size={36} stroke={1.5} />
       <p class="headline">{t('browse.library.empty.title')}</p>
-      <p class="footnote">{t('browse.library.empty.body')}</p>
+      <p class="footnote">{t(browsing ? 'browse.library.empty.folder' : 'browse.library.empty.body')}</p>
     </div>
   {/if}
 
@@ -448,6 +511,22 @@
     width: 64%;
     margin-top: 12px;
     border-radius: 4px;
+  }
+  .crumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 var(--gutter) 12px;
+    color: var(--label-2);
+  }
+  .crumb:hover,
+  .crumb:focus-visible {
+    color: var(--label);
+    text-decoration: underline;
+  }
+  [aria-current='page'] {
+    color: var(--label);
   }
   .error {
     display: flex;

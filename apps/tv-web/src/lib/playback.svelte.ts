@@ -6,12 +6,13 @@ import type { BaseItem, MediaSource, MediaStream } from '$shared/models';
 import { caps } from '../platform/caps';
 import { onWifi } from '../platform/index';
 import type { VideoPlayer } from '../platform/player';
-import { aniskipSegments, mergeAniskip } from './aniskip';
+import { aniskipSegments } from './aniskip';
 import type { Api } from './api';
+import { communitySegments } from './community-segments';
 import { deviceProfile } from './device-profile';
 import { t } from './i18n.svelte';
 import { changed } from './load.svelte';
-import { embySegments, jellyfinSegments, markPlayedByCredits, resumeFrom, type Segments } from './segments';
+import { embySegments, jellyfinSegments, markPlayedByCredits, mergeSegments, resumeFrom, type Segments } from './segments';
 import { coversSource, heightClass, ORIGINAL_BITRATE, QUALITY_PRESETS, qualityRows, type QualityRow } from '$shared/quality-presets';
 import { settings } from './settings.svelte';
 import { activeCues, loadCues, type Cue } from './subtitles';
@@ -198,15 +199,20 @@ export class Playback {
       });
       const fromServer = this.api.isEmby ? embySegments(it.Chapters) : jellyfinSegments(await this.api.mediaSegments(it.Id).catch(() => []));
       this.segments = fromServer;
-      // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
-      if (settings.aniskip.value && it.Type === 'Episode' && fromServer.credits === undefined && !fromServer.ranges.some((r) => r.kind === 'Intro')) {
-        void aniskipSegments(this.api, it).then(
-          (a) => {
-            if (a && seq === this.seq && !this.stopped) this.segments = mergeAniskip(fromServer, a);
-          },
-          () => {},
-        );
-      }
+      // What the server lacks, from the third parties turned on (off by default): per kind the server wins, then
+      // TheIntroDB, then AniSkip (asked while intro, credits or recap is missing; it fills only those).
+      const has = (kind: string) => fromServer.ranges.some((r) => r.kind === kind);
+      const quiet = (p: Promise<Segments | null>) => p.catch(() => null);
+      const community = settings.communitySegments.value && (fromServer.credits === undefined || !has('Intro') || !has('Recap') || !has('Preview'));
+      const anime = settings.aniskip.value && it.Type === 'Episode' && (fromServer.credits === undefined || !has('Intro') || !has('Recap'));
+      // Asked side by side, each answer applied as it lands (a slow service must not delay the other's intro).
+      let c: Segments | null = null;
+      let a: Segments | null = null;
+      const land = () => {
+        if ((c || a) && seq === this.seq && !this.stopped) this.segments = mergeSegments(fromServer, ...[c, a].filter((x): x is Segments => !!x));
+      };
+      if (community) void quiet(communitySegments(this.api, it)).then((r) => ((c = r), land()));
+      if (anime) void quiet(aniskipSegments(this.api, it)).then((r) => ((a = r), land()));
       this.next = (await this.nextFor(it)) ?? null;
     } catch (e) {
       if (seq === this.seq) this.error = e instanceof Error && e.message ? e.message : t('playback_error');

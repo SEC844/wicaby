@@ -391,13 +391,18 @@ class Playback(
                 }
             }
             segments = if (api.server.isEmby) embySegments(it.chapters) else runCatching { jellyfinSegments(api.mediaSegments(it.id)) }.getOrDefault(Segments())
-            // No intro or credits from the server: AniSkip's, when turned on (a third party, off by default).
+            // Third parties, each off by default, fill the kinds the server lacks: TheIntroDB, IntroDB, then AniSkip.
             val fromServer = segments
-            if (fromServer.introEnd == null && fromServer.credits == null && it.isEpisode && AniSkip.enabled) {
-                scope.launch {
-                    val a = runCatching { AniSkip.segments(api, it) }.getOrNull()
-                    if (a != null && item?.id == it.id) segments = AniSkip.merge(fromServer, a)
-                }
+            val community = CommunitySegments.enabled && CommunitySegments.missingKinds(fromServer)
+            // AniSkip only knows intro, credits and recap: not asked when the server has those already.
+            val anime = it.isEpisode && AniSkip.enabled && (fromServer.introEnd == null || fromServer.credits == null || fromServer.ranges.none { r -> r.kind == SegmentKind.Recap })
+            if (community || anime) {
+                // Asked side by side, each answer applied as it lands (a slow service must not delay the other's intro).
+                var c: List<Segments?> = emptyList()
+                var a: Segments? = null
+                val land = { if (item?.id == it.id) segments = CommunitySegments.merge(listOf(fromServer) + c + a) }
+                if (community) scope.launch { c = runCatching { CommunitySegments.segments(api, it) }.getOrNull().orEmpty(); land() }
+                if (anime) scope.launch { a = runCatching { AniSkip.segments(api, it) }.getOrNull(); land() }
             }
             next = nextFor(it)
         } catch (e: CancellationException) {

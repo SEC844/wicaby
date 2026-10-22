@@ -77,9 +77,8 @@ object AniSkip {
         return Segments(op?.second, op?.third, ed?.second, ranges.sortedBy { it.startMs })
     }
 
-    // The server's recap, preview and commercial ranges win over AniSkip's.
-    fun merge(server: Segments, a: Segments): Segments =
-        a.copy(ranges = (server.ranges + a.ranges.filter { r -> server.ranges.none { it.kind == r.kind } }).sortedBy { it.startMs })
+    // The server's kinds win over AniSkip's.
+    fun merge(server: Segments, a: Segments): Segments = CommunitySegments.merge(listOf(server, a))
 
     // In memory for the run: one answer per (MAL id, episode), one MAL id per AniList id.
     private val cache = HashMap<String, Segments?>()

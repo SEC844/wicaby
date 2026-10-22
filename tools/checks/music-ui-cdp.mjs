@@ -7,7 +7,8 @@
 // MU-03 library views: AC1 tab counts, AC2 album-artists toggle, AC3 disc headers and order, AC4 1,000 songs windowed
 //       and smooth, AC5 the track menu, AC6 tab / sort / view restored, AC7 arrow keys reach every control.
 // MU-04 bar and queue: AC1 bar, AC2 next from the bar and SMTC, AC3 drag / Delete / clear / save as playlist, AC4 shuffle
-//       and repeat, AC5 full-screen player (opaque with reduced transparency), AC6 shortcuts, AC7 paused restore.
+//       and repeat, AC5 full-screen player (opaque with reduced transparency), AC6 shortcuts, AC7 paused restore;
+//       Stop from the bar (Stopped reported, bar gone, saved queue cleared).
 // MU-05 lyrics: AC1 current line at 5 positions, AC2 click seeks, AC3 Emby .lrc stream, AC4 plain / none / 500, AC5
 //       reduced motion.
 // MU-06 mix and favourites: AC1 /Items/{id}/InstantMix from 5 kinds, AC2 radio top-up, AC3 hearts.
@@ -774,6 +775,20 @@ async function pass(kind) {
     await key('Escape');
     await soon('closed', async () => !(await ev(`!!document.querySelector('[data-now-playing]')`)));
     await stopPlayback();
+  }
+  // ======== Stop ======== paused, then the bar's Stop: Stopped reported, the bar gone, no queue to restore.
+  if (kind === 'emby') {
+    await play({ itemIds: marée, startIndex: 0 });
+    await until('track 1 playing', async () => ((st) => st.item?.id === marée[0] && st.positionMs > 300)(await state()), 10000);
+    await click('[data-now-playing-bar] [data-ctl="play"]');
+    await until('paused', async () => (await state()).paused, 5000);
+    const at = (await mockState()).reports.length;
+    await click('[data-now-playing-bar] [data-ctl="stop"]');
+    const gone = await soon('the bar gone', async () => !(await state()).active && !(await ev(`!!document.querySelector('[data-now-playing-bar]')`)), 10000);
+    const stopped = await soon('Stopped', async () => (await mockState()).reports.slice(at).some((r) => r.kind === 'stopped' && r.ItemId === marée[0]), 5000);
+    // The store writes after a short debounce.
+    const cleared = await soon('the saved queue cleared', () => JSON.parse(fs.readFileSync(path.join(profile, 'music-queue.json'), 'utf8')) === null, 5000);
+    check(Boolean(gone) && Boolean(stopped) && Boolean(cleared), `Stop from the bar: bar gone ${Boolean(gone)}, Stopped reported ${Boolean(stopped)}, saved queue cleared ${Boolean(cleared)}`);
   }
   // ======== MU-04 AC7 ======== restart with resumeQueue on: the bar is back, paused, nothing plays.
   if (kind === 'emby') {

@@ -21,7 +21,19 @@
     subtitle,
     width,
     showServer = false,
-  }: { item: BaseItem; variant?: 'poster' | 'thumb' | 'square'; subtitle?: string; width?: number; showServer?: boolean } = $props();
+    art,
+    onopen,
+  }: {
+    item: BaseItem;
+    variant?: 'poster' | 'thumb' | 'square';
+    subtitle?: string;
+    width?: number;
+    showServer?: boolean;
+    // Artwork chosen by the caller (a book folder's first cover); null: none.
+    art?: string | null;
+    // Opens in place (a folder in the library's Folders view) instead of the item page.
+    onopen?: () => void;
+  } = $props();
 
   // Merged lists name the server (set by the caller only when several are signed in).
   const server = $derived(showServer ? serverName(item.ServerId) : '');
@@ -32,7 +44,7 @@
   const music = $derived(variant !== 'thumb' && isMusicItem(item));
   let late = $state<{ id: string; src: string | null } | null>(null);
   const src = $derived(
-    variant === 'thumb' ? thumbUrl(item, 400) : music ? (musicArtNow(item, 330) ?? (late?.id === item.Id ? late.src : null)) : posterUrl(item, 330),
+    art !== undefined ? art : variant === 'thumb' ? thumbUrl(item, 400) : music ? (musicArtNow(item, 330) ?? (late?.id === item.Id ? late.src : null)) : posterUrl(item, 330),
   );
   const hash = $derived(blurhashOf(item, variant === 'thumb' && item.Type !== 'Episode' ? 'Thumb' : 'Primary'));
   const pct = $derived(progress(item));
@@ -101,6 +113,7 @@
 
   function open(e: MouseEvent): void {
     e.preventDefault();
+    if (onopen) return onopen();
     // A photo opens the photo viewer, never mpv or an item page.
     if (item.Type === 'Photo') return void (lonePhoto.assets = [asset(item)]);
     remember(item, src);
@@ -162,6 +175,7 @@
       <div class="ph" style:background={music && !hash ? placeholderBg(item.Name ?? '') : undefined}>
         {#if hash}<canvas use:blurhash={hash} aria-hidden="true"></canvas>{/if}
         {#if music && !hash}<span class="ph-initials" aria-hidden="true">{initials(item.Name ?? '')}</span>
+        {:else if !src && item.Type === 'Folder'}<span class="ph-name" aria-hidden="true"><Icon name="folder" size={44} stroke={1.4} /></span>
         {:else if !src || !hash}<span class="ph-name">{item.Name}</span>{/if}
       </div>
       {#if src}

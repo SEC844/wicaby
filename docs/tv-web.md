@@ -21,7 +21,7 @@ Home (hero, continue watching, next up, upcoming, Live TV now, recently added pe
 you watched), search, libraries with an A–Z rail, details pages with versions, tracks, seasons, extras and external
 ratings, watch history, and settings in the categories every Wicaby app shares. The player: direct play or HLS with a
 fallback to the server's conversion, audio and subtitle tracks (SDH and AD marked, remembered per series), its own
-WebVTT renderer, quality presets, chapters, trickplay thumbnails, skip intro and credits (AniSkip for anime), up next,
+WebVTT renderer, quality presets, chapters, trickplay thumbnails, skip intro and credits (AniSkip for anime, TheIntroDB community timestamps; IntroDB sends no CORS header for TVs), up next,
 speed, sleep timer, playback info and watch together (Jellyfin SyncPlay). Music (library rows, albums, artists, now
 playing with synced lyrics and an editable queue, an ambient layout, ListenBrainz and Last.fm scrobbling), Live TV
 (the guide, channel zapping, number entry, mini-guide, recordings and scheduled ones), photos (the timeline, albums,

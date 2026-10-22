@@ -205,6 +205,7 @@ function sanitizeExtras(s: Settings, d: Settings): void {
   p.aspect = oneOf(p.aspect, ASPECT_MODES, 'fit');
   p.cinemaMode = p.cinemaMode === true;
   p.aniskip = p.aniskip === true;
+  p.communitySegments = p.communitySegments === true;
   const scopes = ['off', 'global', 'library', 'title'] as const;
   const rs = { ...d.playback.rememberScopes, ...(p.rememberScopes ?? {}) };
   p.rememberScopes = {

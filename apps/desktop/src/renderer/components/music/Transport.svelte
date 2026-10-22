@@ -4,7 +4,7 @@
   import { playback } from '../../lib/stores.svelte';
   import Icon from '../Icon.svelte';
 
-  // Shuffle, previous, play/pause, next, repeat: the bar's and the full-screen player's controls. On = a --fill-2
+  // Shuffle, previous, play/pause, stop, next, repeat: the bar's and the full-screen player's controls. On = a --fill-2
   // background (Graphite: one accent, the play button).
   let { large = false }: { large?: boolean } = $props();
 
@@ -23,6 +23,9 @@
   </button>
   <button class="ctl play" data-ctl="play" title={t(s?.paused ? 'music.bar.play' : 'music.bar.pause')} aria-label={t(s?.paused ? 'music.bar.play' : 'music.bar.pause')} onclick={() => command({ type: 'toggle-pause' })}>
     <Icon name={s?.paused ? 'play' : 'pause'} size={large ? 26 : 18} fill stroke={0} />
+  </button>
+  <button class="ctl" data-ctl="stop" title={t('music.bar.stop')} aria-label={t('music.bar.stop')} onclick={() => command({ type: 'stop' })}>
+    <Icon name="stop" size={large ? 20 : 15} fill stroke={0} />
   </button>
   <button class="ctl" data-ctl="next" title={t('music.bar.next')} aria-label={t('music.bar.next')} onclick={() => command({ type: 'next' })}>
     <Icon name="next" size={large ? 24 : 18} fill stroke={0} />

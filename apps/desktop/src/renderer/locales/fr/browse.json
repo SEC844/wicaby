@@ -54,7 +54,16 @@
     },
     "empty": {
       "title": "Aucun élément",
-      "body": "Rien ne correspond à ces filtres."
+      "body": "Rien ne correspond à ces filtres.",
+      "folder": "Ce dossier est vide."
+    },
+    "view": {
+      "label": "Affichage",
+      "folders": "Dossiers",
+      "books": "Tous les livres"
+    },
+    "folders": {
+      "up": "Dossier parent"
     }
   },
   "all": "Tout",

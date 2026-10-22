@@ -60,6 +60,8 @@ export const settings = {
   audioDescription: new Setting<'prefer' | 'avoid' | 'any'>('audio_description', 'avoid'),
   // Anime openings and endings from aniskip.com when the server has no markers (core AniSkip.enabled).
   aniskip: new Setting('aniskip', false),
+  // Intro, recap, credits and preview from TheIntroDB when the server has none (core community_segments).
+  communitySegments: new Setting('community_segments', false),
   // Interface
   language: new Setting<'auto' | 'fr' | 'en'>('language', 'auto'),
   clock: new Setting('clock', true),

@@ -1,12 +1,16 @@
 // What the playback service loads after the first frame (loadExtras): Emby's intro skip mode and
-// trick-play thumbnails, as BIF (Emby) or tiles (Jellyfin), and the AniSkip fallback for anime markers.
-import { net } from 'electron';
+// trick-play thumbnails, as BIF (Emby) or tiles (Jellyfin), and the AniSkip and community fallbacks for markers.
+import { app, net } from 'electron';
 import { aniskipMarkers, aniskipTarget, aniskipUrl } from '../../shared/aniskip';
+import { communityMarkers, communityTarget, introDbTimes, introDbUrl, mergeMarkers, theIntroDbTimes, theIntroDbUrl } from '../../shared/community-segments';
 import type { MediaMarkers, SkipMode, Trickplay } from '../../shared/contract';
 import type { BaseItem, MediaSource } from '../../shared/models';
 import { buildQuery, type ApiClient } from '../connection/api-client';
+import { logger } from '../core/log';
 import { userItem } from '../connection/user-routes';
 import { mediaApiUrl } from './playback-model';
+
+const log = logger.scope('playback');
 
 export const EMBY_SKIP_MODE: Record<string, SkipMode> = { ShowButton: 'ask', AutoSkip: 'auto', None: 'off' };
 
@@ -45,11 +49,17 @@ export async function jellyfinTrickplay(api: ApiClient, item: BaseItem, source: 
 const aniskipCache = new Map<string, MediaMarkers | null>();
 const malOfAnilist = new Map<number, number | null>();
 
-// AniSkip answers "not found" with a 404 and a JSON body.
+// Per host, the time a 429 lets it be asked again.
+const retryAt = new Map<string, number>();
+
+// AniSkip answers "not found" with a 404 and a JSON body; a 404 without one is null.
 async function thirdParty(url: string, init: RequestInit = {}): Promise<unknown> {
-  const r = await net.fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
-  if (!r.ok && r.status !== 404) throw new Error(`${new URL(url).host} ${r.status}`);
-  return r.json();
+  const host = new URL(url).host;
+  if ((retryAt.get(host) ?? 0) > Date.now()) throw new Error(`${host} 429`);
+  const r = await net.fetch(url, { signal: AbortSignal.timeout(8000), ...init });
+  if (r.status === 429) retryAt.set(host, Date.now() + (Number(r.headers.get('retry-after')) || 60) * 1000);
+  if (!r.ok && r.status !== 404) throw new Error(`${host} ${r.status}`);
+  return r.ok ? r.json() : r.json().catch(() => null);
 }
 
 async function malOf(anilist: number): Promise<number | null> {
@@ -74,4 +84,33 @@ export async function aniskipFallback(api: ApiClient, userId: string, item: Base
   const key = `${mal}:${t.episode}`;
   if (!aniskipCache.has(key)) aniskipCache.set(key, aniskipMarkers(await thirdParty(aniskipUrl(mal, t.episode, durationMs))));
   return aniskipCache.get(key) ?? null;
+}
+
+// In memory for the run: one answer body per title / episode and service ("no data" included), parsed per play as
+// the sanity drops depend on the runtime.
+const communityBodies = new Map<string, unknown>();
+
+async function community(url: string): Promise<unknown> {
+  if (!communityBodies.has(url)) {
+    const headers = { Accept: 'application/json', 'User-Agent': `Wicaby/${app.getVersion()} (+https://github.com/WicaebethTheo/wicaby-releases)` };
+    communityBodies.set(url, await thirdParty(url, { headers, redirect: 'error', signal: AbortSignal.timeout(5000) }));
+  }
+  return communityBodies.get(url);
+}
+
+// Settings > Playback > Community timestamps: intro, recap, credits and preview of a movie or episode from TheIntroDB,
+// then IntroDB (TheIntroDB wins per kind). Sends the title's TMDB, TVDB or IMDb id and the episode numbers.
+export async function communityFallback(api: ApiClient, userId: string, item: BaseItem, durationMs: number): Promise<MediaMarkers | null> {
+  if ((item.Type !== 'Movie' && !(item.Type === 'Episode' && item.SeriesId)) || durationMs <= 0) return null;
+  const owner = item.Type === 'Episode' ? item.SeriesId! : item.Id;
+  const ids = item.Type === 'Movie' && item.ProviderIds ? item.ProviderIds : (await userItem<BaseItem>(api, userId, owner))?.ProviderIds;
+  const t = communityTarget(item, ids);
+  if (!t) return null;
+  const quiet = (p: Promise<MediaMarkers | null>) => p.catch((err) => (log.debug(`community segments: ${String(err)}`), null));
+  const idb = introDbUrl(t);
+  const [a, b] = await Promise.all([
+    quiet(community(theIntroDbUrl(t)).then((body) => communityMarkers(theIntroDbTimes(body, durationMs)))),
+    idb ? quiet(community(idb).then((body) => communityMarkers(introDbTimes(body, durationMs)))) : null,
+  ]);
+  return mergeMarkers(a, b);
 }

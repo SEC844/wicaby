@@ -62,6 +62,7 @@ import com.wika.wicaby.core.R as CoreR
 import com.wika.wicaby.core.data.Api
 import com.wika.wicaby.core.photos.photoAlbums
 import com.wika.wicaby.core.player.AniSkip
+import com.wika.wicaby.core.player.CommunitySegments
 import com.wika.wicaby.core.player.ScopedPrefs
 import com.wika.wicaby.core.data.DeviceCaps
 import com.wika.wicaby.core.data.HomeRows
@@ -356,25 +357,29 @@ private fun PlaybackSection(api: Api) {
             ChoiceRow(stringResource(R.string.countdown), secs.map { stringResource(R.string.seconds, it) }, secs.indexOf(TvSettings.countdown.value).coerceAtLeast(0), { TvSettings.countdown.value = secs[it] })
         }
     }
+    var community by remember { mutableStateOf(CommunitySegments.enabled) }
     Group(stringResource(R.string.group_skip)) {
         ChoiceRow(
             stringResource(R.string.skip_intro_mode),
             listOf(stringResource(R.string.skip_ask), stringResource(R.string.skip_auto), stringResource(R.string.skip_off)),
             TvSettings.skipIntro.value, { TvSettings.skipIntro.value = it },
         )
-        // Recaps, previews and commercials are Jellyfin media segments: nothing to set on Emby.
-        if (!api.server.isEmby) {
+        // Recaps, previews and commercials are Jellyfin media segments: on Emby, community timestamps bring recaps and previews.
+        if (!api.server.isEmby || community) {
             val skipOptions = listOf(stringResource(R.string.skip_ask), stringResource(R.string.skip_auto), stringResource(R.string.skip_off))
-            listOf(
+            listOfNotNull(
                 com.wika.wicaby.core.R.string.segment_recap to TvSettings.skipRecap,
                 com.wika.wicaby.core.R.string.segment_preview to TvSettings.skipPreview,
-                com.wika.wicaby.core.R.string.segment_commercial to TvSettings.skipCommercial,
+                (com.wika.wicaby.core.R.string.segment_commercial to TvSettings.skipCommercial).takeIf { !api.server.isEmby },
             ).forEach { (label, s) -> ChoiceRow(stringResource(label), skipOptions, s.value, { s.value = it }) }
         }
     }
     Group(stringResource(CoreR.string.aniskip), stringResource(CoreR.string.aniskip_hint)) {
         var aniskip by remember { mutableStateOf(AniSkip.enabled) }
         ToggleRow(stringResource(CoreR.string.aniskip), aniskip) { AniSkip.enabled = it; aniskip = it }
+    }
+    Group(stringResource(CoreR.string.community_segments), stringResource(CoreR.string.community_segments_summary)) {
+        ToggleRow(stringResource(CoreR.string.community_segments), community) { CommunitySegments.enabled = it; community = it }
     }
     Group(stringResource(R.string.group_picture), stringResource(R.string.display_mode_hint)) {
         ChoiceRow(
