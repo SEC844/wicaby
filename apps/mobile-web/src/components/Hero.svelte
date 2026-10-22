@@ -13,8 +13,9 @@
   import { eyebrowLine, metaLine } from '../lib/format';
   import { itemRoute, nav } from '../lib/nav.svelte';
 
-  // onslide: the title on show (its index), as the slides move.
-  let { items, api, onslide }: { items: BaseItem[]; api: Api; onslide?: (item: BaseItem) => void } = $props();
+  // tops: each title's artwork top colour (lib/status-colour), its top fading into it under the status bar;
+  // onposition: where the track is, in slides (1.5 = halfway from the second to the third), as it moves.
+  let { items, api, tops = {}, onposition }: { items: BaseItem[]; api: Api; tops?: Record<string, string>; onposition?: (at: number) => void } = $props();
 
   const SLIDE_MS = 8000;
   const dpr = Math.min(3, window.devicePixelRatio || 2);
@@ -25,21 +26,22 @@
   let index = $state(0);
   let touching = $state(false);
   let offscreen = $state(false);
-  // Artwork loads for the slide shown and its neighbours, then stays.
+  // Artwork: the first slide at once, every other one right after it (a swipe never meets an empty slide).
   let warm = $state(new Set<number>([0, 1]));
+  $effect(() => {
+    const n = items.length;
+    const id = setTimeout(() => (warm = new Set(Array.from({ length: n }, (_, i) => i))), 600);
+    return () => clearTimeout(id);
+  });
 
   function onScroll(): void {
+    onposition?.(track.scrollLeft / track.clientWidth);
     const i = Math.round(track.scrollLeft / track.clientWidth);
     if (i !== index) {
       index = i;
       warm = new Set([...warm, i - 1, i, i + 1]);
     }
   }
-
-  $effect(() => {
-    const item = items[index];
-    if (item) onslide?.(item);
-  });
 
   $effect(() => {
     if (reduced || touching || offscreen || items.length < 2) return;
@@ -68,6 +70,7 @@
       {@const mark = logo(item)}
       <article class="slide" aria-roledescription="slide" aria-label={item.Name} style:background-color={placeholder(item, 'Backdrop') ?? '#111'}>
         {#if art}<img class="art" src={art} alt="" decoding="async" fetchpriority={i === 0 ? 'high' : 'low'} />{/if}
+        {#if tops[item.Id]}<div class="blend" style:--top={tops[item.Id]} aria-hidden="true"></div>{/if}
         <div class="shade"></div>
         <div class="content">
           <p class="eyebrow on">{eyebrowLine(item)}</p>
@@ -104,6 +107,25 @@
     height: min(calc(100vw * 1.12), 560px);
     transform-origin: 50% 100%;
     transform: scale(var(--stretch, 1));
+  }
+  /* The artwork's top fades into its top colour, the status bar's while it shows (lib/status-colour): solid at the
+     edge, then eased out, so no seam shows under the clock. */
+  .blend {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(
+      to bottom,
+      var(--top) 0,
+      var(--top) 6px,
+      color-mix(in srgb, var(--top) 72%, transparent) 30px,
+      color-mix(in srgb, var(--top) 38%, transparent) 62px,
+      color-mix(in srgb, var(--top) 12%, transparent) 94px,
+      transparent 120px
+    );
+    pointer-events: none;
   }
   .track {
     height: 100%;

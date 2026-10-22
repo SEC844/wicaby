@@ -105,3 +105,11 @@ export async function backdropTop(api: Api, item: BaseItem): Promise<string | un
   const hashes = item.ImageBlurHashes?.Backdrop;
   return blurhashTop((tag && hashes?.[tag]) || (hashes ? Object.values(hashes)[0] : undefined));
 }
+
+// Between two rgb() colours, [t] of the way (the status bar follows a slide being swiped).
+export function mixRgb(a: string, b: string, t: number): string {
+  const pa = a.match(/\d+/g)?.map(Number) ?? [0, 0, 0];
+  const pb = b.match(/\d+/g)?.map(Number) ?? pa;
+  const c = pa.map((v, k) => Math.round(v + (pb[k] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}

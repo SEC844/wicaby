@@ -16,7 +16,7 @@
   import Spinner from '../components/Spinner.svelte';
   import { useHome } from '../lib/home.svelte';
   import { itemRoute, nav, shell, stack } from '../lib/nav.svelte';
-  import { backdropTop, setPageStatusColour } from '../lib/status-colour';
+  import { backdropTop, mixRgb, setPageStatusColour } from '../lib/status-colour';
 
   const a = api()!;
   const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
@@ -42,17 +42,31 @@
   const open = (item: BaseItem) => nav.push(itemRoute(item));
 
   // At the top of Home, the status bar takes the colour along the top of the featured title's artwork, and the
-  // artwork fades into it (.blend): it seems to run on under the clock. Anywhere else, the canvas.
-  let slide = $state<BaseItem | null>(null);
-  let topColour = $state<string | undefined>(undefined);
+  // artwork fades into it (Hero .blend): it seems to run on under the clock. Every slide's colour is read as soon as
+  // the hero loads; while a slide is swiped the status bar blends the two, following the finger. Anywhere else,
+  // the canvas.
+  let tops = $state<Record<string, string>>({});
+  let at = $state(0);
   $effect(() => {
-    const item = slide;
-    if (!item) return;
+    const items = home.hero;
     let live = true;
-    void backdropTop(a, item).then((c) => live && (topColour = c));
+    for (const item of items) {
+      if (tops[item.Id]) continue;
+      void backdropTop(a, item).then((c) => {
+        if (live && c) tops[item.Id] = c;
+      });
+    }
     return () => {
       live = false;
     };
+  });
+  const topColour = $derived.by(() => {
+    const items = home.hero;
+    if (!items.length) return undefined;
+    const i = Math.max(0, Math.min(items.length - 1, Math.floor(at)));
+    const from = tops[items[i].Id];
+    const to = tops[items[Math.min(items.length - 1, i + 1)].Id] ?? from;
+    return from && to ? mixRgb(from, to, at - i) : from;
   });
   const atTop = $derived(shell.tab === 'home' && stack[stack.length - 1]?.route.name === 'main' && !solid && home.hero.length > 0);
   $effect(() => {
@@ -64,10 +78,7 @@
 <div class="page">
   <div class="scroller" data-scroll bind:this={scroller} onscroll={onScroll}>
     {#if home.hero.length}
-      <div class="hero-box" bind:this={heroBox} style:--hero-top={topColour ?? 'transparent'}>
-        <Hero items={home.hero} api={a} onslide={(i) => (slide = i)} />
-        <div class="blend" aria-hidden="true"></div>
-      </div>
+      <div bind:this={heroBox}><Hero items={home.hero} api={a} {tops} onposition={(p) => (at = p)} /></div>
     {:else}
       <div class="lead" aria-hidden="true"></div>
     {/if}
@@ -97,19 +108,6 @@
     overflow-y: auto;
     overscroll-behavior-y: contain;
     padding-bottom: calc(var(--tabbar) + 12px);
-  }
-  /* The artwork's top edge fades into the status bar's colour (the same one), so the seam does not show. */
-  .hero-box {
-    position: relative;
-  }
-  .blend {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 56px;
-    background: linear-gradient(to bottom, var(--hero-top), transparent);
-    pointer-events: none;
   }
   /* No hero: the content starts under the top row. */
   .lead {
