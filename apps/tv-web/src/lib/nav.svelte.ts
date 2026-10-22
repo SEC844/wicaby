@@ -1,7 +1,7 @@
 // Screen stack, as the Android TV app's Route stack (MainActivity.kt). Screens below the top stay mounted but
 // hidden, so Back returns instantly with their scroll position and focused element intact.
 import type { BaseItem } from '$shared/models';
-import { focusFirst, focused, setFocus } from './focus';
+import { clearFocus, focusFirst, focused, setFocus } from './focus';
 import type { Server } from './session.svelte';
 
 export type Route =
@@ -46,9 +46,12 @@ interface Entry {
 let nextKey = 1;
 export const stack = $state<Entry[]>([]);
 
+// The screen being covered remembers its element for Back and lets the focus go: an impatient OK on a screen still
+// loading must not click the hidden one again (a second push).
 function leaveTop(): void {
   const top = stack[stack.length - 1];
   if (top) top.lastFocus = focused();
+  clearFocus();
 }
 
 // Focus the new top screen once it has rendered: what it had before (Back), else its default element. A default
@@ -69,6 +72,7 @@ export const nav = {
     settle(null);
   },
   reset(route: Route): void {
+    clearFocus();
     stack.splice(0, stack.length, { key: nextKey++, route, lastFocus: null });
     settle(null);
   },

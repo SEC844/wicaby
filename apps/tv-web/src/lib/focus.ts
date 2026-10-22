@@ -21,6 +21,14 @@ export function focused(): HTMLElement | null {
   return current && current.isConnected ? current : null;
 }
 
+// Nothing focused: a screen just pushed, whose content is not there yet. The screen below keeps its element (nav's
+// lastFocus) but no longer takes OK or the arrows' origin while hidden.
+export function clearFocus(): void {
+  current?.classList.remove('focused');
+  current = null;
+  pressed = null;
+}
+
 function groupsOf(el: Element): HTMLElement[] {
   const out: HTMLElement[] = [];
   for (let p = el.parentElement; p; p = p.parentElement) if (p.hasAttribute('data-focus-group')) out.push(p);
