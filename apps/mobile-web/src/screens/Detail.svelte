@@ -32,6 +32,7 @@
   import { showAlert } from '../lib/overlay.svelte';
   import { menuPress, openItemMenu } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
+  import { reveal } from '../lib/motion';
 
   let { id, serverId }: { id: string; serverId?: string } = $props();
   // A page is opened for one title and never re-targeted: the initial value is the value.
@@ -194,15 +195,36 @@
     pickVersion++;
   }
 
-  // ---- The page: parallax backdrop, a bar once the title has scrolled away ----
+  // ---- The page as it scrolls (one write per frame, transform and opacity only) ----
+  // The page rises over its artwork, which drifts at half speed, softens (a blurred copy fading in) and dims, so the
+  // text over it stays legible; the poster and the titles fade as they near the top, where the bar takes the title
+  // over. A pull down stretches the artwork.
   let scroller: HTMLElement;
   let art = $state<HTMLElement>();
+  let soft = $state<HTMLElement>();
+  let identity = $state<HTMLElement>();
+  let bar = $state<HTMLElement>();
   let solid = $state(false);
   let expanded = $state(false);
+  let frame = 0;
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
   function onScroll(): void {
+    frame ||= requestAnimationFrame(paintScroll);
+  }
+  function paintScroll(): void {
+    frame = 0;
     const y = scroller.scrollTop;
-    if (art) art.style.transform = y > 0 ? `translate3d(0, ${y * 0.5}px, 0)` : `scale(${1 + -y / art.offsetHeight})`;
-    solid = y > (art ? art.offsetHeight - 60 : 60);
+    const h = art?.offsetHeight ?? 320;
+    if (art) art.style.transform = y > 0 ? `translate3d(0, ${(y * 0.5).toFixed(1)}px, 0)` : `scale(${(1 + -y / h).toFixed(4)})`;
+    soft?.style.setProperty('opacity', clamp01(y / (h * 0.7)).toFixed(3));
+    const fade = clamp01((y - h * 0.3) / (h * 0.4));
+    if (identity) {
+      identity.style.opacity = (1 - fade).toFixed(3);
+      identity.style.transform = fade ? `translate3d(0, ${(-fade * 14).toFixed(1)}px, 0) scale(${(1 - fade * 0.05).toFixed(4)})` : '';
+    }
+    const show = clamp01((y - (h - 150)) / 80);
+    bar?.style.setProperty('--show', show.toFixed(3));
+    solid = show > 0.5;
   }
 
   // Cast and crew, as Emby lists them: the actors first (in the server's order), then directors, writers and the rest,
@@ -234,9 +256,12 @@
       <header class="header">
         <div class="art" bind:this={art} style:background-color={placeholder(item, 'Backdrop') ?? placeholder(item, 'Primary') ?? '#111'}>
           {#if backdrop}<img src={backdrop} alt="" decoding="async" fetchpriority="high" />{/if}
+          <div class="soft" bind:this={soft}>
+            {#if backdrop}<img src={backdrop} alt="" decoding="async" />{/if}
+          </div>
           <div class="shade"></div>
         </div>
-        <div class="identity">
+        <div class="identity" bind:this={identity}>
           {#if poster}
             <img class="poster" src={poster} alt="" decoding="async" />
           {/if}
@@ -251,6 +276,7 @@
         </div>
       </header>
 
+      <div class="content">
       <div class="body">
         <button class="pill primary play pressable" onclick={onPlay} disabled={!target && !book}>
           <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
@@ -302,7 +328,7 @@
         {/if}
 
         {#if item.Taglines?.[0] || item.Overview || tags.length}
-          <div class="about">
+          <div class="about" use:reveal>
             {#if item.Taglines?.[0]}<p class="headline">{item.Taglines[0]}</p>{/if}
             {#if item.Overview}
               <button class="overview callout" class:expanded onclick={() => (expanded = !expanded)}>{item.Overview}</button>
@@ -316,7 +342,7 @@
       </div>
 
       {#if series && seasons.value?.length}
-        <div class="season-row">
+        <div class="season-row" use:reveal>
           {#each seasons.value as s, i (s.Id)}
             <button class="chip-btn" class:selected={i === seasonIndex} onclick={() => (picked = i)}>{s.Name?.trim() || t('season_n', s.IndexNumber ?? i + 1)}</button>
           {/each}
@@ -331,7 +357,7 @@
           {#each shownEpisodes as ep (ep.Id)}
             {@const thumb = client.thumb(ep, Math.round(150 * dpr))}
             {@const done = ep.UserData?.PlayedPercentage}
-            <button class="episode pressable" onclick={() => play(ep)} use:longpress={menuPress(ep)}>
+            <button class="episode pressable" onclick={() => play(ep)} use:longpress={menuPress(ep)} use:reveal>
               <span class="ep-art" style:background-color={placeholder(ep, 'Primary') ?? undefined}>
                 {#if thumb}<img src={thumb} alt="" loading="lazy" decoding="async" />{/if}
                 {#if done}<span class="ep-bar"><span style:transform="scaleX({done / 100})"></span></span>{/if}
@@ -347,7 +373,7 @@
       {/if}
 
       {#if settled && people.length}
-        <section class="people">
+        <section class="people" use:reveal>
           <h2 class="title-3 head">{t('web_cast_crew')}</h2>
           <div class="shelf-row">
             {#each people as p (p.Id + (p.Role ?? ''))}
@@ -365,15 +391,16 @@
       {/if}
 
       {#if settled && extras.value?.length}
-        <Shelf title={t('bonus')} items={extras.value} api={client} wide onopen={(i) => playTrailer(i)} />
+        <div use:reveal><Shelf title={t('bonus')} items={extras.value} api={client} wide onopen={(i) => playTrailer(i)} /></div>
       {/if}
       {#if settled && similar.value?.length}
-        <Shelf title={t('similar')} items={similar.value} api={client} onopen={(i) => nav.push(itemRoute(i))} />
+        <div use:reveal><Shelf title={t('similar')} items={similar.value} api={client} onopen={(i) => nav.push(itemRoute(i))} /></div>
       {/if}
+      </div>
     {/if}
   </div>
 
-  <div class="bar" class:solid>
+  <div class="bar" class:solid bind:this={bar}>
     <span class="headline ellipsis">{item?.Name ?? ''}</span>
   </div>
   <button class="round back" class:on-art={!solid} aria-label={t('back')} onclick={() => handleBack()}>
@@ -407,10 +434,16 @@
     white-space: nowrap;
     min-width: 0;
   }
-  /* The backdrop, then the poster and the titles overlapping its foot (96 px into it). */
+  /* The backdrop, then the poster and the titles overlapping its foot (96 px into it). Everything under the header
+     (.content) stacks above the artwork, which drifts down behind it. */
   .header {
     position: relative;
+    z-index: 0;
     padding-bottom: 4px;
+  }
+  .content {
+    position: relative;
+    z-index: 1;
   }
   .art {
     position: relative;
@@ -427,6 +460,23 @@
     object-fit: cover;
     object-position: 50% 25%;
   }
+  /* The artwork softened: blurred once (a still layer), only its opacity follows the scroll. */
+  .soft {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: color-mix(in srgb, var(--bg) 35%, transparent);
+    will-change: opacity;
+  }
+  .soft > img {
+    position: absolute;
+    inset: -40px;
+    width: calc(100% + 80px);
+    height: calc(100% + 80px);
+    object-fit: cover;
+    object-position: 50% 25%;
+    filter: blur(28px) saturate(1.5) brightness(0.7);
+  }
   .shade {
     position: absolute;
     inset: 0;
@@ -437,6 +487,8 @@
   .identity {
     position: relative;
     margin-top: -96px;
+    transform-origin: 0 100%;
+    will-change: opacity, transform;
     padding: 0 max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
     display: flex;
     align-items: flex-end;
@@ -720,16 +772,17 @@
     padding: var(--safe-top) 72px 0;
     display: grid;
     place-items: center;
-    /* The canvas, not a blur over the artwork (the top row of every page). */
+    /* The canvas, not a blur over the artwork (the top row of every page), coming in with the scroll; the title
+       rises into it. */
+    --show: 0;
     background: var(--bg);
-    border-bottom: 0.5px solid var(--separator);
-    opacity: 0;
+    border-bottom: 0.5px solid color-mix(in srgb, var(--separator) calc(var(--show) * 100%), transparent);
+    opacity: var(--show);
     pointer-events: none;
-    transition: opacity var(--t-fast) linear;
     z-index: 4;
   }
-  .bar.solid {
-    opacity: 1;
+  .bar > span {
+    transform: translate3d(0, calc((1 - var(--show)) * 10px), 0);
   }
   .back {
     position: absolute;

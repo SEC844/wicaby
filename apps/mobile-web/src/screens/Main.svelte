@@ -4,6 +4,7 @@
   import { runHomeRefresh } from '$tv/auto-refresh';
   import { api } from '$tv/session.svelte';
   import { onMount } from 'svelte';
+  import { tabIn } from '../lib/motion';
   import { shell, TABS, type TabId } from '../lib/nav.svelte';
   import HomeTab from '../tabs/HomeTab.svelte';
   import LibrariesTab from '../tabs/LibrariesTab.svelte';
@@ -17,6 +18,16 @@
   import { topInset } from '../lib/viewport';
   import { standalone } from '../platform';
 
+  // A tab switch slides the tab's root in (lib/motion tabIn); a tab showing a pushed page is the page layer's.
+  const roots: Partial<Record<TabId, HTMLElement>> = {};
+  let shown = shell.tab;
+  $effect(() => {
+    const tab = shell.tab;
+    if (tab === shown) return;
+    shown = tab;
+    const el = roots[tab];
+    if (el && shell.op === 'tab') tabIn(el, shell.dir);
+  });
   const visited = $state<Record<TabId, boolean>>({ home: true, libraries: false, search: false, downloads: false, settings: false });
   $effect.pre(() => {
     visited[shell.tab] = true;
@@ -38,7 +49,7 @@
 
 {#each TABS as tab (tab)}
   {#if visited[tab]}
-    <div class="tab" class:on={shell.tab === tab} inert={shell.tab !== tab}>
+    <div class="tab" class:on={shell.tab === tab} inert={shell.tab !== tab} bind:this={roots[tab]}>
       {#if tab === 'home'}<HomeTab />
       {:else if tab === 'libraries'}<LibrariesTab />
       {:else if tab === 'search'}<SearchTab />

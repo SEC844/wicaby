@@ -329,3 +329,16 @@ p {
     transform: translateX(100%);
   }
 }
+
+/* lib/motion.ts reveal */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition:
+    opacity 520ms var(--ease),
+    transform 640ms var(--ease);
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: none;
+}

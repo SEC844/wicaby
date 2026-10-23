@@ -5,7 +5,7 @@
   // edge drags the top page back with the finger (a standalone web app gets no system back gesture), and lets go
   // to the side the finger was heading. Only transform and opacity move, on the compositor.
   import type { Snippet } from 'svelte';
-  import { ease, reducedMotion } from '../lib/motion';
+  import { ease, reducedMotion, tabIn } from '../lib/motion';
   import { handleBack, isFullScreen, mounted, shell, stack, type Entry } from '../lib/nav.svelte';
   import PageScope from './PageScope.svelte';
 
@@ -24,7 +24,20 @@
     return top && isFullScreen(top.route) ? 'covered' : 'behind';
   }
 
-  // A tab switch or a reset shows its page at once: no slide.
+  // A tab switch or a reset shows its page at once: no slide. A tab showing a pushed page brings it in from the
+  // side of the tab tapped (a tab at its root: screens/Main.svelte).
+  let lastTab = shell.tab;
+  $effect(() => {
+    const tab = shell.tab;
+    if (tab === lastTab) return;
+    lastTab = tab;
+    const e = stack[stack.length - 1];
+    if (shell.op !== 'tab' || !e || e.route.name === 'main' || isFullScreen(e.route)) return;
+    queueMicrotask(() => {
+      const node = layer?.querySelector(`[data-key="${e.key}"]`);
+      if (node) tabIn(node, shell.dir);
+    });
+  });
   let instant = $state(true);
   $effect.pre(() => {
     instant = shell.op === 'tab' || shell.op === 'reset';

@@ -191,7 +191,7 @@ export function drawPgs(canvas: HTMLCanvasElement, part: PgsPart, palette: Uint3
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const px = decodePgs(part, palette);
-  ctx.putImageData(new ImageData(new Uint8ClampedArray(px.buffer), part.width, part.height), 0, 0);
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(px.buffer as ArrayBuffer), part.width, part.height), 0, 0);
 }
 
 // zlib, as mkvmerge stores PGS and VobSub tracks by default.

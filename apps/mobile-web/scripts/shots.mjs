@@ -60,6 +60,17 @@ const SCENES = {
     await page.locator('[data-screen-top] button.card').nth(2).click();
     await page.waitForTimeout(1200);
   },
+  // A title's page scrolled: the artwork softening under the page, the titles fading, then the bar.
+  async detailMid(page) {
+    await SCENES.series(page);
+    await page.locator('[data-screen-top] .scroller').evaluate((el) => el.scrollTo(0, 190));
+    await page.waitForTimeout(700);
+  },
+  async detailLow(page) {
+    await SCENES.series(page);
+    await page.locator('[data-screen-top] .scroller').evaluate((el) => el.scrollTo(0, 420));
+    await page.waitForTimeout(1200);
+  },
   async series(page) {
     await page.locator('[data-screen-top] section.shelf', { hasText: 'TV Shows' }).locator('button.card').first().click();
     await page.waitForTimeout(1200);

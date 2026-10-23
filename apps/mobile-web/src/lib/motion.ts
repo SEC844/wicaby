@@ -52,6 +52,34 @@ export function lift(node: HTMLElement, { y = 18, duration = 320 }: { y?: number
   return { duration, easing: ease, css: (t, u) => `opacity: ${t}; transform: translate3d(0, ${(u * y).toFixed(1)}px, 0)` };
 }
 
+// A tab coming in: from the side of the tab tapped, a short way, as it fades in over the one it replaces.
+export function tabIn(node: Element, dir: number): void {
+  if (reduced()) return;
+  node.animate(
+    [
+      { opacity: 0, transform: `translate3d(${dir * 36}px, 0, 0)` },
+      { opacity: 1, transform: 'none' },
+    ],
+    { duration: 360, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' },
+  );
+}
+
+// use:reveal: a block comes up and in the first time it scrolls into view (once; at once with Reduce motion).
+export function reveal(node: HTMLElement) {
+  if (reduced() || typeof IntersectionObserver === 'undefined') return;
+  node.classList.add('reveal');
+  const io = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      node.classList.add('revealed');
+      io.disconnect();
+    },
+    { rootMargin: '0px 0px -6% 0px' },
+  );
+  io.observe(node);
+  return { destroy: () => io.disconnect() };
+}
+
 // Pull the sheet down by its grip (the node, e.g. its handle and title) to close it: past a quarter of its height
 // or with a flick it closes, else it springs back.
 export function dragDismiss(grip: HTMLElement, onclose: () => void) {

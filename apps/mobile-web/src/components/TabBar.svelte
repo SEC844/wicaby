@@ -1,8 +1,9 @@
 <script lang="ts">
   // The tab bar, as the Android mobile app's (MainShell's NavigationBar): the full width at the bottom, on the
   // elevated surface, four tabs with their labels; the current one has a soft pill behind its icon (selection
-  // shows as a fill, never as the accent). Settings has no tab: it opens from the account menu (ProfileButton). A tap
-  // on the current tab returns it to its root, or to its top.
+  // shows as a fill, never as the accent). The pill slides to the tab tapped, stretching on the way and settling
+  // with a little spring; the icon gives a small bounce. Settings has no tab: it opens from the account menu
+  // (ProfileButton). A tap on the current tab returns it to its root, or to its top.
   import Download from '@lucide/svelte/icons/download';
   import House from '@lucide/svelte/icons/house';
   import Library from '@lucide/svelte/icons/library';
@@ -10,6 +11,7 @@
   import { t } from '$tv/i18n.svelte';
   import { nav, shell, type TabId } from '../lib/nav.svelte';
   import { look } from '../lib/look.svelte';
+  import { reducedMotion } from '../lib/motion';
 
   const TABS: { id: TabId; icon: typeof House; label: string }[] = [
     { id: 'home', icon: House, label: 'tab_home' },
@@ -17,16 +19,53 @@
     { id: 'downloads', icon: Download, label: 'nav_downloads' },
     { id: 'search', icon: Search, label: 'tab_search' },
   ];
+  const index = $derived(Math.max(0, TABS.findIndex((t) => t.id === shell.tab)));
+
+  let pill = $state<HTMLElement>();
+  let from = -1;
+  $effect(() => {
+    const to = index;
+    if (from >= 0 && from !== to && pill && !reducedMotion()) {
+      // Stretched the more the farther it goes, then back to its size past the target and settling.
+      const stretch = 1 + Math.min(0.5, 0.18 * Math.abs(to - from));
+      pill.animate(
+        [
+          { transform: `translate3d(${from * 100}%, 0, 0)` },
+          { transform: `translate3d(${(from + (to - from) * 0.55) * 100}%, 0, 0) scaleX(${stretch})`, offset: 0.45 },
+          { transform: `translate3d(${to * 100}%, 0, 0)` },
+        ],
+        { duration: 460, easing: 'cubic-bezier(0.34, 1.32, 0.5, 1)' },
+      );
+    }
+    from = to;
+  });
+
+  // The icon of the tab tapped bounces once.
+  function bounce(node: HTMLElement): void {
+    if (reducedMotion()) return;
+    node.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.82)', offset: 0.3 }, { transform: 'scale(1.08)', offset: 0.7 }, { transform: 'scale(1)' }], { duration: 420, easing: 'ease-out' });
+  }
 </script>
 
 <nav class="bar" class:bare={!look.tabLabels} aria-label="Wicaby">
-  {#each TABS as tab (tab.id)}
-    {@const on = shell.tab === tab.id}
-    <button class="tab" class:on aria-current={on ? 'page' : undefined} onclick={() => nav.selectTab(tab.id)}>
-      <span class="pill-bg"><tab.icon size={22} strokeWidth={on ? 2 : 1.6} aria-hidden="true" /></span>
-      {#if look.tabLabels}<span class="name">{t(tab.label)}</span>{/if}
-    </button>
-  {/each}
+  <div class="tabs">
+    <span class="slot" bind:this={pill} style:transform="translate3d({index * 100}%, 0, 0)" aria-hidden="true"><span class="pill"></span></span>
+    {#each TABS as tab (tab.id)}
+      {@const on = shell.tab === tab.id}
+      <button
+        class="tab"
+        class:on
+        aria-current={on ? 'page' : undefined}
+        onclick={(e) => {
+          if (!on) bounce((e.currentTarget as HTMLElement).querySelector('.icon')!);
+          nav.selectTab(tab.id);
+        }}
+      >
+        <span class="icon"><tab.icon size={22} strokeWidth={on ? 2 : 1.6} aria-hidden="true" /></span>
+        {#if look.tabLabels}<span class="name">{t(tab.label)}</span>{/if}
+      </button>
+    {/each}
+  </div>
 </nav>
 
 <style>
@@ -42,7 +81,35 @@
     border-top: 0.5px solid var(--separator);
     z-index: 10;
   }
+  .tabs {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+  /* A quarter of the row, moved by whole quarters; the pill sits where a tab's icon does. */
+  .slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 25%;
+    height: 56px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .pill {
+    width: 58px;
+    height: 30px;
+    margin-top: calc(28px - 23.5px);
+    border-radius: 15px;
+    background: var(--fill-3);
+  }
+  .bare .pill {
+    margin-top: 13px;
+  }
   .tab {
+    position: relative;
     flex: 1;
     min-width: 0;
     height: 56px;
@@ -53,18 +120,17 @@
     gap: 4px;
     color: var(--label-2);
   }
-  .pill-bg {
+  .icon {
     width: 58px;
     height: 30px;
-    border-radius: 15px;
     display: grid;
     place-items: center;
   }
+  .tab {
+    transition: color 240ms var(--ease);
+  }
   .on {
     color: var(--label);
-  }
-  .on .pill-bg {
-    background: var(--fill-3);
   }
   .name {
     font-size: 11px;

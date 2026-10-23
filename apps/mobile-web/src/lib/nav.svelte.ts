@@ -68,7 +68,8 @@ const tabStacks: Record<TabId, Entry[]> = { home: [], libraries: [], search: [],
 let full: Entry[] = [];
 
 // op: what last changed the stack, for the page layer's motion (a push slides in, a tab switch is instant).
-export const shell = $state<{ tab: TabId; reselect: number; op: 'push' | 'back' | 'reset' | 'tab' }>({ tab: 'home', reselect: 0, op: 'reset' });
+// dir: the side the last tab switch came from (1: a tab to the right of the previous one), for its motion.
+export const shell = $state<{ tab: TabId; reselect: number; op: 'push' | 'back' | 'reset' | 'tab'; dir: 1 | -1 }>({ tab: 'home', reselect: 0, op: 'reset', dir: 1 });
 // What is shown, bottom to top: the root, the current tab's pages, the full-screen pages.
 export const stack = $state<Entry[]>([]);
 // Every mounted page (each tab keeps its own), for the screen layer: hidden ones keep their state.
@@ -125,6 +126,7 @@ export const nav = {
       tabStacks[tab] = [];
       shell.op = 'back';
     } else {
+      shell.dir = TABS.indexOf(tab) > TABS.indexOf(shell.tab) ? 1 : -1;
       shell.tab = tab;
       shell.op = 'tab';
     }
