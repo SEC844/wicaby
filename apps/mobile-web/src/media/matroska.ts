@@ -86,6 +86,8 @@ export interface Track {
   bitDepth?: number;
   // Header stripping: bytes removed from every frame, put back on read.
   stripped?: Uint8Array;
+  // zlib-compressed frames: subtitle tracks only (mkvmerge's default for PGS), inflated by their reader.
+  zlib?: boolean;
   // Dolby Vision configuration record: its box type (dvcC up to profile 7, dvvC above) and payload.
   dolbyVision?: { box: 'dvcC' | 'dvvC'; data: Uint8Array };
 }
@@ -232,8 +234,9 @@ function parseTracks(b: Uint8Array): Track[] {
                   if (c.id === ID.ContentCompAlgo) algo = uint(c.data);
                   else if (c.id === ID.ContentCompSettings) settings = c.data.slice();
                 }
-                // 3 = header stripping; zlib-compressed tracks (0) are not supported.
+                // 3 = header stripping; zlib (0) only on subtitle tracks (marked below).
                 if (algo === 3) t.stripped = settings;
+                else if (algo === 0) t.zlib = true;
                 else t.codec = `${t.codec ?? ''}+compressed`;
               }
           break;
@@ -251,6 +254,7 @@ function parseTracks(b: Uint8Array): Track[] {
       }
     }
     const kind: TrackKind | null = t.type === 1 ? 'video' : t.type === 2 ? 'audio' : t.type === 17 ? 'subtitle' : null;
+    if (t.zlib && kind !== 'subtitle') t.codec = `${t.codec ?? ''}+compressed`;
     if (kind && t.number !== undefined && t.codec && t.enabled) out.push({ ...(t as Track), kind });
   }
   return out;

@@ -49,6 +49,8 @@ export interface VideoPlayer {
   // A player that reads the file itself (the phone's remux) gives the cues of the text subtitle at [position] among
   // the file's subtitle tracks as they are read, so the server does not extract them; false when it cannot.
   embeddedCues?(position: number, onChange: (cues: Cue[]) => void): boolean;
+  // Whether embeddedCues would take that subtitle (no reload needed to show it).
+  drawsEmbedded?(position: number): boolean;
   on<E extends keyof PlayerEvents>(event: E, cb: PlayerEvents[E]): () => void;
 }
 

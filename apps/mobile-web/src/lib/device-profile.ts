@@ -8,8 +8,8 @@
 //    (DTS, TrueHD, Vorbis…).
 // 4. Without ManagedMediaSource (iOS < 17.1): the server's HLS. HEVC and Dolby Vision play from fMP4 segments only,
 //    never MPEG-TS: Jellyfin segments fMP4, Emby MPEG-TS, so Emby's HLS transcodes are H.264 there.
-// AC3 and EAC3 (Dolby Digital, Dolby Digital Plus with Atmos) are kept: 5.1 stays 5.1. Image subtitles (PGS,
-// VobSub) are burnt in by the server.
+// AC3 and EAC3 (Dolby Digital, Dolby Digital Plus with Atmos) are kept: 5.1 stays 5.1. PGS subtitles in a Matroska
+// file are decoded by the phone too (media/pgs.ts); other image subtitles (VobSub, DVB) are burnt in by the server.
 import type { Caps } from '../platform/caps';
 import type { ServerKind } from '$tv/api';
 import { PASS_OFF, PASS_ON, settings } from '$tv/settings.svelte';
@@ -108,13 +108,14 @@ export function deviceProfile(c: Caps, server: ServerKind, maxBitrate: number, m
         : []),
     ],
     ResponseProfiles: [],
-    // Text subtitles inside a Matroska file are read by the phone (Embed); others come as WebVTT the app draws
-    // (lib/subtitles.ts); image subtitles are burnt in.
+    // Text and PGS subtitles inside a Matroska file are read by the phone (Embed); other text comes as WebVTT the
+    // app draws (lib/subtitles.ts); other image subtitles are burnt in.
     SubtitleProfiles: [
       ...(burnText
         ? ['srt', 'subrip', 'ass', 'ssa', 'vtt', 'webvtt', 'mov_text'].map((Format) => ({ Format, Method: 'Encode' }))
         : [...(mkv ? ['srt', 'subrip', 'ass', 'ssa', 'webvtt'].map((Format) => ({ Format, Method: 'Embed' })) : []), { Format: 'vtt', Method: 'External' }]),
-      ...['pgs', 'pgssub', 'dvdsub', 'dvbsub', 'vobsub', 'sub', 'idx'].map((Format) => ({ Format, Method: 'Encode' })),
+      ...(mkv ? ['pgs', 'pgssub'].map((Format) => ({ Format, Method: 'Embed' })) : []),
+      ...[...(mkv ? [] : ['pgs', 'pgssub']), 'dvdsub', 'dvbsub', 'vobsub', 'sub', 'idx'].map((Format) => ({ Format, Method: 'Encode' })),
     ],
   };
 }

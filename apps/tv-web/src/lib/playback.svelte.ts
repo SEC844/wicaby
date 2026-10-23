@@ -397,8 +397,10 @@ export class Playback {
     const was = this.streams.find((s) => s.Index === this.subtitleIndex);
     const now = this.streams.find((s) => s.Index === index);
     this.subtitleIndex = index;
-    // Burnt in (an image track) on either side: the picture itself changes.
-    if (was?.DeliveryMethod === 'Encode' || (now && (this.burnText || !this.subtitleUrl(now)))) return this.reload();
+    // Burnt in (an image track) on either side: the picture itself changes; unless the player draws it from the
+    // file itself (the phone's remux player: text and PGS).
+    const drawn = !!now && !now.IsExternal && this.playMethod === 'DirectPlay' && !!this.player.drawsEmbedded?.(this.subtitles().filter((m) => !m.IsExternal).indexOf(now));
+    if (was?.DeliveryMethod === 'Encode' || (now && !drawn && (this.burnText || !this.subtitleUrl(now)))) return this.reload();
     void this.applySubtitles();
     this.report('/Sessions/Playing/Progress', 'SubtitleTrackChange');
   }

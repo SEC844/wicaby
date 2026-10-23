@@ -30,7 +30,7 @@ const freePort = () =>
 
 async function startMock(port, video) {
   const child = spawn(process.execPath, [path.join(ROOT, 'tools/mock-server/mock-emby.mjs'), String(port), video], {
-    env: { ...process.env, MOCK_DATASET: 'demo', MOCK_DURATION_S: '30' },
+    env: { ...process.env, MOCK_DATASET: 'demo', MOCK_DURATION_S: '30', ...(process.env.PLAYER_PGS ? { MOCK_PGS: '1' } : {}) },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
@@ -81,6 +81,7 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => /^remux:/.test(m.text()) && errors.push(m.text()));
+    if (process.env.PLAYER_DEBUG) page.on('console', (m) => console.log('  [console]', m.type(), m.text().slice(0, 200)));
     try {
       await page.goto(appUrl);
       await page.getByRole('textbox').first().fill(`http://127.0.0.1:${port}`);
@@ -109,6 +110,11 @@ try {
         await page.locator('[data-screen-top] button.play').click();
       }
       await page.getByText(/Depuis le début|From the start/).click({ timeout: 2000 }).catch(() => {});
+      if (process.env.PLAYER_DEBUG)
+        for (let i = 0; i < 8; i++) {
+          await page.waitForTimeout(1000);
+          console.log('  [debug]', i, JSON.stringify(await state(page)), await page.evaluate(() => location.hash + ' ' + document.querySelectorAll('[data-screen-top] .player').length));
+        }
       await page.waitForTimeout(5000);
       // The controls hide while playing: a tap brings them (mode line, bar) back.
       const show = async () => {
@@ -117,6 +123,37 @@ try {
       };
       await show();
       const a = await state(page);
+      // PLAYER_PGS=1 (the file pgs-check.mjs makes): the PGS track picked in the tracks sheet must draw its
+      // pictures over the video, with no reload of the session.
+      let pgs = '';
+      if (process.env.PLAYER_PGS) {
+        const sessions = () => page.evaluate(() => performance.getEntriesByType('resource').filter((r) => /PlaybackInfo/.test(r.name)).length);
+        const before = await sessions();
+        await show();
+        await page.locator('.osd button', { hasText: /Audio et sous-titres/ }).click();
+        await page.waitForTimeout(600);
+        if (process.env.PLAYER_DEBUG) await page.screenshot({ path: path.join(ROOT, '.dev', 'shots', 'player-check-tracks.png') });
+        await page.locator('.sheet button', { hasText: 'English PGS' }).click();
+        await page.waitForTimeout(500);
+        let seen = null;
+        for (let i = 0; i < 16 && !seen; i++) {
+          await page.waitForTimeout(250);
+          seen = await page.evaluate(() => {
+            const c = document.querySelector('.pictures canvas');
+            if (!c || !c.width) return null;
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let opaque = 0;
+            for (let j = 3; j < d.length; j += 4) if (d[j] > 200) opaque++;
+            const r = c.getBoundingClientRect();
+            return { w: c.width, h: c.height, opaque, box: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] };
+          });
+        }
+        const reloads = (await sessions()) - before;
+        pgs = seen ? `PGS ${seen.w}x${seen.h} ${seen.opaque} opaque px at ${seen.box.join(',')}${reloads ? ` · ${reloads} reload(s)` : ''}` : 'PGS: no picture';
+        if (!seen || !seen.opaque || reloads) errors.push(pgs);
+        if (process.env.PLAYER_DEBUG) console.log('  [debug]', pgs);
+        await page.locator('.scrim').first().click({ timeout: 1000 }).catch(() => {});
+      }
       // A seek past what is buffered (the session's seek, as the bar does).
       await show();
       await page.locator('[data-screen-top] .player .bar').click({ position: { x: 300, y: 15 } });
@@ -127,10 +164,11 @@ try {
       const sought = b.t > a.t + 3;
       const ok = remux && played && sought && !a.err && !b.err && !errors.length;
       if (!ok) failed++;
-      console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}: "${a.mode}" · t ${a.t.toFixed(1)} s → after seek ${b.t.toFixed(1)} s${a.err || b.err ? ` · ${a.err ?? b.err}` : ''}${a.msg ? ` · ${a.msg}` : ''}${errors.length ? ` · ${errors.join(' | ')}` : ''}`);
+      console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}: "${a.mode}" · t ${a.t.toFixed(1)} s → after seek ${b.t.toFixed(1)} s${a.err || b.err ? ` · ${a.err ?? b.err}` : ''}${a.msg ? ` · ${a.msg}` : ''}${errors.length ? ` · ${errors.join(' | ')}` : ''}${pgs && !errors.length ? ` · ${pgs}` : ''}`);
     } catch (e) {
       failed++;
-      console.log(`FAIL ${name}: ${e.message.split('\n').slice(0, 3).join(' ')}`);
+      await page.screenshot({ path: path.join(ROOT, '.dev', 'shots', 'player-check-fail.png') }).catch(() => {});
+      console.log(`FAIL ${name}: ${e.message.split('\n').slice(0, 3).join(' ')}${errors.length ? ` · ${errors.join(' | ')}` : ''}`);
     } finally {
       await page.close();
       mock.kill();

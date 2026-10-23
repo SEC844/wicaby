@@ -12,6 +12,7 @@ import type { Cue } from '$tv/subtitles';
 import type { Frame, Header, Track } from '../media/matroska';
 import type { Output, Remuxer } from '../media/remux';
 import type { ByteSource } from '../media/source';
+import type { PgsDecoder, PgsPicture } from '../media/pgs';
 import { localMedia } from '../lib/downloads.svelte';
 
 type Engine = typeof import('../media/engine');
@@ -38,6 +39,12 @@ const isMatroska = (b: Uint8Array) => b.length >= 4 && b[0] === 0x1a && b[1] ===
 const BEHIND_S = 30;
 // Above WebKit's own startstreaming level (10 s), for headroom on a 4K remux.
 const STREAMING_FLOOR_S = 15;
+const PGS = 'S_HDMV/PGS';
+// A picture shows until the next display set clears or replaces it; this long if none comes (a cut file).
+const PGS_OPEN_MS = 60_000;
+
+// A cue the app draws: text, or a PGS picture (components/player/Subtitles.svelte). open: its end not known yet.
+export type ImageCue = Cue & { pgs?: PgsPicture; open?: boolean };
 
 export class RemuxPlayer extends HtmlPlayer {
   // Reactive: the player screen shows how the title plays.
@@ -50,8 +57,13 @@ export class RemuxPlayer extends HtmlPlayer {
   private generation = 0;
   private audioTracksList: Track[] = [];
   private textTrackList: Track[] = [];
-  private cues = new Map<number, Cue[]>();
+  private cues = new Map<number, ImageCue[]>();
   private cueListeners = new Map<number, (cues: Cue[]) => void>();
+  // Image subtitles: a decoder per track for the current read (a seek starts a new epoch), the frames handled in
+  // order after any inflating.
+  private pgs = new Map<number, PgsDecoder>();
+  private pgsGeneration = -1;
+  private subtitleQueue: Promise<void> = Promise.resolve();
   private aheadS = 60;
   private wake: (() => void) | null = null;
   private objectUrl: string | null = null;
@@ -122,7 +134,7 @@ export class RemuxPlayer extends HtmlPlayer {
     this.header = header;
     this.remuxing = true;
     this.audioTracksList = header.tracks.filter((t) => t.kind === 'audio');
-    this.textTrackList = header.tracks.filter((t) => t.kind === 'subtitle' && /^S_TEXT\//.test(t.codec));
+    this.textTrackList = header.tracks.filter((t) => t.kind === 'subtitle' && (/^S_TEXT\//.test(t.codec) || t.codec === PGS));
     const video = header.tracks.find((t) => t.kind === 'video');
     // The default audio track when the device decodes it, else the first one it does; none at all: the server
     // converts (the session falls back on this error).
@@ -186,7 +198,7 @@ export class RemuxPlayer extends HtmlPlayer {
     const rx = this.remux!;
     for await (const frames of this.E!.clusters(this.source!, this.header!, offset)) {
       if (gen !== this.generation) return;
-      this.takeSubtitles(frames);
+      this.takeSubtitles(frames, gen);
       for (const out of rx.push(frames)) await this.append(out, gen);
       if (gen !== this.generation) return;
       await this.waitForRoom(gen);
@@ -292,29 +304,80 @@ export class RemuxPlayer extends HtmlPlayer {
 
   // ---- Subtitles read from the file ----
 
-  private takeSubtitles(frames: Frame[]): void {
-    for (const f of frames) {
-      const t = this.textTrackList.find((x) => x.number === f.track);
-      if (!t) continue;
-      const cue = this.E!.subtitleCue(t, f);
-      if (!cue) continue;
-      const list = this.cues.get(t.number) ?? [];
-      // Kept sorted and without duplicates (a seek reads clusters again).
-      if (list.some((c) => c.startMs === cue.startMs && c.html === cue.html)) continue;
-      let i = list.length;
-      while (i > 0 && list[i - 1].startMs > cue.startMs) i--;
-      list.splice(i, 0, cue);
-      this.cues.set(t.number, list);
-      this.cueListeners.get(t.number)?.([...list]);
-    }
+  private takeSubtitles(frames: Frame[], gen: number): void {
+    const mine = frames.filter((f) => this.textTrackList.some((t) => t.number === f.track));
+    if (!mine.length) return;
+    // Plain text, the common case, at once; anything to inflate or decode in order behind what is queued.
+    if (mine.every((f) => this.isPlainText(f.track))) return mine.forEach((f) => this.takeText(f, f.data));
+    this.subtitleQueue = this.subtitleQueue.then(async () => {
+      for (const f of mine) {
+        if (gen !== this.generation) return;
+        const t = this.textTrackList.find((x) => x.number === f.track)!;
+        const data = t.zlib ? await this.E!.inflate(f.data).catch(() => null) : f.data;
+        if (!data || gen !== this.generation) continue;
+        if (t.codec === PGS) this.takePgs(t, data, f.ptsMs, gen);
+        else this.takeText(f, data);
+      }
+    });
   }
 
-  // The session's hook for a text subtitle inside the file (its position among the file's subtitle tracks): the
+  private isPlainText(track: number): boolean {
+    const t = this.textTrackList.find((x) => x.number === track);
+    return !!t && !t.zlib && t.codec !== PGS;
+  }
+
+  private takeText(f: Frame, data: Uint8Array): void {
+    const t = this.textTrackList.find((x) => x.number === f.track)!;
+    const cue = this.E!.subtitleCue(t, { ...f, data });
+    if (cue) this.addCue(t.number, cue);
+  }
+
+  // A display set ends the picture before it (if still showing) and may show a new one, until the next set.
+  private takePgs(t: Track, data: Uint8Array, ms: number, gen: number): void {
+    if (this.pgsGeneration !== gen) {
+      this.pgs.clear();
+      this.pgsGeneration = gen;
+    }
+    let decoder = this.pgs.get(t.number);
+    if (!decoder) this.pgs.set(t.number, (decoder = new this.E!.PgsDecoder()));
+    const event = decoder.push(data, ms);
+    if (!event) return;
+    const list = this.cues.get(t.number) ?? [];
+    let changed = false;
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      if (c.open && c.startMs < event.ms && c.endMs > event.ms) {
+        list[i] = { ...c, endMs: event.ms, open: false };
+        changed = true;
+      }
+    }
+    this.cues.set(t.number, list);
+    if (event.picture) this.addCue(t.number, { startMs: event.ms, endMs: event.ms + PGS_OPEN_MS, html: '', pgs: event.picture, open: true });
+    else if (changed) this.cueListeners.get(t.number)?.([...list]);
+  }
+
+  private addCue(track: number, cue: ImageCue): void {
+    const list = this.cues.get(track) ?? [];
+    // Kept sorted and without duplicates (a seek reads clusters again).
+    if (list.some((c) => c.startMs === cue.startMs && c.html === cue.html)) return void this.cueListeners.get(track)?.([...list]);
+    let i = list.length;
+    while (i > 0 && list[i - 1].startMs > cue.startMs) i--;
+    list.splice(i, 0, cue);
+    this.cues.set(track, list);
+    this.cueListeners.get(track)?.([...list]);
+  }
+
+  // The session's hook for a text or PGS subtitle inside the file (its position among the file's subtitle tracks): the
   // cues as they are read, so the server never extracts them. false: not a text track this player reads.
-  embeddedCues(position: number, onChange: (cues: Cue[]) => void): boolean {
+  drawsEmbedded(position: number): boolean {
     if (!this.remuxing || !this.header) return false;
     const t = this.header.tracks.filter((x) => x.kind === 'subtitle')[position];
-    if (!t || !this.textTrackList.includes(t)) return false;
+    return !!t && this.textTrackList.includes(t);
+  }
+
+  embeddedCues(position: number, onChange: (cues: Cue[]) => void): boolean {
+    if (!this.drawsEmbedded(position)) return false;
+    const t = this.header!.tracks.filter((x) => x.kind === 'subtitle')[position];
     this.cueListeners.clear();
     this.cueListeners.set(t.number, onChange);
     onChange([...(this.cues.get(t.number) ?? [])]);
@@ -402,6 +465,7 @@ export class RemuxPlayer extends HtmlPlayer {
     this.buffers = {};
     this.cues.clear();
     this.cueListeners.clear();
+    this.pgs.clear();
     if (this.ms) {
       (this.el as HTMLVideoElement & { srcObject: unknown }).srcObject = null;
       this.ms = null;
