@@ -184,4 +184,6 @@
     <string name="web_errors_copy">Copier les erreurs</string>
     <string name="web_errors_clear">Effacer les erreurs</string>
     <string name="web_copied_done">Copié</string>
+    <string name="web_resume_check">Diagnostic de la reprise en grand</string>
+    <string name="web_resume_check_run">Lancer le diagnostic</string>
 </resources>

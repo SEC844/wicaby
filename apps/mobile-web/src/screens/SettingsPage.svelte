@@ -169,6 +169,36 @@
 
   // svelte-ignore state_referenced_locally
   let errors = $state(page === 'about' ? loggedErrors() : []);
+
+  // Settings > About: what the large resume sees, straight from the server (Continue watching, the latest plays).
+  let resumeReport = $state<string | null>(null);
+  async function checkResume(): Promise<void> {
+    resumeReport = t('loading');
+    try {
+      const [resume, next, plays] = await Promise.all([
+        a.resume(),
+        a.nextUp(),
+        a.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: 'UserData', EnableImages: false }),
+      ]);
+      const last = new Map<string, string>();
+      for (const i of plays.Items) if (i.UserData?.LastPlayedDate && !last.has(i.SeriesId ?? i.Id)) last.set(i.SeriesId ?? i.Id, i.UserData.LastPlayedDate);
+      const since = Date.now() - look.resumeHeroDays * 86_400_000;
+      const line = (kind: string, i: BaseItem) => {
+        const own = i.UserData?.LastPlayedDate ?? '-';
+        const seen = last.get(i.SeriesId ?? i.Id) ?? '-';
+        const at = Math.max(Date.parse(own) || 0, Date.parse(seen) || 0);
+        return `${kind} ${i.Type} «${i.SeriesName ? `${i.SeriesName} ` : ''}${i.Name}» pos=${Math.round((i.UserData?.PlaybackPositionTicks ?? 0) / 600_000_000)}min own=${own} last=${seen} → ${at >= since ? 'OUI' : 'non'}`;
+      };
+      resumeReport = [
+        `jours=${look.resumeHeroDays} une=${settings.rowHero.value} fusion=${settings.mergeContinue.value}`,
+        ...resume.slice(0, 5).map((i) => line('R', i)),
+        ...next.slice(0, 5).map((i) => line('N', i)),
+        `derniers vus: ${plays.Items.slice(0, 5).map((i) => `${i.SeriesName ?? i.Name} ${i.UserData?.LastPlayedDate ?? '-'}`).join(' | ')}`,
+      ].join('\n');
+    } catch (err) {
+      resumeReport = String(err);
+    }
+  }
   const css = getComputedStyle(document.documentElement);
   const inset = (() => {
     const probe = document.createElement('div');
@@ -358,6 +388,13 @@
       <Row label={t('version')} value={`${VERSION} · ${BUILD}`} />
       <!-- The heights lib/viewport.ts works with, for a report from the phone. -->
       <Row label={t('web_display')} value={display} />
+    </Group>
+    <Group title={t('web_resume_check')}>
+      <Row label={t('web_resume_check_run')} accent onclick={() => void checkResume()} />
+      {#if resumeReport}
+        <div class="error-entry"><pre class="caption">{resumeReport}</pre></div>
+        <Row label={t('web_errors_copy')} accent onclick={() => void navigator.clipboard?.writeText(resumeReport ?? '').then(() => showToast(t('web_copied_done')))} />
+      {/if}
     </Group>
     {#if errors.length}
       <Group title={t('web_errors')} hint={t('web_errors_hint')}>

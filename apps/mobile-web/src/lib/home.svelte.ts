@@ -181,6 +181,24 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     { persist: true },
   );
   const contSeries = $derived<SeriesDates>(new Map(Array.isArray(cont.value?.dates) ? cont.value.dates : []));
+  // When each title was last watched, from the latest plays (one call): Emby gives a series no date of its own, so a
+  // next-up card is dated by the series' latest episode watched. Keyed by series, or by film.
+  const lastPlays = useLoad(
+    () => (look.resumeHeroDays && settings.rowHero.value ? 'last-plays' : 'last-plays-off'),
+    async () => {
+      if (!look.resumeHeroDays || !settings.rowHero.value) return [] as [string, string][];
+      const r = await api.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: 'UserData', EnableImages: false });
+      const out = new Map<string, string>();
+      for (const i of r.Items) {
+        const d = i.UserData?.LastPlayedDate;
+        const k = i.SeriesId ?? i.Id;
+        if (d && !out.has(k)) out.set(k, d);
+      }
+      return [...out];
+    },
+    { persist: true },
+  );
+  const lastPlayed = $derived(new Map(Array.isArray(lastPlays.value) ? lastPlays.value : []));
   const resume = useLoad(() => (merged ? 'resume-off' : 'resume'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.resume(), true)), { persist: true });
   const nextUp = useLoad(() => (merged ? 'nextup-off' : 'nextup'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.nextUp())), { persist: true });
   const upcoming = useLoad(() => 'upcoming', async () => (await mergedAll((a) => a.upcoming())).sort((x, y) => airDate(x) - airDate(y)), { persist: true });
@@ -248,7 +266,7 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     const list = merged ? (cont.value?.items ?? []) : [...(resume.value ?? []), ...(nextUp.value ?? [])];
     const since = Date.now() - days * 86_400_000;
     return list
-      .map((item) => ({ item, at: Date.parse(recency(item, series)) || 0 }))
+      .map((item) => ({ item, at: Math.max(Date.parse(recency(item, series)) || 0, Date.parse(lastPlayed.get(item.SeriesId ?? item.Id) ?? '') || 0) }))
       .filter((x) => x.at >= since)
       .sort((x, y) => y.at - x.at)
       .slice(0, 3)

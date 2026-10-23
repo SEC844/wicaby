@@ -183,4 +183,6 @@
     <string name="web_errors_copy">Copy the errors</string>
     <string name="web_errors_clear">Clear the errors</string>
     <string name="web_copied_done">Copied</string>
+    <string name="web_resume_check">Large resume check</string>
+    <string name="web_resume_check_run">Run the check</string>
 </resources>
