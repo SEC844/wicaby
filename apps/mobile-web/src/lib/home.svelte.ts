@@ -170,7 +170,17 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     { refresh: false },
   );
 
-  const cont = useLoad(() => (merged ? 'continue' : 'continue-off'), () => (merged ? loadContinueAll(api, serverId) : Promise.resolve(null)), { persist: true });
+  // Kept for the next start as JSON: the series' last-played dates go as entries (a Map would come back empty).
+  const cont = useLoad(
+    () => (merged ? 'continue2' : 'continue-off'),
+    async () => {
+      if (!merged) return null;
+      const r = await loadContinueAll(api, serverId);
+      return { items: r.items, dates: [...r.series] };
+    },
+    { persist: true },
+  );
+  const contSeries = $derived<SeriesDates>(new Map(Array.isArray(cont.value?.dates) ? cont.value.dates : []));
   const resume = useLoad(() => (merged ? 'resume-off' : 'resume'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.resume(), true)), { persist: true });
   const nextUp = useLoad(() => (merged ? 'nextup-off' : 'nextup'), () => (merged ? Promise.resolve([]) : mergedAll((a) => a.nextUp())), { persist: true });
   const upcoming = useLoad(() => 'upcoming', async () => (await mergedAll((a) => a.upcoming())).sort((x, y) => airDate(x) - airDate(y)), { persist: true });
@@ -203,7 +213,7 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     const out: HomeRow[] = [];
     for (const id of shown) {
       if (id === RESUME) {
-        if (merged && cont.value?.items.length) out.push({ key: 'continue', title: t('continue_watching_merged'), items: cont.value.items, wide: true, playable: true, subtitle: continueSubtitle, continueRow: cont.value.series });
+        if (merged && cont.value?.items.length) out.push({ key: 'continue', title: t('continue_watching_merged'), items: cont.value.items, wide: true, playable: true, subtitle: continueSubtitle, continueRow: contSeries });
         if (!merged && resume.value?.length) out.push({ key: 'resume', title: t('continue_watching'), items: resume.value, wide: true, playable: true, continueRow: new Map() });
       } else if (id === NEXT_UP) {
         if (nextUp.value?.length) out.push({ key: 'nextup', title: t('next_up'), items: nextUp.value, wide: true, playable: true });
@@ -234,7 +244,7 @@ export function useHome(api: Api, views: () => BaseItem[]) {
   const recent = $derived.by(() => {
     const days = look.resumeHeroDays;
     if (!days || !settings.rowHero.value) return [];
-    const series: SeriesDates = cont.value?.series ?? new Map();
+    const series = contSeries;
     const list = merged ? (cont.value?.items ?? []) : [...(resume.value ?? []), ...(nextUp.value ?? [])];
     const since = Date.now() - days * 86_400_000;
     return list
