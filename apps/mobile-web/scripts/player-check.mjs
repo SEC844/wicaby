@@ -44,7 +44,7 @@ async function startMock(port, video) {
 
 const state = (page) =>
   page.evaluate(() => {
-    const v = document.querySelector('video');
+    const v = document.querySelector('video.app-video');
     return { t: v?.currentTime ?? -1, paused: v?.paused, err: v?.error?.message ?? null, mode: document.querySelector('.heading .footnote')?.textContent ?? '', msg: document.querySelector('.center .title-2')?.textContent ?? '' };
   });
 

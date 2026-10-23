@@ -52,7 +52,7 @@
   import Stats from '../components/player/Stats.svelte';
   import Subtitles from '../components/player/Subtitles.svelte';
   import { remote } from '../lib/device-profile';
-  import { video as sharedVideo } from '../lib/media-element';
+  import { decoy, hideNowPlaying, video as sharedVideo } from '../lib/media-element';
   import { handleBack, nav, onBack, SCREEN } from '../lib/nav.svelte';
   import { createPlayer, keepAwake } from '../platform';
   import type { RemuxPlayer } from '../platform/remux-player.svelte';
@@ -78,6 +78,7 @@
   // The app's one video element, unlocked for sound at the first touch (lib/media-element.ts), placed here.
   const video = sharedVideo;
   let host: HTMLDivElement;
+  let stage: HTMLDivElement;
   let pb = $state<Playback | null>(null);
 
   type Sheet = 'tracks' | 'speed' | 'quality' | 'chapters' | 'sleep' | 'episodes' | 'more';
@@ -609,9 +610,12 @@
   }
 
   // ---- The lock screen and Control Center ----
+  // Only while the app is away: metadata or an action handler would bring the video back to the Dynamic Island
+  // (lib/media-element hideNowPlaying).
+  let away = $state(document.visibilityState === 'hidden');
   $effect(() => {
     const it = pb?.item;
-    if (!it || !('mediaSession' in navigator)) return;
+    if (!it || !away || !('mediaSession' in navigator)) return;
     const art = client.thumb(it, 600) ?? client.poster(it, 600);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: it.Type === 'Episode' ? (episodeLine(it) ?? it.Name) : it.Name,
@@ -620,7 +624,7 @@
     });
   });
   $effect(() => {
-    if (!('mediaSession' in navigator) || !pb || !duration) return;
+    if (!away || !('mediaSession' in navigator) || !pb || !duration) return;
     try {
       navigator.mediaSession.setPositionState({ duration: duration / 1000, position: Math.min(duration, pb.positionMs) / 1000, playbackRate: pb.rate });
     } catch {
@@ -634,7 +638,9 @@
     // A video ends the music, as on Android (one audio output, one session).
     stopMusic();
     keepAwake(true);
-    host.prepend(video);
+    stage.prepend(video);
+    host.prepend(decoy);
+    hideNowPlaying(true);
     const player = createPlayer(video);
     // The shared element keeps the last video's format.
     player.setAspect('fit');
@@ -660,7 +666,12 @@
       ['seekto', (d) => d.seekTime !== undefined && p.seek(d.seekTime * 1000)],
       ['nexttrack', () => void (p.next && advance(false))],
     ];
-    for (const [a, h] of handlers) ms?.setActionHandler(a, h);
+    const onVisibility = () => {
+      away = document.visibilityState === 'hidden';
+      for (const [a, h] of handlers) ms?.setActionHandler(a, away ? h : null);
+      if (ms && !away) ms.metadata = null;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     // Back closes a sheet, counts as Continue on the sleep prompt, dismisses up next, then leaves.
     const stopBack = onBack(screen, () => {
       if (sheet) return (sheet = null), true;
@@ -670,6 +681,7 @@
     });
     return () => {
       stopBack();
+      document.removeEventListener('visibilitychange', onVisibility);
       for (const [a] of handlers) ms?.setActionHandler(a, null);
       if (ms) ms.metadata = null;
       video.removeEventListener('webkitplaybacktargetavailabilitychanged', onTargets);
@@ -682,6 +694,8 @@
       cancelSleep();
       p.stop();
       video.remove();
+      hideNowPlaying(false);
+      decoy.remove();
       keepAwake(false);
     };
   });
@@ -693,6 +707,7 @@
 </script>
 
 <div class="player" bind:this={host}>
+  <div class="stage" bind:this={stage}></div>
   <!-- svelte-ignore a11y_no_static_element_interactions (gestures on the picture; every action also has a button) -->
   <div class="surface" onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={onUp}></div>
 
@@ -893,7 +908,24 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  .player > :global(.app-video) {
+  /* Laid out at a quarter and scaled up: too small to be main content for WebKit (lib/media-element decoy), the
+     picture itself is the full frame. */
+  .stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 25%;
+    height: 25%;
+    transform: scale(4);
+    transform-origin: 0 0;
+  }
+  .player > :global(.app-decoy) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stage > :global(.app-video) {
     position: absolute;
     inset: 0;
     width: 100%;
