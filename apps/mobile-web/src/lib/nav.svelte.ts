@@ -8,7 +8,7 @@ import { look } from './look.svelte';
 import type { Route as TvRoute } from '$tv/nav.svelte';
 
 // A settings category's page (tabs/SettingsTab.svelte lists them).
-export type SettingsPageId = 'general' | 'appearance' | 'playback' | 'subtitles' | 'home' | 'accounts' | 'about';
+export type SettingsPageId = 'general' | 'appearance' | 'playback' | 'subtitles' | 'home' | 'accounts' | 'password' | 'about';
 // The TV's routes, plus the phone's own pages.
 export type Route =
   | TvRoute

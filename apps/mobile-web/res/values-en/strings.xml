@@ -146,4 +146,26 @@
     <string name="web_seek_step">Skip back / forward</string>
     <string name="web_controls_hide">Hide controls after</string>
     <string name="web_seconds_dec">%1$s s</string>
+    <string name="web_password_change">Change password</string>
+    <string name="web_password_current">Current password</string>
+    <string name="web_password_new">New password</string>
+    <string name="web_password_again">Confirm new password</string>
+    <string name="web_password_hint">Leave the current password empty if your account has none.</string>
+    <string name="web_password_mismatch">The two passwords don’t match.</string>
+    <string name="web_password_wrong">Current password is incorrect.</string>
+    <string name="web_password_saved">Password changed</string>
+    <string name="web_avatar_change">Change profile picture</string>
+    <string name="web_avatar_remove">Remove profile picture</string>
+    <string name="web_avatar_saved">Profile picture updated</string>
+    <string name="web_library_content">Libraries</string>
+    <string name="web_missing_episodes">Missing episodes</string>
+    <string name="web_missing_episodes_sub">Shows the episodes you don’t have yet in seasons.</string>
+    <string name="web_hide_played_latest">Hide watched in recently added</string>
+    <string name="web_hide_played_latest_sub">“Recently added” rows only show what you haven’t watched.</string>
+    <string name="web_default_audio">File’s default audio track</string>
+    <string name="web_default_audio_sub">Even when it is in another language.</string>
+    <string name="web_remember_audio">Remember my audio choices</string>
+    <string name="web_remember_subs">Remember my subtitle choices</string>
+    <string name="web_remember_sub">Keeps your pick for the whole series.</string>
+    <string name="web_subtitle_sample">I don’t think we’re alone here.</string>
 </resources>

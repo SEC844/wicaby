@@ -147,6 +147,21 @@ const SCENES = {
     await page.locator('[data-screen-top] button.row').nth(3).click();
     await page.waitForTimeout(800);
   },
+  async subtitlesPage(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.row').nth(4).click();
+    await page.waitForTimeout(800);
+  },
+  async accounts(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.me.pressable:visible').first().click();
+    await page.waitForTimeout(800);
+  },
+  async password(page) {
+    await SCENES.accounts(page);
+    await page.locator('[data-screen-top] button.row', { hasText: /mot de passe/i }).click();
+    await page.waitForTimeout(800);
+  },
   // Settings > Administration, then a few of its sections; a title's metadata editor from its menu.
   async admin(page) {
     await SCENES.settings(page);

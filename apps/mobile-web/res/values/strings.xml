@@ -147,4 +147,26 @@
     <string name="web_seek_step">Saut avant / arrière</string>
     <string name="web_controls_hide">Masquer les commandes après</string>
     <string name="web_seconds_dec">%1$s s</string>
+    <string name="web_password_change">Changer le mot de passe</string>
+    <string name="web_password_current">Mot de passe actuel</string>
+    <string name="web_password_new">Nouveau mot de passe</string>
+    <string name="web_password_again">Confirmer le nouveau mot de passe</string>
+    <string name="web_password_hint">Laisse le mot de passe actuel vide si ton compte n’en a pas.</string>
+    <string name="web_password_mismatch">Les deux mots de passe ne correspondent pas.</string>
+    <string name="web_password_wrong">Mot de passe actuel incorrect.</string>
+    <string name="web_password_saved">Mot de passe changé</string>
+    <string name="web_avatar_change">Changer la photo de profil</string>
+    <string name="web_avatar_remove">Supprimer la photo de profil</string>
+    <string name="web_avatar_saved">Photo de profil mise à jour</string>
+    <string name="web_library_content">Bibliothèques</string>
+    <string name="web_missing_episodes">Épisodes manquants</string>
+    <string name="web_missing_episodes_sub">Affiche dans les saisons les épisodes que tu n’as pas encore.</string>
+    <string name="web_hide_played_latest">Masquer les vus dans les derniers ajouts</string>
+    <string name="web_hide_played_latest_sub">Les rangées « Ajoutés récemment » ne montrent que ce que tu n’as pas vu.</string>
+    <string name="web_default_audio">Piste audio par défaut du fichier</string>
+    <string name="web_default_audio_sub">Même si sa langue n’est pas la tienne.</string>
+    <string name="web_remember_audio">Mémoriser mes choix audio</string>
+    <string name="web_remember_subs">Mémoriser mes choix de sous-titres</string>
+    <string name="web_remember_sub">Garde la piste choisie pour toute la série.</string>
+    <string name="web_subtitle_sample">Je crois qu’on n’est pas seuls ici.</string>
 </resources>

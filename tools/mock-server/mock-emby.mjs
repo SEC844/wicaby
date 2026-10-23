@@ -27,7 +27,7 @@ const SERVER_ID = process.env.MOCK_SERVER_ID ?? 'a1b2c3d4e5f60718293a4b5c6d7e8f9
 const SERVER_NAME = process.env.MOCK_NAME ?? 'Wicaby Mock Emby';
 // MOCK_SUB_POLICY=deny: a non-admin account without the subtitle download right (X-03, 403 on RemoteSearch/Subtitles).
 const SUB_DENY = process.env.MOCK_SUB_POLICY === 'deny';
-const USER = { Id: 'u-wika', Name: 'Wika', HasPassword: true, HasConfiguredPassword: true, Policy: SUB_DENY ? { IsAdministrator: false, EnableSubtitleDownloading: false, EnableSubtitleManagement: false } : { IsAdministrator: true }, Configuration: { IntroSkipMode: process.env.MOCK_SKIP_MODE ?? 'ShowButton' } };
+const USER = { Id: 'u-wika', Name: 'Wika', HasPassword: true, HasConfiguredPassword: true, Policy: SUB_DENY ? { IsAdministrator: false, EnableSubtitleDownloading: false, EnableSubtitleManagement: false } : { IsAdministrator: true }, Configuration: { IntroSkipMode: process.env.MOCK_SKIP_MODE ?? 'ShowButton', AudioLanguagePreference: 'fre', PlayDefaultAudioTrack: true, SubtitleLanguagePreference: 'fre', SubtitleMode: 'Smart', DisplayMissingEpisodes: false, HidePlayedInLatest: true, RememberAudioSelections: true, RememberSubtitleSelections: true } };
 // TP-10 "Who is watching?": the family's other public users (same ids and avatars as mock-admin/20-users.mjs; the
 // disabled guest stays hidden). Password "wicaby" where HasPassword. Signed in, they browse Wika's catalogue.
 export const PROFILES = [
