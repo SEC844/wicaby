@@ -185,4 +185,7 @@
     <string name="web_copied_done">Copied</string>
     <string name="web_resume_check">Large resume check</string>
     <string name="web_resume_check_run">Run the check</string>
+    <string name="web_update_check">Check for an update</string>
+    <string name="web_update_none">Wicaby is up to date</string>
+    <string name="web_update_unavailable">Updates unavailable here</string>
 </resources>

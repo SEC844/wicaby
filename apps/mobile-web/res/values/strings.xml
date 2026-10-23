@@ -186,4 +186,7 @@
     <string name="web_copied_done">Copié</string>
     <string name="web_resume_check">Diagnostic de la reprise en grand</string>
     <string name="web_resume_check_run">Lancer le diagnostic</string>
+    <string name="web_update_check">Rechercher une mise à jour</string>
+    <string name="web_update_none">Wicaby est à jour</string>
+    <string name="web_update_unavailable">Mises à jour indisponibles ici</string>
 </resources>

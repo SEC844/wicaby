@@ -28,6 +28,7 @@
   import { look, setLook, TEXT_SCALES, systemScale } from '../lib/look.svelte';
   import { BUILD, VERSION } from '../lib/identity';
   import { clearErrors, loggedErrors } from '../lib/diagnostics';
+  import { checkForUpdate } from '../lib/updates.svelte';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { isAdmin } from '../lib/user.svelte';
@@ -169,6 +170,20 @@
 
   // svelte-ignore state_referenced_locally
   let errors = $state(page === 'about' ? loggedErrors() : []);
+
+  let checking = $state(false);
+  async function lookForUpdate(): Promise<void> {
+    if (checking) return;
+    checking = true;
+    try {
+      const ready = await checkForUpdate();
+      if (!ready) showToast(t(ready === null ? 'web_update_unavailable' : 'web_update_none'));
+    } catch {
+      showToast(t('web_action_failed'));
+    } finally {
+      checking = false;
+    }
+  }
 
   // Settings > About: what the large resume sees, straight from the server (Continue watching, the latest plays).
   let resumeReport = $state<string | null>(null);
@@ -386,6 +401,7 @@
     {/if}
     <Group title={t('about')}>
       <Row label={t('version')} value={`${VERSION} · ${BUILD}`} />
+      <Row label={t('web_update_check')} value={checking ? t('loading') : undefined} accent onclick={() => void lookForUpdate()} />
       <!-- The heights lib/viewport.ts works with, for a report from the phone. -->
       <Row label={t('web_display')} value={display} />
     </Group>

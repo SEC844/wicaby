@@ -29,6 +29,23 @@ export function initUpdates(): void {
   });
 }
 
+// Settings > About: asks the server for a new version now. true: one is ready (the banner shows), false: none,
+// null: no service worker (the browser, the dev server).
+export async function checkForUpdate(): Promise<boolean | null> {
+  if (!registration) return null;
+  await registration.update();
+  const next = registration.installing ?? registration.waiting;
+  if (next && next.state !== 'installed' && next.state !== 'activated') {
+    await new Promise<void>((resolve) => {
+      const done = () => (next.state === 'installed' || next.state === 'redundant' ? resolve() : undefined);
+      next.addEventListener('statechange', done);
+      setTimeout(resolve, 15_000);
+    });
+  }
+  if (registration.waiting && navigator.serviceWorker.controller) updates.ready = true;
+  return updates.ready;
+}
+
 export function applyUpdate(): void {
   registration?.waiting?.postMessage('skip-waiting');
 }
