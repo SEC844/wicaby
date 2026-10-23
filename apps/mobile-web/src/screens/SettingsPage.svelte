@@ -53,6 +53,7 @@
   const MBPS = [0, 120, 80, 60, 40, 20, 10, 8, 4, 2];
   const SECS = [5, 10, 15, 20, 30];
   const HERO_SECS = [0, 5, 8, 12];
+  const RESUME_DAYS = [0, 1, 3, 7];
   const SEEK_SECS = [10, 15, 30];
   const HIDE_SECS = [3.5, 6, 10];
   const START_TABS = [
@@ -219,6 +220,13 @@
       <Row {...toggle(t('settings_merge_continue'), settings.mergeContinue)} />
       <Row label={t('web_continue_large')} sub={t('web_continue_large_sub')} checked={look.continueLarge} ontoggle={(on) => setLook('continueLarge', on)} />
       {#if settings.rowHero.value}
+        <Chips
+          label={t('web_resume_hero')}
+          options={RESUME_DAYS.map((d) => (d ? t('web_days', d) : t('web_off')))}
+          selected={Math.max(0, RESUME_DAYS.indexOf(look.resumeHeroDays))}
+          onpick={(i) => setLook('resumeHeroDays', RESUME_DAYS[i])}
+        />
+        <p class="chip-hint footnote label-2">{t('web_resume_hero_hint')}</p>
         <Chips label={t('web_hero_rotation')} options={HERO_SECS.map((s) => (s ? t('seconds', s) : t('web_off')))} selected={Math.max(0, HERO_SECS.indexOf(look.heroSeconds))} onpick={(i) => setLook('heroSeconds', HERO_SECS[i])} />
       {/if}
     </Group>
@@ -390,6 +398,10 @@
   }
   .end {
     height: 32px;
+  }
+  .chip-hint {
+    margin: -6px 0 0;
+    padding: 0 16px 12px;
   }
   .password {
     display: flex;

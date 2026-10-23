@@ -4,7 +4,7 @@
 // (persisted) and refresh behind. Live TV now and photo memories join with M3.
 // Call useHome() from a component's script: it sets up the component's loads.
 import type { BaseItem } from '$shared/models';
-import type { SeriesDates } from '$desktop/continue';
+import { recency, type SeriesDates } from '$desktop/continue';
 import type { Api } from '$tv/api';
 import { continueSubtitle, loadContinueAll } from '$tv/continue-watching';
 import { BECAUSE, becauseSeeds, defaults, latestViewId, move, NEXT_UP, RESUME, UPCOMING, unseen, type HomePref } from '$tv/home-rows';
@@ -13,6 +13,7 @@ import { useLoad } from '$tv/load.svelte';
 import { extraViews as loadExtraViews, libraryRef, merged as mergedAll } from '$tv/servers';
 import { apiOf, isMulti, prefs, serverName } from '$tv/session.svelte';
 import { arrange, homeRows, setHomeRows, settings } from '$tv/settings.svelte';
+import { look } from './look.svelte';
 
 export interface HomeRow {
   key: string;
@@ -225,9 +226,29 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     return out;
   });
 
+  // What was watched lately (Settings > Home: within the last days), up to three, newest first: the hero shows them
+  // to resume, as the desktop app does, until they are older; then the featured titles again.
+  const recent = $derived.by(() => {
+    const days = look.resumeHeroDays;
+    if (!days || !settings.rowHero.value) return [];
+    const series: SeriesDates = cont.value?.series ?? new Map();
+    const list = merged ? (cont.value?.items ?? []) : [...(resume.value ?? []), ...(nextUp.value ?? [])];
+    const since = Date.now() - days * 86_400_000;
+    return list
+      .map((item) => ({ item, at: Date.parse(recency(item, series)) || 0 }))
+      .filter((x) => x.at >= since)
+      .sort((x, y) => y.at - x.at)
+      .slice(0, 3)
+      .map((x) => x.item);
+  });
+
   return {
     get hero() {
-      return hero.value ?? [];
+      return recent.length ? recent : (hero.value ?? []);
+    },
+    // The hero is the "Resume" one.
+    get heroResume() {
+      return recent.length > 0;
     },
     get rows() {
       return rows;

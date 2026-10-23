@@ -175,4 +175,8 @@
     <string name="web_library_order">Ordre des bibliothèques</string>
     <string name="web_library_order_hint">Tu peux aussi maintenir une bibliothèque appuyée dans l’onglet Bibliothèques, puis la faire glisser. L’ordre est enregistré sur ton serveur.</string>
     <string name="web_library_order_reset">Revenir à l’ordre du serveur</string>
+    <string name="web_resume_eyebrow">Reprendre</string>
+    <string name="web_resume_hero">Reprise en grand</string>
+    <string name="web_resume_hero_hint">Ce que tu as regardé ces derniers jours remplace « À la une » en haut de l’accueil, pour reprendre en un appui.</string>
+    <string name="web_days">%1$d j</string>
 </resources>

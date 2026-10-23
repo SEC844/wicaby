@@ -174,4 +174,8 @@
     <string name="web_library_order">Library order</string>
     <string name="web_library_order_hint">You can also press and hold a library in the Libraries tab, then drag it. The order is saved on your server.</string>
     <string name="web_library_order_reset">Back to the server’s order</string>
+    <string name="web_resume_eyebrow">Resume</string>
+    <string name="web_resume_hero">Large resume</string>
+    <string name="web_resume_hero_hint">What you watched in the last days replaces the featured titles at the top of Home, to carry on in one tap.</string>
+    <string name="web_days">%1$d d</string>
 </resources>

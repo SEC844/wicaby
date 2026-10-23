@@ -81,7 +81,7 @@
 <div class="page">
   <div class="scroller" data-scroll bind:this={scroller} onscroll={onScroll}>
     {#if home.hero.length}
-      <div bind:this={heroBox}><Hero items={home.hero} api={a} {tops} onposition={(p) => (at = p)} onshown={(id) => (shownArt[id] = true)} /></div>
+      <div bind:this={heroBox}><Hero items={home.hero} resume={home.heroResume} api={a} {tops} onposition={(p) => (at = p)} onshown={(id) => (shownArt[id] = true)} /></div>
     {:else}
       <div class="lead" aria-hidden="true"></div>
     {/if}

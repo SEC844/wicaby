@@ -24,6 +24,8 @@ export interface Look {
   // Home: the featured titles' rotation in seconds (0: by hand only); Continue watching as large cards or a row.
   heroSeconds: number;
   continueLarge: boolean;
+  // Home's hero becomes "Resume" for what was watched within this many days (0: always the featured titles).
+  resumeHeroDays: number;
   // The tab the app opens on.
   startTab: 'home' | 'libraries' | 'downloads' | 'search';
   // The player: the jump of a double tap and of the ±buttons, and how long the controls stay up.
@@ -41,6 +43,7 @@ const DEFAULTS: Look = {
   cardBadges: true,
   heroSeconds: 8,
   continueLarge: true,
+  resumeHeroDays: 3,
   startTab: 'home',
   seekSeconds: 10,
   controlsSeconds: 3.5,
