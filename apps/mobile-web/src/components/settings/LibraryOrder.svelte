@@ -7,15 +7,15 @@
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import ChevronUp from '@lucide/svelte/icons/chevron-up';
   import { flip } from 'svelte/animate';
-  import { arranged, moved, saveOrderToServer, setOrder } from '../../lib/library-order.svelte';
+  import { uniqueBy } from '../../lib/diagnostics';
+  import { arranged, clearServerOrder, moved, setOrder } from '../../lib/library-order.svelte';
 
   let { api, views }: { api: Api; views: () => BaseItem[] } = $props();
-  const list = $derived(arranged(api, views()));
+  const list = $derived(arranged(api, uniqueBy(views(), (v) => v.Id)));
 
   function move(i: number, by: number): void {
     const ids = moved(list, i, i + by).map((v) => v.Id);
     setOrder(api, ids);
-    void saveOrderToServer(api, ids);
   }
 </script>
 
@@ -26,7 +26,7 @@
     <button class="tool" aria-label={t('web_move_down')} disabled={i === list.length - 1} onclick={() => move(i, 1)}><ChevronDown size={20} aria-hidden="true" /></button>
   </div>
 {/each}
-<button class="reset accent" onclick={() => setOrder(api, [])}>{t('web_library_order_reset')}</button>
+<button class="reset accent" onclick={() => (setOrder(api, []), void clearServerOrder(api))}>{t('web_library_order_reset')}</button>
 
 <style>
   .row {

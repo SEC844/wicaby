@@ -13,6 +13,7 @@ import { useLoad } from '$tv/load.svelte';
 import { extraViews as loadExtraViews, libraryRef, merged as mergedAll } from '$tv/servers';
 import { apiOf, isMulti, prefs, serverName } from '$tv/session.svelte';
 import { arrange, homeRows, setHomeRows, settings } from '$tv/settings.svelte';
+import { uniqueBy } from './diagnostics';
 import { look } from './look.svelte';
 
 export interface HomeRow {
@@ -30,7 +31,7 @@ export interface HomeRow {
 
 // The libraries with a Recently added row: all but playlists, Live TV and folders (HomeLayout.kt latestViews).
 // Music, photos and books join with their pages (M3).
-const latestOf = (list: BaseItem[]) => list.filter((v) => !['playlists', 'livetv', 'folders', 'music', 'photos', 'books'].includes(v.CollectionType ?? ''));
+const latestOf = (list: BaseItem[]) => uniqueBy(list, (v) => `${v.ServerId ?? ''}:${v.Id}`).filter((v) => !['playlists', 'livetv', 'folders', 'music', 'photos', 'books'].includes(v.CollectionType ?? ''));
 const airDate = (i: BaseItem) => Date.parse(i.PremiereDate ?? '') || 0;
 
 // A Recently added row in posters: Emby lists the new episodes (and seasons) themselves, whose picture is a 16:9
@@ -223,7 +224,9 @@ export function useHome(api: Api, views: () => BaseItem[]) {
         if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items: wide ? items : asSeries(items), wide, playable: false });
       }
     }
-    return out;
+    // One row per key, each card once (a server can list a library, or a title, twice): a repeated key stops the
+    // whole list from drawing.
+    return uniqueBy(out, (r) => r.key).map((r) => ({ ...r, items: uniqueBy(r.items, (i) => `${i.ServerId ?? ''}:${i.Id}`) }));
   });
 
   // What was watched lately (Settings > Home: within the last days), up to three, newest first: the hero shows them

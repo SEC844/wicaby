@@ -1,6 +1,7 @@
-// The order of the libraries (Bibliothèques tab, Settings > Appearance): the user's own, by hand. Kept on the phone
-// per account so it shows at once, and saved as the account's OrderedViews on the server too (Emby web's "Library
-// order"), which every Emby app follows. A library the order does not know yet comes after, in the server's order.
+// The order of the libraries (Bibliothèques tab, Settings > Appearance): the user's own, by hand, kept on the phone
+// per account. A library the order does not know yet comes after, in the server's order. Not sent to the server
+// (OrderedViews) until how Emby takes it is checked on a real server: writing it went with a broken Home on the
+// phone (2026-10-23); clearServerOrder takes back what an earlier version wrote.
 import type { BaseItem } from '$shared/models';
 import type { Api } from '$tv/api';
 import { load, save } from '$tv/storage';
@@ -23,14 +24,14 @@ export function setOrder(api: Api, ids: string[]): void {
   save('libraryOrder', $state.snapshot(orders));
 }
 
-// The server's copy, once the user lets go: not awaited by the screen (the phone's order already shows).
-export async function saveOrderToServer(api: Api, ids: string[]): Promise<void> {
+export async function clearServerOrder(api: Api): Promise<void> {
   try {
     const config = await api.userConfiguration();
-    if (!('OrderedViews' in config)) return;
-    await api.setUserConfiguration({ ...config, OrderedViews: ids });
+    const ordered = config.OrderedViews;
+    if (!Array.isArray(ordered) || !ordered.length) return;
+    await api.setUserConfiguration({ ...config, OrderedViews: [] });
   } catch {
-    // Kept on the phone.
+    // Left as it is.
   }
 }
 

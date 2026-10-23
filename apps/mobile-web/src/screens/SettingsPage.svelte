@@ -27,6 +27,7 @@
   import { leave } from '../lib/account';
   import { look, setLook, TEXT_SCALES, systemScale } from '../lib/look.svelte';
   import { BUILD, VERSION } from '../lib/identity';
+  import { clearErrors, loggedErrors } from '../lib/diagnostics';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { isAdmin } from '../lib/user.svelte';
@@ -166,6 +167,8 @@
   // svelte-ignore state_referenced_locally
   const views = page === 'home' || page === 'appearance' ? useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true }) : null;
 
+  // svelte-ignore state_referenced_locally
+  let errors = $state(page === 'about' ? loggedErrors() : []);
   const css = getComputedStyle(document.documentElement);
   const inset = (() => {
     const probe = document.createElement('div');
@@ -356,6 +359,18 @@
       <!-- The heights lib/viewport.ts works with, for a report from the phone. -->
       <Row label={t('web_display')} value={display} />
     </Group>
+    {#if errors.length}
+      <Group title={t('web_errors')} hint={t('web_errors_hint')}>
+        {#each errors as e, i (i)}
+          <div class="error-entry">
+            <span class="caption label-2">{new Date(e.at).toLocaleString()} · {e.where}</span>
+            <pre class="caption">{e.message}</pre>
+          </div>
+        {/each}
+        <Row label={t('web_errors_copy')} accent onclick={() => void navigator.clipboard?.writeText(errors.map((e) => `${e.at} ${e.where}\n${e.message}`).join('\n\n')).then(() => showToast(t('web_copied_done')))} />
+        <Row label={t('web_errors_clear')} destructive onclick={() => (clearErrors(), (errors = []))} />
+      </Group>
+    {/if}
   {/if}
   <div class="end"></div>
 </LargeTitlePage>
@@ -402,6 +417,18 @@
   .chip-hint {
     margin: -6px 0 0;
     padding: 0 16px 12px;
+  }
+  .error-entry {
+    padding: 10px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .error-entry pre {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, monospace;
+    color: var(--label);
   }
   .password {
     display: flex;

@@ -172,10 +172,15 @@
     <string name="web_latest_posters">Posters (series)</string>
     <string name="web_latest_thumbs">Thumbnails (episodes)</string>
     <string name="web_library_order">Library order</string>
-    <string name="web_library_order_hint">You can also press and hold a library in the Libraries tab, then drag it. The order is saved on your server.</string>
+    <string name="web_library_order_hint">You can also press and hold a library in the Libraries tab, then drag it. The order is kept on this phone.</string>
     <string name="web_library_order_reset">Back to the server’s order</string>
     <string name="web_resume_eyebrow">Resume</string>
     <string name="web_resume_hero">Large resume</string>
     <string name="web_resume_hero_hint">What you watched in the last days replaces the featured titles at the top of Home, to carry on in one tap.</string>
     <string name="web_days">%1$d d</string>
+    <string name="web_errors">Recent errors</string>
+    <string name="web_errors_hint">Send them if something does not work.</string>
+    <string name="web_errors_copy">Copy the errors</string>
+    <string name="web_errors_clear">Clear the errors</string>
+    <string name="web_copied_done">Copied</string>
 </resources>

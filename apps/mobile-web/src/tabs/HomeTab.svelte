@@ -11,6 +11,7 @@
   import { api } from '$tv/session.svelte';
   import ContinueShelf from '../components/ContinueShelf.svelte';
   import Hero from '../components/Hero.svelte';
+  import { reportError } from '../lib/diagnostics';
   import ProfileButton from '../components/ProfileButton.svelte';
   import Shelf from '../components/Shelf.svelte';
   import Spinner from '../components/Spinner.svelte';
@@ -96,11 +97,15 @@
       <div class="lead" aria-hidden="true"></div>
     {/if}
     {#each home.rows as row (row.key)}
-      {#if row.continueRow && look.continueLarge}
-        <ContinueShelf title={row.title} items={row.items} api={a} subtitle={row.subtitle} continueRow={row.continueRow} onplay={(i) => play(i)} />
-      {:else}
-        <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} menu={row.continueRow ? { continueRow: row.continueRow } : undefined} onopen={row.playable ? (i) => play(i) : open} />
-      {/if}
+      <!-- A row that fails to draw is left out (and logged, Settings > About); the others still show. -->
+      <svelte:boundary onerror={(e) => reportError(`home row ${row.key}`, e)}>
+        {#if row.continueRow && look.continueLarge}
+          <ContinueShelf title={row.title} items={row.items} api={a} subtitle={row.subtitle} continueRow={row.continueRow} onplay={(i) => play(i)} />
+        {:else}
+          <Shelf title={row.title} items={row.items} api={a} wide={row.wide} subtitle={row.subtitle} menu={row.continueRow ? { continueRow: row.continueRow } : undefined} onopen={row.playable ? (i) => play(i) : open} />
+        {/if}
+        {#snippet failed()}{/snippet}
+      </svelte:boundary>
     {/each}
     {#if home.loading && !home.rows.length}
       <!-- The first load ever (later ones paint from the stored rows): the rows' shapes, shimmering, not a spinner. -->

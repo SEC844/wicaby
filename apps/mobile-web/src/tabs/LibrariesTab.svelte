@@ -21,7 +21,8 @@
   import Tv from '@lucide/svelte/icons/tv';
   import LargeTitlePage from '../components/LargeTitlePage.svelte';
   import { flip } from 'svelte/animate';
-  import { arranged, moved, saveOrderToServer, setOrder } from '../lib/library-order.svelte';
+  import { uniqueBy } from '../lib/diagnostics';
+  import { arranged, moved, setOrder } from '../lib/library-order.svelte';
   import { look } from '../lib/look.svelte';
   import { nav } from '../lib/nav.svelte';
   import { reorder } from '../lib/reorder';
@@ -47,7 +48,7 @@
   // While a library is lifted, the list is this copy, reordered as it passes the others.
   let working = $state<BaseItem[] | null>(null);
   let lifted = $state<string | null>(null);
-  const libraries = $derived(working ?? arranged(a, views.value ?? []));
+  const libraries = $derived(working ?? arranged(a, uniqueBy(views.value ?? [], (v) => v.Id)));
   const order = {
     item: '.lib',
     onlift: (i: number) => {
@@ -61,7 +62,6 @@
       if (!working) return;
       const ids = working.map((v) => v.Id);
       setOrder(a, ids);
-      void saveOrderToServer(a, ids);
       working = null;
       lifted = null;
     },

@@ -173,10 +173,15 @@
     <string name="web_latest_posters">Affiches (séries)</string>
     <string name="web_latest_thumbs">Vignettes (épisodes)</string>
     <string name="web_library_order">Ordre des bibliothèques</string>
-    <string name="web_library_order_hint">Tu peux aussi maintenir une bibliothèque appuyée dans l’onglet Bibliothèques, puis la faire glisser. L’ordre est enregistré sur ton serveur.</string>
+    <string name="web_library_order_hint">Tu peux aussi maintenir une bibliothèque appuyée dans l’onglet Bibliothèques, puis la faire glisser. L’ordre est gardé sur ce téléphone.</string>
     <string name="web_library_order_reset">Revenir à l’ordre du serveur</string>
     <string name="web_resume_eyebrow">Reprendre</string>
     <string name="web_resume_hero">Reprise en grand</string>
     <string name="web_resume_hero_hint">Ce que tu as regardé ces derniers jours remplace « À la une » en haut de l’accueil, pour reprendre en un appui.</string>
     <string name="web_days">%1$d j</string>
+    <string name="web_errors">Erreurs récentes</string>
+    <string name="web_errors_hint">À m’envoyer si quelque chose ne marche pas.</string>
+    <string name="web_errors_copy">Copier les erreurs</string>
+    <string name="web_errors_clear">Effacer les erreurs</string>
+    <string name="web_copied_done">Copié</string>
 </resources>
