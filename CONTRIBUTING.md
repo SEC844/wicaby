@@ -163,6 +163,7 @@ Environment variables:
 | `MOCK_SERVER_ID`, `MOCK_NAME` | Emby, Jellyfin | Server id and name, so several mocks can run side by side as distinct servers (multi-server tests). |
 | `MOCK_DURATION_S` | Emby, Jellyfin | Length of the test video in seconds, so intro/credits markers and trickplay fall inside it. |
 | `MOCK_SKIP_MODE` | Emby | The user's `IntroSkipMode` (default `ShowButton`). |
+| `MOCK_PGS=1` | Emby (demo dataset) | The films' second subtitle track is a Blu-ray PGS track (the phone web app's PGS check). |
 | `MOCK_MUSIC=1` | Emby, Jellyfin | The music library of `tools/mock-server/music-fixture.mjs` (on by default with `MOCK_DATASET=demo`). Every track streams as generated silence. |
 | `MOCK_MUSIC_SCALE=big` | Emby, Jellyfin | 1,000 more songs (metadata only) for scroll tests. |
 | `MOCK_ADMIN_FLAVOR=jellyfin` | Emby (admin) | Jellyfin-shaped transcoding configuration and plugin list. |
