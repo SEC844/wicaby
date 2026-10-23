@@ -16,6 +16,14 @@ Wicaby is versioned as a whole: a release tag (`vX.Y.Z`) covers the Windows desk
 Android TV app, the Android mobile app and the mesh helper. The Android apps also carry their own
 `versionName` and `versionCode` (used by the in-app updater); they are listed in each entry.
 
+## [Unreleased]
+
+### Fixed
+
+- TV web app with Emby 4.8 and later: lists now ask for the play dates by name (`UserDataLastPlayedDate`,
+  `UserDataPlayCount`), which Emby otherwise leaves out, so Continue watching is sorted by when each title was
+  last watched.
+
 ## [0.12.0] - 2026-10-22
 
 Android TV 0.12.0 (versionCode 40), Android mobile 0.12.0 (versionCode 37).
