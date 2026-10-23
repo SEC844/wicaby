@@ -41,6 +41,11 @@
   });
 
   const open = (item: BaseItem) => nav.push(itemRoute(item));
+  const heroKey = $derived(`${home.heroResume ? 'resume' : 'featured'}:${home.hero.map((i) => i.Id).join(',')}`);
+  $effect(() => {
+    void heroKey;
+    at = 0;
+  });
 
   // At the top of Home, the status bar takes the colour along the top of the featured title's artwork, and the
   // artwork fades into it (Hero .blend): it seems to run on under the clock. Every slide's colour is read as soon as
@@ -81,7 +86,12 @@
 <div class="page">
   <div class="scroller" data-scroll bind:this={scroller} onscroll={onScroll}>
     {#if home.hero.length}
-      <div bind:this={heroBox}><Hero items={home.hero} resume={home.heroResume} api={a} {tops} onposition={(p) => (at = p)} onshown={(id) => (shownArt[id] = true)} /></div>
+      <!-- A new hero whenever its titles change (the featured ones, or those to resume once they load or as Settings
+           change): its slide track starts afresh instead of keeping the old one's scroll and loads; iOS stopped
+           scrolling Home with a track left scrolled past its end. -->
+      {#key heroKey}
+        <div bind:this={heroBox}><Hero items={home.hero} resume={home.heroResume} api={a} {tops} onposition={(p) => (at = p)} onshown={(id) => (shownArt[id] = true)} /></div>
+      {/key}
     {:else}
       <div class="lead" aria-hidden="true"></div>
     {/if}

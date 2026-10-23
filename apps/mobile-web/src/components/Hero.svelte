@@ -43,13 +43,16 @@
   let shown = $state(new Set<string>());
   let tries = $state<Record<string, number>>({});
   function loaded(i: number): void {
-    shown = new Set([...shown, items[i].Id]);
-    onshown?.(items[i].Id);
+    const item = items[i];
+    if (!item) return;
+    shown = new Set([...shown, item.Id]);
+    onshown?.(item.Id);
     const next = items.findIndex((_, k) => !warm.has(k));
     if (next >= 0) warm = new Set([...warm, next]);
   }
   function failed(i: number): void {
-    const id = items[i].Id;
+    const id = items[i]?.Id;
+    if (!id) return;
     const n = tries[id] ?? 0;
     if (n < 2) setTimeout(() => (tries = { ...tries, [id]: n + 1 }), 1000);
     else loaded(i);
