@@ -187,7 +187,7 @@ export function useHome(api: Api, views: () => BaseItem[]) {
     () => (look.resumeHeroDays && settings.rowHero.value ? 'last-plays' : 'last-plays-off'),
     async () => {
       if (!look.resumeHeroDays || !settings.rowHero.value) return [] as [string, string][];
-      const r = await api.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: 'UserData', EnableImages: false });
+      const r = await api.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: api.playFields, EnableImages: false });
       const out = new Map<string, string>();
       for (const i of r.Items) {
         const d = i.UserData?.LastPlayedDate;

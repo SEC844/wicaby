@@ -178,7 +178,7 @@
       const [resume, next, plays] = await Promise.all([
         a.resume(),
         a.nextUp(),
-        a.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: 'UserData', EnableImages: false }),
+        a.items({ IncludeItemTypes: 'Movie,Episode', Recursive: true, SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 40, Fields: a.playFields, EnableImages: false }),
       ]);
       const last = new Map<string, string>();
       for (const i of plays.Items) if (i.UserData?.LastPlayedDate && !last.has(i.SeriesId ?? i.Id)) last.set(i.SeriesId ?? i.Id, i.UserData.LastPlayedDate);
