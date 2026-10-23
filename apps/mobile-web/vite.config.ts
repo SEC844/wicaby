@@ -7,6 +7,16 @@ import csp from './scripts/csp.mjs';
 import serviceWorker from './scripts/service-worker.mjs';
 // The repository's version (the release tag), shared by every app.
 import pkg from '../../package.json' with { type: 'json' };
+import { execSync } from 'node:child_process';
+
+// The commit built, shown in Settings > About: which update a phone runs.
+const build = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'dev';
+  }
+})();
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const TV_SRC = here('../tv-web/src');
@@ -94,7 +104,7 @@ export default defineConfig({
   // Relative: the app is served from a sub-path (GitHub Pages /wicaby/) as well as from a root.
   base: './',
   publicDir: '../public',
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: { __APP_VERSION__: JSON.stringify(pkg.version), __APP_BUILD__: JSON.stringify(build) },
   plugins: [tvSeams, desktopSeams, svelte(), androidStrings(), csp(), serviceWorker()],
   resolve: {
     alias: {

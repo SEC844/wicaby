@@ -26,7 +26,7 @@
   import type { BaseItem } from '$shared/models';
   import { leave } from '../lib/account';
   import { look, setLook, TEXT_SCALES, systemScale } from '../lib/look.svelte';
-  import { VERSION } from '../lib/identity';
+  import { BUILD, VERSION } from '../lib/identity';
   import { nav, type SettingsPageId } from '../lib/nav.svelte';
   import { showAlert } from '../lib/overlay.svelte';
   import { isAdmin } from '../lib/user.svelte';
@@ -352,7 +352,7 @@
       <Group title={t('web_install_title')}><p class="footnote label-2 note">{t('web_install_body')}</p></Group>
     {/if}
     <Group title={t('about')}>
-      <Row label={t('version')} value={VERSION} />
+      <Row label={t('version')} value={`${VERSION} · ${BUILD}`} />
       <!-- The heights lib/viewport.ts works with, for a report from the phone. -->
       <Row label={t('web_display')} value={display} />
     </Group>

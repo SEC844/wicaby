@@ -4,6 +4,8 @@ import { load, save } from '$tv/storage';
 
 export const CLIENT = 'Wicaby';
 export const VERSION: string = __APP_VERSION__;
+declare const __APP_BUILD__: string;
+export const BUILD: string = __APP_BUILD__;
 
 // Stable per install, like the Android app's device id.
 export const deviceId: string = (() => {
