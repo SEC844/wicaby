@@ -113,8 +113,8 @@
     <string name="web_text_l">Très grand</string>
     <string name="web_text_xl">Énorme</string>
     <string name="web_text_preview">Le texte de Wicaby s’affichera à cette taille.</string>
-    <string name="web_posters">Affiches</string>
-    <string name="web_poster_size">Taille des affiches</string>
+    <string name="web_posters">Affiches et vignettes</string>
+    <string name="web_poster_size">Taille</string>
     <string name="web_size_small">Petites</string>
     <string name="web_size_medium">Moyennes</string>
     <string name="web_size_large">Grandes</string>
@@ -169,4 +169,10 @@
     <string name="web_remember_subs">Mémoriser mes choix de sous-titres</string>
     <string name="web_remember_sub">Garde la piste choisie pour toute la série.</string>
     <string name="web_subtitle_sample">Je crois qu’on n’est pas seuls ici.</string>
+    <string name="web_latest_style">Ajoutés récemment</string>
+    <string name="web_latest_posters">Affiches (séries)</string>
+    <string name="web_latest_thumbs">Vignettes (épisodes)</string>
+    <string name="web_library_order">Ordre des bibliothèques</string>
+    <string name="web_library_order_hint">Tu peux aussi maintenir une bibliothèque appuyée dans l’onglet Bibliothèques, puis la faire glisser. L’ordre est enregistré sur ton serveur.</string>
+    <string name="web_library_order_reset">Revenir à l’ordre du serveur</string>
 </resources>

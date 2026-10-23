@@ -153,6 +153,16 @@ const SCENES = {
     await page.locator('[data-screen-top] button.row').nth(1).click();
     await page.waitForTimeout(800);
   },
+  async homeSettings(page) {
+    await SCENES.settings(page);
+    await page.locator('[data-screen-top] button.row').nth(2).click();
+    await page.waitForTimeout(800);
+  },
+  async appearanceLow(page) {
+    await SCENES.appearance(page);
+    await page.locator('[data-screen-top] [data-scroll]').evaluate((el) => el.scrollTo(0, 900));
+    await page.waitForTimeout(600);
+  },
   async playback(page) {
     await SCENES.settings(page);
     await page.locator('[data-screen-top] button.row').nth(3).click();

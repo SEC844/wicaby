@@ -2,7 +2,8 @@
   // Bibliothèques: Emby's cross-library lists first (favourites, collections, playlists, history) as tiles, then
   // every library as a wide card: its own artwork (the server's jacket), or, as chosen in Settings > Appearance (and
   // without artwork), its icon on the tint of its kind. Video libraries open their grid; music, photos, books and
-  // Live TV get their pages with M3.
+  // Live TV get their pages with M3. A long press lifts a library to move it (lib/reorder.ts): the order is the
+  // user's (lib/library-order).
   import type { BaseItem } from '$shared/models';
   import { t } from '$tv/i18n.svelte';
   import { useLoad } from '$tv/load.svelte';
@@ -19,8 +20,11 @@
   import Radio from '@lucide/svelte/icons/radio';
   import Tv from '@lucide/svelte/icons/tv';
   import LargeTitlePage from '../components/LargeTitlePage.svelte';
+  import { flip } from 'svelte/animate';
+  import { arranged, moved, saveOrderToServer, setOrder } from '../lib/library-order.svelte';
   import { look } from '../lib/look.svelte';
   import { nav } from '../lib/nav.svelte';
+  import { reorder } from '../lib/reorder';
 
   const a = api()!;
   const views = useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true });
@@ -40,6 +44,29 @@
     },
   ];
 
+  // While a library is lifted, the list is this copy, reordered as it passes the others.
+  let working = $state<BaseItem[] | null>(null);
+  let lifted = $state<string | null>(null);
+  const libraries = $derived(working ?? arranged(a, views.value ?? []));
+  const order = {
+    item: '.lib',
+    onlift: (i: number) => {
+      working = [...libraries];
+      lifted = working[i]?.Id ?? null;
+    },
+    onmove: (from: number, to: number) => {
+      if (working) working = moved(working, from, to);
+    },
+    ondrop: () => {
+      if (!working) return;
+      const ids = working.map((v) => v.Id);
+      setOrder(a, ids);
+      void saveOrderToServer(a, ids);
+      working = null;
+      lifted = null;
+    },
+  };
+
   function open(v: BaseItem): void {
     nav.push({ name: 'folder', id: v.Id, title: v.Name, serverId: v.ServerId });
   }
@@ -55,13 +82,13 @@
       </button>
     {/each}
   </div>
-  <div class="list">
-    {#each views.value ?? [] as v (v.Id)}
+  <div class="list" use:reorder={order}>
+    {#each libraries as v (v.Id)}
       {@const Icon = ICONS[v.CollectionType ?? ''] ?? FolderIcon}
       {@const art = look.libraryArt && v.ImageTags?.Primary ? a.image(v.Id, 'Primary', v.ImageTags.Primary, { maxWidth: Math.round(400 * dpr) }) : undefined}
-      <button class="lib pressable" class:plain={!art} style:--tint={TINTS[v.CollectionType ?? ''] ?? 'var(--graphite, #6b6b75)'} onclick={() => open(v)}>
+      <button class="lib pressable" class:plain={!art} animate:flip={{ duration: v.Id === lifted ? 0 : 280 }} style:--tint={TINTS[v.CollectionType ?? ''] ?? 'var(--graphite, #6b6b75)'} onclick={() => open(v)}>
         {#if art}
-          <img src={art} alt="" loading="lazy" decoding="async" />
+          <img src={art} alt="" loading="lazy" decoding="async" draggable="false" />
           <span class="shade"></span>
         {:else}
           <span class="icon"><Icon size={92} strokeWidth={1.2} aria-hidden="true" /></span>
@@ -101,12 +128,17 @@
     color: #fff;
   }
   .list {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
     gap: 14px;
     padding: 8px max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
   }
   .lib {
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: box-shadow 200ms var(--ease), opacity 200ms var(--ease);
     position: relative;
     aspect-ratio: 16 / 7;
     border-radius: var(--r-lg);
@@ -145,5 +177,15 @@
     bottom: 14px;
     color: #fff;
     text-align: left;
+  }
+  /* Lifted: over the others, with a deeper shadow; the others dim a little. */
+  .lib:global(.lifted) {
+    z-index: 2;
+    box-shadow:
+      0 18px 40px rgb(0 0 0 / 0.45),
+      inset 0 0 0 0.5px var(--hairline);
+  }
+  .list:global(.reordering) > .lib:not(:global(.lifted)) {
+    opacity: 0.72;
   }
 </style>

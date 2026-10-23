@@ -32,6 +32,31 @@ export interface HomeRow {
 const latestOf = (list: BaseItem[]) => list.filter((v) => !['playlists', 'livetv', 'folders', 'music', 'photos', 'books'].includes(v.CollectionType ?? ''));
 const airDate = (i: BaseItem) => Date.parse(i.PremiereDate ?? '') || 0;
 
+// A Recently added row in posters: Emby lists the new episodes (and seasons) themselves, whose picture is a 16:9
+// still; each becomes its series, once, with the series' poster, and opens the series.
+export function asSeries(items: BaseItem[]): BaseItem[] {
+  const seen = new Set<string>();
+  const out: BaseItem[] = [];
+  for (const i of items) {
+    if ((i.Type !== 'Episode' && i.Type !== 'Season') || !i.SeriesId) {
+      if (!seen.has(i.Id)) out.push(i);
+      seen.add(i.Id);
+      continue;
+    }
+    if (seen.has(i.SeriesId)) continue;
+    seen.add(i.SeriesId);
+    out.push({
+      Id: i.SeriesId,
+      Name: i.SeriesName ?? i.Name,
+      Type: 'Series',
+      ServerId: i.ServerId,
+      ImageTags: i.SeriesPrimaryImageTag ? { Primary: i.SeriesPrimaryImageTag } : {},
+      ProductionYear: i.ProductionYear,
+    } as BaseItem);
+  }
+  return out;
+}
+
 // The rows Home can show for the signed-in user, in their order, with what the user changed (TP-07): Home's rows
 // and Settings > Home's editor read the same layout.
 function useLayout(views: () => BaseItem[]) {
@@ -97,6 +122,11 @@ export function useHomeLayout(views: () => BaseItem[]) {
     },
     toggle: (id: string) => save({ hidden: flip(l.pref.hidden, id) }),
     wide: (id: string) => save({ thumb: flip(l.pref.thumb, id) }),
+    // Every Recently added row in thumbnails, or every one in posters.
+    allWide: (on: boolean) => save({ thumb: on ? l.order.filter((id) => latestViewId(id) !== null) : [] }),
+    get anyWide(): boolean {
+      return l.order.some((id) => latestViewId(id) !== null && l.pref.thumb.includes(id));
+    },
     move: (id: string, by: number) => save({ order: move(l.order, l.order.indexOf(id), l.order.indexOf(id) + by) }),
     reset: () => setHomeRows(l.user, { order: [], hidden: [], thumb: [] }),
   };
@@ -188,7 +218,8 @@ export function useHome(api: Api, views: () => BaseItem[]) {
         const view = latestViews.find((v) => viewRef(v) === viewId);
         const items = viewId ? latests.value?.[viewId] : undefined;
         const name = l.viewName(view);
-        if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items, wide: pref.thumb.includes(id), playable: false });
+        const wide = pref.thumb.includes(id);
+        if (view && items?.length) out.push({ key: id, title: t('latest_in', name ?? ''), items: wide ? items : asSeries(items), wide, playable: false });
       }
     }
     return out;

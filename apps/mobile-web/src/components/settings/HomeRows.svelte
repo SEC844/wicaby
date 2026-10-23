@@ -9,6 +9,7 @@
   import GalleryHorizontal from '@lucide/svelte/icons/gallery-horizontal';
   import { flip } from 'svelte/animate';
   import { useHomeLayout } from '../../lib/home.svelte';
+  import Chips from './Chips.svelte';
 
   let { views }: { views: () => BaseItem[] } = $props();
   // svelte-ignore state_referenced_locally
@@ -16,6 +17,15 @@
   const rows = $derived(layout.rows);
 </script>
 
+{#if rows.some((r) => r.wide !== null)}
+  <!-- Every Recently added row at once; the thumbnail button on a row changes that row alone. -->
+  <Chips
+    label={t('web_latest_style')}
+    options={[t('web_latest_posters'), t('web_latest_thumbs')]}
+    selected={layout.anyWide ? 1 : 0}
+    onpick={(i) => layout.allWide(i === 1)}
+  />
+{/if}
 {#each rows as row, i (row.id)}
   <div class="row" class:off={row.hidden} animate:flip={{ duration: 260 }}>
     <input class="switch" type="checkbox" switch checked={!row.hidden} aria-label={row.label} onchange={() => layout.toggle(row.id)} />

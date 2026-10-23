@@ -112,8 +112,8 @@
     <string name="web_text_l">Larger</string>
     <string name="web_text_xl">Largest</string>
     <string name="web_text_preview">Wicaby’s text will show at this size.</string>
-    <string name="web_posters">Posters</string>
-    <string name="web_poster_size">Poster size</string>
+    <string name="web_posters">Posters and cards</string>
+    <string name="web_poster_size">Size</string>
     <string name="web_size_small">Small</string>
     <string name="web_size_medium">Medium</string>
     <string name="web_size_large">Large</string>
@@ -168,4 +168,10 @@
     <string name="web_remember_subs">Remember my subtitle choices</string>
     <string name="web_remember_sub">Keeps your pick for the whole series.</string>
     <string name="web_subtitle_sample">I don’t think we’re alone here.</string>
+    <string name="web_latest_style">Recently added</string>
+    <string name="web_latest_posters">Posters (series)</string>
+    <string name="web_latest_thumbs">Thumbnails (episodes)</string>
+    <string name="web_library_order">Library order</string>
+    <string name="web_library_order_hint">You can also press and hold a library in the Libraries tab, then drag it. The order is saved on your server.</string>
+    <string name="web_library_order_reset">Back to the server’s order</string>
 </resources>

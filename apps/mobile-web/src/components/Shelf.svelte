@@ -5,7 +5,7 @@
   import type { Api } from '$tv/api';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import type { ItemMenuContext } from '../lib/item-menu.svelte';
-  import { look, posterWidth } from '../lib/look.svelte';
+  import { look, posterWidth, wideWidth } from '../lib/look.svelte';
   import Card from './Card.svelte';
 
   let {
@@ -29,7 +29,7 @@
   } = $props();
 
   // Android MediaRow: 16:9 cards at about three quarters of the width, posters at 116 dp.
-  const width = $derived(wide ? Math.min(300, Math.round(window.innerWidth * 0.74)) : posterWidth(116));
+  const width = $derived(wide ? wideWidth(Math.min(300, window.innerWidth * 0.74)) : posterWidth(116));
 </script>
 
 <section class="shelf">

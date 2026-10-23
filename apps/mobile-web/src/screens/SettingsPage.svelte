@@ -12,6 +12,7 @@
   import Chips from '../components/settings/Chips.svelte';
   import Group from '../components/settings/Group.svelte';
   import HomeRows from '../components/settings/HomeRows.svelte';
+  import LibraryOrder from '../components/settings/LibraryOrder.svelte';
   import Row from '../components/settings/Row.svelte';
   import SubtitlePreview from '../components/settings/SubtitlePreview.svelte';
   import ThemePicker from '../components/settings/ThemePicker.svelte';
@@ -162,7 +163,7 @@
   const textIndex = $derived(look.textSize === 'system' ? 0 : Math.max(0, TEXT_SCALES.indexOf(look.textSize)) + 1);
   // A settings page is pushed for one category and never re-targeted.
   // svelte-ignore state_referenced_locally
-  const views = page === 'home' ? useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true }) : null;
+  const views = page === 'home' || page === 'appearance' ? useLoad<BaseItem[]>(() => 'views', () => a.views(), { persist: true }) : null;
 
   const css = getComputedStyle(document.documentElement);
   const inset = (() => {
@@ -202,6 +203,9 @@
       <Row label={t('web_poster_titles')} checked={look.posterTitles} ontoggle={(on) => setLook('posterTitles', on)} />
       <Row label={t('web_card_badges')} sub={t('web_card_badges_sub')} checked={look.cardBadges} ontoggle={(on) => setLook('cardBadges', on)} />
       <Row label={t('web_library_art')} sub={t('web_library_art_sub')} checked={look.libraryArt} ontoggle={(on) => setLook('libraryArt', on)} />
+    </Group>
+    <Group title={t('web_library_order')} hint={t('web_library_order_hint')}>
+      <LibraryOrder api={a} views={() => views?.value ?? []} />
     </Group>
     <Group title={t('web_interface')}>
       <Chips label={t('web_start_tab')} options={START_TABS.map((s) => t(s.label))} selected={Math.max(0, START_TABS.findIndex((s) => s.id === look.startTab))} onpick={(i) => setLook('startTab', START_TABS[i].id)} />

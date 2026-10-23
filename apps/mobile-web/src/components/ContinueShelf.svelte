@@ -11,6 +11,7 @@
   import Play from '@lucide/svelte/icons/play';
   import { menuPress } from '../lib/item-menu.svelte';
   import { longpress } from '../lib/press';
+  import { look } from '../lib/look.svelte';
 
   let {
     title,
@@ -21,8 +22,9 @@
     onplay,
   }: { title: string; items: BaseItem[]; api: Api; subtitle?: (item: BaseItem) => string | undefined; continueRow?: SeriesDates; onplay: (item: BaseItem) => void } = $props();
 
-  const width = Math.min(440, Math.round(window.innerWidth * 0.86));
-  const height = Math.round((width * 9) / 16);
+  // Settings > Appearance's card size: a smaller size shows more of the next card.
+  const width = $derived(Math.round(Math.min(440, window.innerWidth * 0.86) * [0.78, 1, 1.05][look.posterSize]));
+  const height = $derived(Math.round((width * 9) / 16));
   const dpr = Math.min(3, window.devicePixelRatio || 2);
   const art = (item: BaseItem) => (apiOf(item.ServerId) ?? api).thumb(item, Math.ceil(width * dpr));
 </script>

@@ -82,3 +82,5 @@ export function initLook(): void {
 
 // A poster's width in a row for the chosen size, from the medium one.
 export const posterWidth = (medium: number): number => Math.round(medium * [0.8, 1, 1.24][look.posterSize]);
+// A 16:9 card's (Continue watching, Next up, thumbnails), from the medium one, never wider than the screen.
+export const wideWidth = (medium: number): number => Math.round(Math.min(window.innerWidth * 0.9, medium * [0.72, 1, 1.18][look.posterSize]));

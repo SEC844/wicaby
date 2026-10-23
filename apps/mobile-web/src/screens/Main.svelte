@@ -19,7 +19,7 @@
   import { standalone } from '../platform';
 
   // A tab switch slides the tab's root in (lib/motion tabIn); a tab showing a pushed page is the page layer's.
-  const roots: Partial<Record<TabId, HTMLElement>> = {};
+  const roots = $state<Partial<Record<TabId, HTMLElement>>>({});
   let shown = shell.tab;
   $effect(() => {
     const tab = shell.tab;
